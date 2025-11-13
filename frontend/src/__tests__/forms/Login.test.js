@@ -31,7 +31,7 @@ const renderLogin = () => {
   );
 };
 
-describe.skip('Login Form', () => {
+describe('Login Form', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();

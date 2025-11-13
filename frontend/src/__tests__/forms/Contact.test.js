@@ -41,7 +41,7 @@ const renderContact = (authValue = mockAuthContext, toastValue = mockToast) => {
   );
 };
 
-describe.skip('Contact Form', () => {
+describe('Contact Form', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();

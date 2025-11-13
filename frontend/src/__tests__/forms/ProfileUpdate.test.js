@@ -189,7 +189,7 @@ const renderProfileUpdate = (user = mockAuthContext.user, toastValue = mockToast
   );
 };
 
-describe.skip('ProfileUpdate Form', () => {
+describe('ProfileUpdate Form', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });

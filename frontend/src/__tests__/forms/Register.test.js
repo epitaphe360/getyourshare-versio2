@@ -20,7 +20,7 @@ const renderRegister = () => {
   );
 };
 
-describe.skip('Register Form', () => {
+describe('Register Form', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
