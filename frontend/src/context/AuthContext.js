@@ -13,27 +13,33 @@ export const AuthProvider = ({ children }) => {
 
   // Fonction pour vérifier la session auprès du backend
   const verifySession = async () => {
-    const token = localStorage.getItem('token');
-
-    if (!token) {
-      setLoading(false);
-      setSessionStatus('expired');
-      return false;
-    }
-
     try {
+      // Les cookies httpOnly sont automatiquement envoyés avec credentials: 'include'
       const response = await api.get('/api/auth/me');
 
       if (response.data) {
         setUser(response.data);
-        localStorage.setItem('user', JSON.stringify(response.data));
         setSessionStatus('active');
         return true;
       }
     } catch (error) {
-      console.error('❌ Session invalide ou expirée:', error.response?.data?.detail);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Si 401, essayer de rafraîchir le token automatiquement
+      if (error.response?.status === 401) {
+        try {
+          const refreshResponse = await api.post('/api/auth/refresh');
+          if (refreshResponse.data?.user) {
+            setUser(refreshResponse.data.user);
+            setSessionStatus('active');
+            return true;
+          }
+        } catch (refreshError) {
+          // Refresh token aussi expiré, déconnexion nécessaire
+          setUser(null);
+          setSessionStatus('expired');
+          return false;
+        }
+      }
+
       setUser(null);
       setSessionStatus('expired');
       return false;
@@ -48,10 +54,9 @@ export const AuthProvider = ({ children }) => {
     // Vérifier la session au chargement
     verifySession();
 
-    // Vérification périodique de la session
+    // Vérification périodique de la session (refresh automatique si nécessaire)
     const intervalId = setInterval(() => {
-      const token = localStorage.getItem('token');
-      if (token) {
+      if (sessionStatus === 'active') {
         verifySession();
       }
     }, SESSION_CHECK_INTERVAL);
@@ -78,10 +83,9 @@ export const AuthProvider = ({ children }) => {
       }
 
       // No 2FA required, login directly
-      const { access_token, user: userData } = response.data;
+      // Les tokens sont automatiquement stockés dans des cookies httpOnly
+      const { user: userData } = response.data;
 
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('user', JSON.stringify(userData));
       setUser(userData);
       setSessionStatus('active');
 
@@ -96,18 +100,15 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      // Appeler le backend pour déconnexion côté serveur
+      // Appeler le backend pour déconnexion côté serveur (supprime les cookies)
       await api.post('/api/auth/logout');
-      } catch (error) {
-      console.error('⚠️ Erreur lors de la déconnexion backend:', error.message);
-      // Continue même si le backend échoue
+    } catch (error) {
+      // Continue même si le backend échoue (les cookies expirent de toute façon)
     } finally {
-      // Nettoyer le localStorage et l'état
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Nettoyer l'état utilisateur
       setUser(null);
       setSessionStatus('expired');
-      }
+    }
   };
 
   // Fonction pour rafraîchir manuellement la session
