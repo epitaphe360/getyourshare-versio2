@@ -5,6 +5,7 @@ Tous les mots de passe: Test123!
 import os
 from supabase import create_client, Client
 from datetime import datetime
+from utils.logger import logger
 
 # Configuration Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://iamezkmapbhlhhvvsits.supabase.co")
@@ -116,7 +117,7 @@ def check_user_exists(email: str) -> dict:
         response = supabase.table("users").select("*").eq("email", email).execute()
         return response.data[0] if response.data else None
     except Exception as e:
-        print(f"   ⚠️  Erreur lors de la vérification: {str(e)}")
+        logger.info(f"   ⚠️  Erreur lors de la vérification: {str(e)}")
         return None
 
 def create_user_via_auth(email: str, password: str, metadata: dict) -> dict:
@@ -132,14 +133,14 @@ def create_user_via_auth(email: str, password: str, metadata: dict) -> dict:
         })
         return response.user
     except Exception as e:
-        print(f"   ⚠️  Erreur Auth: {str(e)}")
+        logger.info(f"   ⚠️  Erreur Auth: {str(e)}")
         return None
 
 def print_section(title: str):
     """Affiche un titre de section"""
-    print(f"\n{'='*70}")
-    print(f"  {title}")
-    print(f"{'='*70}\n")
+    logger.info(f"\n{'='*70}")
+    logger.info(f"  {title}")
+    logger.info(f"{'='*70}\n")
 
 def verify_account(email: str, expected_role: str, expected_tier: str, name: str):
     """Vérifie un compte et affiche son statut"""
@@ -151,26 +152,26 @@ def verify_account(email: str, expected_role: str, expected_tier: str, name: str
         
         status = "✅" if (role_ok and tier_ok) else "⚠️"
         
-        print(f"{status} {name}")
-        print(f"   Email: {email}")
-        print(f"   Password: Test123!")
-        print(f"   Role: {user.get('role')} {'✓' if role_ok else '✗ (devrait être ' + expected_role + ')'}")
-        print(f"   Tier: {user.get('tier')} {'✓' if tier_ok else '✗ (devrait être ' + expected_tier + ')'}")
+        logger.info(f"{status} {name}")
+        logger.info(f"   Email: {email}")
+        logger.info(f"   Password: Test123!")
+        logger.info(f"   Role: {user.get('role')} {'✓' if role_ok else '✗ (devrait être ' + expected_role + ')'}")
+        logger.info(f"   Tier: {user.get('tier')} {'✓' if tier_ok else '✗ (devrait être ' + expected_tier + ')'}")
         
         # Afficher infos supplémentaires selon le rôle
         if expected_role == "influencer":
-            print(f"   Followers: {user.get('followers_count', 'N/A')}")
-            print(f"   Niche: {user.get('niche', 'N/A')}")
+            logger.info(f"   Followers: {user.get('followers_count', 'N/A')}")
+            logger.info(f"   Niche: {user.get('niche', 'N/A')}")
         elif expected_role == "merchant":
-            print(f"   Company: {user.get('company_name', 'N/A')}")
-            print(f"   Business: {user.get('business_type', 'N/A')}")
+            logger.info(f"   Company: {user.get('company_name', 'N/A')}")
+            logger.info(f"   Business: {user.get('business_type', 'N/A')}")
         
         print()
         return True
     else:
-        print(f"❌ {name}")
-        print(f"   Email: {email}")
-        print(f"   ⚠️  COMPTE N'EXISTE PAS - Nécessite création")
+        logger.info(f"❌ {name}")
+        logger.info(f"   Email: {email}")
+        logger.info(f"   ⚠️  COMPTE N'EXISTE PAS - Nécessite création")
         print()
         return False
 
@@ -180,7 +181,7 @@ def main():
     all_exist = True
     
     # 1. Admin
-    print("1️⃣  ADMINISTRATEUR\n")
+    logger.info("1️⃣  ADMINISTRATEUR\n")
     admin_exists = verify_account(
         ACCOUNTS["admin"]["email"],
         ACCOUNTS["admin"]["role"],
@@ -225,26 +226,26 @@ def main():
     print_section("📊 RÉSUMÉ")
     
     if all_exist:
-        print("✅ TOUS LES COMPTES EXISTENT ET SONT CORRECTS")
-        print("\n🔑 Identifiants de connexion:")
-        print("   Mot de passe universel: Test123!")
-        print("\n📧 Emails:")
-        print(f"   Admin:       {ACCOUNTS['admin']['email']}")
-        print(f"   Influenceur: hassan.oudrhiri@getyourshare.com (STARTER)")
-        print(f"   Influenceur: sarah.benali@getyourshare.com (PRO)")
-        print(f"   Influenceur: karim.benjelloun@getyourshare.com (ENTERPRISE)")
-        print(f"   Marchand:    boutique.maroc@getyourshare.com (STARTER)")
-        print(f"   Marchand:    luxury.crafts@getyourshare.com (PRO)")
-        print(f"   Marchand:    electromaroc@getyourshare.com (ENTERPRISE)")
-        print(f"   Commercial:  sofia.chakir@getyourshare.com (ENTERPRISE)")
+        logger.info("✅ TOUS LES COMPTES EXISTENT ET SONT CORRECTS")
+        logger.info("\n🔑 Identifiants de connexion:")
+        logger.info("   Mot de passe universel: Test123!")
+        logger.info("\n📧 Emails:")
+        logger.info(f"   Admin:       {ACCOUNTS['admin']['email']}")
+        logger.info(f"   Influenceur: hassan.oudrhiri@getyourshare.com (STARTER)")
+        logger.info(f"   Influenceur: sarah.benali@getyourshare.com (PRO)")
+        logger.info(f"   Influenceur: karim.benjelloun@getyourshare.com (ENTERPRISE)")
+        logger.info(f"   Marchand:    boutique.maroc@getyourshare.com (STARTER)")
+        logger.info(f"   Marchand:    luxury.crafts@getyourshare.com (PRO)")
+        logger.info(f"   Marchand:    electromaroc@getyourshare.com (ENTERPRISE)")
+        logger.info(f"   Commercial:  sofia.chakir@getyourshare.com (ENTERPRISE)")
     else:
-        print("⚠️  CERTAINS COMPTES SONT MANQUANTS OU INCORRECTS")
-        print("\n💡 Pour créer les comptes manquants:")
-        print("   1. Utilisez le Dashboard Supabase Auth")
-        print("   2. Ou exécutez le script SQL dans backend/database/")
-        print("   3. Ou contactez l'administrateur système")
+        logger.info("⚠️  CERTAINS COMPTES SONT MANQUANTS OU INCORRECTS")
+        logger.info("\n💡 Pour créer les comptes manquants:")
+        logger.info("   1. Utilisez le Dashboard Supabase Auth")
+        logger.info("   2. Ou exécutez le script SQL dans backend/database/")
+        logger.info("   3. Ou contactez l'administrateur système")
     
-    print("\n" + "="*70 + "\n")
+    logger.info("\n" + "="*70 + "\n")
 
 if __name__ == "__main__":
     main()

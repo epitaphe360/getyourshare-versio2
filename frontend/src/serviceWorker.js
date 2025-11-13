@@ -55,7 +55,6 @@ let syncQueue = [];
  * Precache critical assets
  */
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker...', CACHE_VERSION);
 
   event.waitUntil(
     (async () => {
@@ -63,11 +62,10 @@ self.addEventListener('install', (event) => {
         // Precache critical assets
         const cache = await caches.open(CACHE_NAMES.static);
         await cache.addAll(PRECACHE_ASSETS);
-        console.log('[SW] Precached critical assets');
 
         // Skip waiting to activate immediately
         await self.skipWaiting();
-        console.log('[SW] Service Worker installed successfully');
+
       } catch (error) {
         console.error('[SW] Installation failed:', error);
       }
@@ -80,7 +78,6 @@ self.addEventListener('install', (event) => {
  * Clean up old caches
  */
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker...', CACHE_VERSION);
 
   event.waitUntil(
     (async () => {
@@ -92,7 +89,7 @@ self.addEventListener('activate', (event) => {
         await Promise.all(
           cacheNames.map((cacheName) => {
             if (!validCacheNames.includes(cacheName)) {
-              console.log('[SW] Deleting old cache:', cacheName);
+
               return caches.delete(cacheName);
             }
           })
@@ -100,7 +97,6 @@ self.addEventListener('activate', (event) => {
 
         // Claim all clients immediately
         await self.clients.claim();
-        console.log('[SW] Service Worker activated successfully');
 
         // Notify all clients about the new version
         await notifyClients({ type: 'SW_UPDATED', version: CACHE_VERSION });
@@ -193,7 +189,7 @@ async function networkFirstStrategy(request) {
     const cachedResponse = await caches.match(request);
 
     if (cachedResponse) {
-      console.log('[SW] Serving from cache (offline):', request.url);
+
       return cachedResponse;
     }
 
@@ -245,7 +241,6 @@ async function staleWhileRevalidateStrategy(request, cacheName) {
  * Queue failed requests and retry when online
  */
 self.addEventListener('sync', (event) => {
-  console.log('[SW] Background Sync triggered:', event.tag);
 
   if (event.tag === SYNC_QUEUE_NAME) {
     event.waitUntil(processSyncQueue());
@@ -257,8 +252,6 @@ async function processSyncQueue() {
     // Get queued requests from IndexedDB
     const queuedRequests = await getSyncQueue();
 
-    console.log(`[SW] Processing ${queuedRequests.length} queued requests`);
-
     for (const queuedRequest of queuedRequests) {
       try {
         const response = await fetch(queuedRequest.url, queuedRequest.options);
@@ -266,7 +259,6 @@ async function processSyncQueue() {
         if (response.ok) {
           // Remove from queue on success
           await removeFromSyncQueue(queuedRequest.id);
-          console.log('[SW] Synced request:', queuedRequest.url);
 
           // Notify client
           await notifyClients({
@@ -287,7 +279,6 @@ async function processSyncQueue() {
  * PUSH NOTIFICATIONS
  */
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received');
 
   const data = event.data ? event.data.json() : {};
   const title = data.title || 'ShareYourSales';
@@ -346,7 +337,6 @@ self.addEventListener('notificationclick', (event) => {
  * PERIODIC BACKGROUND SYNC
  */
 self.addEventListener('periodicsync', (event) => {
-  console.log('[SW] Periodic sync triggered:', event.tag);
 
   if (event.tag === 'update-content') {
     event.waitUntil(updateContent());
@@ -378,7 +368,6 @@ async function updateContent() {
  * Communication between SW and clients
  */
 self.addEventListener('message', (event) => {
-  console.log('[SW] Message received:', event.data);
 
   const { type, data } = event.data;
 
@@ -448,14 +437,14 @@ function createOfflineApiResponse() {
 async function cacheUrls(urls) {
   const cache = await caches.open(CACHE_NAMES.dynamic);
   await cache.addAll(urls);
-  console.log('[SW] Cached URLs:', urls);
+
 }
 
 // Clear all caches
 async function clearAllCaches() {
   const cacheNames = await caches.keys();
   await Promise.all(cacheNames.map((name) => caches.delete(name)));
-  console.log('[SW] All caches cleared');
+
 }
 
 // Get total cache size
@@ -485,7 +474,6 @@ async function addToSyncQueue(request) {
   };
 
   syncQueue.push(queueItem);
-  console.log('[SW] Added to sync queue:', queueItem);
 
   // Register for background sync
   if ('sync' in self.registration) {
@@ -497,7 +485,5 @@ async function addToSyncQueue(request) {
 
 async function removeFromSyncQueue(id) {
   syncQueue = syncQueue.filter((item) => item.id !== id);
-  console.log('[SW] Removed from sync queue:', id);
-}
 
-console.log('[SW] Service Worker loaded successfully');
+}

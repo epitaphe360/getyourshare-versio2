@@ -573,17 +573,18 @@ def integrate_all_endpoints(app, verify_token):
         from upload_endpoints import add_upload_endpoints
 
         add_upload_endpoints(app, verify_token)
-        print("✅ Endpoints d'upload intégrés")
+        logger.info("✅ Endpoints d'upload intégrés")
     except ImportError:
-        print("⚠️  Module upload_endpoints non trouvé")
+        logger.info("⚠️  Module upload_endpoints non trouvé")
 
     # Ajouter les endpoints de recherche d'influenceurs
     try:
         from influencer_search_endpoints import add_influencer_search_endpoints
+from utils.logger import logger
 
         add_influencer_search_endpoints(app, verify_token)
-        print("✅ Endpoints de recherche d'influenceurs intégrés")
+        logger.info("✅ Endpoints de recherche d'influenceurs intégrés")
     except ImportError:
-        print("⚠️  Module influencer_search_endpoints non trouvé")
+        logger.info("⚠️  Module influencer_search_endpoints non trouvé")
 
-    print("✅ Tous les endpoints avancés ont été intégrés")
+    logger.info("✅ Tous les endpoints avancés ont été intégrés")

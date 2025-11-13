@@ -18,6 +18,7 @@ load_dotenv()
 # Importer les données MOCK
 sys.path.insert(0, os.path.dirname(__file__))
 from mock_data import MOCK_USERS, MOCK_PRODUCTS, MOCK_SALES
+from utils.logger import logger
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -25,17 +26,17 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 # Client Supabase avec droits admin
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-print("=" * 70)
-print("🚀 SETUP SUPABASE - ShareYourSales")
-print("=" * 70)
-print(f"📍 URL: {SUPABASE_URL}\n")
+logger.info("=" * 70)
+logger.info("🚀 SETUP SUPABASE - ShareYourSales")
+logger.info("=" * 70)
+logger.info(f"📍 URL: {SUPABASE_URL}\n")
 
 # ============================================
 # ÉTAPE 1: Créer les tables
 # ============================================
 
-print("📋 ÉTAPE 1: Création des tables")
-print("-" * 70)
+logger.info("📋 ÉTAPE 1: Création des tables")
+logger.info("-" * 70)
 
 
 def read_sql_file():
@@ -46,7 +47,7 @@ def read_sql_file():
 
 
 # Pour créer les tables, on doit utiliser l'éditeur SQL de Supabase ou psycopg2
-print(
+logger.info(
     """
 ⚠️  Pour créer les tables dans Supabase:
 
@@ -66,21 +67,21 @@ Une fois les tables créées, relancez ce script pour migrer les données.
 response = input("\n✅ Tables créées? (o/n): ").strip().lower()
 
 if response != "o":
-    print("❌ Veuillez d'abord créer les tables dans Supabase.")
-    print(f"📄 Fichier SQL: database/schema.sql")
+    logger.info("❌ Veuillez d'abord créer les tables dans Supabase.")
+    logger.info(f"📄 Fichier SQL: database/schema.sql")
     sys.exit(1)
 
 # ============================================
 # ÉTAPE 2: Migrer les utilisateurs
 # ============================================
 
-print("\n📋 ÉTAPE 2: Migration des utilisateurs")
-print("-" * 70)
+logger.info("\n📋 ÉTAPE 2: Migration des utilisateurs")
+logger.info("-" * 70)
 
 
 def migrate_users():
     """Migrer les utilisateurs MOCK vers Supabase"""
-    print(f"👤 Migration de {len(MOCK_USERS)} utilisateurs...")
+    logger.info(f"👤 Migration de {len(MOCK_USERS)} utilisateurs...")
 
     for user in MOCK_USERS:
         try:
@@ -99,10 +100,10 @@ def migrate_users():
             # Insérer dans Supabase
             result = supabase.table("users").insert(user_data).execute()
 
-            print(f"  ✅ {user['email']} ({user['role']})")
+            logger.info(f"  ✅ {user['email']} ({user['role']})")
 
         except Exception as e:
-            print(f"  ❌ Erreur pour {user['email']}: {str(e)}")
+            logger.info(f"  ❌ Erreur pour {user['email']}: {str(e)}")
 
 
 migrate_users()
@@ -111,13 +112,13 @@ migrate_users()
 # ÉTAPE 3: Migrer les merchants
 # ============================================
 
-print("\n📋 ÉTAPE 3: Migration des merchants")
-print("-" * 70)
+logger.info("\n📋 ÉTAPE 3: Migration des merchants")
+logger.info("-" * 70)
 
 
 def migrate_merchants():
     """Migrer les merchants MOCK vers Supabase"""
-    print(f"🏢 Migration de {len(MOCK_MERCHANTS)} merchants...")
+    logger.info(f"🏢 Migration de {len(MOCK_MERCHANTS)} merchants...")
 
     # D'abord, récupérer les user_id des merchants depuis Supabase
     users_result = supabase.table("users").select("id, email").eq("role", "merchant").execute()
@@ -136,7 +137,7 @@ def migrate_merchants():
 
             user_id = email_to_user_id.get(user_email)
             if not user_id:
-                print(f"  ⚠️  User introuvable pour {merchant['company_name']}")
+                logger.info(f"  ⚠️  User introuvable pour {merchant['company_name']}")
                 continue
 
             merchant_data = {
@@ -153,10 +154,10 @@ def migrate_merchants():
             }
 
             result = supabase.table("merchants").insert(merchant_data).execute()
-            print(f"  ✅ {merchant['company_name']}")
+            logger.info(f"  ✅ {merchant['company_name']}")
 
         except Exception as e:
-            print(f"  ❌ Erreur pour {merchant['company_name']}: {str(e)}")
+            logger.info(f"  ❌ Erreur pour {merchant['company_name']}: {str(e)}")
 
 
 migrate_merchants()
@@ -165,13 +166,13 @@ migrate_merchants()
 # ÉTAPE 4: Migrer les influencers
 # ============================================
 
-print("\n📋 ÉTAPE 4: Migration des influencers")
-print("-" * 70)
+logger.info("\n📋 ÉTAPE 4: Migration des influencers")
+logger.info("-" * 70)
 
 
 def migrate_influencers():
     """Migrer les influencers MOCK vers Supabase"""
-    print(f"⭐ Migration de {len(MOCK_INFLUENCERS)} influencers...")
+    logger.info(f"⭐ Migration de {len(MOCK_INFLUENCERS)} influencers...")
 
     # Récupérer les user_id des influencers depuis Supabase
     users_result = supabase.table("users").select("id, email").eq("role", "influencer").execute()
@@ -192,7 +193,7 @@ def migrate_influencers():
 
             user_id = email_to_user_id.get(user_email)
             if not user_id:
-                print(f"  ⚠️  User introuvable pour {influencer['full_name']}")
+                logger.info(f"  ⚠️  User introuvable pour {influencer['full_name']}")
                 continue
 
             influencer_data = {
@@ -213,10 +214,10 @@ def migrate_influencers():
             }
 
             result = supabase.table("influencers").insert(influencer_data).execute()
-            print(f"  ✅ {influencer['full_name']} (@{influencer['username']})")
+            logger.info(f"  ✅ {influencer['full_name']} (@{influencer['username']})")
 
         except Exception as e:
-            print(f"  ❌ Erreur pour {influencer['full_name']}: {str(e)}")
+            logger.info(f"  ❌ Erreur pour {influencer['full_name']}: {str(e)}")
 
 
 migrate_influencers()
@@ -225,13 +226,13 @@ migrate_influencers()
 # ÉTAPE 5: Migrer les produits
 # ============================================
 
-print("\n📋 ÉTAPE 5: Migration des produits")
-print("-" * 70)
+logger.info("\n📋 ÉTAPE 5: Migration des produits")
+logger.info("-" * 70)
 
 
 def migrate_products():
     """Migrer les produits MOCK vers Supabase"""
-    print(f"📦 Migration de {len(MOCK_PRODUCTS)} produits...")
+    logger.info(f"📦 Migration de {len(MOCK_PRODUCTS)} produits...")
 
     # Récupérer les merchant_id depuis Supabase
     merchants_result = supabase.table("merchants").select("id, company_name").execute()
@@ -248,7 +249,7 @@ def migrate_products():
                 merchant_id = merchants_result.data[0]["id"] if merchants_result.data else None
 
             if not merchant_id:
-                print(f"  ⚠️  Merchant introuvable pour {product['name']}")
+                logger.info(f"  ⚠️  Merchant introuvable pour {product['name']}")
                 continue
 
             product_data = {
@@ -266,10 +267,10 @@ def migrate_products():
             }
 
             result = supabase.table("products").insert(product_data).execute()
-            print(f"  ✅ {product['name']} ({product['category']})")
+            logger.info(f"  ✅ {product['name']} ({product['category']})")
 
         except Exception as e:
-            print(f"  ❌ Erreur pour {product['name']}: {str(e)}")
+            logger.info(f"  ❌ Erreur pour {product['name']}: {str(e)}")
 
 
 migrate_products()
@@ -278,10 +279,10 @@ migrate_products()
 # FINALISATION
 # ============================================
 
-print("\n" + "=" * 70)
-print("✅ MIGRATION TERMINÉE !")
-print("=" * 70)
-print(
+logger.info("\n" + "=" * 70)
+logger.info("✅ MIGRATION TERMINÉE !")
+logger.info("=" * 70)
+logger.info(
     """
 Prochaines étapes:
 1. Vérifiez les données dans Supabase

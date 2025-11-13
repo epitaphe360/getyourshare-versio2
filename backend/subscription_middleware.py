@@ -314,8 +314,9 @@ def increment_feature_usage(user_id: str, feature: str) -> bool:
             return False
 
         from subscription_helpers import increment_usage
+from utils.logger import logger
         return increment_usage(subscription["id"], f"{feature}_count")
 
     except Exception as e:
-        print(f"Error incrementing feature usage: {e}")
+        logger.error(f"Error incrementing feature usage: {e}")
         return False

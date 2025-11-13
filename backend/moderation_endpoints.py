@@ -16,12 +16,13 @@ from moderation_service import moderate_product, ModerationStats
 
 # Configuration Supabase
 from supabase import create_client, Client
+from utils.logger import logger
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    print("⚠️ Warning: Supabase not configured for moderation")
+    logger.warning("⚠️ Warning: Supabase not configured for moderation")
     supabase = None
 else:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -102,7 +103,7 @@ async def get_pending_moderation(
         }
         
     except Exception as e:
-        print(f"❌ Error fetching pending moderation: {e}")
+        logger.error(f"❌ Error fetching pending moderation: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/stats")
@@ -163,7 +164,7 @@ async def get_moderation_stats(
         }
         
     except Exception as e:
-        print(f"❌ Error fetching stats: {e}")
+        logger.error(f"❌ Error fetching stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/review")
@@ -227,7 +228,7 @@ async def review_moderation(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error reviewing moderation: {e}")
+        logger.error(f"❌ Error reviewing moderation: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/bulk-review")
@@ -285,7 +286,7 @@ async def bulk_review_moderation(
         }
         
     except Exception as e:
-        print(f"❌ Error in bulk review: {e}")
+        logger.error(f"❌ Error in bulk review: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{moderation_id}")
@@ -329,7 +330,7 @@ async def get_moderation_details(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error fetching moderation details: {e}")
+        logger.error(f"❌ Error fetching moderation details: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/merchant/{merchant_id}")
@@ -373,7 +374,7 @@ async def get_merchant_moderation_history(
         }
         
     except Exception as e:
-        print(f"❌ Error fetching merchant history: {e}")
+        logger.error(f"❌ Error fetching merchant history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================
@@ -409,7 +410,7 @@ async def get_my_pending_products(
         }
         
     except Exception as e:
-        print(f"❌ Error fetching merchant pending: {e}")
+        logger.error(f"❌ Error fetching merchant pending: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================
@@ -438,5 +439,5 @@ async def test_moderation_service(
         }
         
     except Exception as e:
-        print(f"❌ Error in test moderation: {e}")
+        logger.error(f"❌ Error in test moderation: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -3,6 +3,7 @@ Script pour créer la table smtp_settings dans Supabase
 """
 
 from supabase_client import supabase
+from utils.logger import logger
 
 
 def create_smtp_settings_table():
@@ -28,20 +29,20 @@ def create_smtp_settings_table():
     """
 
     try:
-        print("[START] Création de la table smtp_settings...")
+        logger.info("[START] Création de la table smtp_settings...")
 
         # Exécuter le SQL via l'API Supabase
         response = supabase.rpc("exec_sql", {"query": sql}).execute()
 
-        print("[OK] Table smtp_settings créée avec succès !")
+        logger.info("[OK] Table smtp_settings créée avec succès !")
         return True
 
     except Exception as e:
-        print(f"[ERROR] Erreur lors de la création de la table: {e}")
-        print(
+        logger.error(f"[ERROR] Erreur lors de la création de la table: {e}")
+        logger.info(
             "[INFO] Si la fonction exec_sql n'existe pas, exécutez le SQL manuellement dans l'interface Supabase SQL Editor:"
         )
-        print("\n" + sql + "\n")
+        logger.info("\n" + sql + "\n")
         return False
 
 

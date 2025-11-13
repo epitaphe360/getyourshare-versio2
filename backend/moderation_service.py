@@ -14,7 +14,7 @@ import json
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 if not OPENAI_API_KEY:
-    print("⚠️ Warning: OpenAI API key not configured for content moderation")
+    logger.warning("⚠️ Warning: OpenAI API key not configured for content moderation")
     client = None
 else:
     client = OpenAI(api_key=OPENAI_API_KEY)
@@ -68,7 +68,7 @@ async def moderate_product_with_ai(
     
     if not client:
         # Fallback: approuver par défaut si pas d'IA configurée
-        print("⚠️ OpenAI not configured, approving by default (UNSAFE FOR PRODUCTION)")
+        logger.info("⚠️ OpenAI not configured, approving by default (UNSAFE FOR PRODUCTION)")
         return {
             "approved": True,
             "confidence": 0.0,
@@ -162,15 +162,15 @@ FORMAT DE RÉPONSE (JSON STRICT):
         
         # Log pour monitoring
         status = "✅ APPROVED" if result["approved"] else "❌ REJECTED"
-        print(f"{status} | Product: {product_name[:50]} | Risk: {result['risk_level']} | Confidence: {result['confidence']}")
+        logger.info(f"{status} | Product: {product_name[:50]} | Risk: {result['risk_level']} | Confidence: {result['confidence']}")
         
         if result["flags"]:
-            print(f"   Flags: {', '.join(result['flags'])}")
+            logger.info(f"   Flags: {', '.join(result['flags'])}")
         
         return result
         
     except Exception as e:
-        print(f"❌ Error in AI moderation: {e}")
+        logger.error(f"❌ Error in AI moderation: {e}")
         # En cas d'erreur, rejeter par précaution
         return {
             "approved": False,
@@ -366,6 +366,7 @@ moderation_stats = ModerationStats()
 # Dans vos endpoints:
 
 from moderation_service import moderate_product
+from utils.logger import logger
 
 @app.post("/api/products")
 async def create_product(product: ProductCreate, user: dict = Depends(get_current_user)):

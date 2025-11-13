@@ -272,7 +272,7 @@ const OptimizedImageExample = () => {
           width="500px"
           height="350px"
           onLoad={(e) => {
-            console.log('Image chargée:', e.target.src);
+
             // Tracking analytics
             // gtag('event', 'image_loaded', { image_name: 'callback-demo' });
           }}

@@ -8,6 +8,7 @@ Utilise l'API Supabase pour exécuter le SQL
 import os
 import requests
 from dotenv import load_dotenv
+from utils.logger import logger
 
 load_dotenv()
 
@@ -15,12 +16,12 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    print("❌ Erreur: Variables d'environnement Supabase manquantes")
+    logger.info("❌ Erreur: Variables d'environnement Supabase manquantes")
     exit(1)
 
-print("\n" + "="*60)
-print("📊 CRÉATION DES TABLES DE MODÉRATION")
-print("="*60 + "\n")
+logger.info("\n" + "="*60)
+logger.info("📊 CRÉATION DES TABLES DE MODÉRATION")
+logger.info("="*60 + "\n")
 
 # SQL simplifié pour créer les tables essentielles
 sql_commands = [
@@ -102,7 +103,7 @@ sql_commands = [
     """
 ]
 
-print("📝 Exécution de " + str(len(sql_commands)) + " commandes SQL...\n")
+logger.info("📝 Exécution de " + str(len(sql_commands)) + " commandes SQL...\n")
 
 # Utiliser l'API REST de Supabase pour exécuter du SQL
 headers = {
@@ -121,12 +122,12 @@ for i, sql in enumerate(sql_commands, 1):
     
     # Note: Supabase ne permet pas l'exécution SQL directe via l'API Python
     # Il faut utiliser le Dashboard ou créer une fonction SQL
-    print(f"{i}. {'✓' if i <= 4 else '...'} Commande préparée")
+    logger.info(f"{i}. {'✓' if i <= 4 else '...'} Commande préparée")
 
-print("\n" + "="*60)
-print("ℹ️  ÉTAPES SUIVANTES")
-print("="*60)
-print("""
+logger.info("\n" + "="*60)
+logger.info("ℹ️  ÉTAPES SUIVANTES")
+logger.info("="*60)
+logger.info("""
 Les tables de modération doivent être créées manuellement dans Supabase:
 
 📋 OPTION 1 - Dashboard Supabase (RECOMMANDÉ):
@@ -153,10 +154,10 @@ Les tables de modération doivent être créées manuellement dans Supabase:
    ✓ v_pending_moderation (vue)
    ✓ Fonctions: submit_product_for_moderation(), approve_moderation(), reject_moderation()
 """)
-print("="*60 + "\n")
+logger.info("="*60 + "\n")
 
-print("💡 TIP: Pour tester rapidement, vous pouvez aussi créer une table minimale:")
-print("""
+logger.info("💡 TIP: Pour tester rapidement, vous pouvez aussi créer une table minimale:")
+logger.info("""
 CREATE TABLE moderation_queue (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     merchant_id UUID, user_id UUID,
@@ -170,4 +171,4 @@ CREATE TABLE moderation_queue (
     created_at TIMESTAMP DEFAULT NOW()
 );
 """)
-print("")
+logger.info("")

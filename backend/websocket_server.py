@@ -10,6 +10,7 @@ from typing import Dict, Set
 from aiohttp import web, WSMsgType
 import aiohttp_cors
 from supabase_client import get_supabase
+from utils.logger import logger
 
 # Connected clients by user_id
 connected_clients: Dict[str, Set[web.WebSocketResponse]] = {}
@@ -54,7 +55,7 @@ async def websocket_handler(request):
                                     "timestamp": datetime.now().isoformat(),
                                 }
                             )
-                            print(f"User {user_id} connected")
+                            logger.info(f"User {user_id} connected")
 
                     # Handle ping/pong for keepalive
                     elif data.get("type") == "ping":
@@ -66,7 +67,7 @@ async def websocket_handler(request):
                     await ws.send_json({"type": "error", "message": "Invalid JSON"})
 
             elif msg.type == WSMsgType.ERROR:
-                print(f"WebSocket error: {ws.exception()}")
+                logger.error(f"WebSocket error: {ws.exception()}")
 
     finally:
         # Clean up on disconnect
@@ -74,7 +75,7 @@ async def websocket_handler(request):
             connected_clients[user_id].discard(ws)
             if not connected_clients[user_id]:
                 del connected_clients[user_id]
-            print(f"User {user_id} disconnected")
+            logger.info(f"User {user_id} disconnected")
 
     return ws
 
@@ -92,7 +93,7 @@ async def broadcast_to_user(user_id: str, event_type: str, data: dict):
         try:
             await ws.send_json(message)
         except Exception as e:
-            print(f"Error sending to user {user_id}: {e}")
+            logger.error(f"Error sending to user {user_id}: {e}")
             disconnected.add(ws)
 
     # Clean up disconnected clients
@@ -110,7 +111,7 @@ async def broadcast_to_all(event_type: str, data: dict):
             try:
                 await ws.send_json(message)
             except Exception as e:
-                print(f"Error broadcasting to user {user_id}: {e}")
+                logger.error(f"Error broadcasting to user {user_id}: {e}")
                 disconnected.add(ws)
 
         # Clean up disconnected clients
@@ -170,7 +171,7 @@ async def listen_to_database_changes():
             last_check = datetime.now()
 
         except Exception as e:
-            print(f"Error listening to database: {e}")
+            logger.error(f"Error listening to database: {e}")
 
         # Check every 5 seconds
         await asyncio.sleep(5)

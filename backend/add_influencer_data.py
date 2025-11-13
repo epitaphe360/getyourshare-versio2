@@ -3,6 +3,7 @@ Script pour ajouter des données réalistes aux influenceurs
 """
 import os
 from supabase import create_client
+from utils.logger import logger
 
 # Charger manuellement les variables depuis .env
 try:
@@ -13,33 +14,33 @@ try:
                 key, value = line.split('=', 1)
                 os.environ[key] = value
 except Exception as e:
-    print(f"Erreur lors du chargement du .env: {e}")
+    logger.info(f"Erreur lors du chargement du .env: {e}")
 
 # Connexion Supabase
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
 
-print(f"URL: {supabase_url[:30] if supabase_url else 'None'}...")
-print(f"Key: {'✅ Chargée' if supabase_key else '❌ Manquante'}\n")
+logger.info(f"URL: {supabase_url[:30] if supabase_url else 'None'}...")
+logger.info(f"Key: {'✅ Chargée' if supabase_key else '❌ Manquante'}\n")
 
 supabase = create_client(supabase_url, supabase_key)
 
 def add_influencer_data():
     """Ajoute des données réalistes aux influenceurs"""
     
-    print("\n" + "="*60)
-    print("🔧 AJOUT DES DONNÉES AUX INFLUENCEURS")
-    print("="*60 + "\n")
+    logger.info("\n" + "="*60)
+    logger.info("🔧 AJOUT DES DONNÉES AUX INFLUENCEURS")
+    logger.info("="*60 + "\n")
     
     # Récupérer tous les influenceurs
     result = supabase.table("users").select("id, email").eq("role", "influencer").execute()
     influencers = result.data
     
     if not influencers:
-        print("❌ Aucun influenceur trouvé")
+        logger.info("❌ Aucun influenceur trouvé")
         return
     
-    print(f"✅ {len(influencers)} influenceurs trouvés\n")
+    logger.info(f"✅ {len(influencers)} influenceurs trouvés\n")
     
     # Données d'influenceurs réalistes
     influencer_data = [
@@ -172,23 +173,23 @@ def add_influencer_data():
                 "status": "active"
             }).eq("id", influencer["id"]).execute()
             
-            print(f"✅ {data['first_name']} {data['last_name']} ({data['company_name']})")
-            print(f"   Email: {influencer.get('email', 'N/A')}")
-            print(f"   Pays: {data['country']}")
-            print(f"   Followers: {data['followers_count']:,}")
-            print(f"   Engagement: {data['engagement_rate']}%")
-            print(f"   Balance: {data['balance']} €")
-            print(f"   Total gagné: {data['total_earned']} €")
+            logger.info(f"✅ {data['first_name']} {data['last_name']} ({data['company_name']})")
+            logger.info(f"   Email: {influencer.get('email', 'N/A')}")
+            logger.info(f"   Pays: {data['country']}")
+            logger.info(f"   Followers: {data['followers_count']:,}")
+            logger.info(f"   Engagement: {data['engagement_rate']}%")
+            logger.info(f"   Balance: {data['balance']} €")
+            logger.info(f"   Total gagné: {data['total_earned']} €")
             print()
             
         except Exception as e:
-            print(f"❌ Erreur: {e}")
+            logger.info(f"❌ Erreur: {e}")
             return
     
-    print("\n" + "="*60)
-    print("✅ DONNÉES INFLUENCEURS AJOUTÉES AVEC SUCCÈS!")
-    print("="*60)
-    print("\n💡 Rafraîchissez la page des influenceurs")
+    logger.info("\n" + "="*60)
+    logger.info("✅ DONNÉES INFLUENCEURS AJOUTÉES AVEC SUCCÈS!")
+    logger.info("="*60)
+    logger.info("\n💡 Rafraîchissez la page des influenceurs")
 
 if __name__ == "__main__":
     add_influencer_data()

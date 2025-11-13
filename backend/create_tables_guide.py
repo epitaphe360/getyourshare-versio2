@@ -5,6 +5,7 @@ Exécute les SQL via l'API Supabase
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from utils.logger import logger
 
 load_dotenv()
 
@@ -16,9 +17,9 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-print("\n" + "="*60)
-print("🗄️  CRÉATION TABLES TOP 5 FEATURES")
-print("="*60 + "\n")
+logger.info("\n" + "="*60)
+logger.info("🗄️  CRÉATION TABLES TOP 5 FEATURES")
+logger.info("="*60 + "\n")
 
 # ============================================
 # GAMIFICATION TABLES
@@ -235,28 +236,28 @@ CREATE TABLE IF NOT EXISTS match_preferences (
 );
 """
 
-print("📊 Étape 1/2: Création tables Gamification...")
+logger.info("📊 Étape 1/2: Création tables Gamification...")
 try:
     # Note: Supabase Python client ne supporte pas directement l'exécution de SQL
     # Il faut utiliser les fonctions RPC ou créer via le dashboard
-    print("⚠️  Les tables doivent être créées manuellement via le dashboard Supabase")
-    print("   Ou via SQL Editor dans Supabase Dashboard")
-    print("\n   📝 Fichiers SQL disponibles:")
-    print("      - CREATE_GAMIFICATION_TABLES.sql")
-    print("      - CREATE_MATCHING_TABLES.sql")
-    print("\n   💡 Instructions:")
-    print("      1. Ouvrez Supabase Dashboard")
-    print("      2. Allez dans 'SQL Editor'")
-    print("      3. Copiez-collez le contenu des fichiers .sql")
-    print("      4. Exécutez les requêtes")
-    print("\n   ⏭️  Une fois fait, exécutez: python init_top5_data.py")
+    logger.info("⚠️  Les tables doivent être créées manuellement via le dashboard Supabase")
+    logger.info("   Ou via SQL Editor dans Supabase Dashboard")
+    logger.info("\n   📝 Fichiers SQL disponibles:")
+    logger.info("      - CREATE_GAMIFICATION_TABLES.sql")
+    logger.info("      - CREATE_MATCHING_TABLES.sql")
+    logger.info("\n   💡 Instructions:")
+    logger.info("      1. Ouvrez Supabase Dashboard")
+    logger.info("      2. Allez dans 'SQL Editor'")
+    logger.info("      3. Copiez-collez le contenu des fichiers .sql")
+    logger.info("      4. Exécutez les requêtes")
+    logger.info("\n   ⏭️  Une fois fait, exécutez: python init_top5_data.py")
     
 except Exception as e:
-    print(f"❌ Erreur: {e}")
+    logger.info(f"❌ Erreur: {e}")
 
-print("\n" + "="*60)
-print("ℹ️  PROCHAINE ÉTAPE")
-print("="*60)
-print("\n1. Créez les tables via Supabase Dashboard (SQL Editor)")
-print("2. Puis exécutez: python init_top5_data.py")
-print("\n")
+logger.info("\n" + "="*60)
+logger.info("ℹ️  PROCHAINE ÉTAPE")
+logger.info("="*60)
+logger.info("\n1. Créez les tables via Supabase Dashboard (SQL Editor)")
+logger.info("2. Puis exécutez: python init_top5_data.py")
+logger.info("\n")

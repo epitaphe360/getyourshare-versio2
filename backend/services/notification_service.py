@@ -7,6 +7,7 @@ from typing import Optional, Dict, List, Any
 from datetime import datetime, timedelta
 from decimal import Decimal
 from supabase import Client
+from utils.logger import logger
 
 
 class NotificationService:
@@ -82,10 +83,10 @@ class NotificationService:
                     company_name
                 )
             
-            print(f"✅ Alerte solde envoyée à {company_name}: {current_balance} dhs")
+            logger.info(f"✅ Alerte solde envoyée à {company_name}: {current_balance} dhs")
             
         except Exception as e:
-            print(f"Erreur send_low_balance_alert: {e}")
+            logger.info(f"Erreur send_low_balance_alert: {e}")
     
     
     def send_deposit_depleted_alert(
@@ -151,10 +152,10 @@ class NotificationService:
                     company_name
                 )
             
-            print(f"✅ Alerte dépôt épuisé envoyée à {company_name}")
+            logger.info(f"✅ Alerte dépôt épuisé envoyée à {company_name}")
             
         except Exception as e:
-            print(f"Erreur send_deposit_depleted_alert: {e}")
+            logger.info(f"Erreur send_deposit_depleted_alert: {e}")
     
     
     def send_new_lead_notification(
@@ -202,10 +203,10 @@ class NotificationService:
             
             self.supabase.table('notifications').insert(notification_data).execute()
             
-            print(f"✅ Notification nouveau lead envoyée")
+            logger.info(f"✅ Notification nouveau lead envoyée")
             
         except Exception as e:
-            print(f"Erreur send_new_lead_notification: {e}")
+            logger.info(f"Erreur send_new_lead_notification: {e}")
     
     
     def send_lead_validated_notification(
@@ -261,10 +262,10 @@ class NotificationService:
             
             self.supabase.table('notifications').insert(notification_data).execute()
             
-            print(f"✅ Notification validation lead envoyée à influenceur")
+            logger.info(f"✅ Notification validation lead envoyée à influenceur")
             
         except Exception as e:
-            print(f"Erreur send_lead_validated_notification: {e}")
+            logger.info(f"Erreur send_lead_validated_notification: {e}")
     
     
     def send_campaign_stopped_notification(
@@ -318,10 +319,10 @@ class NotificationService:
             
             self.supabase.table('notifications').insert(notification_data).execute()
             
-            print(f"✅ Notification arrêt campagne envoyée")
+            logger.info(f"✅ Notification arrêt campagne envoyée")
             
         except Exception as e:
-            print(f"Erreur send_campaign_stopped_notification: {e}")
+            logger.info(f"Erreur send_campaign_stopped_notification: {e}")
     
     
     def send_agreement_notification(
@@ -382,10 +383,10 @@ class NotificationService:
             
             self.supabase.table('notifications').insert(notification_data).execute()
             
-            print(f"✅ Notification accord envoyée à influenceur")
+            logger.info(f"✅ Notification accord envoyée à influenceur")
             
         except Exception as e:
-            print(f"Erreur send_agreement_notification: {e}")
+            logger.info(f"Erreur send_agreement_notification: {e}")
     
     
     def get_user_notifications(
@@ -416,7 +417,7 @@ class NotificationService:
             return result.data or []
             
         except Exception as e:
-            print(f"Erreur get_user_notifications: {e}")
+            logger.info(f"Erreur get_user_notifications: {e}")
             return []
     
     
@@ -433,7 +434,7 @@ class NotificationService:
             }).eq('id', notification_id).eq('user_id', user_id).execute()
             
         except Exception as e:
-            print(f"Erreur mark_as_read: {e}")
+            logger.info(f"Erreur mark_as_read: {e}")
     
     
     def mark_all_as_read(self, user_id: str):
@@ -445,7 +446,7 @@ class NotificationService:
             }).eq('user_id', user_id).eq('is_read', False).execute()
             
         except Exception as e:
-            print(f"Erreur mark_all_as_read: {e}")
+            logger.info(f"Erreur mark_all_as_read: {e}")
     
     
     # ============================================
@@ -490,10 +491,10 @@ class NotificationService:
                 
                 self.supabase.table('notifications').insert(notification_data).execute()
             
-            print(f"✅ {len(influencer_ids)} influenceurs notifiés de l'arrêt de campagne")
+            logger.info(f"✅ {len(influencer_ids)} influenceurs notifiés de l'arrêt de campagne")
             
         except Exception as e:
-            print(f"Erreur _notify_influencers_campaign_stopped: {e}")
+            logger.info(f"Erreur _notify_influencers_campaign_stopped: {e}")
     
     
     def _send_email_alert(
@@ -505,4 +506,4 @@ class NotificationService:
     ):
         """Envoyer email d'alerte (à implémenter avec service email)"""
         # TODO: Intégrer avec service d'envoi d'emails (SendGrid, Mailgun, etc.)
-        print(f"📧 Email envoyé à {company_name}: {subject}")
+        logger.info(f"📧 Email envoyé à {company_name}: {subject}")

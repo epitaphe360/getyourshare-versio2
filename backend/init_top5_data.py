@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 from datetime import datetime, timedelta
 import uuid
+from utils.logger import logger
 
 load_dotenv()
 
@@ -19,16 +20,16 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-print("\n" + "="*60)
-print("🚀 INITIALISATION TOP 5 FEATURES - TABLES & DONNÉES TEST")
-print("="*60 + "\n")
+logger.info("\n" + "="*60)
+logger.info("🚀 INITIALISATION TOP 5 FEATURES - TABLES & DONNÉES TEST")
+logger.info("="*60 + "\n")
 
 # ============================================
 # 1. GAMIFICATION - Données de test
 # ============================================
 
 def init_gamification_data():
-    print("📊 1. Initialisation Gamification...")
+    logger.info("📊 1. Initialisation Gamification...")
     
     try:
         # Récupérer quelques utilisateurs existants
@@ -36,10 +37,10 @@ def init_gamification_data():
         users = users_response.data
         
         if not users:
-            print("⚠️  Aucun utilisateur trouvé. Création ignorée.")
+            logger.info("⚠️  Aucun utilisateur trouvé. Création ignorée.")
             return
         
-        print(f"   ✓ {len(users)} utilisateurs trouvés")
+        logger.info(f"   ✓ {len(users)} utilisateurs trouvés")
         
         # Créer user_gamification pour chaque utilisateur
         gamif_data = []
@@ -59,7 +60,7 @@ def init_gamification_data():
         
         # Insérer en base
         result = supabase.table("user_gamification").upsert(gamif_data, on_conflict="user_id").execute()
-        print(f"   ✓ {len(gamif_data)} profils gamification créés")
+        logger.info(f"   ✓ {len(gamif_data)} profils gamification créés")
         
         # Créer quelques badges
         badges = [
@@ -121,7 +122,7 @@ def init_gamification_data():
         ]
         
         badges_result = supabase.table("badges").insert(badges).execute()
-        print(f"   ✓ {len(badges)} badges créés")
+        logger.info(f"   ✓ {len(badges)} badges créés")
         
         # Créer quelques missions
         missions = [
@@ -180,7 +181,7 @@ def init_gamification_data():
         ]
         
         missions_result = supabase.table("missions").insert(missions).execute()
-        print(f"   ✓ {len(missions)} missions créées")
+        logger.info(f"   ✓ {len(missions)} missions créées")
         
         # Créer des progressions de missions pour quelques users
         mission_ids = [m["id"] for m in missions_result.data]
@@ -198,19 +199,19 @@ def init_gamification_data():
         
         if user_missions:
             supabase.table("user_missions").insert(user_missions).execute()
-            print(f"   ✓ {len(user_missions)} progressions missions créées")
+            logger.info(f"   ✓ {len(user_missions)} progressions missions créées")
         
-        print("✅ Gamification initialisé avec succès!\n")
+        logger.info("✅ Gamification initialisé avec succès!\n")
         
     except Exception as e:
-        print(f"❌ Erreur gamification: {e}\n")
+        logger.info(f"❌ Erreur gamification: {e}\n")
 
 # ============================================
 # 2. MATCHING - Données de test
 # ============================================
 
 def init_matching_data():
-    print("💘 2. Initialisation Influencer Matching...")
+    logger.info("💘 2. Initialisation Influencer Matching...")
     
     try:
         # Récupérer influenceurs existants
@@ -219,10 +220,10 @@ def init_matching_data():
         influencers = influencers_response.data
         
         if not influencers:
-            print("⚠️  Aucun influenceur trouvé. Création ignorée.")
+            logger.info("⚠️  Aucun influenceur trouvé. Création ignorée.")
             return
         
-        print(f"   ✓ {len(influencers)} influenceurs trouvés")
+        logger.info(f"   ✓ {len(influencers)} influenceurs trouvés")
         
         # Créer profils étendus pour matching
         profiles_extended = []
@@ -251,7 +252,7 @@ def init_matching_data():
             })
         
         result = supabase.table("influencer_profiles_extended").upsert(profiles_extended, on_conflict="influencer_id").execute()
-        print(f"   ✓ {len(profiles_extended)} profils matching créés")
+        logger.info(f"   ✓ {len(profiles_extended)} profils matching créés")
         
         # Créer quelques merchants preferences
         merchants_response = supabase.table("merchants").select("id").limit(5).execute()
@@ -276,12 +277,12 @@ def init_matching_data():
                 })
             
             supabase.table("match_preferences").upsert(preferences, on_conflict="merchant_id").execute()
-            print(f"   ✓ {len(preferences)} préférences matching créées")
+            logger.info(f"   ✓ {len(preferences)} préférences matching créées")
         
-        print("✅ Matching initialisé avec succès!\n")
+        logger.info("✅ Matching initialisé avec succès!\n")
         
     except Exception as e:
-        print(f"❌ Erreur matching: {e}\n")
+        logger.info(f"❌ Erreur matching: {e}\n")
 
 # ============================================
 # EXÉCUTION
@@ -295,20 +296,20 @@ if __name__ == "__main__":
         # 2. Matching
         init_matching_data()
         
-        print("\n" + "="*60)
-        print("✅ INITIALISATION TERMINÉE AVEC SUCCÈS!")
-        print("="*60)
-        print("\n📊 Résumé:")
-        print("   ✓ Tables gamification créées")
-        print("   ✓ Profils gamification initialisés")
-        print("   ✓ Badges et missions créés")
-        print("   ✓ Tables matching créées")
-        print("   ✓ Profils influenceurs enrichis")
-        print("\n🚀 Vous pouvez maintenant tester les endpoints:")
-        print("   - GET /api/gamification/{user_id}")
-        print("   - GET /api/matching/get-recommendations")
-        print("   - GET /api/analytics/merchant/{id}")
-        print("\n")
+        logger.info("\n" + "="*60)
+        logger.info("✅ INITIALISATION TERMINÉE AVEC SUCCÈS!")
+        logger.info("="*60)
+        logger.info("\n📊 Résumé:")
+        logger.info("   ✓ Tables gamification créées")
+        logger.info("   ✓ Profils gamification initialisés")
+        logger.info("   ✓ Badges et missions créés")
+        logger.info("   ✓ Tables matching créées")
+        logger.info("   ✓ Profils influenceurs enrichis")
+        logger.info("\n🚀 Vous pouvez maintenant tester les endpoints:")
+        logger.info("   - GET /api/gamification/{user_id}")
+        logger.info("   - GET /api/matching/get-recommendations")
+        logger.info("   - GET /api/analytics/merchant/{id}")
+        logger.info("\n")
         
     except Exception as e:
-        print(f"\n❌ ERREUR GLOBALE: {e}\n")
+        logger.info(f"\n❌ ERREUR GLOBALE: {e}\n")

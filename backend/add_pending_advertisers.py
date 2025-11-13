@@ -12,6 +12,7 @@ from supabase_client import supabase
 def hash_password(password: str) -> str:
     """Hasher un mot de passe avec bcrypt"""
     import bcrypt
+from utils.logger import logger
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 # Données des demandes d'inscription en attente
@@ -69,7 +70,7 @@ def create_pending_advertiser(advertiser_data):
         # Vérifier si l'email existe déjà
         existing = supabase.from_("users").select("id").eq("email", advertiser_data["email"]).execute()
         if existing.data:
-            print(f"⚠️  {advertiser_data['email']} existe déjà - ignoré")
+            logger.info(f"⚠️  {advertiser_data['email']} existe déjà - ignoré")
             return None
         
         # Hasher le mot de passe
@@ -97,20 +98,20 @@ def create_pending_advertiser(advertiser_data):
         
         if result.data:
             user = result.data[0]
-            print(f"✅ Demande créée: {user['company_name']} ({user['email']}) - Status: {user['status']}")
+            logger.info(f"✅ Demande créée: {user['company_name']} ({user['email']}) - Status: {user['status']}")
             return user
         else:
-            print(f"❌ Erreur lors de la création de {advertiser_data['email']}")
+            logger.info(f"❌ Erreur lors de la création de {advertiser_data['email']}")
             return None
             
     except Exception as e:
-        print(f"❌ Erreur pour {advertiser_data['email']}: {str(e)}")
+        logger.info(f"❌ Erreur pour {advertiser_data['email']}: {str(e)}")
         return None
 
 def main():
-    print("\n" + "="*60)
-    print("🔄 CRÉATION DES DEMANDES D'INSCRIPTION EN ATTENTE")
-    print("="*60 + "\n")
+    logger.info("\n" + "="*60)
+    logger.info("🔄 CRÉATION DES DEMANDES D'INSCRIPTION EN ATTENTE")
+    logger.info("="*60 + "\n")
     
     created_count = 0
     
@@ -119,33 +120,33 @@ def main():
         if result:
             created_count += 1
     
-    print("\n" + "="*60)
-    print(f"✨ RÉSULTAT: {created_count}/{len(pending_advertisers)} demandes créées")
-    print("="*60)
+    logger.info("\n" + "="*60)
+    logger.info(f"✨ RÉSULTAT: {created_count}/{len(pending_advertisers)} demandes créées")
+    logger.info("="*60)
     
     # Afficher le résumé
-    print("\n📋 RÉSUMÉ DES DEMANDES EN ATTENTE:\n")
+    logger.info("\n📋 RÉSUMÉ DES DEMANDES EN ATTENTE:\n")
     
     # Récupérer toutes les demandes pending
     pending_result = supabase.from_("users").select("*").eq("role", "merchant").eq("status", "pending").execute()
     
     if pending_result.data:
-        print(f"Total de demandes en attente: {len(pending_result.data)}\n")
+        logger.info(f"Total de demandes en attente: {len(pending_result.data)}\n")
         for user in pending_result.data:
-            print(f"  • {user['company_name']}")
-            print(f"    Email: {user['email']}")
-            print(f"    Pays: {user.get('country', 'N/A')}")
-            print(f"    Date: {user.get('created_at', 'N/A')[:10]}")
-            print(f"    ID: {user['id']}")
+            logger.info(f"  • {user['company_name']}")
+            logger.info(f"    Email: {user['email']}")
+            logger.info(f"    Pays: {user.get('country', 'N/A')}")
+            logger.info(f"    Date: {user.get('created_at', 'N/A')[:10]}")
+            logger.info(f"    ID: {user['id']}")
             print()
     else:
-        print("Aucune demande en attente trouvée.")
+        logger.info("Aucune demande en attente trouvée.")
     
-    print("\n💡 INSTRUCTIONS:")
-    print("   1. Allez sur la page 'Demandes d'Inscription - Annonceurs'")
-    print("   2. Vous devriez voir les demandes en attente")
-    print("   3. Cliquez sur ✓ pour approuver ou ✗ pour rejeter")
-    print("   4. Le statut passera de 'pending' à 'active' ou 'rejected'")
+    logger.info("\n💡 INSTRUCTIONS:")
+    logger.info("   1. Allez sur la page 'Demandes d'Inscription - Annonceurs'")
+    logger.info("   2. Vous devriez voir les demandes en attente")
+    logger.info("   3. Cliquez sur ✓ pour approuver ou ✗ pour rejeter")
+    logger.info("   4. Le statut passera de 'pending' à 'active' ou 'rejected'")
     print()
 
 if __name__ == "__main__":

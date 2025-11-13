@@ -210,7 +210,7 @@ function App() {
     window.addEventListener('load', () => {
       setTimeout(() => {
         const budget = performanceUtils.checkBudget();
-        console.log('📊 Performance Budget:', budget);
+
       }, 2000);
     });
   }, []);

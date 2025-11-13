@@ -21,13 +21,14 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ SUPABASE_URL et SUPABASE_KEY doivent être configurés dans .env")
+    logger.info("❌ SUPABASE_URL et SUPABASE_KEY doivent être configurés dans .env")
     sys.exit(1)
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Import du service de traduction
 from translation_service import TranslationService
+from utils.logger import logger
 
 # Traductions statiques (copié depuis les fichiers i18n)
 TRANSLATIONS_FR = {
@@ -165,30 +166,30 @@ async def import_all():
     
     translation_service = TranslationService(supabase)
     
-    print("🚀 Démarrage de l'import des traductions...")
-    print("=" * 60)
+    logger.info("🚀 Démarrage de l'import des traductions...")
+    logger.info("=" * 60)
     
     # Import FR
-    print("\n📦 Import des traductions françaises...")
+    logger.info("\n📦 Import des traductions françaises...")
     count_fr = await translation_service.import_static_translations(
         TRANSLATIONS_FR,
         'fr'
     )
-    print(f"✅ {count_fr} traductions françaises importées")
+    logger.info(f"✅ {count_fr} traductions françaises importées")
     
     # Import EN
-    print("\n📦 Import des traductions anglaises...")
+    logger.info("\n📦 Import des traductions anglaises...")
     count_en = await translation_service.import_static_translations(
         TRANSLATIONS_EN,
         'en'
     )
-    print(f"✅ {count_en} traductions anglaises importées")
+    logger.info(f"✅ {count_en} traductions anglaises importées")
     
-    print("\n" + "=" * 60)
-    print(f"✅ IMPORT TERMINÉ: {count_fr + count_en} traductions au total")
-    print("\n💡 Les traductions AR et Darija seront générées automatiquement")
-    print("   par OpenAI lors de la première utilisation.")
-    print("\n⚠️  N'oubliez pas de configurer OPENAI_API_KEY dans .env")
+    logger.info("\n" + "=" * 60)
+    logger.info(f"✅ IMPORT TERMINÉ: {count_fr + count_en} traductions au total")
+    logger.info("\n💡 Les traductions AR et Darija seront générées automatiquement")
+    logger.info("   par OpenAI lors de la première utilisation.")
+    logger.info("\n⚠️  N'oubliez pas de configurer OPENAI_API_KEY dans .env")
 
 if __name__ == "__main__":
     asyncio.run(import_all())

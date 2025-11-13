@@ -234,7 +234,7 @@ class LocalContentGenerator:
         try:
             font_size = min(width, height) // 10
             font = ImageFont.truetype("arial.ttf", font_size)
-        except:
+        except Exception:
             font = ImageFont.load_default()
         
         # Calculer la position du texte (centré)

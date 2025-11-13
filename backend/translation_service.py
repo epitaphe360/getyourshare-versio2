@@ -11,6 +11,7 @@ from typing import Dict, Optional, List
 from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
+from utils.logger import logger
 
 load_dotenv()
 
@@ -37,12 +38,12 @@ class TranslationService:
         if OPENAI_API_KEY and OPENAI_API_KEY != "VOTRE_NOUVELLE_CLE_APRES_REVOCATION":
             try:
                 self.openai_client = OpenAI(api_key=OPENAI_API_KEY)
-                print("✅ OpenAI Translation Service initialized")
+                logger.info("✅ OpenAI Translation Service initialized")
             except Exception as e:
-                print(f"⚠️ OpenAI initialization failed: {e}")
+                logger.error(f"⚠️ OpenAI initialization failed: {e}")
                 self.openai_client = None
         else:
-            print("⚠️ OpenAI API key not configured - translations will use fallback")
+            logger.info("⚠️ OpenAI API key not configured - translations will use fallback")
     
     async def get_translation(
         self, 
@@ -85,7 +86,7 @@ class TranslationService:
                     
                     return translation
             except Exception as e:
-                print(f"⚠️ DB cache lookup failed: {e}")
+                logger.error(f"⚠️ DB cache lookup failed: {e}")
         
         # 2. Si pas trouvé et auto_translate activé, traduire avec OpenAI
         if auto_translate and self.openai_client:
@@ -106,7 +107,7 @@ class TranslationService:
                     
                     return translated
             except Exception as e:
-                print(f"⚠️ Auto-translation failed for {key}: {e}")
+                logger.error(f"⚠️ Auto-translation failed for {key}: {e}")
         
         return None
     
@@ -126,7 +127,7 @@ class TranslationService:
             if result.data and len(result.data) > 0:
                 return result.data[0]['value']
         except Exception as e:
-            print(f"⚠️ Source text lookup failed: {e}")
+            logger.error(f"⚠️ Source text lookup failed: {e}")
         
         return None
     
@@ -194,12 +195,12 @@ Translation in {language_name}:"""
             input_tokens = response.usage.prompt_tokens
             output_tokens = response.usage.completion_tokens
             cost = (input_tokens * 0.00015 + output_tokens * 0.0006) / 1000  # Prix gpt-4o-mini
-            print(f"✅ Translated '{text}' → {target_language} (Cost: ${cost:.6f})")
+            logger.info(f"✅ Translated '{text}' → {target_language} (Cost: ${cost:.6f})")
             
             return translated_text
         
         except Exception as e:
-            print(f"❌ OpenAI translation error: {e}")
+            logger.error(f"❌ OpenAI translation error: {e}")
             return None
     
     async def _save_translation(
@@ -231,11 +232,11 @@ Translation in {language_name}:"""
                 on_conflict='key,language'
             ).execute()
             
-            print(f"💾 Saved translation: {key} [{language}] = {value}")
+            logger.info(f"💾 Saved translation: {key} [{language}] = {value}")
             return True
         
         except Exception as e:
-            print(f"❌ Save translation error: {e}")
+            logger.error(f"❌ Save translation error: {e}")
             return False
     
     async def batch_translate(
@@ -274,14 +275,14 @@ Translation in {language_name}:"""
                 # Identifier les clés manquantes
                 missing_keys = [k for k in keys if k not in translations]
             except Exception as e:
-                print(f"⚠️ Batch lookup failed: {e}")
+                logger.error(f"⚠️ Batch lookup failed: {e}")
                 missing_keys = keys
         else:
             missing_keys = keys
         
         # 2. Traduire les clés manquantes
         if missing_keys and self.openai_client:
-            print(f"🔄 Translating {len(missing_keys)} missing keys...")
+            logger.info(f"🔄 Translating {len(missing_keys)} missing keys...")
             
             for key in missing_keys:
                 translated = await self.get_translation(
@@ -319,11 +320,11 @@ Translation in {language_name}:"""
             
             translations = {row['key']: row['value'] for row in result.data}
             
-            print(f"📦 Loaded {len(translations)} translations for {language}")
+            logger.info(f"📦 Loaded {len(translations)} translations for {language}")
             return translations
         
         except Exception as e:
-            print(f"❌ Load all translations error: {e}")
+            logger.error(f"❌ Load all translations error: {e}")
             return {}
     
     async def import_static_translations(
@@ -353,11 +354,11 @@ Translation in {language_name}:"""
                 await self._save_translation(key, language, value, context='static_import')
                 imported += 1
             
-            print(f"✅ Imported {imported} translations for {language}")
+            logger.info(f"✅ Imported {imported} translations for {language}")
             return imported
         
         except Exception as e:
-            print(f"❌ Import error: {e}")
+            logger.error(f"❌ Import error: {e}")
             return imported
 
 

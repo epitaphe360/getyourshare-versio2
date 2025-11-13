@@ -6,6 +6,7 @@ import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import bcrypt
+from utils.logger import logger
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -16,8 +17,8 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 # Client Supabase avec droits admin
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-print("🔧 Correction des mots de passe...")
-print("=" * 60)
+logger.info("🔧 Correction des mots de passe...")
+logger.info("=" * 60)
 
 # Liste des comptes à corriger avec leurs mots de passe en clair
 accounts = [
@@ -44,16 +45,16 @@ for email, password in accounts:
         )
 
         if result.data:
-            print(f"✅ {email} - mot de passe mis à jour")
+            logger.info(f"✅ {email} - mot de passe mis à jour")
         else:
-            print(f"⚠️  {email} - utilisateur introuvable")
+            logger.info(f"⚠️  {email} - utilisateur introuvable")
 
     except Exception as e:
-        print(f"❌ {email} - erreur: {str(e)}")
+        logger.info(f"❌ {email} - erreur: {str(e)}")
 
-print("=" * 60)
-print("✅ Correction terminée !")
-print("\nVous pouvez maintenant vous connecter avec:")
-print("  - admin@shareyoursales.com / admin123")
-print("  - contact@techstyle.fr / merchant123")
-print("  - emma.style@instagram.com / influencer123")
+logger.info("=" * 60)
+logger.info("✅ Correction terminée !")
+logger.info("\nVous pouvez maintenant vous connecter avec:")
+logger.info("  - admin@shareyoursales.com / admin123")
+logger.info("  - contact@techstyle.fr / merchant123")
+logger.info("  - emma.style@instagram.com / influencer123")

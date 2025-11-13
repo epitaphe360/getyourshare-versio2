@@ -4,6 +4,7 @@ Script pour créer les tables de messagerie dans Supabase
 
 from supabase_client import supabase
 import os
+from utils.logger import logger
 
 
 def create_messaging_tables():
@@ -15,7 +16,7 @@ def create_messaging_tables():
     with open(sql_file, "r", encoding="utf-8") as f:
         sql_content = f.read()
 
-    print("🔧 Création des tables de messagerie...")
+    logger.info("🔧 Création des tables de messagerie...")
 
     try:
         # Exécuter le SQL via l'API Supabase
@@ -23,25 +24,25 @@ def create_messaging_tables():
         # Pour l'instant, on va créer les tables via des commandes individuelles
 
         # Créer table conversations
-        print("  → Table conversations...")
+        logger.info("  → Table conversations...")
         supabase.table("conversations").select("id").limit(1).execute()
-        print("    ✅ Table conversations existe déjà ou créée")
+        logger.info("    ✅ Table conversations existe déjà ou créée")
 
     except Exception as e:
-        print(f"  ⚠️  Note: {e}")
-        print("\n📝 Instructions manuelles:")
-        print("  1. Ouvrir Supabase Dashboard: https://app.supabase.com")
-        print("  2. Aller dans 'SQL Editor'")
-        print("  3. Copier-coller le contenu de 'database/messaging_schema.sql'")
-        print("  4. Exécuter le script")
-        print("\n  Ou utiliser psql:")
-        print("  psql -h [HOST] -U postgres -d postgres -f database/messaging_schema.sql")
+        logger.info(f"  ⚠️  Note: {e}")
+        logger.info("\n📝 Instructions manuelles:")
+        logger.info("  1. Ouvrir Supabase Dashboard: https://app.supabase.com")
+        logger.info("  2. Aller dans 'SQL Editor'")
+        logger.info("  3. Copier-coller le contenu de 'database/messaging_schema.sql'")
+        logger.info("  4. Exécuter le script")
+        logger.info("\n  Ou utiliser psql:")
+        logger.info("  psql -h [HOST] -U postgres -d postgres -f database/messaging_schema.sql")
 
-    print("\n✨ Configuration terminée!")
-    print("\n💡 Tables créées:")
-    print("   - conversations: Threads entre utilisateurs")
-    print("   - messages: Messages individuels")
-    print("   - notifications: Alertes système")
+    logger.info("\n✨ Configuration terminée!")
+    logger.info("\n💡 Tables créées:")
+    logger.info("   - conversations: Threads entre utilisateurs")
+    logger.info("   - messages: Messages individuels")
+    logger.info("   - notifications: Alertes système")
 
 
 if __name__ == "__main__":

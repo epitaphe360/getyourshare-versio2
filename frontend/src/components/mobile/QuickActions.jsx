@@ -169,7 +169,7 @@ const QuickActions = ({ userType, userId }) => {
       });
     } catch (error) {
       // If offline, save to IndexedDB for later sync
-      console.log('Saving activity to IndexedDB for sync...');
+
       await saveToIndexedDB('pendingActivities', {
         data: {
           sales_rep_id: userId,

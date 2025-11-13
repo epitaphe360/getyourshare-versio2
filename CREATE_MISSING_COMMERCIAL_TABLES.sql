@@ -9,7 +9,7 @@
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.commercial_stats (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    commercial_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
     period_start DATE NOT NULL,
     period_end DATE NOT NULL,
 
@@ -45,11 +45,11 @@ CREATE TABLE IF NOT EXISTS public.commercial_stats (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
 
     -- Contraintes
-    CONSTRAINT unique_commercial_period UNIQUE(commercial_id, period_start, period_end)
+    CONSTRAINT unique_commercial_period UNIQUE(user_id, period_start, period_end)
 );
 
 -- Index pour commercial_stats
-CREATE INDEX IF NOT EXISTS idx_commercial_stats_commercial_id ON public.commercial_stats(commercial_id);
+CREATE INDEX IF NOT EXISTS idx_commercial_stats_user_id ON public.commercial_stats(user_id);
 CREATE INDEX IF NOT EXISTS idx_commercial_stats_period ON public.commercial_stats(period_start, period_end);
 CREATE INDEX IF NOT EXISTS idx_commercial_stats_created_at ON public.commercial_stats(created_at DESC);
 
@@ -286,7 +286,7 @@ CREATE TRIGGER trigger_update_commercial_templates_timestamp
 -- ALTER TABLE public.commercial_templates ENABLE ROW LEVEL SECURITY;
 
 -- CREATE POLICY "Commercials can view their own stats" ON public.commercial_stats
---     FOR SELECT USING (auth.uid() = commercial_id OR EXISTS (
+--     FOR SELECT USING (auth.uid() = user_id OR EXISTS (
 --         SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'
 --     ));
 

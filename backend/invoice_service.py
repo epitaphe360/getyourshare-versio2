@@ -28,13 +28,13 @@ class InvoiceService:
             # Récupérer les données de la facture
             invoice = get_invoice_by_id(invoice_id)
             if not invoice:
-                print(f"Invoice {invoice_id} not found")
+                logger.info(f"Invoice {invoice_id} not found")
                 return None
 
             # Récupérer les données utilisateur
             user = get_user_by_id(invoice["user_id"])
             if not user:
-                print(f"User {invoice['user_id']} not found")
+                logger.info(f"User {invoice['user_id']} not found")
                 return None
 
             # Créer le buffer PDF
@@ -227,8 +227,9 @@ class InvoiceService:
             return pdf_bytes
 
         except Exception as e:
-            print(f"Error generating invoice PDF: {e}")
+            logger.error(f"Error generating invoice PDF: {e}")
             import traceback
+from utils.logger import logger
             traceback.print_exc()
             return None
 
@@ -262,7 +263,7 @@ class InvoiceService:
             return save_path
 
         except Exception as e:
-            print(f"Error saving invoice PDF: {e}")
+            logger.error(f"Error saving invoice PDF: {e}")
             return None
 
     @staticmethod
@@ -276,12 +277,12 @@ class InvoiceService:
 
             # TODO: Implémenter l'envoi d'email avec le PDF en pièce jointe
             # Utiliser un service comme SendGrid, AWS SES, ou SMTP
-            print(f"Would send invoice {invoice_id} to {user_email}")
+            logger.info(f"Would send invoice {invoice_id} to {user_email}")
 
             return True
 
         except Exception as e:
-            print(f"Error sending invoice email: {e}")
+            logger.error(f"Error sending invoice email: {e}")
             return False
 
 

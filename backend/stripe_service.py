@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 from dotenv import load_dotenv
+from utils.logger import logger
 
 load_dotenv()
 
@@ -64,10 +65,10 @@ async def get_customer_invoices(customer_id: str, limit: int = 100) -> list:
         return formatted_invoices
         
     except stripe.error.StripeError as e:
-        print(f"Erreur Stripe lors de la récupération des factures: {str(e)}")
+        logger.info(f"Erreur Stripe lors de la récupération des factures: {str(e)}")
         return []
     except Exception as e:
-        print(f"Erreur lors de la récupération des factures: {str(e)}")
+        logger.info(f"Erreur lors de la récupération des factures: {str(e)}")
         return []
 
 
@@ -426,5 +427,5 @@ async def get_invoice_pdf_url(invoice_id: str) -> Optional[str]:
     try:
         invoice = stripe.Invoice.retrieve(invoice_id)
         return invoice.invoice_pdf
-    except:
+    except Exception:
         return None

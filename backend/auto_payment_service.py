@@ -134,12 +134,12 @@ class AutoPaymentService:
                     validated_count += 1
                     total_commission += float(sale["influencer_commission"])
 
-                    print(
+                    logger.info(
                         f"✅ Vente validée: {sale['id']} - Commission: {sale['influencer_commission']}€"
                     )
 
                 except Exception as e:
-                    print(f"❌ Erreur validation vente {sale['id']}: {e}")
+                    logger.info(f"❌ Erreur validation vente {sale['id']}: {e}")
                     continue
 
             return {
@@ -151,7 +151,7 @@ class AutoPaymentService:
             }
 
         except Exception as e:
-            print(f"Erreur dans validate_pending_sales: {e}")
+            logger.info(f"Erreur dans validate_pending_sales: {e}")
             return {"success": False, "error": str(e)}
 
     # ============================================
@@ -190,7 +190,7 @@ class AutoPaymentService:
             for influencer in eligible_influencers:
                 # Vérifier que la méthode de paiement est configurée
                 if not influencer.get("payment_method") or not influencer.get("payment_details"):
-                    print(
+                    logger.info(
                         f"⚠️  Influenceur {influencer['username']}: Méthode de paiement non configurée"
                     )
                     failed_payments.append(
@@ -212,7 +212,7 @@ class AutoPaymentService:
                 )
 
                 if pending_payout.data:
-                    print(f"⚠️  Influenceur {influencer['username']}: Paiement déjà en cours")
+                    logger.info(f"⚠️  Influenceur {influencer['username']}: Paiement déjà en cours")
                     continue
 
                 # Créer la demande de paiement
@@ -265,7 +265,7 @@ class AutoPaymentService:
                         processed_count += 1
                         total_paid += payout_amount
 
-                        print(f"✅ Paiement réussi: {influencer['username']} - {payout_amount}€")
+                        logger.info(f"✅ Paiement réussi: {influencer['username']} - {payout_amount}€")
 
                         # Envoyer notification
                         self._send_payment_notification(influencer, payout_amount, transaction_id)
@@ -284,7 +284,7 @@ class AutoPaymentService:
                             }
                         )
 
-                        print(f"❌ Échec paiement: {influencer['username']}")
+                        logger.info(f"❌ Échec paiement: {influencer['username']}")
 
             return {
                 "success": True,
@@ -296,7 +296,7 @@ class AutoPaymentService:
             }
 
         except Exception as e:
-            print(f"Erreur dans process_automatic_payouts: {e}")
+            logger.info(f"Erreur dans process_automatic_payouts: {e}")
             return {"success": False, "error": str(e)}
 
     # ============================================
@@ -321,6 +321,7 @@ class AutoPaymentService:
             # En production, utiliser paypalrestsdk
             """
             import paypalrestsdk
+from utils.logger import logger
             
             payout = paypalrestsdk.Payout({
                 "sender_batch_header": {
@@ -342,17 +343,17 @@ class AutoPaymentService:
             if payout.create():
                 return True, payout.batch_header.payout_batch_id
             else:
-                print(f"PayPal Error: {payout.error}")
+                logger.error(f"PayPal Error: {payout.error}")
                 return False, None
             """
 
             # SIMULATION
             transaction_id = f"PAYPAL_SIM_{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            print(f"[SIMULATION] Paiement PayPal: {amount}€ → {paypal_email}")
+            logger.info(f"[SIMULATION] Paiement PayPal: {amount}€ → {paypal_email}")
             return True, transaction_id
 
         except Exception as e:
-            print(f"Erreur PayPal: {e}")
+            logger.info(f"Erreur PayPal: {e}")
             return False, None
 
     def _process_bank_transfer(self, payment_details: dict, amount: float) -> tuple:
@@ -374,11 +375,11 @@ class AutoPaymentService:
             # TODO: Générer fichier SEPA pour import dans banque
             # Utiliser bibliothèque comme sepaxml ou pain.001
 
-            print(f"[SIMULATION] Virement SEPA: {amount}€ → {iban}")
+            logger.info(f"[SIMULATION] Virement SEPA: {amount}€ → {iban}")
             return True, transaction_id
 
         except Exception as e:
-            print(f"Erreur virement: {e}")
+            logger.info(f"Erreur virement: {e}")
             return False, None
 
     # ============================================
@@ -395,7 +396,7 @@ class AutoPaymentService:
                 email = user.data[0]["email"]
 
                 # TODO: Envoyer email via SendGrid/SMTP
-                print(f"📧 Notification envoyée à {email}: Paiement de {amount}€")
+                logger.info(f"📧 Notification envoyée à {email}: Paiement de {amount}€")
 
                 # Créer une notification in-app
                 notification_data = {
@@ -410,7 +411,7 @@ class AutoPaymentService:
                 supabase.table("notifications").insert(notification_data).execute()
 
         except Exception as e:
-            print(f"Erreur notification: {e}")
+            logger.info(f"Erreur notification: {e}")
 
     # ============================================
     # 5. GESTION DES RETOURS
@@ -477,7 +478,7 @@ class AutoPaymentService:
             }
 
         except Exception as e:
-            print(f"Erreur process_refund: {e}")
+            logger.info(f"Erreur process_refund: {e}")
             return {"success": False, "error": str(e)}
 
 
@@ -490,13 +491,13 @@ def run_daily_validation():
     """Fonction à exécuter quotidiennement (cron job)"""
     service = AutoPaymentService()
     result = service.validate_pending_sales()
-    print(f"\n{'='*50}")
-    print(f"VALIDATION QUOTIDIENNE - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"{'='*50}")
-    print(f"Ventes validées: {result.get('validated_sales', 0)}")
-    print(f"Commission totale: {result.get('total_commission', 0)}€")
-    print(f"Influenceurs mis à jour: {result.get('influencers_updated', 0)}")
-    print(f"{'='*50}\n")
+    logger.info(f"\n{'='*50}")
+    logger.info(f"VALIDATION QUOTIDIENNE - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"{'='*50}")
+    logger.info(f"Ventes validées: {result.get('validated_sales', 0)}")
+    logger.info(f"Commission totale: {result.get('total_commission', 0)}€")
+    logger.info(f"Influenceurs mis à jour: {result.get('influencers_updated', 0)}")
+    logger.info(f"{'='*50}\n")
     return result
 
 
@@ -504,24 +505,24 @@ def run_weekly_payouts():
     """Fonction à exécuter chaque vendredi (cron job)"""
     service = AutoPaymentService()
     result = service.process_automatic_payouts()
-    print(f"\n{'='*50}")
-    print(f"PAIEMENTS AUTOMATIQUES - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"{'='*50}")
-    print(f"Paiements traités: {result.get('processed_count', 0)}")
-    print(f"Montant total payé: {result.get('total_paid', 0)}€")
-    print(f"Échecs: {result.get('failed_count', 0)}")
-    print(f"{'='*50}\n")
+    logger.info(f"\n{'='*50}")
+    logger.info(f"PAIEMENTS AUTOMATIQUES - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"{'='*50}")
+    logger.info(f"Paiements traités: {result.get('processed_count', 0)}")
+    logger.info(f"Montant total payé: {result.get('total_paid', 0)}€")
+    logger.error(f"Échecs: {result.get('failed_count', 0)}")
+    logger.info(f"{'='*50}\n")
     return result
 
 
 if __name__ == "__main__":
     # Test du service
-    print("🚀 Test du service de paiement automatique\n")
+    logger.info("🚀 Test du service de paiement automatique\n")
 
     # Test 1: Validation des ventes
-    print("📝 Test 1: Validation des ventes...")
+    logger.info("📝 Test 1: Validation des ventes...")
     result1 = run_daily_validation()
 
     # Test 2: Paiements automatiques
-    print("\n💰 Test 2: Paiements automatiques...")
+    logger.info("\n💰 Test 2: Paiements automatiques...")
     result2 = run_weekly_payouts()

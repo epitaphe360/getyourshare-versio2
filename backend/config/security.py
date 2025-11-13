@@ -7,6 +7,7 @@ import sys
 import secrets
 import logging
 from pathlib import Path
+from utils.logger import logger
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class SecurityConfig:
 
         if not secret:
             logger.critical("❌ JWT_SECRET not found in environment variables")
-            logger.critical("Generate one with: python -c \"import secrets; print(secrets.token_urlsafe(64))\"")
+            logger.critical("Generate one with: python -c \"import secrets; logger.info(secrets.token_urlsafe(64))\"")
             sys.exit(1)
 
         if len(secret) < 32:

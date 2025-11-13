@@ -18,6 +18,7 @@ from datetime import datetime
 from supabase import create_client, Client
 import os
 import stripe
+from utils.logger import logger
 
 router = APIRouter(prefix="/api/webhooks", tags=["Webhooks"])
 
@@ -63,7 +64,7 @@ async def handle_subscription_created(subscription: dict):
         customer_id = subscription["customer"]
         subscription_id = subscription["id"]
 
-        print(f"[Webhook] New subscription created: {subscription_id}")
+        logger.info(f"[Webhook] New subscription created: {subscription_id}")
 
         # Récupérer l'abonnement en base
         response = supabase.from_("subscriptions") \
@@ -83,10 +84,10 @@ async def handle_subscription_created(subscription: dict):
                 .eq("stripe_subscription_id", subscription_id) \
                 .execute()
 
-            print(f"[Webhook] Subscription updated: {subscription_id}")
+            logger.info(f"[Webhook] Subscription updated: {subscription_id}")
 
     except Exception as e:
-        print(f"[Webhook Error] handle_subscription_created: {e}")
+        logger.error(f"[Webhook Error] handle_subscription_created: {e}")
 
 async def handle_subscription_updated(subscription: dict):
     """Abonnement mis à jour (changement de plan, renouvellement, etc.)"""
@@ -94,7 +95,7 @@ async def handle_subscription_updated(subscription: dict):
         subscription_id = subscription["id"]
         status = subscription["status"]
 
-        print(f"[Webhook] Subscription updated: {subscription_id}, status: {status}")
+        logger.info(f"[Webhook] Subscription updated: {subscription_id}, status: {status}")
 
         # Mettre à jour en base de données
         update_data = {
@@ -112,17 +113,17 @@ async def handle_subscription_updated(subscription: dict):
             .eq("stripe_subscription_id", subscription_id) \
             .execute()
 
-        print(f"[Webhook] Subscription data updated: {subscription_id}")
+        logger.info(f"[Webhook] Subscription data updated: {subscription_id}")
 
     except Exception as e:
-        print(f"[Webhook Error] handle_subscription_updated: {e}")
+        logger.error(f"[Webhook Error] handle_subscription_updated: {e}")
 
 async def handle_subscription_deleted(subscription: dict):
     """Abonnement annulé/supprimé"""
     try:
         subscription_id = subscription["id"]
 
-        print(f"[Webhook] Subscription deleted: {subscription_id}")
+        logger.info(f"[Webhook] Subscription deleted: {subscription_id}")
 
         # Marquer l'abonnement comme annulé
         supabase.from_("subscriptions") \
@@ -134,10 +135,10 @@ async def handle_subscription_deleted(subscription: dict):
             .eq("stripe_subscription_id", subscription_id) \
             .execute()
 
-        print(f"[Webhook] Subscription marked as canceled: {subscription_id}")
+        logger.info(f"[Webhook] Subscription marked as canceled: {subscription_id}")
 
     except Exception as e:
-        print(f"[Webhook Error] handle_subscription_deleted: {e}")
+        logger.error(f"[Webhook Error] handle_subscription_deleted: {e}")
 
 async def handle_invoice_paid(invoice: dict):
     """Facture payée avec succès"""
@@ -147,7 +148,7 @@ async def handle_invoice_paid(invoice: dict):
         if not subscription_id:
             return
 
-        print(f"[Webhook] Invoice paid for subscription: {subscription_id}")
+        logger.info(f"[Webhook] Invoice paid for subscription: {subscription_id}")
 
         # Mettre à jour le statut de l'abonnement à 'active'
         supabase.from_("subscriptions") \
@@ -157,10 +158,10 @@ async def handle_invoice_paid(invoice: dict):
 
         # TODO: Envoyer email de confirmation de paiement
 
-        print(f"[Webhook] Subscription activated: {subscription_id}")
+        logger.info(f"[Webhook] Subscription activated: {subscription_id}")
 
     except Exception as e:
-        print(f"[Webhook Error] handle_invoice_paid: {e}")
+        logger.error(f"[Webhook Error] handle_invoice_paid: {e}")
 
 async def handle_invoice_payment_failed(invoice: dict):
     """Échec de paiement de facture"""
@@ -171,7 +172,7 @@ async def handle_invoice_payment_failed(invoice: dict):
         if not subscription_id:
             return
 
-        print(f"[Webhook] Payment failed for subscription: {subscription_id}")
+        logger.error(f"[Webhook] Payment failed for subscription: {subscription_id}")
 
         # Mettre à jour le statut de l'abonnement
         supabase.from_("subscriptions") \
@@ -192,10 +193,10 @@ async def handle_invoice_payment_failed(invoice: dict):
             # TODO: Envoyer email d'alerte de paiement échoué
             # TODO: Créer une notification in-app
 
-            print(f"[Webhook] User notified about payment failure: {user_id}")
+            logger.info(f"[Webhook] User notified about payment failure: {user_id}")
 
     except Exception as e:
-        print(f"[Webhook Error] handle_invoice_payment_failed: {e}")
+        logger.error(f"[Webhook Error] handle_invoice_payment_failed: {e}")
 
 async def handle_customer_subscription_trial_will_end(subscription: dict):
     """Période d'essai sur le point de se terminer (3 jours avant)"""
@@ -206,7 +207,7 @@ async def handle_customer_subscription_trial_will_end(subscription: dict):
         if not trial_end:
             return
 
-        print(f"[Webhook] Trial ending soon for subscription: {subscription_id}")
+        logger.info(f"[Webhook] Trial ending soon for subscription: {subscription_id}")
 
         # Récupérer l'utilisateur
         subscription_response = supabase.from_("subscriptions") \
@@ -221,10 +222,10 @@ async def handle_customer_subscription_trial_will_end(subscription: dict):
             # TODO: Envoyer email de rappel de fin de période d'essai
             # TODO: Créer une notification in-app
 
-            print(f"[Webhook] User notified about trial ending: {user_id}")
+            logger.info(f"[Webhook] User notified about trial ending: {user_id}")
 
     except Exception as e:
-        print(f"[Webhook Error] handle_customer_subscription_trial_will_end: {e}")
+        logger.error(f"[Webhook Error] handle_customer_subscription_trial_will_end: {e}")
 
 async def handle_payment_method_attached(payment_method: dict):
     """Méthode de paiement attachée à un client"""
@@ -234,13 +235,13 @@ async def handle_payment_method_attached(payment_method: dict):
         if not customer_id:
             return
 
-        print(f"[Webhook] Payment method attached to customer: {customer_id}")
+        logger.info(f"[Webhook] Payment method attached to customer: {customer_id}")
 
         # Mettre à jour les informations du client si nécessaire
         # TODO: Enregistrer les détails de la méthode de paiement
 
     except Exception as e:
-        print(f"[Webhook Error] handle_payment_method_attached: {e}")
+        logger.error(f"[Webhook Error] handle_payment_method_attached: {e}")
 
 async def handle_payment_method_detached(payment_method: dict):
     """Méthode de paiement retirée d'un client"""
@@ -250,12 +251,12 @@ async def handle_payment_method_detached(payment_method: dict):
         if not customer_id:
             return
 
-        print(f"[Webhook] Payment method detached from customer: {customer_id}")
+        logger.info(f"[Webhook] Payment method detached from customer: {customer_id}")
 
         # TODO: Notifier l'utilisateur de retirer une méthode de paiement
 
     except Exception as e:
-        print(f"[Webhook Error] handle_payment_method_detached: {e}")
+        logger.error(f"[Webhook Error] handle_payment_method_detached: {e}")
 
 # ============================================
 # WEBHOOK ENDPOINT
@@ -290,7 +291,7 @@ async def stripe_webhook(
 
         # Vérifier la signature Stripe
         if not STRIPE_WEBHOOK_SECRET:
-            print("[Webhook Warning] STRIPE_WEBHOOK_SECRET not configured")
+            logger.warning("[Webhook Warning] STRIPE_WEBHOOK_SECRET not configured")
             # En développement, on peut ignorer la vérification
             event = stripe.Event.construct_from(
                 await request.json(), stripe.api_key
@@ -310,7 +311,7 @@ async def stripe_webhook(
         event_type = event["type"]
         event_data = event["data"]["object"]
 
-        print(f"[Webhook] Received event: {event_type}")
+        logger.info(f"[Webhook] Received event: {event_type}")
 
         # Router vers le bon handler
         if event_type == "customer.subscription.created":
@@ -338,14 +339,14 @@ async def stripe_webhook(
             await handle_payment_method_detached(event_data)
 
         else:
-            print(f"[Webhook] Unhandled event type: {event_type}")
+            logger.info(f"[Webhook] Unhandled event type: {event_type}")
 
         return {"success": True, "event_type": event_type}
 
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[Webhook Error] Error processing webhook: {e}")
+        logger.error(f"[Webhook Error] Error processing webhook: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Error processing webhook: {str(e)}"
@@ -366,7 +367,7 @@ async def test_webhook(event_type: str, subscription_id: str):
     if os.getenv("ENVIRONMENT") == "production":
         raise HTTPException(status_code=403, detail="Test endpoint not available in production")
 
-    print(f"[Test Webhook] Simulating event: {event_type}")
+    logger.info(f"[Test Webhook] Simulating event: {event_type}")
 
     # Simuler l'événement
     if event_type == "invoice.paid":
@@ -429,7 +430,7 @@ async def retry_event(event_id: str):
         event_type = event.type
         event_data = event.data.object
 
-        print(f"[Webhook Retry] Retrying event: {event_type}")
+        logger.info(f"[Webhook Retry] Retrying event: {event_type}")
 
         # Router vers le bon handler
         if event_type == "customer.subscription.created":

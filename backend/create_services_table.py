@@ -4,6 +4,7 @@ Créer la table services via Python/Supabase
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from utils.logger import logger
 
 load_dotenv()
 
@@ -12,9 +13,9 @@ supabase: Client = create_client(
     os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 )
 
-print("\n" + "="*50)
-print("📦 CRÉATION TABLE SERVICES")
-print("="*50 + "\n")
+logger.info("\n" + "="*50)
+logger.info("📦 CRÉATION TABLE SERVICES")
+logger.info("="*50 + "\n")
 
 # SQL simplifié
 sql = """
@@ -43,10 +44,10 @@ CREATE TABLE IF NOT EXISTS services (
 
 try:
     result = supabase.rpc('exec_sql', {'sql': sql}).execute()
-    print("✅ Table services créée avec succès !")
+    logger.info("✅ Table services créée avec succès !")
 except Exception as e:
-    print(f"❌ Erreur: {e}")
-    print("\n💡 Essai avec requête directe...")
+    logger.info(f"❌ Erreur: {e}")
+    logger.info("\n💡 Essai avec requête directe...")
     
     # Essayer d'insérer directement un service de test pour forcer la création
     try:
@@ -65,10 +66,10 @@ except Exception as e:
             }
             
             result = supabase.table("services").insert(test_service).execute()
-            print("✅ Table services existe et fonctionne !")
-            print(f"   Service test créé: {result.data[0]['id']}")
+            logger.info("✅ Table services existe et fonctionne !")
+            logger.info(f"   Service test créé: {result.data[0]['id']}")
     except Exception as e2:
-        print(f"❌ La table n'existe pas encore: {e2}")
-        print("\n⚠️  Veuillez exécuter le SQL directement dans Supabase SQL Editor")
+        logger.info(f"❌ La table n'existe pas encore: {e2}")
+        logger.info("\n⚠️  Veuillez exécuter le SQL directement dans Supabase SQL Editor")
 
-print("\n" + "="*50)
+logger.info("\n" + "="*50)

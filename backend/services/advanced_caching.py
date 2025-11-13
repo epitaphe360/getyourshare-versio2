@@ -362,7 +362,7 @@ if __name__ == "__main__":
     # Exemple 1: Décorateur
     @cache_service.cache(key='product:{product_id}', cache_type='product')
     def get_product(product_id):
-        print(f"Fetching product {product_id} from database...")
+        logger.info(f"Fetching product {product_id} from database...")
         return {'id': product_id, 'name': 'iPhone 15'}
 
     # Exemple 2: Get/Set manuel
@@ -373,4 +373,4 @@ if __name__ == "__main__":
     cache_service.invalidate_pattern('product:*')
 
     # Exemple 4: Stats
-    print(cache_service.get_stats())
+    logger.info(cache_service.get_stats())

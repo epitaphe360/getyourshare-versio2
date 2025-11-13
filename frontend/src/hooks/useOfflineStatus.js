@@ -30,7 +30,7 @@ const useOfflineStatus = () => {
    * Gérer le passage online
    */
   const handleOnline = useCallback(async () => {
-    console.log('📶 Connexion rétablie');
+
     setIsOnline(true);
     setWasOffline(true);
     setLastOnlineTime(Date.now());
@@ -56,7 +56,7 @@ const useOfflineStatus = () => {
    * Gérer le passage offline
    */
   const handleOffline = useCallback(() => {
-    console.log('📡 Connexion perdue - Mode offline activé');
+
     setIsOnline(false);
     setConnectionType('offline');
 
@@ -85,7 +85,6 @@ const useOfflineStatus = () => {
     try {
       const db = await openRequestDB();
       await addRequestToDB(db, requestData);
-      console.log('✅ Requête ajoutée à la queue:', url);
 
       // Notifier le Service Worker
       if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
@@ -112,7 +111,6 @@ const useOfflineStatus = () => {
     }
 
     setIsSyncing(true);
-    console.log(`🔄 Synchronisation de ${queuedRequests.length} requêtes...`);
 
     let successCount = 0;
     let failCount = 0;
@@ -146,7 +144,6 @@ const useOfflineStatus = () => {
       showToast(`${failCount} requête(s) ont échoué`, 'error');
     }
 
-    console.log(`✅ Synchronisation terminée: ${successCount} réussies, ${failCount} échouées`);
   }, [queuedRequests]);
 
   /**
@@ -199,7 +196,7 @@ const useOfflineStatus = () => {
         const db = await openRequestDB();
         const requests = await getRequestsFromDB(db);
         setQueuedRequests(requests);
-        console.log(`📥 ${requests.length} requêtes chargées depuis IndexedDB`);
+
       } catch (error) {
         console.error('❌ Erreur chargement requêtes:', error);
       }

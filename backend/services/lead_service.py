@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 # Import optimiseur DB
 try:
     from utils.db_optimized import DBOptimizer
+from utils.logger import logger
 except ImportError:
     DBOptimizer = None
 
@@ -173,7 +174,7 @@ class LeadService:
             return lead
             
         except Exception as e:
-            print(f"Erreur create_lead: {e}")
+            logger.info(f"Erreur create_lead: {e}")
             raise
     
     
@@ -279,7 +280,7 @@ class LeadService:
             return updated_lead
             
         except Exception as e:
-            print(f"Erreur validate_lead: {e}")
+            logger.info(f"Erreur validate_lead: {e}")
             raise
     
     
@@ -305,7 +306,7 @@ class LeadService:
             return result.data or []
             
         except Exception as e:
-            print(f"Erreur get_leads_by_campaign: {e}")
+            logger.info(f"Erreur get_leads_by_campaign: {e}")
             return []
     
     
@@ -335,7 +336,7 @@ class LeadService:
             return result.data or []
 
         except Exception as e:
-            print(f"Erreur get_leads_by_influencer: {e}")
+            logger.info(f"Erreur get_leads_by_influencer: {e}")
             return []
     
     
@@ -438,7 +439,7 @@ class LeadService:
             }
 
         except Exception as e:
-            print(f"Erreur get_lead_stats: {e}")
+            logger.info(f"Erreur get_lead_stats: {e}")
             return {}
     
     
@@ -494,7 +495,7 @@ class LeadService:
                 return result.data[0]
             return None
         except Exception as e:
-            print(f"Erreur _get_active_deposit: {e}")
+            logger.info(f"Erreur _get_active_deposit: {e}")
             return None
     
     
@@ -519,7 +520,7 @@ class LeadService:
             }).eq('id', deposit_id).execute()
             
         except Exception as e:
-            print(f"Erreur _reserve_deposit_amount: {e}")
+            logger.info(f"Erreur _reserve_deposit_amount: {e}")
     
     
     def _release_reserved_amount(
@@ -542,7 +543,7 @@ class LeadService:
             }).eq('id', deposit_id).execute()
             
         except Exception as e:
-            print(f"Erreur _release_reserved_amount: {e}")
+            logger.info(f"Erreur _release_reserved_amount: {e}")
     
     
     def _deduct_from_deposit(
@@ -566,7 +567,7 @@ class LeadService:
             self._release_reserved_amount(deposit_id, amount)
             
         except Exception as e:
-            print(f"Erreur _deduct_from_deposit: {e}")
+            logger.info(f"Erreur _deduct_from_deposit: {e}")
             raise
     
     
@@ -598,7 +599,7 @@ class LeadService:
             self.supabase.table('lead_validation').insert(validation_data).execute()
             
         except Exception as e:
-            print(f"Erreur _record_validation: {e}")
+            logger.info(f"Erreur _record_validation: {e}")
     
     
     def _check_deposit_balance(self, deposit_id: str, merchant_id: str):
@@ -626,7 +627,7 @@ class LeadService:
                 self._handle_deposit_depletion(deposit_id, merchant_id, deposit.data)
                 
         except Exception as e:
-            print(f"Erreur _check_deposit_balance: {e}")
+            logger.info(f"Erreur _check_deposit_balance: {e}")
     
     
     def _handle_deposit_depletion(
@@ -656,7 +657,7 @@ class LeadService:
             self._notify_deposit_depleted(merchant_id, deposit_data)
             
         except Exception as e:
-            print(f"Erreur _handle_deposit_depletion: {e}")
+            logger.info(f"Erreur _handle_deposit_depletion: {e}")
     
     
     def _stop_campaign(self, campaign_id: str):
@@ -667,19 +668,19 @@ class LeadService:
                 'updated_at': datetime.now().isoformat()
             }).eq('id', campaign_id).execute()
         except Exception as e:
-            print(f"Erreur _stop_campaign: {e}")
+            logger.info(f"Erreur _stop_campaign: {e}")
     
     
     def _notify_new_lead(self, merchant_id: str, lead: Dict):
         """Notification nouveau lead (à implémenter avec NotificationService)"""
-        print(f"📧 Notification: Nouveau lead pour merchant {merchant_id}")
+        logger.info(f"📧 Notification: Nouveau lead pour merchant {merchant_id}")
     
     
     def _notify_low_balance(self, merchant_id: str, deposit: Dict):
         """Notification solde bas (à implémenter avec NotificationService)"""
-        print(f"⚠️  Notification: Solde bas pour merchant {merchant_id} - {deposit['current_balance']} dhs restants")
+        logger.info(f"⚠️  Notification: Solde bas pour merchant {merchant_id} - {deposit['current_balance']} dhs restants")
     
     
     def _notify_deposit_depleted(self, merchant_id: str, deposit: Dict):
         """Notification dépôt épuisé (à implémenter avec NotificationService)"""
-        print(f"🚫 Notification: Dépôt épuisé pour merchant {merchant_id}")
+        logger.info(f"🚫 Notification: Dépôt épuisé pour merchant {merchant_id}")

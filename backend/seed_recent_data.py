@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 from datetime import datetime, timedelta
 import random
+from utils.logger import logger
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -18,9 +19,9 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 # Client Supabase avec droits admin
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-print("=" * 80)
-print("📊 Ajout de données récentes pour les graphiques (7 derniers jours)")
-print("=" * 80)
+logger.info("=" * 80)
+logger.info("📊 Ajout de données récentes pour les graphiques (7 derniers jours)")
+logger.info("=" * 80)
 
 # Récupérer les IDs existants
 influencers_result = supabase.table("influencers").select("id,user_id").execute()
@@ -36,20 +37,20 @@ links_result = supabase.table("trackable_links").select("id,influencer_id,produc
 links = links_result.data
 
 if not influencers or not merchants or not products or not links:
-    print("❌ Données de base manquantes. Exécutez d'abord seed_all_data.py")
+    logger.info("❌ Données de base manquantes. Exécutez d'abord seed_all_data.py")
     exit(1)
 
-print(f"📍 {len(influencers)} influencers trouvés")
-print(f"📍 {len(merchants)} merchants trouvés")
-print(f"📍 {len(products)} produits trouvés")
-print(f"📍 {len(links)} liens trouvés\n")
+logger.info(f"📍 {len(influencers)} influencers trouvés")
+logger.info(f"📍 {len(merchants)} merchants trouvés")
+logger.info(f"📍 {len(products)} produits trouvés")
+logger.info(f"📍 {len(links)} liens trouvés\n")
 
 # ============================================
 # CRÉER DES VENTES POUR LES 7 DERNIERS JOURS
 # ============================================
 
-print("💰 Création de ventes récentes...")
-print("-" * 80)
+logger.info("💰 Création de ventes récentes...")
+logger.info("-" * 80)
 
 today = datetime.now()
 sales_created = 0
@@ -108,18 +109,18 @@ for day_offset in range(6, -1, -1):  # 7 derniers jours
                 sales_created += 1
 
         except Exception as e:
-            print(f"  ⚠️  Erreur vente: {str(e)}")
+            logger.info(f"  ⚠️  Erreur vente: {str(e)}")
 
-    print(f"  ✅ {target_date.strftime('%d/%m')}: {num_sales} ventes créées")
+    logger.info(f"  ✅ {target_date.strftime('%d/%m')}: {num_sales} ventes créées")
 
-print(f"\n  📊 Total: {sales_created} ventes créées\n")
+logger.info(f"\n  📊 Total: {sales_created} ventes créées\n")
 
 # ============================================
 # CRÉER DES CLICS POUR LES 7 DERNIERS JOURS
 # ============================================
 
-print("🖱️  Création de clics récents...")
-print("-" * 80)
+logger.info("🖱️  Création de clics récents...")
+logger.info("-" * 80)
 
 clicks_created = 0
 
@@ -176,19 +177,19 @@ for day_offset in range(6, -1, -1):  # 7 derniers jours
 
         except Exception as e:
             if clicks_created == 0:
-                print(f"  ⚠️  Erreur clic: {str(e)}")
+                logger.info(f"  ⚠️  Erreur clic: {str(e)}")
 
-    print(f"  ✅ {target_date.strftime('%d/%m')}: {num_clicks} clics créés")
+    logger.info(f"  ✅ {target_date.strftime('%d/%m')}: {num_clicks} clics créés")
 
-print(f"\n  📊 Total: {clicks_created} clics créés\n")
+logger.info(f"\n  📊 Total: {clicks_created} clics créés\n")
 
 # ============================================
 # STATISTIQUES FINALES
 # ============================================
 
-print("=" * 80)
-print("✅ Données récentes ajoutées avec succès !")
-print("=" * 80)
+logger.info("=" * 80)
+logger.info("✅ Données récentes ajoutées avec succès !")
+logger.info("=" * 80)
 
 # Compter les données des 7 derniers jours
 seven_days_ago = (today - timedelta(days=7)).isoformat()
@@ -209,10 +210,10 @@ clicks_count = (
     .count
 )
 
-print(f"\n📊 Données des 7 derniers jours:")
-print(f"  💰 {sales_count} ventes")
-print(f"  🖱️  {clicks_count} clics")
+logger.info(f"\n📊 Données des 7 derniers jours:")
+logger.info(f"  💰 {sales_count} ventes")
+logger.info(f"  🖱️  {clicks_count} clics")
 
-print(f"\n🎉 Les graphiques vont maintenant afficher des données réelles de Supabase !")
-print(f"   - Évolution des Gains (7 jours)")
-print(f"   - Clics & Conversions (7 jours)")
+logger.info(f"\n🎉 Les graphiques vont maintenant afficher des données réelles de Supabase !")
+logger.info(f"   - Évolution des Gains (7 jours)")
+logger.info(f"   - Clics & Conversions (7 jours)")

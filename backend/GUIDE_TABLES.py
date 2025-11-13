@@ -1,4 +1,5 @@
-print("""
+from utils.logger import logger
+logger.info("""
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
 ║         🗄️  GUIDE CRÉATION TABLES - TOP 5 FEATURES          ║

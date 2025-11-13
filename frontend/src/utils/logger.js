@@ -38,7 +38,7 @@ class Logger {
 
   log(message, ...args) {
     if (this.enabled) {
-      console.log(`[${this.name}] ${message}`, ...args);
+
     }
   }
 }

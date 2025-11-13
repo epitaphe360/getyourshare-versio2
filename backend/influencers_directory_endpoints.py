@@ -19,6 +19,7 @@ from supabase import create_client, Client
 import os
 from auth import get_current_user
 from utils.db_safe import safe_ilike
+from utils.logger import logger
 
 router = APIRouter(prefix="/api/influencers", tags=["Influencers Directory"])
 
@@ -168,7 +169,7 @@ async def increment_view_count(profile_id: str):
             .eq("id", profile_id) \
             .execute()
     except Exception as e:
-        print(f"Error incrementing view count: {e}")
+        logger.error(f"Error incrementing view count: {e}")
 
 async def increment_contact_count(profile_id: str):
     """Incrémenter le compteur de contacts"""
@@ -178,7 +179,7 @@ async def increment_contact_count(profile_id: str):
             .eq("id", profile_id) \
             .execute()
     except Exception as e:
-        print(f"Error incrementing contact count: {e}")
+        logger.error(f"Error incrementing contact count: {e}")
 
 # ============================================
 # ENDPOINTS - PROFILE MANAGEMENT
@@ -488,7 +489,7 @@ async def search_influencers(
         }
 
     except Exception as e:
-        print(f"Error searching influencers: {e}")
+        logger.error(f"Error searching influencers: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Error searching influencers: {str(e)}"

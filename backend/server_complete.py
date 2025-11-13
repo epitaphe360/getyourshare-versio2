@@ -35,10 +35,10 @@ try:
     from supabase import create_client, Client
     SUPABASE_URL = os.getenv("SUPABASE_URL")
     SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
-    print(f"🔍 DEBUG Supabase: URL={SUPABASE_URL[:30] if SUPABASE_URL else None}..., KEY={'***' if SUPABASE_KEY else None}")
+    logger.debug(f"🔍 DEBUG Supabase: URL={SUPABASE_URL[:30] if SUPABASE_URL else None}..., KEY={'***' if SUPABASE_KEY else None}")
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
     SUPABASE_ENABLED = supabase is not None
-    print(f"✅ Supabase client créé: {SUPABASE_ENABLED}")
+    logger.info(f"✅ Supabase client créé: {SUPABASE_ENABLED}")
     
     # Helper function for other modules
     def get_supabase_client():
@@ -46,7 +46,7 @@ try:
         return supabase
         
 except Exception as e:
-    print(f"⚠️ Supabase non disponible: {e}")
+    logger.info(f"⚠️ Supabase non disponible: {e}")
     import traceback
     traceback.print_exc()
     supabase = None
@@ -58,25 +58,25 @@ try:
     EMAIL_ENABLED = True
 except ImportError:
     EMAIL_ENABLED = False
-    print("Warning: Email service not available")
+    logger.warning("Warning: Email service not available")
 
 # Subscription limits middleware
 try:
     from subscription_limits_middleware import SubscriptionLimits
     SUBSCRIPTION_LIMITS_ENABLED = True
-    print("✅ Subscription limits middleware loaded")
+    logger.info("✅ Subscription limits middleware loaded")
 except ImportError as e:
     SUBSCRIPTION_LIMITS_ENABLED = False
-    print(f"⚠️ Subscription limits not available: {e}")
+    logger.info(f"⚠️ Subscription limits not available: {e}")
 
 # Translation service with OpenAI and DB cache
 try:
     from translation_service import init_translation_service, translation_service
     TRANSLATION_SERVICE_AVAILABLE = True
-    print("✅ Translation service with OpenAI loaded")
+    logger.info("✅ Translation service with OpenAI loaded")
 except ImportError as e:
     TRANSLATION_SERVICE_AVAILABLE = False
-    print(f"⚠️ Translation service not available: {e}")
+    logger.info(f"⚠️ Translation service not available: {e}")
 
 # Database queries helpers (real data, not mocked)
 try:
@@ -112,35 +112,35 @@ try:
         update_user_password
     )
     DB_QUERIES_AVAILABLE = True
-    print("✅ DB Queries helpers loaded successfully")
+    logger.info("✅ DB Queries helpers loaded successfully")
 except ImportError as e:
     DB_QUERIES_AVAILABLE = False
-    print(f"⚠️ DB Queries helpers not available: {e}")
+    logger.info(f"⚠️ DB Queries helpers not available: {e}")
 
 # Subscription endpoints
 try:
     from subscription_endpoints_simple import router as subscription_router
     SUBSCRIPTION_ENDPOINTS_AVAILABLE = True
 except ImportError as e:
-    print(f"⚠️ Subscription endpoints not available: {e}")
+    logger.info(f"⚠️ Subscription endpoints not available: {e}")
     SUBSCRIPTION_ENDPOINTS_AVAILABLE = False
 
 # Moderation endpoints
 try:
     from moderation_endpoints import router as moderation_router
     MODERATION_ENDPOINTS_AVAILABLE = True
-    print("✅ Moderation endpoints loaded successfully")
+    logger.info("✅ Moderation endpoints loaded successfully")
 except ImportError as e:
-    print(f"⚠️ Moderation endpoints not available: {e}")
+    logger.info(f"⚠️ Moderation endpoints not available: {e}")
     MODERATION_ENDPOINTS_AVAILABLE = False
 
 # Platform settings endpoints
 try:
     from platform_settings_endpoints import router as platform_settings_router
     PLATFORM_SETTINGS_ENDPOINTS_AVAILABLE = True
-    print("✅ Platform settings endpoints loaded successfully")
+    logger.info("✅ Platform settings endpoints loaded successfully")
 except ImportError as e:
-    print(f"⚠️ Platform settings endpoints not available: {e}")
+    logger.info(f"⚠️ Platform settings endpoints not available: {e}")
     PLATFORM_SETTINGS_ENDPOINTS_AVAILABLE = False
 
 # ============================================
@@ -150,20 +150,20 @@ except ImportError as e:
 # JWT Configuration avec validation stricte
 JWT_SECRET = os.getenv("JWT_SECRET")
 if not JWT_SECRET:
-    print("🔴 ERREUR CRITIQUE: JWT_SECRET non défini dans les variables d'environnement")
-    print("   Générez-en un avec: python -c 'import secrets; print(secrets.token_urlsafe(64))'")
-    print("   Puis ajoutez-le dans votre fichier .env")
+    logger.info("🔴 ERREUR CRITIQUE: JWT_SECRET non défini dans les variables d'environnement")
+    logger.info("   Générez-en un avec: python -c 'import secrets; logger.info(secrets.token_urlsafe(64))'")
+    logger.info("   Puis ajoutez-le dans votre fichier .env")
     sys.exit(1)
 
 if len(JWT_SECRET) < 32:
-    print(f"⚠️  ATTENTION: JWT_SECRET trop court ({len(JWT_SECRET)} chars, minimum 32 requis)")
-    print("   Utilisez un secret plus long pour une sécurité optimale")
+    logger.info(f"⚠️  ATTENTION: JWT_SECRET trop court ({len(JWT_SECRET)} chars, minimum 32 requis)")
+    logger.info("   Utilisez un secret plus long pour une sécurité optimale")
     sys.exit(1)
 
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION = int(os.getenv("JWT_EXPIRATION", "86400"))  # 24 heures par défaut
 security = HTTPBearer()
-print(f"✅ JWT_SECRET chargé avec succès ({len(JWT_SECRET)} caractères)")
+logger.info(f"✅ JWT_SECRET chargé avec succès ({len(JWT_SECRET)} caractères)")
 
 # Rate Limiter Configuration
 limiter = Limiter(key_func=get_remote_address, default_limits=["100/minute"])
@@ -231,7 +231,7 @@ app = FastAPI(
 
 # Récupérer CORS origins depuis les variables d'environnement
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
-print(f"🔐 CORS Origins configurés: {cors_origins}")
+logger.info(f"🔐 CORS Origins configurés: {cors_origins}")
 
 # CORS Configuration - Must be added FIRST
 app.add_middleware(
@@ -248,12 +248,12 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Initialize Translation Service with Supabase
-print(f"🔍 DEBUG: TRANSLATION_SERVICE_AVAILABLE={TRANSLATION_SERVICE_AVAILABLE}, SUPABASE_ENABLED={SUPABASE_ENABLED}")
+logger.debug(f"🔍 DEBUG: TRANSLATION_SERVICE_AVAILABLE={TRANSLATION_SERVICE_AVAILABLE}, SUPABASE_ENABLED={SUPABASE_ENABLED}")
 if TRANSLATION_SERVICE_AVAILABLE and SUPABASE_ENABLED:
     init_translation_service(supabase)
-    print("✅ Translation service initialized with Supabase")
+    logger.info("✅ Translation service initialized with Supabase")
 else:
-    print(f"⚠️ Translation service initialization skipped (Translation: {TRANSLATION_SERVICE_AVAILABLE}, Supabase: {SUPABASE_ENABLED})")
+    logger.info(f"⚠️ Translation service initialization skipped (Translation: {TRANSLATION_SERVICE_AVAILABLE}, Supabase: {SUPABASE_ENABLED})")
 
 # ============================================
 # ROUTERS
@@ -262,32 +262,32 @@ else:
 # Monter le router des abonnements
 if SUBSCRIPTION_ENDPOINTS_AVAILABLE:
     app.include_router(subscription_router)
-    print("✅ Subscription endpoints mounted at /api/subscriptions")
+    logger.info("✅ Subscription endpoints mounted at /api/subscriptions")
 else:
-    print("⚠️ Subscription endpoints not available")
+    logger.info("⚠️ Subscription endpoints not available")
 
 # Monter le router de modération
 if MODERATION_ENDPOINTS_AVAILABLE:
     app.include_router(moderation_router)
-    print("✅ Moderation endpoints mounted at /api/admin/moderation")
+    logger.info("✅ Moderation endpoints mounted at /api/admin/moderation")
 else:
-    print("⚠️ Moderation endpoints not available")
+    logger.info("⚠️ Moderation endpoints not available")
 
 # Monter le router des paramètres de plateforme
 if PLATFORM_SETTINGS_ENDPOINTS_AVAILABLE:
     app.include_router(platform_settings_router)
-    print("✅ Platform settings endpoints mounted at /api/admin/platform-settings")
+    logger.info("✅ Platform settings endpoints mounted at /api/admin/platform-settings")
 else:
-    print("⚠️ Platform settings endpoints not available")
+    logger.info("⚠️ Platform settings endpoints not available")
 
 # Monter le router d'authentification avancée
 try:
     from auth_advanced_endpoints import router as auth_advanced_router
     app.include_router(auth_advanced_router)
-    print("✅ Advanced auth endpoints mounted at /api/auth")
+    logger.info("✅ Advanced auth endpoints mounted at /api/auth")
 except ImportError as e:
-    print(f"⚠️ Advanced auth endpoints not available: {e}")
-    print("💡 Install missing dependencies: pip install pyotp qrcode Pillow")
+    logger.info(f"⚠️ Advanced auth endpoints not available: {e}")
+    logger.info("💡 Install missing dependencies: pip install pyotp qrcode Pillow")
 
 # ============================================
 # AUTHENTICATION
@@ -986,7 +986,7 @@ async def register(request: Request, user_data: UserCreate):
                 user_type=user_data.role
             )
         except Exception as e:
-            print(f"Email sending failed: {e}")
+            logger.error(f"Email sending failed: {e}")
     
     # Générer token JWT avec fonction dédiée
     access_token = create_token(user_id, user_data.email, user_data.role)
@@ -1113,7 +1113,7 @@ async def get_products(
             return result
         
         except Exception as e:
-            print(f"❌ Erreur get_products: {str(e)}")
+            logger.info(f"❌ Erreur get_products: {str(e)}")
             # Fallback to mocked data
     
     # FALLBACK: Données mockées
@@ -1240,7 +1240,7 @@ async def create_new_product(
                 )
         
         except Exception as e:
-            print(f"❌ Erreur create_new_product: {str(e)}")
+            logger.info(f"❌ Erreur create_new_product: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Erreur lors de la création: {str(e)}"
@@ -1330,7 +1330,7 @@ async def get_marketplace_products(
                 "offset": offset
             }
     except Exception as e:
-        print(f"❌ Erreur Supabase: {e}")
+        logger.info(f"❌ Erreur Supabase: {e}")
         # Fallback sur MOCK en cas d'erreur
         products = MOCK_PRODUCTS.copy()
         if type:
@@ -1364,7 +1364,7 @@ async def get_product_detail(product_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur Supabase: {e}")
+        logger.info(f"❌ Erreur Supabase: {e}")
         # Fallback sur MOCK en cas d'erreur
         product = next((p for p in MOCK_PRODUCTS if str(p["id"]) == str(product_id)), None)
         if not product:
@@ -2786,7 +2786,7 @@ async def register(request: Request, user_data: UserCreate):
                 user_type=user_data.role
             )
         except Exception as e:
-            print(f"Email sending failed: {e}")
+            logger.error(f"Email sending failed: {e}")
     
     # Générer token JWT avec fonction dédiée
     access_token = create_token(user_id, user_data.email, user_data.role)
@@ -2913,7 +2913,7 @@ async def get_products(
             return result
         
         except Exception as e:
-            print(f"❌ Erreur get_products: {str(e)}")
+            logger.info(f"❌ Erreur get_products: {str(e)}")
             # Fallback to mocked data
     
     # FALLBACK: Données mockées
@@ -3040,7 +3040,7 @@ async def create_new_product(
                 )
         
         except Exception as e:
-            print(f"❌ Erreur create_new_product: {str(e)}")
+            logger.info(f"❌ Erreur create_new_product: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Erreur lors de la création: {str(e)}"
@@ -3130,7 +3130,7 @@ async def get_marketplace_products(
                 "offset": offset
             }
     except Exception as e:
-        print(f"❌ Erreur Supabase: {e}")
+        logger.info(f"❌ Erreur Supabase: {e}")
         # Fallback sur MOCK en cas d'erreur
         products = MOCK_PRODUCTS.copy()
         if type:
@@ -3164,7 +3164,7 @@ async def get_product_detail(product_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur Supabase: {e}")
+        logger.info(f"❌ Erreur Supabase: {e}")
         # Fallback sur MOCK en cas d'erreur
         product = next((p for p in MOCK_PRODUCTS if str(p["id"]) == str(product_id)), None)
         if not product:
@@ -4586,7 +4586,7 @@ async def register(request: Request, user_data: UserCreate):
                 user_type=user_data.role
             )
         except Exception as e:
-            print(f"Email sending failed: {e}")
+            logger.error(f"Email sending failed: {e}")
     
     # Générer token JWT avec fonction dédiée
     access_token = create_token(user_id, user_data.email, user_data.role)
@@ -4713,7 +4713,7 @@ async def get_products(
             return result
         
         except Exception as e:
-            print(f"❌ Erreur get_products: {str(e)}")
+            logger.info(f"❌ Erreur get_products: {str(e)}")
             # Fallback to mocked data
     
     # FALLBACK: Données mockées
@@ -4840,7 +4840,7 @@ async def create_new_product(
                 )
         
         except Exception as e:
-            print(f"❌ Erreur create_new_product: {str(e)}")
+            logger.info(f"❌ Erreur create_new_product: {str(e)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Erreur lors de la création: {str(e)}"
@@ -4930,7 +4930,7 @@ async def get_marketplace_products(
                 "offset": offset
             }
     except Exception as e:
-        print(f"❌ Erreur Supabase: {e}")
+        logger.info(f"❌ Erreur Supabase: {e}")
         # Fallback sur MOCK en cas d'erreur
         products = MOCK_PRODUCTS.copy()
         if type:
@@ -4964,7 +4964,7 @@ async def get_product_detail(product_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur Supabase: {e}")
+        logger.info(f"❌ Erreur Supabase: {e}")
         # Fallback sur MOCK en cas d'erreur
         product = next((p for p in MOCK_PRODUCTS if str(p["id"]) == str(product_id)), None)
         if not product:
@@ -5723,7 +5723,7 @@ async def update_sale_status_endpoint(
         except HTTPException:
             raise
         except Exception as e:
-            print(f"❌ Erreur update_sale_status: {str(e)}")
+            logger.info(f"❌ Erreur update_sale_status: {str(e)}")
             # Fallback to mocked
     
     # FALLBACK: Réponse mockée
@@ -5766,7 +5766,7 @@ async def get_commissions(
             )
             return result
         except Exception as e:
-            print(f"❌ Erreur get_commissions: {str(e)}")
+            logger.info(f"❌ Erreur get_commissions: {str(e)}")
             # Fallback to mocked
     
     # FALLBACK: Données mockées
@@ -5810,7 +5810,7 @@ async def get_payment_methods_endpoint(payload: dict = Depends(verify_token)):
             methods = await get_payment_methods(user_id)
             return {"payment_methods": methods, "total": len(methods)}
         except Exception as e:
-            print(f"❌ Erreur get_payment_methods: {str(e)}")
+            logger.info(f"❌ Erreur get_payment_methods: {str(e)}")
             # Fallback to mocked
     
     # FALLBACK: Données mockées
@@ -5970,7 +5970,7 @@ async def get_payouts_list(payload: dict = Depends(verify_token)):
             payouts = await get_user_payouts(user_id)
             return {"payouts": payouts, "total": len(payouts)}
         except Exception as e:
-            print(f"❌ Erreur get_user_payouts: {e}")
+            logger.info(f"❌ Erreur get_user_payouts: {e}")
             # Fallback aux données mockées
     
     # Fallback: Données mockées
@@ -6020,7 +6020,7 @@ async def get_admin_users(
             )
             return result
         except Exception as e:
-            print(f"❌ Erreur get_admin_users: {str(e)}")
+            logger.info(f"❌ Erreur get_admin_users: {str(e)}")
             # Fallback to mocked
     
     # FALLBACK: Mock data
@@ -6106,7 +6106,7 @@ async def activate_user_endpoint(
         except HTTPException:
             raise
         except Exception as e:
-            print(f"❌ Erreur activate_user: {str(e)}")
+            logger.info(f"❌ Erreur activate_user: {str(e)}")
             # Fallback to mocked
     
     # FALLBACK: Réponse mockée
@@ -6194,7 +6194,7 @@ async def get_user_profile_endpoint(payload: dict = Depends(verify_token)):
         except HTTPException:
             raise
         except Exception as e:
-            print(f"❌ Erreur get_user_profile: {str(e)}")
+            logger.info(f"❌ Erreur get_user_profile: {str(e)}")
             # Fallback to mocked
     
     # FALLBACK: Profil mocké
@@ -6229,7 +6229,7 @@ async def update_user_profile_endpoint(
         except HTTPException:
             raise
         except Exception as e:
-            print(f"❌ Erreur update_user_profile: {str(e)}")
+            logger.info(f"❌ Erreur update_user_profile: {str(e)}")
             # Fallback to mocked
     
     # FALLBACK: Réponse mockée
@@ -6268,7 +6268,7 @@ async def update_user_password_endpoint(
         except HTTPException:
             raise
         except Exception as e:
-            print(f"❌ Erreur update_user_password: {str(e)}")
+            logger.info(f"❌ Erreur update_user_password: {str(e)}")
             # Fallback to mocked
     
     # FALLBACK: Réponse mockée
@@ -6322,7 +6322,7 @@ async def get_subscription_limits(payload: dict = Depends(verify_token)):
             }
         }
     except Exception as e:
-        print(f"❌ Error getting subscription limits: {e}")
+        logger.error(f"❌ Error getting subscription limits: {e}")
         return {
             "error": str(e),
             "limits": {},
@@ -6345,7 +6345,7 @@ async def get_subscription_features(payload: dict = Depends(verify_token)):
             "plan": payload.get("subscription_plan", "unknown")
         }
     except Exception as e:
-        print(f"❌ Error getting features: {e}")
+        logger.error(f"❌ Error getting features: {e}")
         return {"features": [], "error": str(e)}
 
 
@@ -6364,7 +6364,7 @@ async def check_feature_access(feature_name: str, payload: dict = Depends(verify
             "plan": payload.get("subscription_plan", "unknown")
         }
     except Exception as e:
-        print(f"❌ Error checking feature: {e}")
+        logger.error(f"❌ Error checking feature: {e}")
         return {"has_access": False, "error": str(e)}
 
 
@@ -6391,7 +6391,7 @@ async def get_all_translations(language: str):
             "count": len(translations)
         }
     except Exception as e:
-        print(f"❌ Error loading translations: {e}")
+        logger.error(f"❌ Error loading translations: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -6444,7 +6444,7 @@ async def translate_text(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Translation error: {e}")
+        logger.error(f"❌ Translation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -6490,7 +6490,7 @@ async def batch_translate(
         }
     
     except Exception as e:
-        print(f"❌ Batch translation error: {e}")
+        logger.error(f"❌ Batch translation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -6542,10 +6542,11 @@ async def import_translations(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Import error: {e}")
+        logger.error(f"❌ Import error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":
     import uvicorn
+from utils.logger import logger
     uvicorn.run(app, host="0.0.0.0", port=8000)

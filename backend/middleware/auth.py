@@ -15,14 +15,15 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 SECRET_KEY = os.getenv("JWT_SECRET_KEY") or os.getenv("JWT_SECRET")
 if not SECRET_KEY:
     import sys
-    print("🔴 ERREUR CRITIQUE: JWT_SECRET_KEY ou JWT_SECRET doit être défini dans .env")
-    print("   Variable manquante dans les variables d'environnement")
+    logger.info("🔴 ERREUR CRITIQUE: JWT_SECRET_KEY ou JWT_SECRET doit être défini dans .env")
+    logger.info("   Variable manquante dans les variables d'environnement")
     sys.exit(1)
 
 if len(SECRET_KEY) < 32:
     import sys
-    print(f"⚠️  ATTENTION: SECRET_KEY trop court ({len(SECRET_KEY)} chars, minimum 32 requis)")
-    print("   Utilisez un secret plus long pour une sécurité optimale")
+from utils.logger import logger
+    logger.info(f"⚠️  ATTENTION: SECRET_KEY trop court ({len(SECRET_KEY)} chars, minimum 32 requis)")
+    logger.info("   Utilisez un secret plus long pour une sécurité optimale")
     sys.exit(1)
 
 ALGORITHM = "HS256"

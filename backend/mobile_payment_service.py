@@ -11,6 +11,7 @@ import httpx
 import hashlib
 import hmac
 import os
+from utils.logger import logger
 
 # ============================================
 # MODELS
@@ -190,7 +191,7 @@ class MobilePaymentService:
                     )
 
         except Exception as e:
-            print(f"CashPlus API Error: {e}")
+            logger.error(f"CashPlus API Error: {e}")
             # Fallback: créer une transaction manuelle
             return await self._create_manual_payout(request, net_amount)
 
@@ -244,7 +245,7 @@ class MobilePaymentService:
                     return await self._create_manual_payout(request, net_amount)
 
         except Exception as e:
-            print(f"Orange Money API Error: {e}")
+            logger.error(f"Orange Money API Error: {e}")
             return await self._create_manual_payout(request, net_amount)
 
     async def _process_mt_cash_payout(self, request: PayoutRequest, net_amount: float) -> PayoutResponse:
@@ -290,7 +291,7 @@ class MobilePaymentService:
                     return await self._create_manual_payout(request, net_amount)
 
         except Exception as e:
-            print(f"MT Cash API Error: {e}")
+            logger.error(f"MT Cash API Error: {e}")
             return await self._create_manual_payout(request, net_amount)
 
     async def _process_generic_payout(self, request: PayoutRequest, net_amount: float) -> PayoutResponse:
@@ -353,7 +354,7 @@ class MobilePaymentService:
                     raise Exception("Failed to get Orange Money token")
 
         except Exception as e:
-            print(f"Error getting Orange Money token: {e}")
+            logger.error(f"Error getting Orange Money token: {e}")
             return ""
 
     async def verify_phone_number(self, phone: str, provider: MobilePaymentProvider) -> Dict[str, Any]:

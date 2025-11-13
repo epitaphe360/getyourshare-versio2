@@ -19,6 +19,7 @@ import os
 import stripe
 from auth import get_current_user, get_current_admin
 from supabase_client import supabase
+from utils.logger import logger
 
 router = APIRouter(prefix="/api/subscriptions", tags=["Subscriptions"])
 
@@ -122,7 +123,7 @@ async def get_user_subscription(user_id: str) -> Optional[Dict[str, Any]]:
             return response.data[0]
         return None
     except Exception as e:
-        print(f"Error getting subscription: {e}")
+        logger.error(f"Error getting subscription: {e}")
         return None
 
 async def check_limit(user_id: str, limit_type: str) -> bool:
@@ -135,7 +136,7 @@ async def check_limit(user_id: str, limit_type: str) -> bool:
 
         return response.data if response.data is not None else False
     except Exception as e:
-        print(f"Error checking limit: {e}")
+        logger.error(f"Error checking limit: {e}")
         return False
 
 async def create_stripe_subscription(

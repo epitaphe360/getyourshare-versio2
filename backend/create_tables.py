@@ -25,8 +25,8 @@ def read_sql_file(filepath):
 
 def create_tables():
     """Créer toutes les tables depuis schema.sql"""
-    print("🚀 Création des tables dans Supabase...")
-    print(f"📍 URL: {SUPABASE_URL}")
+    logger.info("🚀 Création des tables dans Supabase...")
+    logger.info(f"📍 URL: {SUPABASE_URL}")
 
     # Lire le fichier schema.sql
     schema_path = os.path.join(os.path.dirname(__file__), "..", "database", "schema.sql")
@@ -35,7 +35,7 @@ def create_tables():
     # Supabase utilise PostgREST, donc on doit exécuter le SQL directement via l'API SQL
     # Pour créer les tables, il faut utiliser l'interface Supabase SQL Editor ou psycopg2
 
-    print(
+    logger.info(
         """
     ⚠️  IMPORTANT:
 
@@ -55,24 +55,25 @@ def create_tables():
     try:
         import psycopg2
         from urllib.parse import urlparse
+from utils.logger import logger
 
         # Construire l'URL PostgreSQL depuis l'URL Supabase
         # Format: postgres://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres
         project_ref = SUPABASE_URL.split("//")[1].split(".")[0]
 
         # Pour Supabase, l'URL de connexion PostgreSQL est différente
-        print("\n📝 Pour obtenir l'URL de connexion PostgreSQL:")
-        print("1. Allez sur https://iamezkmapbhlhhvvsits.supabase.co/project/_/settings/database")
-        print("2. Copiez la 'Connection string' sous 'Direct connection'")
-        print("3. Remplacez [YOUR-PASSWORD] par votre mot de passe de base de données")
+        logger.info("\n📝 Pour obtenir l'URL de connexion PostgreSQL:")
+        logger.info("1. Allez sur https://iamezkmapbhlhhvvsits.supabase.co/project/_/settings/database")
+        logger.info("2. Copiez la 'Connection string' sous 'Direct connection'")
+        logger.info("3. Remplacez [YOUR-PASSWORD] par votre mot de passe de base de données")
 
-        print("\n💡 Ou utilisez l'éditeur SQL de Supabase pour créer les tables.")
-        print(f"\n📄 Fichier SQL à exécuter: {schema_path}")
+        logger.info("\n💡 Ou utilisez l'éditeur SQL de Supabase pour créer les tables.")
+        logger.info(f"\n📄 Fichier SQL à exécuter: {schema_path}")
 
         return False
 
     except ImportError:
-        print("❌ psycopg2 n'est pas installé. Utilisez l'éditeur SQL de Supabase.")
+        logger.info("❌ psycopg2 n'est pas installé. Utilisez l'éditeur SQL de Supabase.")
         return False
 
 

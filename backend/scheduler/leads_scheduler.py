@@ -34,7 +34,7 @@ def check_deposits_and_send_alerts():
     - 90% solde: Email + SMS + Notification (WARNING)
     - 100% solde: Email + SMS + WhatsApp + Blocage leads (CRITICAL)
     """
-    print(f"\n🔍 [{datetime.now()}] Vérification des dépôts...")
+    logger.info(f"\n🔍 [{datetime.now()}] Vérification des dépôts...")
     
     try:
         # Récupérer tous les dépôts actifs
@@ -48,7 +48,7 @@ def check_deposits_and_send_alerts():
         deposits = response.data if response.data else []
         
         if not deposits:
-            print("✅ Aucun dépôt actif à vérifier")
+            logger.info("✅ Aucun dépôt actif à vérifier")
             return
         
         alerts_sent = {
@@ -99,7 +99,7 @@ def check_deposits_and_send_alerts():
                     )
                     
                     alerts_sent['DEPLETED'] += 1
-                    print(f"🔴 DEPLETED: Dépôt {deposit_id} épuisé (0 dhs)")
+                    logger.info(f"🔴 DEPLETED: Dépôt {deposit_id} épuisé (0 dhs)")
                 
                 elif percentage <= 10:
                     # 🟠 CRITICAL - 90%+ utilisé
@@ -117,7 +117,7 @@ def check_deposits_and_send_alerts():
                     )
                     
                     alerts_sent['CRITICAL'] += 1
-                    print(f"🟠 CRITICAL: Dépôt {deposit_id} à {percentage:.1f}% ({current_balance} dhs)")
+                    logger.error(f"🟠 CRITICAL: Dépôt {deposit_id} à {percentage:.1f}% ({current_balance} dhs)")
                 
                 elif percentage <= 20:
                     # 🟡 WARNING - 80%+ utilisé
@@ -135,7 +135,7 @@ def check_deposits_and_send_alerts():
                     )
                     
                     alerts_sent['WARNING'] += 1
-                    print(f"🟡 WARNING: Dépôt {deposit_id} à {percentage:.1f}% ({current_balance} dhs)")
+                    logger.warning(f"🟡 WARNING: Dépôt {deposit_id} à {percentage:.1f}% ({current_balance} dhs)")
                 
                 elif percentage <= 50:
                     # 🟢 ATTENTION - 50%+ utilisé
@@ -153,7 +153,7 @@ def check_deposits_and_send_alerts():
                     )
                     
                     alerts_sent['ATTENTION'] += 1
-                    print(f"🟢 ATTENTION: Dépôt {deposit_id} à {percentage:.1f}% ({current_balance} dhs)")
+                    logger.info(f"🟢 ATTENTION: Dépôt {deposit_id} à {percentage:.1f}% ({current_balance} dhs)")
                 
                 else:
                     # ✅ HEALTHY - Plus de 50% restant
@@ -168,19 +168,19 @@ def check_deposits_and_send_alerts():
                         .execute()
             
             except Exception as e:
-                print(f"❌ Erreur lors du traitement du dépôt {deposit.get('id')}: {e}")
+                logger.info(f"❌ Erreur lors du traitement du dépôt {deposit.get('id')}: {e}")
                 continue
         
         # Résumé
-        print(f"\n📊 Résumé de la vérification:")
-        print(f"   ✅ HEALTHY: {alerts_sent['HEALTHY']} dépôts")
-        print(f"   🟢 ATTENTION (50%): {alerts_sent['ATTENTION']} alertes")
-        print(f"   🟡 WARNING (80%): {alerts_sent['WARNING']} alertes")
-        print(f"   🟠 CRITICAL (90%): {alerts_sent['CRITICAL']} alertes")
-        print(f"   🔴 DEPLETED (100%): {alerts_sent['DEPLETED']} dépôts épuisés")
+        logger.info(f"\n📊 Résumé de la vérification:")
+        logger.info(f"   ✅ HEALTHY: {alerts_sent['HEALTHY']} dépôts")
+        logger.info(f"   🟢 ATTENTION (50%): {alerts_sent['ATTENTION']} alertes")
+        logger.warning(f"   🟡 WARNING (80%): {alerts_sent['WARNING']} alertes")
+        logger.error(f"   🟠 CRITICAL (90%): {alerts_sent['CRITICAL']} alertes")
+        logger.info(f"   🔴 DEPLETED (100%): {alerts_sent['DEPLETED']} dépôts épuisés")
         
     except Exception as e:
-        print(f"❌ Erreur lors de la vérification des dépôts: {e}")
+        logger.info(f"❌ Erreur lors de la vérification des dépôts: {e}")
 
 
 def cleanup_expired_leads():
@@ -188,11 +188,12 @@ def cleanup_expired_leads():
     Nettoyer les leads expirés (plus de 72h en pending sans validation)
     Exécuté tous les jours à 23:00
     """
-    print(f"\n🧹 [{datetime.now()}] Nettoyage des leads expirés...")
+    logger.info(f"\n🧹 [{datetime.now()}] Nettoyage des leads expirés...")
     
     try:
         # Récupérer les leads en attente depuis plus de 72h
         from datetime import timedelta
+from utils.logger import logger
         
         expiration_date = (datetime.now() - timedelta(hours=72)).isoformat()
         
@@ -205,10 +206,10 @@ def cleanup_expired_leads():
         expired_leads = response.data if response.data else []
         
         if not expired_leads:
-            print("✅ Aucun lead expiré à nettoyer")
+            logger.info("✅ Aucun lead expiré à nettoyer")
             return
         
-        print(f"📦 {len(expired_leads)} leads expirés trouvés")
+        logger.info(f"📦 {len(expired_leads)} leads expirés trouvés")
         
         for lead in expired_leads:
             try:
@@ -246,16 +247,16 @@ def cleanup_expired_leads():
                         except Exception:
                             pass
                 
-                print(f"   🗑️  Lead {lead_id} expiré et marqué comme perdu")
+                logger.info(f"   🗑️  Lead {lead_id} expiré et marqué comme perdu")
             
             except Exception as e:
-                print(f"   ❌ Erreur lead {lead.get('id')}: {e}")
+                logger.info(f"   ❌ Erreur lead {lead.get('id')}: {e}")
                 continue
         
-        print(f"✅ {len(expired_leads)} leads expirés nettoyés")
+        logger.info(f"✅ {len(expired_leads)} leads expirés nettoyés")
     
     except Exception as e:
-        print(f"❌ Erreur lors du nettoyage: {e}")
+        logger.info(f"❌ Erreur lors du nettoyage: {e}")
 
 
 def generate_daily_report():
@@ -263,7 +264,7 @@ def generate_daily_report():
     Génère un rapport quotidien pour les admins
     Exécuté tous les jours à 09:00
     """
-    print(f"\n📊 [{datetime.now()}] Génération du rapport quotidien...")
+    logger.info(f"\n📊 [{datetime.now()}] Génération du rapport quotidien...")
     
     try:
         # Statistiques leads des dernières 24h
@@ -307,11 +308,11 @@ def generate_daily_report():
             'timestamp': datetime.now().isoformat()
         }
         
-        print(f"\n📈 Rapport quotidien:")
-        print(f"   📦 Leads créés (24h): {report['leads_created_24h']}")
-        print(f"   ✅ Leads validés (24h): {report['leads_validated_24h']}")
-        print(f"   ❌ Leads rejetés (24h): {report['leads_rejected_24h']}")
-        print(f"   ⚠️  Dépôts < 50%: {report['deposits_below_50_percent']}")
+        logger.info(f"\n📈 Rapport quotidien:")
+        logger.info(f"   📦 Leads créés (24h): {report['leads_created_24h']}")
+        logger.info(f"   ✅ Leads validés (24h): {report['leads_validated_24h']}")
+        logger.info(f"   ❌ Leads rejetés (24h): {report['leads_rejected_24h']}")
+        logger.info(f"   ⚠️  Dépôts < 50%: {report['deposits_below_50_percent']}")
         
         # Envoyer le rapport aux admins
         # TODO: Implémenter l'envoi email du rapport
@@ -319,7 +320,7 @@ def generate_daily_report():
         return report
     
     except Exception as e:
-        print(f"❌ Erreur génération rapport: {e}")
+        logger.info(f"❌ Erreur génération rapport: {e}")
 
 
 # ============================================
@@ -360,7 +361,7 @@ def start_scheduler():
     """Démarre le scheduler"""
     global _scheduler, deposit_service, notification_service, lead_service
     if _scheduler is not None:
-        print("ℹ️ Scheduler already started")
+        logger.info("ℹ️ Scheduler already started")
         return _scheduler
 
     try:
@@ -370,18 +371,18 @@ def start_scheduler():
             notification_service = NotificationService(supabase)
             lead_service = LeadService(supabase)
         except Exception as e:
-            print(f"⚠️ Could not initialize services for scheduler: {e}")
+            logger.info(f"⚠️ Could not initialize services for scheduler: {e}")
 
         _scheduler = BackgroundScheduler(timezone='Africa/Casablanca')
         _create_scheduler_jobs(_scheduler)
         _scheduler.start()
-        print("\n✅ Scheduler LEADS démarré avec succès!")
-        print("   🔄 Vérification dépôts: Toutes les heures")
-        print("   🧹 Nettoyage leads expirés: 23:00 quotidien")
-        print("   📊 Rapport quotidien: 09:00 quotidien")
+        logger.info("\n✅ Scheduler LEADS démarré avec succès!")
+        logger.info("   🔄 Vérification dépôts: Toutes les heures")
+        logger.info("   🧹 Nettoyage leads expirés: 23:00 quotidien")
+        logger.info("   📊 Rapport quotidien: 09:00 quotidien")
         return _scheduler
     except Exception as e:
-        print(f"❌ Erreur démarrage scheduler: {e}")
+        logger.info(f"❌ Erreur démarrage scheduler: {e}")
         _scheduler = None
         return None
 
@@ -391,26 +392,26 @@ def stop_scheduler():
     global _scheduler
     try:
         if _scheduler is None:
-            print("ℹ️ Scheduler not running")
+            logger.info("ℹ️ Scheduler not running")
             return
         _scheduler.shutdown()
         _scheduler = None
-        print("✅ Scheduler arrêté")
+        logger.info("✅ Scheduler arrêté")
     except Exception as e:
-        print(f"❌ Erreur arrêt scheduler: {e}")
+        logger.info(f"❌ Erreur arrêt scheduler: {e}")
 
 
 if __name__ == "__main__":
     # Test manuel
-    print("🧪 Test manuel du scheduler LEADS\n")
+    logger.info("🧪 Test manuel du scheduler LEADS\n")
     
-    print("1️⃣ Test vérification dépôts...")
+    logger.info("1️⃣ Test vérification dépôts...")
     check_deposits_and_send_alerts()
     
-    print("\n2️⃣ Test nettoyage leads expirés...")
+    logger.info("\n2️⃣ Test nettoyage leads expirés...")
     cleanup_expired_leads()
     
-    print("\n3️⃣ Test rapport quotidien...")
+    logger.info("\n3️⃣ Test rapport quotidien...")
     generate_daily_report()
     
-    print("\n✅ Tests terminés")
+    logger.info("\n✅ Tests terminés")

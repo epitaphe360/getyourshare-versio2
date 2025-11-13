@@ -14,6 +14,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from supabase import Client
+from utils.logger import logger
 
 
 # Configuration Stripe
@@ -121,7 +122,7 @@ class PaymentAutomationService:
             }
         
         except Exception as e:
-            print(f"❌ Erreur création paiement Stripe: {e}")
+            logger.info(f"❌ Erreur création paiement Stripe: {e}")
             raise ValueError(f"Impossible de créer le paiement: {str(e)}")
     
     def _create_cmi_payment(self, merchant: Dict, user: Dict, amount: Decimal) -> Dict:
@@ -229,7 +230,7 @@ class PaymentAutomationService:
             # Envoyer le reçu par email
             # TODO: Envoyer l'email avec le reçu en pièce jointe
             
-            print(f"✅ Paiement confirmé: {amount} dhs pour merchant {merchant_id}")
+            logger.info(f"✅ Paiement confirmé: {amount} dhs pour merchant {merchant_id}")
             
             return {
                 'status': 'success',
@@ -239,7 +240,7 @@ class PaymentAutomationService:
             }
         
         except Exception as e:
-            print(f"❌ Erreur traitement paiement: {e}")
+            logger.info(f"❌ Erreur traitement paiement: {e}")
             return {
                 'status': 'error',
                 'error': str(e)
@@ -247,7 +248,7 @@ class PaymentAutomationService:
     
     def _handle_payment_failed(self, payment_intent: Dict) -> Dict:
         """Traiter un paiement échoué"""
-        print(f"⚠️ Paiement échoué: {payment_intent.get('id')}")
+        logger.info(f"⚠️ Paiement échoué: {payment_intent.get('id')}")
         
         # TODO: Notifier le merchant
         
@@ -328,7 +329,7 @@ class PaymentAutomationService:
         # Générer le PDF
         doc.build(elements)
         
-        print(f"📄 Reçu généré: {filepath}")
+        logger.info(f"📄 Reçu généré: {filepath}")
         
         return filepath
     

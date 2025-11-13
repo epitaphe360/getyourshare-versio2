@@ -1,6 +1,7 @@
 """Tester la connexion avec un compte de test"""
 import requests
 import json
+from utils.logger import logger
 
 # URL du backend
 API_URL = "http://localhost:8001"
@@ -9,9 +10,9 @@ API_URL = "http://localhost:8001"
 TEST_EMAIL = "admin@getyourshare.com"
 TEST_PASSWORD = "Test123!"
 
-print(f"=== TEST DE CONNEXION ===")
-print(f"Email: {TEST_EMAIL}")
-print(f"Password: {TEST_PASSWORD}\n")
+logger.info(f"=== TEST DE CONNEXION ===")
+logger.info(f"Email: {TEST_EMAIL}")
+logger.info(f"Password: {TEST_PASSWORD}\n")
 
 # Requête de connexion
 try:
@@ -24,17 +25,17 @@ try:
         headers={"Content-Type": "application/json"}
     )
     
-    print(f"Status Code: {response.status_code}")
-    print(f"Response Headers: {dict(response.headers)}\n")
+    logger.info(f"Status Code: {response.status_code}")
+    logger.info(f"Response Headers: {dict(response.headers)}\n")
     
     if response.status_code == 200:
         data = response.json()
-        print("✅ CONNEXION RÉUSSIE!")
-        print(f"Token: {data.get('access_token', 'N/A')[:50]}...")
-        print(f"User: {data.get('user', {})}")
+        logger.info("✅ CONNEXION RÉUSSIE!")
+        logger.info(f"Token: {data.get('access_token', 'N/A')[:50]}...")
+        logger.info(f"User: {data.get('user', {})}")
     else:
-        print(f"❌ ÉCHEC DE CONNEXION")
-        print(f"Response: {response.text}")
+        logger.info(f"❌ ÉCHEC DE CONNEXION")
+        logger.info(f"Response: {response.text}")
         
 except Exception as e:
-    print(f"❌ ERREUR: {e}")
+    logger.info(f"❌ ERREUR: {e}")

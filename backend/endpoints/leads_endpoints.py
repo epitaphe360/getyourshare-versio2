@@ -13,6 +13,7 @@ from utils.supabase_client import get_supabase_client
 from middleware.auth import verify_token, require_role
 from services.lead_service import LeadService
 from services.deposit_service import DepositService
+from utils.logger import logger
 
 
 # ============================================
@@ -144,7 +145,7 @@ async def create_lead(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        print(f"Erreur create_lead: {e}")
+        logger.info(f"Erreur create_lead: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -179,7 +180,7 @@ async def get_lead(
         return result.data
         
     except Exception as e:
-        print(f"Erreur get_lead: {e}")
+        logger.info(f"Erreur get_lead: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -217,7 +218,7 @@ async def get_campaign_leads(
         }
         
     except Exception as e:
-        print(f"Erreur get_campaign_leads: {e}")
+        logger.info(f"Erreur get_campaign_leads: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -260,7 +261,7 @@ async def get_my_leads(
         }
         
     except Exception as e:
-        print(f"Erreur get_my_leads: {e}")
+        logger.info(f"Erreur get_my_leads: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -315,7 +316,7 @@ async def validate_lead(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        print(f"Erreur validate_lead: {e}")
+        logger.info(f"Erreur validate_lead: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -334,7 +335,7 @@ async def get_campaign_lead_stats(
         return stats
         
     except Exception as e:
-        print(f"Erreur get_campaign_lead_stats: {e}")
+        logger.info(f"Erreur get_campaign_lead_stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -365,7 +366,7 @@ async def get_my_influencer_stats(
         return stats
         
     except Exception as e:
-        print(f"Erreur get_my_influencer_stats: {e}")
+        logger.info(f"Erreur get_my_influencer_stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -418,7 +419,7 @@ async def create_deposit(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        print(f"Erreur create_deposit: {e}")
+        logger.info(f"Erreur create_deposit: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -462,7 +463,7 @@ async def recharge_deposit(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        print(f"Erreur recharge_deposit: {e}")
+        logger.info(f"Erreur recharge_deposit: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -491,7 +492,7 @@ async def get_my_deposit_balance(
         return balance
         
     except Exception as e:
-        print(f"Erreur get_my_deposit_balance: {e}")
+        logger.info(f"Erreur get_my_deposit_balance: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -530,7 +531,7 @@ async def get_deposit_history(
         }
         
     except Exception as e:
-        print(f"Erreur get_deposit_history: {e}")
+        logger.info(f"Erreur get_deposit_history: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -562,7 +563,7 @@ async def get_all_my_deposits(
         }
         
     except Exception as e:
-        print(f"Erreur get_all_my_deposits: {e}")
+        logger.info(f"Erreur get_all_my_deposits: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -590,7 +591,7 @@ async def get_deposit_stats(
         return stats
         
     except Exception as e:
-        print(f"Erreur get_deposit_stats: {e}")
+        logger.info(f"Erreur get_deposit_stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -646,7 +647,7 @@ async def create_agreement(
         }
         
     except Exception as e:
-        print(f"Erreur create_agreement: {e}")
+        logger.info(f"Erreur create_agreement: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -688,7 +689,7 @@ async def get_my_agreements(
         }
         
     except Exception as e:
-        print(f"Erreur get_my_agreements: {e}")
+        logger.info(f"Erreur get_my_agreements: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -699,4 +700,4 @@ async def get_my_agreements(
 def add_leads_endpoints(app, verify_token_func):
     """Ajouter tous les endpoints LEADS à l'application"""
     app.include_router(router)
-    print("✅ Endpoints LEADS système intégrés")
+    logger.info("✅ Endpoints LEADS système intégrés")

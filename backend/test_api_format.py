@@ -13,7 +13,7 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 try:
-    print("🔍 Test: Récupérer conversations avec format admin...\n")
+    logger.info("🔍 Test: Récupérer conversations avec format admin...\n")
     
     result = supabase.from_("conversations").select("""
         *,
@@ -22,37 +22,38 @@ try:
     """).order("last_message_at", desc=True).limit(3).execute()
     
     if result.data:
-        print(f"✅ {len(result.data)} conversations récupérées\n")
+        logger.info(f"✅ {len(result.data)} conversations récupérées\n")
         
         for i, conv in enumerate(result.data, 1):
-            print(f"{'='*60}")
-            print(f"Conversation {i} - ID: {conv.get('id')}")
-            print(f"{'='*60}")
+            logger.info(f"{'='*60}")
+            logger.info(f"Conversation {i} - ID: {conv.get('id')}")
+            logger.info(f"{'='*60}")
             
             merchant = conv.get('merchant', {})
             influencer = conv.get('influencer', {})
             
-            print(f"\n📦 MERCHANT:")
-            print(f"   - ID: {merchant.get('id')}")
-            print(f"   - Username: {merchant.get('username')}")
-            print(f"   - Company: {merchant.get('company_name')}")
-            print(f"   - Email: {merchant.get('email')}")
+            logger.info(f"\n📦 MERCHANT:")
+            logger.info(f"   - ID: {merchant.get('id')}")
+            logger.info(f"   - Username: {merchant.get('username')}")
+            logger.info(f"   - Company: {merchant.get('company_name')}")
+            logger.info(f"   - Email: {merchant.get('email')}")
             
-            print(f"\n👤 INFLUENCER:")
-            print(f"   - ID: {influencer.get('id')}")
-            print(f"   - Username: {influencer.get('username')}")
-            print(f"   - Email: {influencer.get('email')}")
+            logger.info(f"\n👤 INFLUENCER:")
+            logger.info(f"   - ID: {influencer.get('id')}")
+            logger.info(f"   - Username: {influencer.get('username')}")
+            logger.info(f"   - Email: {influencer.get('email')}")
             
-            print(f"\n💬 MESSAGE:")
-            print(f"   - Dernier: {conv.get('last_message')[:60]}...")
-            print(f"   - Date: {conv.get('last_message_at')}")
-            print(f"   - Non lus (merchant): {conv.get('unread_count_merchant')}")
-            print(f"   - Non lus (influencer): {conv.get('unread_count_influencer')}")
+            logger.info(f"\n💬 MESSAGE:")
+            logger.info(f"   - Dernier: {conv.get('last_message')[:60]}...")
+            logger.info(f"   - Date: {conv.get('last_message_at')}")
+            logger.info(f"   - Non lus (merchant): {conv.get('unread_count_merchant')}")
+            logger.info(f"   - Non lus (influencer): {conv.get('unread_count_influencer')}")
             print()
     else:
-        print("⚠️ Aucune conversation trouvée")
+        logger.info("⚠️ Aucune conversation trouvée")
     
 except Exception as e:
-    print(f"❌ Erreur: {e}")
+    logger.info(f"❌ Erreur: {e}")
     import traceback
+from utils.logger import logger
     traceback.print_exc()

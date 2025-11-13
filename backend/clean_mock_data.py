@@ -3,12 +3,13 @@ Nettoyage complet de toutes les données mockées
 ATTENTION: Ce script va SUPPRIMER des données !
 """
 from supabase_client import supabase
+from utils.logger import logger
 
-print("\n" + "="*80)
-print("🧹 NETTOYAGE DES DONNÉES MOCKÉES")
-print("="*80)
-print("\n⚠️  ATTENTION: Ce script va supprimer des données !")
-print("   Appuyez sur Ctrl+C maintenant pour annuler\n")
+logger.info("\n" + "="*80)
+logger.info("🧹 NETTOYAGE DES DONNÉES MOCKÉES")
+logger.info("="*80)
+logger.info("\n⚠️  ATTENTION: Ce script va supprimer des données !")
+logger.info("   Appuyez sur Ctrl+C maintenant pour annuler\n")
 
 input("Appuyez sur ENTER pour continuer...")
 
@@ -25,9 +26,9 @@ tables_to_clean = [
     ("services", "Services"),
 ]
 
-print("\n" + "="*80)
-print("SUPPRESSION EN COURS...")
-print("="*80 + "\n")
+logger.info("\n" + "="*80)
+logger.info("SUPPRESSION EN COURS...")
+logger.info("="*80 + "\n")
 
 for table_name, description in tables_to_clean:
     try:
@@ -43,17 +44,17 @@ for table_name, description in tables_to_clean:
             deleted = count_before - count_after
             
             deleted_count[table_name] = deleted
-            print(f"✅ {description:30} - {deleted} enregistrements supprimés")
+            logger.info(f"✅ {description:30} - {deleted} enregistrements supprimés")
         else:
-            print(f"ℹ️  {description:30} - Déjà vide")
+            logger.info(f"ℹ️  {description:30} - Déjà vide")
             
     except Exception as e:
-        print(f"❌ {description:30} - Erreur: {e}")
+        logger.info(f"❌ {description:30} - Erreur: {e}")
 
-print("\n" + "="*80)
-print("RÉSUMÉ")
-print("="*80)
+logger.info("\n" + "="*80)
+logger.info("RÉSUMÉ")
+logger.info("="*80)
 total = sum(deleted_count.values())
-print(f"\n✅ {total} enregistrements supprimés au total")
-print("\n⚠️  Note: Les utilisateurs ont été conservés")
-print("   Utilisez reset_all_passwords.py pour les mots de passe\n")
+logger.info(f"\n✅ {total} enregistrements supprimés au total")
+logger.info("\n⚠️  Note: Les utilisateurs ont été conservés")
+logger.info("   Utilisez reset_all_passwords.py pour les mots de passe\n")

@@ -8,6 +8,7 @@ Crée les tables moderation_queue, moderation_history, etc.
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from utils.logger import logger
 
 load_dotenv()
 
@@ -15,7 +16,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    print("❌ Erreur: Variables d'environnement Supabase manquantes")
+    logger.info("❌ Erreur: Variables d'environnement Supabase manquantes")
     exit(1)
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -24,12 +25,12 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 sql_file = "database/CREATE_MODERATION_TABLES.sql"
 
 if not os.path.exists(sql_file):
-    print(f"❌ Fichier {sql_file} non trouvé")
+    logger.info(f"❌ Fichier {sql_file} non trouvé")
     exit(1)
 
-print("\n" + "="*60)
-print("📊 CRÉATION DES TABLES DE MODÉRATION")
-print("="*60 + "\n")
+logger.info("\n" + "="*60)
+logger.info("📊 CRÉATION DES TABLES DE MODÉRATION")
+logger.info("="*60 + "\n")
 
 with open(sql_file, 'r', encoding='utf-8') as f:
     sql_content = f.read()
@@ -47,21 +48,21 @@ for i, command in enumerate(sql_commands):
     
     try:
         # Exécuter via RPC raw_sql si disponible, sinon via execute
-        print(f"Exécution commande {i+1}... ", end='')
+        logger.info(f"Exécution commande {i+1}... ", end='')
         
         # Note: Supabase Python client ne supporte pas l'exécution SQL directe
         # Il faut utiliser l'API REST ou créer une fonction SQL
-        print("⚠️ Veuillez exécuter le SQL manuellement dans Supabase Dashboard")
+        logger.info("⚠️ Veuillez exécuter le SQL manuellement dans Supabase Dashboard")
         break
         
     except Exception as e:
-        print(f"❌ Erreur: {e}")
+        logger.info(f"❌ Erreur: {e}")
         errors += 1
 
-print("\n" + "="*60)
-print("ℹ️ INSTRUCTIONS MANUELLES")
-print("="*60)
-print("""
+logger.info("\n" + "="*60)
+logger.info("ℹ️ INSTRUCTIONS MANUELLES")
+logger.info("="*60)
+logger.info("""
 1. Ouvrez Supabase Dashboard: https://supabase.com/dashboard
 2. Allez dans votre projet
 3. SQL Editor (menu gauche)
@@ -78,4 +79,4 @@ print("""
    - v_pending_moderation (vue)
    - v_daily_moderation_stats (vue)
 """)
-print("="*60 + "\n")
+logger.info("="*60 + "\n")

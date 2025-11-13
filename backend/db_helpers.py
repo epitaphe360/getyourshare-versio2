@@ -19,7 +19,7 @@ def get_user_by_email(email: str) -> Optional[Dict]:
         result = supabase.table("users").select("*").eq("email", email).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting user by email: {e}")
+        logger.error(f"Error getting user by email: {e}")
         return None
 
 
@@ -29,7 +29,7 @@ def get_user_by_id(user_id: str) -> Optional[Dict]:
         result = supabase.table("users").select("*").eq("id", user_id).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting user by id: {e}")
+        logger.error(f"Error getting user by id: {e}")
         return None
 
 
@@ -59,7 +59,7 @@ def create_user(email: str, password: str, role: str, **kwargs) -> Optional[Dict
         result = supabase.table("users").insert(user_data).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error creating user: {e}")
+        logger.error(f"Error creating user: {e}")
         return None
 
 
@@ -71,7 +71,7 @@ def get_user_by_verification_token(token: str) -> Optional[Dict]:
         )
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting user by verification token: {e}")
+        logger.error(f"Error getting user by verification token: {e}")
         return None
 
 
@@ -88,7 +88,7 @@ def set_verification_token(user_id: str, token: str, expires_at: str, sent_at: s
         ).eq("id", user_id).execute()
         return True
     except Exception as e:
-        print(f"Error setting verification token: {e}")
+        logger.error(f"Error setting verification token: {e}")
         return False
 
 
@@ -105,7 +105,7 @@ def mark_email_verified(user_id: str) -> bool:
         ).eq("id", user_id).execute()
         return True
     except Exception as e:
-        print(f"Error marking email as verified: {e}")
+        logger.error(f"Error marking email as verified: {e}")
         return False
 
 
@@ -114,7 +114,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
         return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
     except Exception as e:
-        print(f"Error verifying password: {e}")
+        logger.error(f"Error verifying password: {e}")
         return False
 
 
@@ -133,7 +133,7 @@ def update_user(user_id: str, updates: Dict[str, Any]) -> bool:
         supabase.table("users").update(updates).eq("id", user_id).execute()
         return True
     except Exception as e:
-        print(f"Error updating user: {e}")
+        logger.error(f"Error updating user: {e}")
         return False
 
 
@@ -144,7 +144,7 @@ def update_user_last_login(user_id: str):
             "id", user_id
         ).execute()
     except Exception as e:
-        print(f"Error updating last login: {e}")
+        logger.error(f"Error updating last login: {e}")
 
 
 # ============================================
@@ -163,7 +163,7 @@ def get_all_merchants() -> List[Dict]:
         )
         return result.data
     except Exception as e:
-        print(f"Error getting merchants: {e}")
+        logger.error(f"Error getting merchants: {e}")
         return []
 
 
@@ -187,7 +187,7 @@ def get_merchant_by_id(merchant_id: str) -> Optional[Dict]:
         )
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting merchant: {e}")
+        logger.error(f"Error getting merchant: {e}")
         return None
 
 
@@ -197,7 +197,7 @@ def get_merchant_by_user_id(user_id: str) -> Optional[Dict]:
         result = supabase.table("merchants").select("*").eq("user_id", user_id).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting merchant by user_id: {e}")
+        logger.error(f"Error getting merchant by user_id: {e}")
         return None
 
 
@@ -217,7 +217,7 @@ def get_all_influencers() -> List[Dict]:
         )
         return result.data
     except Exception as e:
-        print(f"Error getting influencers: {e}")
+        logger.error(f"Error getting influencers: {e}")
         return []
 
 
@@ -240,7 +240,7 @@ def get_influencer_by_id(influencer_id: str) -> Optional[Dict]:
         )
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting influencer: {e}")
+        logger.error(f"Error getting influencer: {e}")
         return None
 
 
@@ -250,7 +250,7 @@ def get_influencer_by_user_id(user_id: str) -> Optional[Dict]:
         result = supabase.table("influencers").select("*").eq("user_id", user_id).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting influencer by user_id: {e}")
+        logger.error(f"Error getting influencer by user_id: {e}")
         return None
 
 
@@ -287,12 +287,12 @@ def get_all_products(
                             "company_name": user_result.data.get("company_name"),
                             "email": user_result.data.get("email")
                         }
-                except:
+                except Exception:
                     pass
         
         return products
     except Exception as e:
-        print(f"Error getting products: {e}")
+        logger.error(f"Error getting products: {e}")
         return []
 
 
@@ -312,12 +312,12 @@ def get_product_by_id(product_id: str) -> Optional[Dict]:
                             "company_name": user_result.data.get("company_name"),
                             "email": user_result.data.get("email")
                         }
-                except:
+                except Exception:
                     pass
             return product
         return None
     except Exception as e:
-        print(f"Error getting product: {e}")
+        logger.error(f"Error getting product: {e}")
         return None
 
 
@@ -349,12 +349,12 @@ def get_all_services(
                             "company_name": user_result.data.get("company_name"),
                             "email": user_result.data.get("email")
                         }
-                except:
+                except Exception:
                     pass
         
         return services
     except Exception as e:
-        print(f"Error getting services: {e}")
+        logger.error(f"Error getting services: {e}")
         return []
 
 
@@ -374,12 +374,12 @@ def get_service_by_id(service_id: str) -> Optional[Dict]:
                             "company_name": user_result.data.get("company_name"),
                             "email": user_result.data.get("email")
                         }
-                except:
+                except Exception:
                     pass
             return service
         return None
     except Exception as e:
-        print(f"Error getting service: {e}")
+        logger.error(f"Error getting service: {e}")
         return None
 
 
@@ -412,7 +412,7 @@ def get_affiliate_links(influencer_id: Optional[str] = None) -> List[Dict]:
         result = query.execute()
         return result.data
     except Exception as e:
-        print(f"Error getting affiliate links: {e}")
+        logger.error(f"Error getting affiliate links: {e}")
         return []
 
 
@@ -429,7 +429,7 @@ def create_affiliate_link(product_id: str, influencer_id: str, unique_code: str)
         )
 
         if existing_link.data:
-            print(f"Link already exists for product {product_id} and influencer {influencer_id}")
+            logger.info(f"Link already exists for product {product_id} and influencer {influencer_id}")
             return existing_link.data[0]
 
         # Create new link if it doesn't exist
@@ -445,7 +445,7 @@ def create_affiliate_link(product_id: str, influencer_id: str, unique_code: str)
         result = supabase.table("trackable_links").insert(link_data).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error creating affiliate link: {e}")
+        logger.error(f"Error creating affiliate link: {e}")
         return None
 
 
@@ -472,7 +472,7 @@ def get_all_campaigns(merchant_id: Optional[str] = None) -> List[Dict]:
         result = query.execute()
         return result.data
     except Exception as e:
-        print(f"Error getting campaigns: {e}")
+        logger.error(f"Error getting campaigns: {e}")
         return []
 
 
@@ -492,7 +492,7 @@ def create_campaign(merchant_id: str, name: str, **kwargs) -> Optional[Dict]:
         result = supabase.table("campaigns").insert(campaign_data).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error creating campaign: {e}")
+        logger.error(f"Error creating campaign: {e}")
         return None
 
 
@@ -598,6 +598,7 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
                 
                 # Calculer les croissances (comparaison 30 derniers jours vs 30 jours précédents)
                 from datetime import datetime, timedelta
+from utils.logger import logger
                 now = datetime.now()
                 thirty_days_ago = now - timedelta(days=30)
                 sixty_days_ago = now - timedelta(days=60)
@@ -634,7 +635,7 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
                     "sales_growth": round(sales_growth, 2)
                 }
             except Exception as e:
-                print(f"Error getting influencer stats: {e}")
+                logger.error(f"Error getting influencer stats: {e}")
                 return {
                     "total_earnings": 0,
                     "total_clicks": 0,
@@ -648,7 +649,7 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
         return {}
 
     except Exception as e:
-        print(f"Error getting dashboard stats: {e}")
+        logger.error(f"Error getting dashboard stats: {e}")
         return {}
 
 
@@ -684,7 +685,7 @@ def get_conversions(limit: int = 20) -> List[Dict]:
 
         return result.data
     except Exception as e:
-        print(f"Error getting conversions: {e}")
+        logger.error(f"Error getting conversions: {e}")
         return []
 
 
@@ -719,7 +720,7 @@ def get_clicks(limit: int = 50) -> List[Dict]:
 
         return result.data
     except Exception as e:
-        print(f"Error getting clicks: {e}")
+        logger.error(f"Error getting clicks: {e}")
         return []
 
 
@@ -747,7 +748,7 @@ def get_payouts() -> List[Dict]:
 
         return result.data
     except Exception as e:
-        print(f"Error getting payouts: {e}")
+        logger.error(f"Error getting payouts: {e}")
         return []
 
 
@@ -767,5 +768,5 @@ def update_payout_status(payout_id: str, status: str) -> bool:
         supabase.table("commissions").update(update_data).eq("id", payout_id).execute()
         return True
     except Exception as e:
-        print(f"Error updating payout status: {e}")
+        logger.error(f"Error updating payout status: {e}")
         return False

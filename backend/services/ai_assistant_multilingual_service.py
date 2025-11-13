@@ -1217,7 +1217,7 @@ Analyse en profondeur pour insights actionnables."""
             elasticity = avg_sales_change / avg_price_change
             return round(elasticity, 2)
 
-        except:
+        except Exception:
             return 0.0
 
     def _generate_sales_recommendations(
