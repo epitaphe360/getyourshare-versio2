@@ -327,13 +327,21 @@ describe('Contact Form', () => {
       await userEvent.type(messageInput, 'Message');
       await userEvent.click(submitButton);
 
+      // Should show success message instead of form
       await waitFor(() => {
-        expect(mockToast.success).toHaveBeenCalled();
+        expect(screen.getByText(/Message Envoyé!/i)).toBeInTheDocument();
       });
 
+      // Click "Send Another Message" button to return to form
+      const anotherMessageButton = screen.getByRole('button', { name: /Envoyer un Autre Message/i });
+      await userEvent.click(anotherMessageButton);
+
+      // Form should now be reset
       await waitFor(() => {
-        expect(subjectInput.value).toBe('');
-        expect(messageInput.value).toBe('');
+        const newSubjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
+        const newMessageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
+        expect(newSubjectInput.value).toBe('');
+        expect(newMessageInput.value).toBe('');
       });
     });
   });
