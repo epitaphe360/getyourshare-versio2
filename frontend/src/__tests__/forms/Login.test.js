@@ -5,6 +5,13 @@ import { BrowserRouter } from 'react-router-dom';
 import Login from '../../pages/Login';
 import { AuthContext } from '../../context/AuthContext';
 
+// Mock SEOHead to prevent DOM manipulation issues
+jest.mock('../../components/SEO/SEOHead', () => {
+  return function MockSEOHead() {
+    return null;
+  };
+});
+
 // Mock AuthContext
 const mockLogin = jest.fn();
 const mockAuthContext = {
@@ -112,7 +119,7 @@ describe('Login Form', () => {
     });
 
     test('should disable button during submission', async () => {
-      mockLogin.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 1000)));
+      mockLogin.mockImplementation(() => new Promise(resolve => setTimeout(() => resolve({ success: true }), 1000)));
       renderLogin();
 
       const emailInput = screen.getByTestId('email-input');
@@ -220,7 +227,7 @@ describe('Login Form', () => {
     });
 
     test('should accept 6-digit 2FA code', async () => {
-      mockLogin.mockResolvedValue({
+      mockLogin.mockResolvedValueOnce({
         success: false,
         requires_2fa: true,
         temp_token: 'temp123'
@@ -235,14 +242,13 @@ describe('Login Form', () => {
       await userEvent.type(passwordInput, 'password123');
       await userEvent.click(submitButton);
 
-      await waitFor(() => {
-        const codeInput = screen.getByPlaceholderText(/000000/i);
-        userEvent.type(codeInput, '123456');
-        expect(codeInput.value).toBe('123456');
-      });
+      const codeInput = await screen.findByPlaceholderText(/000000/i);
+      await userEvent.type(codeInput, '123456');
+      expect(codeInput.value).toBe('123456');
     });
 
     test('should allow back to email/password from 2FA', async () => {
+      mockLogin.mockReset();
       mockLogin.mockResolvedValue({
         success: false,
         requires_2fa: true,
@@ -258,10 +264,8 @@ describe('Login Form', () => {
       await userEvent.type(passwordInput, 'password123');
       await userEvent.click(submitButton);
 
-      await waitFor(() => {
-        const backButton = screen.getByText('← Retour');
-        userEvent.click(backButton);
-      });
+      const backButton = await screen.findByText('← Retour');
+      await userEvent.click(backButton);
 
       await waitFor(() => {
         expect(screen.getByTestId('email-input')).toBeInTheDocument();
@@ -279,8 +283,8 @@ describe('Login Form', () => {
 
       await waitFor(() => {
         expect(mockLogin).toHaveBeenCalledWith(
-          'admin@shareyoursales.ma',
-          'Admin123'
+          'admin@getyourshare.com',
+          'Test123!'
         );
       });
     });
@@ -294,8 +298,8 @@ describe('Login Form', () => {
 
       await waitFor(() => {
         expect(mockLogin).toHaveBeenCalledWith(
-          'foodinfluencer@gmail.com',
-          'Hassan123'
+          'hassan.oudrhiri@getyourshare.com',
+          'Test123!'
         );
       });
     });

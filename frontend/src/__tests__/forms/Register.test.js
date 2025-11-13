@@ -5,6 +5,13 @@ import { BrowserRouter } from 'react-router-dom';
 import Register from '../../pages/Register';
 import axios from 'axios';
 
+// Mock SEOHead to prevent DOM manipulation issues
+jest.mock('../../components/SEO/SEOHead', () => {
+  return function MockSEOHead() {
+    return null;
+  };
+});
+
 jest.mock('axios');
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
@@ -30,14 +37,14 @@ describe('Register Form', () => {
       renderRegister();
 
       expect(screen.getByText('Créer un compte')).toBeInTheDocument();
-      expect(screen.getByText(/Entreprise/i)).toBeInTheDocument();
-      expect(screen.getByText(/Influenceur/i)).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Entreprise/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /Influenceur/i })).toBeInTheDocument();
     });
 
     test('should proceed to Step 2 when merchant role is selected', async () => {
       renderRegister();
 
-      const merchantButton = screen.getByText(/Entreprise/i).closest('button');
+      const merchantButton = screen.getByRole('heading', { name: /Entreprise/i }).closest('button');
       await userEvent.click(merchantButton);
 
       await waitFor(() => {
@@ -48,7 +55,7 @@ describe('Register Form', () => {
     test('should proceed to Step 2 when influencer role is selected', async () => {
       renderRegister();
 
-      const influencerButton = screen.getByText(/Influenceur/i).closest('button');
+      const influencerButton = screen.getByRole('heading', { name: /Influenceur/i }).closest('button');
       await userEvent.click(influencerButton);
 
       await waitFor(() => {
@@ -60,7 +67,7 @@ describe('Register Form', () => {
   describe('Step 2: Merchant Registration Form', () => {
     beforeEach(async () => {
       renderRegister();
-      const merchantButton = screen.getByText(/Entreprise/i).closest('button');
+      const merchantButton = screen.getByRole('heading', { name: /Entreprise/i }).closest('button');
       await userEvent.click(merchantButton);
     });
 
@@ -96,7 +103,7 @@ describe('Register Form', () => {
   describe('Step 2: Influencer Registration Form', () => {
     beforeEach(async () => {
       renderRegister();
-      const influencerButton = screen.getByText(/Influenceur/i).closest('button');
+      const influencerButton = screen.getByRole('heading', { name: /Influenceur/i }).closest('button');
       await userEvent.click(influencerButton);
     });
 
@@ -116,7 +123,7 @@ describe('Register Form', () => {
   describe('Form Validation', () => {
     beforeEach(async () => {
       renderRegister();
-      const merchantButton = screen.getByText(/Entreprise/i).closest('button');
+      const merchantButton = screen.getByRole('heading', { name: /Entreprise/i }).closest('button');
       await userEvent.click(merchantButton);
     });
 
@@ -205,7 +212,7 @@ describe('Register Form', () => {
   describe('Form Submission', () => {
     beforeEach(async () => {
       renderRegister();
-      const merchantButton = screen.getByText(/Entreprise/i).closest('button');
+      const merchantButton = screen.getByRole('heading', { name: /Entreprise/i }).closest('button');
       await userEvent.click(merchantButton);
     });
 
@@ -363,11 +370,11 @@ describe('Register Form', () => {
     test('should return to step 1 on back button click', async () => {
       renderRegister();
 
-      const merchantButton = screen.getByText(/Entreprise/i).closest('button');
+      const merchantButton = screen.getByRole('heading', { name: /Entreprise/i }).closest('button');
       await userEvent.click(merchantButton);
 
       await waitFor(async () => {
-        const backButton = screen.getByText(/← Retour/i);
+        const backButton = screen.getByRole('button', { name: /← Retour/i });
         await userEvent.click(backButton);
       });
 
@@ -400,21 +407,21 @@ describe('Register Form', () => {
     test('should have proper form labels', async () => {
       renderRegister();
 
-      const merchantButton = screen.getByText(/Entreprise/i).closest('button');
+      const merchantButton = screen.getByRole('heading', { name: /Entreprise/i }).closest('button');
       await userEvent.click(merchantButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Prénom/i)).toBeInTheDocument();
-        expect(screen.getByText(/Nom/i)).toBeInTheDocument();
-        expect(screen.getByText(/Email/i)).toBeInTheDocument();
-        expect(screen.getByText(/Téléphone/i)).toBeInTheDocument();
+        expect(screen.getByText('Prénom')).toBeInTheDocument();
+        expect(screen.getByText('Email')).toBeInTheDocument();
+        expect(screen.getByText('Téléphone')).toBeInTheDocument();
+        expect(screen.getByText(/Nom de l'entreprise/i)).toBeInTheDocument();
       });
     });
 
     test('should have proper input types', async () => {
       renderRegister();
 
-      const merchantButton = screen.getByText(/Entreprise/i).closest('button');
+      const merchantButton = screen.getByRole('heading', { name: /Entreprise/i }).closest('button');
       await userEvent.click(merchantButton);
 
       await waitFor(() => {

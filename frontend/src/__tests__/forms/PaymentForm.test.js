@@ -54,8 +54,9 @@ describe('PaymentForm (PaymentSettings)', () => {
 
       renderPaymentForm();
 
-      // Should show loading spinner initially
-      expect(screen.getByText(/animate-spin/)).toBeInTheDocument();
+      // Check that loading spinner is displayed
+      const spinner = document.querySelector('.animate-spin');
+      expect(spinner).toBeInTheDocument();
     });
 
     test('should render payment method form after loading', async () => {
@@ -70,7 +71,8 @@ describe('PaymentForm (PaymentSettings)', () => {
       renderPaymentForm();
 
       await waitFor(() => {
-        expect(screen.queryByText(/animate-spin/)).not.toBeInTheDocument();
+        // Page should be loaded with correct title
+        expect(screen.getByText(/Configuration des Paiements/i)).toBeInTheDocument();
       });
     });
 
@@ -79,14 +81,15 @@ describe('PaymentForm (PaymentSettings)', () => {
         data: {
           payment_status: 'active',
           payment_method: 'bank_transfer',
-          last_payout: '2024-01-15'
+          last_payout: '2024-01-15',
+          balance: 100
         }
       });
 
       renderPaymentForm();
 
       await waitFor(() => {
-        expect(screen.getByText(/Statut du paiement/i)).toBeInTheDocument();
+        expect(screen.getByText(/Solde Disponible/i)).toBeInTheDocument();
       });
     });
 
@@ -340,8 +343,12 @@ describe('PaymentForm (PaymentSettings)', () => {
       renderPaymentForm();
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Enregistrer/i })).toBeInTheDocument();
+        // Payment method selection should be visible
+        expect(screen.getByText(/Choisissez votre méthode de paiement/i)).toBeInTheDocument();
       });
+
+      // Button should not be visible until payment method is selected
+      expect(screen.queryByRole('button', { name: /Enregistrer/i })).not.toBeInTheDocument();
     });
 
     test('should validate bank transfer details', async () => {
@@ -445,6 +452,8 @@ describe('PaymentForm (PaymentSettings)', () => {
 
   describe('User Experience', () => {
     test('should auto-hide success message after 5 seconds', async () => {
+      jest.useFakeTimers();
+
       api.get.mockResolvedValue({
         data: {
           payment_status: 'active',
@@ -456,8 +465,6 @@ describe('PaymentForm (PaymentSettings)', () => {
         data: { success: true }
       });
 
-      jest.useFakeTimers();
-
       renderPaymentForm();
 
       await waitFor(() => {
@@ -465,14 +472,24 @@ describe('PaymentForm (PaymentSettings)', () => {
       });
 
       const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
-      await userEvent.click(saveButton);
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Méthode de paiement configurée avec succès/i)).toBeInTheDocument();
+      });
 
       jest.advanceTimersByTime(5000);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Méthode de paiement configurée avec succès/i)).not.toBeInTheDocument();
+      });
 
       jest.useRealTimers();
     });
 
     test('should auto-hide error message after 5 seconds', async () => {
+      jest.useFakeTimers();
+
       api.get.mockResolvedValue({
         data: {
           payment_status: 'active',
@@ -481,10 +498,8 @@ describe('PaymentForm (PaymentSettings)', () => {
       });
 
       api.put.mockRejectedValue({
-        response: { data: { detail: 'Error' } }
+        response: { data: { detail: 'Error updating payment method' } }
       });
-
-      jest.useFakeTimers();
 
       renderPaymentForm();
 
@@ -493,9 +508,17 @@ describe('PaymentForm (PaymentSettings)', () => {
       });
 
       const saveButton = screen.getByRole('button', { name: /Enregistrer/i });
-      await userEvent.click(saveButton);
+      fireEvent.click(saveButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Error updating payment method/i)).toBeInTheDocument();
+      });
 
       jest.advanceTimersByTime(5000);
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Error updating payment method/i)).not.toBeInTheDocument();
+      });
 
       jest.useRealTimers();
     });
@@ -513,7 +536,7 @@ describe('PaymentForm (PaymentSettings)', () => {
       renderPaymentForm();
 
       await waitFor(() => {
-        expect(screen.getByText(/Méthode de paiement/i)).toBeInTheDocument();
+        expect(screen.getByText(/Choisissez votre méthode de paiement/i)).toBeInTheDocument();
       });
     });
 

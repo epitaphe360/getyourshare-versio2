@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '../utils/api';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 // Intervalle de vérification de session (5 minutes)
 const SESSION_CHECK_INTERVAL = 5 * 60 * 1000;
