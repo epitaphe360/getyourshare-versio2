@@ -7,6 +7,13 @@ import { AuthContext } from '../../context/AuthContext';
 import { ToastContext } from '../../context/ToastContext';
 import api from '../../utils/api';
 
+// Mock SEOHead to prevent DOM manipulation issues
+jest.mock('../../components/SEO/SEOHead', () => {
+  return function MockSEOHead() {
+    return null;
+  };
+});
+
 // Mock API
 jest.mock('../../utils/api');
 
@@ -51,18 +58,18 @@ describe('Contact Form', () => {
     test('should render contact form with all fields', () => {
       renderContact();
 
-      expect(screen.getByPlaceholderText(/Votre nom/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/Votre email/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/Votre téléphone/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/Sujet/i)).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/Votre message/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Votre nom complet/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/votre@email/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/\+212/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Résumez votre demande/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Décrivez votre demande/i)).toBeInTheDocument();
     });
 
     test('should pre-fill user data when authenticated', () => {
       renderContact();
 
-      const nameInput = screen.getByPlaceholderText(/Votre nom/i);
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
+      const nameInput = screen.getByPlaceholderText(/Votre nom complet/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
 
       expect(nameInput.value).toBe('John Doe');
       expect(emailInput.value).toBe('john@example.com');
@@ -85,7 +92,7 @@ describe('Contact Form', () => {
   describe('Form Input Handling', () => {
     test('should update name field on change', async () => {
       renderContact();
-      const nameInput = screen.getByPlaceholderText(/Votre nom/i);
+      const nameInput = screen.getByPlaceholderText(/Votre nom complet/i);
 
       await userEvent.clear(nameInput);
       await userEvent.type(nameInput, 'Jane Smith');
@@ -95,7 +102,7 @@ describe('Contact Form', () => {
 
     test('should update email field on change', async () => {
       renderContact();
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
 
       await userEvent.clear(emailInput);
       await userEvent.type(emailInput, 'jane@example.com');
@@ -105,7 +112,7 @@ describe('Contact Form', () => {
 
     test('should update subject field on change', async () => {
       renderContact();
-      const subjectInput = screen.getByPlaceholderText(/Sujet/i);
+      const subjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
 
       await userEvent.type(subjectInput, 'Test Subject');
 
@@ -114,7 +121,7 @@ describe('Contact Form', () => {
 
     test('should update message field on change', async () => {
       renderContact();
-      const messageInput = screen.getByPlaceholderText(/Votre message/i);
+      const messageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
 
       await userEvent.type(messageInput, 'Test message content');
 
@@ -127,7 +134,8 @@ describe('Contact Form', () => {
 
       await userEvent.click(supportButton);
 
-      expect(supportButton).toHaveClass('ring-2');
+      expect(supportButton).toHaveClass('border-purple-500');
+      expect(supportButton).toHaveClass('bg-purple-50');
     });
   });
 
@@ -147,10 +155,10 @@ describe('Contact Form', () => {
 
     test('should not submit without name', async () => {
       renderContact();
-      const nameInput = screen.getByPlaceholderText(/Votre nom/i);
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
-      const subjectInput = screen.getByPlaceholderText(/Sujet/i);
-      const messageInput = screen.getByPlaceholderText(/Votre message/i);
+      const nameInput = screen.getByPlaceholderText(/Votre nom complet/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
+      const subjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
+      const messageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
       const submitButton = screen.getByRole('button', { name: /Envoyer/i });
 
       await userEvent.clear(nameInput);
@@ -166,9 +174,9 @@ describe('Contact Form', () => {
 
     test('should not submit without email', async () => {
       renderContact();
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
-      const subjectInput = screen.getByPlaceholderText(/Sujet/i);
-      const messageInput = screen.getByPlaceholderText(/Votre message/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
+      const subjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
+      const messageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
       const submitButton = screen.getByRole('button', { name: /Envoyer/i });
 
       await userEvent.clear(emailInput);
@@ -183,8 +191,8 @@ describe('Contact Form', () => {
 
     test('should not submit without subject', async () => {
       renderContact();
-      const subjectInput = screen.getByPlaceholderText(/Sujet/i);
-      const messageInput = screen.getByPlaceholderText(/Votre message/i);
+      const subjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
+      const messageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
       const submitButton = screen.getByRole('button', { name: /Envoyer/i });
 
       await userEvent.clear(subjectInput);
@@ -198,8 +206,8 @@ describe('Contact Form', () => {
 
     test('should not submit without message', async () => {
       renderContact();
-      const subjectInput = screen.getByPlaceholderText(/Sujet/i);
-      const messageInput = screen.getByPlaceholderText(/Votre message/i);
+      const subjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
+      const messageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
       const submitButton = screen.getByRole('button', { name: /Envoyer/i });
 
       await userEvent.type(subjectInput, 'Subject');
@@ -223,10 +231,10 @@ describe('Contact Form', () => {
 
       renderContact();
 
-      const nameInput = screen.getByPlaceholderText(/Votre nom/i);
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
-      const subjectInput = screen.getByPlaceholderText(/Sujet/i);
-      const messageInput = screen.getByPlaceholderText(/Votre message/i);
+      const nameInput = screen.getByPlaceholderText(/Votre nom complet/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
+      const subjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
+      const messageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
       const submitButton = screen.getByRole('button', { name: /Envoyer/i });
 
       await userEvent.clear(nameInput);
@@ -255,10 +263,10 @@ describe('Contact Form', () => {
 
       renderContact();
 
-      const nameInput = screen.getByPlaceholderText(/Votre nom/i);
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
-      const subjectInput = screen.getByPlaceholderText(/Sujet/i);
-      const messageInput = screen.getByPlaceholderText(/Votre message/i);
+      const nameInput = screen.getByPlaceholderText(/Votre nom complet/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
+      const subjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
+      const messageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
       const submitButton = screen.getByRole('button', { name: /Envoyer/i });
 
       await userEvent.clear(nameInput);
@@ -282,10 +290,10 @@ describe('Contact Form', () => {
 
       renderContact();
 
-      const nameInput = screen.getByPlaceholderText(/Votre nom/i);
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
-      const subjectInput = screen.getByPlaceholderText(/Sujet/i);
-      const messageInput = screen.getByPlaceholderText(/Votre message/i);
+      const nameInput = screen.getByPlaceholderText(/Votre nom complet/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
+      const subjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
+      const messageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
       const submitButton = screen.getByRole('button', { name: /Envoyer/i });
 
       await userEvent.clear(nameInput);
@@ -311,13 +319,17 @@ describe('Contact Form', () => {
 
       renderContact();
 
-      const subjectInput = screen.getByPlaceholderText(/Sujet/i);
-      const messageInput = screen.getByPlaceholderText(/Votre message/i);
+      const subjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
+      const messageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
       const submitButton = screen.getByRole('button', { name: /Envoyer/i });
 
       await userEvent.type(subjectInput, 'Subject');
       await userEvent.type(messageInput, 'Message');
       await userEvent.click(submitButton);
+
+      await waitFor(() => {
+        expect(mockToast.success).toHaveBeenCalled();
+      });
 
       await waitFor(() => {
         expect(subjectInput.value).toBe('');
@@ -338,10 +350,10 @@ describe('Contact Form', () => {
 
       renderContact();
 
-      const nameInput = screen.getByPlaceholderText(/Votre nom/i);
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
-      const subjectInput = screen.getByPlaceholderText(/Sujet/i);
-      const messageInput = screen.getByPlaceholderText(/Votre message/i);
+      const nameInput = screen.getByPlaceholderText(/Votre nom complet/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
+      const subjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
+      const messageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
       const submitButton = screen.getByRole('button', { name: /Envoyer/i });
 
       await userEvent.clear(nameInput);
@@ -362,10 +374,10 @@ describe('Contact Form', () => {
 
       renderContact();
 
-      const nameInput = screen.getByPlaceholderText(/Votre nom/i);
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
-      const subjectInput = screen.getByPlaceholderText(/Sujet/i);
-      const messageInput = screen.getByPlaceholderText(/Votre message/i);
+      const nameInput = screen.getByPlaceholderText(/Votre nom complet/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
+      const subjectInput = screen.getByPlaceholderText(/Résumez votre demande/i);
+      const messageInput = screen.getByPlaceholderText(/Décrivez votre demande/i);
       const submitButton = screen.getByRole('button', { name: /Envoyer/i });
 
       await userEvent.clear(nameInput);
@@ -386,21 +398,21 @@ describe('Contact Form', () => {
     test('should have proper labels for form fields', () => {
       renderContact();
 
-      expect(screen.getByText(/Nom/i)).toBeInTheDocument();
-      expect(screen.getByText(/Email/i)).toBeInTheDocument();
-      expect(screen.getByText(/Sujet/i)).toBeInTheDocument();
+      expect(screen.getByText(/Email \*/i)).toBeInTheDocument();
+      expect(screen.getByText(/Nom complet \*/i)).toBeInTheDocument();
+      expect(screen.getByText(/Sujet \*/i)).toBeInTheDocument();
     });
 
     test('should have email input type', () => {
       renderContact();
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
       expect(emailInput.type).toBe('email');
     });
 
     test('should have required attributes on inputs', () => {
       renderContact();
-      const nameInput = screen.getByPlaceholderText(/Votre nom/i);
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
+      const nameInput = screen.getByPlaceholderText(/Votre nom complet/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
 
       expect(nameInput.required).toBe(true);
       expect(emailInput.required).toBe(true);
@@ -412,8 +424,8 @@ describe('Contact Form', () => {
       const unauthContext = { user: null, isLoading: false, error: null };
       renderContact(unauthContext);
 
-      const nameInput = screen.getByPlaceholderText(/Votre nom/i);
-      const emailInput = screen.getByPlaceholderText(/Votre email/i);
+      const nameInput = screen.getByPlaceholderText(/Votre nom complet/i);
+      const emailInput = screen.getByPlaceholderText(/votre@email/i);
 
       expect(nameInput.value).toBe('');
       expect(emailInput.value).toBe('');
