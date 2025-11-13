@@ -322,6 +322,12 @@ from webhook_endpoints import router as webhook_router
 from analytics_endpoints import router as analytics_router
 from commercial_endpoints import router as commercial_router
 
+# ============================================
+# NOUVEAUX ROUTERS - 4 KILLER FEATURES
+# ============================================
+from referral_endpoints import router as referral_router
+from ai_features_endpoints import router as ai_features_router
+
 # Include all routers in the app
 app.include_router(marketplace_router)
 app.include_router(affiliate_links_router)
@@ -351,8 +357,12 @@ app.include_router(moderation_router)
 app.include_router(gamification_router, prefix="/api/gamification", tags=["Gamification"])
 app.include_router(transaction_router, prefix="/api/transactions", tags=["Transactions"])
 app.include_router(webhook_router, prefix="/api/webhooks", tags=["Webhooks"])
-app.include_router(analytics_router, prefix="/api/analytics", tags=["Analytics"])
+app.include_router(analytics_router, prefix="/api/analytics", tags=["Webhooks"])
 app.include_router(commercial_router)  # Dashboard Commercial - 3 niveaux d'abonnement
+
+# 4 Killer Features - NEW
+app.include_router(referral_router)  # Programme Parrainage Viral
+app.include_router(ai_features_router)  # Smart Matching + Content IA + Live Shopping
 
 # Security
 security = HTTPBearer()
