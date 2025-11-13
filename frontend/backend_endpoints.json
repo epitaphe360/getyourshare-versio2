@@ -1,0 +1,402 @@
+{
+  "backend_info": {
+    "architecture": "FastAPI + Supabase (PostgreSQL)",
+    "version": "Production Ready",
+    "total_endpoints": 150,
+    "total_files": 30,
+    "base_url": "https://api.shareyoursales.ma",
+    "auth": "JWT Bearer Token"
+  },
+  "dashboards": {
+    "admin": {
+      "status": "100%",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/analytics/overview",
+          "file": "analytics_endpoints.py",
+          "line": 16,
+          "description": "Statistiques générales plateforme",
+          "auth_required": true,
+          "role": "admin",
+          "response": {
+            "users": "object",
+            "financial": "object",
+            "tracking": "object",
+            "leads": "object"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/merchants",
+          "file": "server.py",
+          "line": 662,
+          "description": "Liste des marchands",
+          "auth_required": true,
+          "role": "admin",
+          "query_params": ["page", "limit", "search", "status"]
+        },
+        {
+          "method": "GET",
+          "path": "/api/influencers",
+          "file": "server.py",
+          "line": 703,
+          "description": "Liste des influenceurs",
+          "auth_required": true,
+          "role": "admin",
+          "query_params": ["page", "limit", "search", "status"]
+        },
+        {
+          "method": "GET",
+          "path": "/api/analytics/revenue-chart",
+          "file": "analytics_endpoints.py",
+          "line": 94,
+          "description": "Graphique revenus 30 derniers jours",
+          "auth_required": true,
+          "query_params": ["days"]
+        },
+        {
+          "method": "GET",
+          "path": "/api/analytics/categories",
+          "file": "analytics_endpoints.py",
+          "line": 147,
+          "description": "Répartition produits par catégorie",
+          "auth_required": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/analytics/platform-metrics",
+          "file": "analytics_endpoints.py",
+          "line": 276,
+          "description": "Métriques globales plateforme",
+          "auth_required": true,
+          "response": {
+            "avg_conversion_rate": "float",
+            "monthly_clicks": "integer",
+            "quarterly_growth": "float",
+            "active_users_7d": "integer"
+          }
+        }
+      ]
+    },
+    "influencer": {
+      "status": "100%",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/analytics/influencer/overview",
+          "file": "analytics_endpoints.py",
+          "line": 513,
+          "description": "Stats complètes influenceur",
+          "auth_required": true,
+          "role": "influencer",
+          "query_params": ["influencer_id"],
+          "response": {
+            "total_earnings": "float",
+            "total_clicks": "integer",
+            "total_sales": "integer",
+            "balance": "float",
+            "earnings_growth": "float",
+            "pending_amount": "float"
+          },
+          "simulated_fields": ["clicks_growth", "sales_growth", "pending_amount"]
+        },
+        {
+          "method": "GET",
+          "path": "/api/affiliate-links",
+          "file": "affiliate_links_endpoints.py",
+          "line": 71,
+          "description": "Mes liens d'affiliation avec stats",
+          "auth_required": true,
+          "role": "influencer",
+          "query_params": ["page", "limit"]
+        },
+        {
+          "method": "GET",
+          "path": "/api/analytics/influencer/earnings-chart",
+          "file": "analytics_endpoints.py",
+          "line": 455,
+          "description": "Graphique commissions par jour",
+          "auth_required": true,
+          "role": "influencer",
+          "query_params": ["influencer_id", "days"]
+        },
+        {
+          "method": "GET",
+          "path": "/api/subscriptions/current",
+          "file": "subscription_endpoints.py",
+          "line": 267,
+          "description": "Abonnement actif utilisateur",
+          "auth_required": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/invitations/received",
+          "file": "server.py",
+          "line": 6608,
+          "description": "Invitations de collaboration reçues",
+          "auth_required": true,
+          "role": "influencer"
+        },
+        {
+          "method": "GET",
+          "path": "/api/collaborations/requests/received",
+          "file": "collaboration_endpoints.py",
+          "line": 84,
+          "description": "Demandes de collaboration reçues",
+          "auth_required": true,
+          "role": "influencer",
+          "query_params": ["status"]
+        }
+      ]
+    },
+    "merchant": {
+      "status": "100%",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/analytics/merchant/performance",
+          "file": "analytics_endpoints.py",
+          "line": 382,
+          "description": "Métriques de performance marchand",
+          "auth_required": true,
+          "role": "merchant",
+          "query_params": ["merchant_id"],
+          "response": {
+            "conversion_rate": "float",
+            "engagement_rate": "float",
+            "satisfaction_rate": "float",
+            "monthly_goal_progress": "float",
+            "total_revenue": "float",
+            "affiliates_count": "integer"
+          },
+          "simulated_fields": ["monthly_goal"]
+        },
+        {
+          "method": "GET",
+          "path": "/api/products",
+          "file": "server.py",
+          "line": 1856,
+          "description": "Liste des produits",
+          "auth_required": true,
+          "query_params": ["page", "limit", "merchant_id"]
+        },
+        {
+          "method": "GET",
+          "path": "/api/analytics/merchant/sales-chart",
+          "file": "analytics_endpoints.py",
+          "line": 323,
+          "description": "Graphique ventes par jour",
+          "auth_required": true,
+          "role": "merchant",
+          "query_params": ["merchant_id", "days"]
+        },
+        {
+          "method": "GET",
+          "path": "/api/subscriptions/current",
+          "file": "subscription_endpoints.py",
+          "line": 267,
+          "description": "Abonnement actif utilisateur",
+          "auth_required": true
+        },
+        {
+          "method": "GET",
+          "path": "/api/collaborations/requests/sent",
+          "file": "collaboration_endpoints.py",
+          "line": 133,
+          "description": "Demandes envoyées aux influenceurs",
+          "auth_required": true,
+          "role": "merchant",
+          "query_params": ["status"]
+        }
+      ]
+    },
+    "commercial": {
+      "status": "100%",
+      "subscription_tiers": {
+        "starter": {
+          "price": "199 MAD/mois",
+          "limits": {
+            "leads_per_month": 10,
+            "tracking_links": 3,
+            "data_history_days": 7,
+            "templates": 3
+          }
+        },
+        "pro": {
+          "price": "499 MAD/mois",
+          "limits": {
+            "leads_per_month": "unlimited",
+            "tracking_links": "unlimited",
+            "data_history_days": 30,
+            "templates": 15
+          }
+        },
+        "enterprise": {
+          "price": "799 MAD/mois",
+          "limits": {
+            "leads_per_month": "unlimited",
+            "tracking_links": "unlimited",
+            "data_history_days": "unlimited",
+            "templates": "unlimited"
+          }
+        }
+      },
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/commercial/stats",
+          "file": "commercial_endpoints.py",
+          "line": 121,
+          "description": "Statistiques commerciales avec quotas",
+          "auth_required": true,
+          "role": "commercial",
+          "response": {
+            "total_leads": "integer",
+            "qualified_leads": "integer",
+            "converted_leads": "integer",
+            "total_commission": "float",
+            "pipeline_value": "float",
+            "conversion_rate": "float"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/commercial/leads",
+          "file": "commercial_endpoints.py",
+          "line": 227,
+          "description": "CRM Leads commerciaux",
+          "auth_required": true,
+          "role": "commercial",
+          "query_params": ["status", "temperature", "limit", "offset"],
+          "subscription_limits": {
+            "starter": "max 10 leads"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/commercial/leads",
+          "file": "commercial_endpoints.py",
+          "line": 272,
+          "description": "Créer un nouveau lead",
+          "auth_required": true,
+          "role": "commercial",
+          "body": {
+            "first_name": "string",
+            "last_name": "string",
+            "email": "string",
+            "phone": "string",
+            "company": "string",
+            "status": "string",
+            "temperature": "string",
+            "source": "string",
+            "estimated_value": "float"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/commercial/tracking-links",
+          "file": "commercial_endpoints.py",
+          "line": 381,
+          "description": "Liens trackés commerciaux",
+          "auth_required": true,
+          "role": "commercial",
+          "subscription_limits": {
+            "starter": "max 3 links"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/commercial/templates",
+          "file": "commercial_endpoints.py",
+          "line": 513,
+          "description": "Templates emails/messages",
+          "auth_required": true,
+          "role": "commercial",
+          "query_params": ["category"],
+          "subscription_limits": {
+            "starter": "3 templates",
+            "pro": "15 templates",
+            "enterprise": "unlimited"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/commercial/analytics/performance",
+          "file": "commercial_endpoints.py",
+          "line": 584,
+          "description": "Graphiques performance commerciale",
+          "auth_required": true,
+          "role": "commercial",
+          "query_params": ["period"],
+          "subscription_limits": {
+            "starter": "7 days only"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/commercial/analytics/funnel",
+          "file": "commercial_endpoints.py",
+          "line": 638,
+          "description": "Funnel de conversion leads",
+          "auth_required": true,
+          "role": "commercial",
+          "response": {
+            "nouveau": {"count": "integer", "value": "float"},
+            "qualifie": {"count": "integer", "value": "float"},
+            "en_negociation": {"count": "integer", "value": "float"},
+            "conclu": {"count": "integer", "value": "float"}
+          }
+        }
+      ]
+    }
+  },
+  "additional_endpoints": {
+    "auth": [
+      {"method": "POST", "path": "/api/auth/login", "public": true},
+      {"method": "POST", "path": "/api/auth/register", "public": true},
+      {"method": "POST", "path": "/api/auth/verify-2fa", "public": false},
+      {"method": "GET", "path": "/api/auth/me", "public": false},
+      {"method": "POST", "path": "/api/auth/logout", "public": false}
+    ],
+    "products": [
+      {"method": "GET", "path": "/api/products", "public": false},
+      {"method": "GET", "path": "/api/products/{id}", "public": false},
+      {"method": "GET", "path": "/api/products/my-products", "public": false}
+    ],
+    "subscriptions": [
+      {"method": "GET", "path": "/api/subscriptions/plans", "public": true},
+      {"method": "POST", "path": "/api/subscriptions/subscribe", "public": false},
+      {"method": "POST", "path": "/api/subscriptions/upgrade", "public": false},
+      {"method": "POST", "path": "/api/subscriptions/cancel", "public": false}
+    ],
+    "payments": [
+      {"method": "POST", "path": "/api/payment/create", "public": false},
+      {"method": "GET", "path": "/api/payment/status/{id}", "public": false}
+    ],
+    "webhooks": [
+      {"method": "POST", "path": "/api/webhook/shopify/{merchant_id}", "public": true},
+      {"method": "POST", "path": "/api/webhook/woocommerce/{merchant_id}", "public": true},
+      {"method": "POST", "path": "/api/webhook/tiktok/{merchant_id}", "public": true}
+    ]
+  },
+  "notes": {
+    "simulated_values": [
+      {
+        "endpoint": "/api/analytics/influencer/overview",
+        "fields": ["clicks_growth: 5.5%", "sales_growth: 3.2%", "pending_amount: 25%"],
+        "impact": "low"
+      },
+      {
+        "endpoint": "/api/analytics/merchant/performance",
+        "fields": ["monthly_goal: 10000"],
+        "impact": "low"
+      }
+    ],
+    "database": "Supabase PostgreSQL",
+    "authentication": "JWT Bearer Token",
+    "cors": "Enabled",
+    "rate_limiting": "TBD",
+    "caching": "None (Redis recommended)"
+  }
+}
