@@ -15,7 +15,7 @@ import CountUp from 'react-countup';
 import {
   DollarSign, MousePointer, ShoppingCart, TrendingUp,
   Eye, Target, Award, Link as LinkIcon, Sparkles, RefreshCw, X, Send, BarChart3, Wallet,
-  MessageSquare, Users, CheckCircle
+  MessageSquare, Users, CheckCircle, Gift, Wand2, Video, UserPlus
 } from 'lucide-react';
 import CollaborationResponseModal from '../../components/modals/CollaborationResponseModal';
 import {
@@ -47,6 +47,11 @@ const InfluencerDashboard = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showResponseModal, setShowResponseModal] = useState(false);
 
+  // 4 Killer Features States
+  const [referralData, setReferralData] = useState(null);
+  const [topRecommendations, setTopRecommendations] = useState([]);
+  const [upcomingLives, setUpcomingLives] = useState([]);
+
   useEffect(() => {
     fetchData();
     fetchMinPayoutAmount();
@@ -73,10 +78,14 @@ const InfluencerDashboard = () => {
         api.get('/api/analytics/influencer/earnings-chart'),
         api.get('/api/subscriptions/current'),
         api.get('/api/invitations/received'),
-        api.get('/api/collaborations/requests/received')
+        api.get('/api/collaborations/requests/received'),
+        // 4 Killer Features
+        api.get(`/api/referrals/dashboard/${user?.id}`),
+        api.get(`/api/ai/product-recommendations/${user?.id}?limit=3`),
+        api.get('/api/ai/live-shopping/upcoming?limit=3')
       ]);
 
-      const [statsRes, linksRes, earningsRes, subscriptionRes, invitationsRes, collabRes] = results;
+      const [statsRes, linksRes, earningsRes, subscriptionRes, invitationsRes, collabRes, referralRes, recommendationsRes, livesRes] = results;
 
       // Gérer les statistiques
       if (statsRes.status === 'fulfilled') {
@@ -143,6 +152,22 @@ const InfluencerDashboard = () => {
         setCollaborationRequests(collabRes.value.data.requests || []);
       } else {
         setCollaborationRequests([]);
+      }
+
+      // 4 Killer Features Data
+      // Referral Program
+      if (referralRes && referralRes.status === 'fulfilled') {
+        setReferralData(referralRes.value.data);
+      }
+
+      // AI Product Recommendations
+      if (recommendationsRes && recommendationsRes.status === 'fulfilled') {
+        setTopRecommendations(recommendationsRes.value.data.recommendations || []);
+      }
+
+      // Upcoming Live Shopping
+      if (livesRes && livesRes.status === 'fulfilled') {
+        setUpcomingLives(livesRes.value.data.upcoming_lives || []);
       }
 
       // Gérer les données de gains
@@ -570,6 +595,209 @@ const InfluencerDashboard = () => {
 
       {/* Gamification Widget */}
       <GamificationWidget userId={user?.id} userType="influencer" />
+
+      {/* 4 KILLER FEATURES WIDGETS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Programme de Parrainage Viral */}
+        <Card
+          title="🎁 Programme de Parrainage"
+          icon={<Gift size={20} className="text-purple-600" />}
+          className="border-l-4 border-purple-500"
+        >
+          {referralData ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <div className="text-sm text-purple-600 font-medium">Réseau Total</div>
+                  <div className="text-2xl font-bold text-purple-900 mt-1">
+                    <UserPlus className="inline mr-1" size={20} />
+                    {referralData.network?.total_network || 0}
+                  </div>
+                  <div className="text-xs text-purple-600 mt-1">
+                    Niveau 1: {referralData.network?.level1_count || 0} • Niveau 2: {referralData.network?.level2_count || 0}
+                  </div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="text-sm text-green-600 font-medium">Gains ce Mois</div>
+                  <div className="text-2xl font-bold text-green-900 mt-1">
+                    {referralData.earnings?.this_month_earnings?.toFixed(2) || '0.00'} €
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">
+                    Badge: {referralData.earnings?.badge_level || 'bronze'}
+                    {referralData.earnings?.badge_level === 'diamond' ? ' 💎' :
+                     referralData.earnings?.badge_level === 'platinum' ? ' 🏆' :
+                     referralData.earnings?.badge_level === 'gold' ? ' 🥇' : ' 🥉'}
+                  </div>
+                </div>
+              </div>
+              {referralData.referral_code?.has_code && (
+                <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-3 rounded-lg">
+                  <div className="text-sm font-medium text-purple-900 mb-1">Ton Code:</div>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-white px-3 py-1 rounded text-purple-600 font-bold text-lg">
+                      {referralData.referral_code.code}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(referralData.referral_code.share_link);
+                        toast?.success('Lien copié!');
+                      }}
+                      className="text-purple-600 hover:text-purple-800"
+                    >
+                      📋
+                    </button>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => navigate('/features?tab=referral')}
+                className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+              >
+                Voir Dashboard Complet →
+              </button>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Gift size={48} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 mb-3">Active ton programme de parrainage!</p>
+              <button
+                onClick={() => navigate('/features?tab=referral')}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
+              >
+                Démarrer →
+              </button>
+            </div>
+          )}
+        </Card>
+
+        {/* AI Product Recommendations */}
+        <Card
+          title="🤖 Produits Recommandés IA"
+          icon={<Sparkles size={20} className="text-indigo-600" />}
+          className="border-l-4 border-indigo-500"
+        >
+          {topRecommendations.length > 0 ? (
+            <div className="space-y-3">
+              {topRecommendations.map((rec, idx) => (
+                <div key={idx} className="bg-gradient-to-r from-indigo-50 to-purple-50 p-3 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900 text-sm">
+                        {rec.product_name?.substring(0, 30)}{rec.product_name?.length > 30 ? '...' : ''}
+                      </div>
+                      <div className="text-xs text-gray-500">{rec.merchant_name}</div>
+                    </div>
+                    <div className="ml-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                      {rec.match_score}%
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-600">{rec.price} MAD</span>
+                    <span className="text-green-600 font-medium">
+                      ~{rec.estimated_commission?.toFixed(2)} MAD
+                    </span>
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={() => navigate('/features?tab=recommendations')}
+                className="w-full py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium"
+              >
+                Voir Toutes les Recommandations →
+              </button>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Sparkles size={48} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 mb-3">Découvre les meilleurs produits pour toi!</p>
+              <button
+                onClick={() => navigate('/features?tab=recommendations')}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm"
+              >
+                Générer Recommandations →
+              </button>
+            </div>
+          )}
+        </Card>
+
+        {/* AI Content Studio */}
+        <Card
+          title="✍️ Content Studio IA"
+          icon={<Wand2 size={20} className="text-pink-600" />}
+          className="border-l-4 border-pink-500"
+        >
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-pink-50 to-purple-50 p-4 rounded-lg">
+              <div className="text-sm text-pink-900 mb-2">
+                Génère du contenu viral pour Instagram, TikTok et Facebook en 1 clic! 🚀
+              </div>
+              <div className="flex gap-2 text-2xl justify-center my-3">
+                📸 🎬 📱
+              </div>
+              <div className="text-xs text-pink-700 space-y-1">
+                <div>✨ Captions optimisés</div>
+                <div>✨ Hashtags stratégiques</div>
+                <div>✨ Call-to-action puissants</div>
+                <div>✨ Meilleur timing de publication</div>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/features?tab=content')}
+              className="w-full py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition text-sm font-medium"
+            >
+              Générer du Contenu →
+            </button>
+          </div>
+        </Card>
+
+        {/* Live Shopping */}
+        <Card
+          title="🎥 Live Shopping"
+          icon={<Video size={20} className="text-red-600" />}
+          className="border-l-4 border-red-500"
+        >
+          {upcomingLives.length > 0 ? (
+            <div className="space-y-3">
+              <div className="bg-red-50 p-3 rounded-lg">
+                <div className="text-sm text-red-900 font-medium mb-2">
+                  📅 Prochains Lives ({upcomingLives.length})
+                </div>
+                {upcomingLives.map((live, idx) => (
+                  <div key={idx} className="bg-white p-2 rounded mb-2 border-l-4 border-red-400">
+                    <div className="text-sm font-semibold text-gray-900">{live.title}</div>
+                    <div className="text-xs text-gray-500">
+                      Par {live.host_username} • {live.platform}
+                    </div>
+                    <div className="text-xs text-red-600 font-medium mt-1">
+                      +{live.commission_boost} boost! 🔥
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => navigate('/features?tab=live')}
+                className="w-full py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+              >
+                Voir Tous les Lives →
+              </button>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Video size={48} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 mb-3">Crée ton premier live shopping!</p>
+              <div className="bg-yellow-50 p-3 rounded-lg mb-3 text-xs text-yellow-800">
+                <strong>+5% de commission</strong> pendant tes lives! 🔥
+              </div>
+              <button
+                onClick={() => navigate('/features?tab=live')}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+              >
+                Créer un Live →
+              </button>
+            </div>
+          )}
+        </Card>
+      </div>
 
       {/* Balance Card */}
       <div className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-2xl p-8 text-white">

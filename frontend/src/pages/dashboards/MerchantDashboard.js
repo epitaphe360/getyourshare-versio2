@@ -13,7 +13,7 @@ import CountUp from 'react-countup';
 import {
   DollarSign, ShoppingBag, Users, TrendingUp,
   Package, Eye, Target, Award, Plus, Search, FileText, Settings, RefreshCw,
-  UserCheck, Clock, CheckCircle, XCircle, TrendingDown
+  UserCheck, Clock, CheckCircle, XCircle, TrendingDown, Gift, Video, UserPlus
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar,
@@ -34,6 +34,10 @@ const MerchantDashboard = () => {
   const [showCounterOfferModal, setShowCounterOfferModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
 
+  // Killer Features States
+  const [referralData, setReferralData] = useState(null);
+  const [productLives, setProductLives] = useState([]);
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -48,10 +52,13 @@ const MerchantDashboard = () => {
         api.get('/api/analytics/merchant/sales-chart'),
         api.get('/api/analytics/merchant/performance'),
         api.get('/api/subscriptions/current'),
-        api.get('/api/collaborations/requests/sent')
+        api.get('/api/collaborations/requests/sent'),
+        // Killer Features
+        api.get(`/api/referrals/dashboard/${user?.id}`),
+        api.get('/api/ai/live-shopping/upcoming?limit=5')
       ]);
 
-      const [statsRes, productsRes, salesChartRes, performanceRes, subscriptionRes, sentRequestsRes] = results;
+      const [statsRes, productsRes, salesChartRes, performanceRes, subscriptionRes, sentRequestsRes, referralRes, livesRes] = results;
 
       // Gérer les statistiques
       if (performanceRes.status === 'fulfilled') {
@@ -130,6 +137,17 @@ const MerchantDashboard = () => {
         setSentRequests(sentRequestsRes.value.data.requests || []);
       } else {
         setSentRequests([]);
+      }
+
+      // Killer Features Data
+      // Referral Program
+      if (referralRes && referralRes.status === 'fulfilled') {
+        setReferralData(referralRes.value.data);
+      }
+
+      // Live Shopping - Filter lives featuring merchant's products
+      if (livesRes && livesRes.status === 'fulfilled') {
+        setProductLives(livesRes.value.data.upcoming_lives || []);
       }
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -413,6 +431,136 @@ const MerchantDashboard = () => {
 
       {/* Gamification Widget */}
       <GamificationWidget userId={user?.id} userType="merchant" />
+
+      {/* KILLER FEATURES WIDGETS */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Programme de Parrainage Viral */}
+        <Card
+          title="🎁 Programme de Parrainage"
+          icon={<Gift size={20} className="text-purple-600" />}
+          className="border-l-4 border-purple-500"
+        >
+          {referralData ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <div className="text-sm text-purple-600 font-medium">Marchands Parrainés</div>
+                  <div className="text-2xl font-bold text-purple-900 mt-1">
+                    <UserPlus className="inline mr-1" size={20} />
+                    {referralData.network?.total_network || 0}
+                  </div>
+                  <div className="text-xs text-purple-600 mt-1">
+                    Niveau 1: {referralData.network?.level1_count || 0} • Niveau 2: {referralData.network?.level2_count || 0}
+                  </div>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="text-sm text-green-600 font-medium">Bonus ce Mois</div>
+                  <div className="text-2xl font-bold text-green-900 mt-1">
+                    {referralData.earnings?.this_month_earnings?.toFixed(2) || '0.00'} €
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">
+                    Badge: {referralData.earnings?.badge_level || 'bronze'}
+                    {referralData.earnings?.badge_level === 'diamond' ? ' 💎' :
+                     referralData.earnings?.badge_level === 'platinum' ? ' 🏆' :
+                     referralData.earnings?.badge_level === 'gold' ? ' 🥇' : ' 🥉'}
+                  </div>
+                </div>
+              </div>
+              {referralData.referral_code?.has_code && (
+                <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-3 rounded-lg">
+                  <div className="text-sm font-medium text-purple-900 mb-1">Ton Code:</div>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-white px-3 py-1 rounded text-purple-600 font-bold text-lg">
+                      {referralData.referral_code.code}
+                    </code>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(referralData.referral_code.share_link);
+                        toast?.success('Lien copié!');
+                      }}
+                      className="text-purple-600 hover:text-purple-800"
+                    >
+                      📋
+                    </button>
+                  </div>
+                  <div className="text-xs text-purple-700 mt-2">
+                    Partage ce code avec d'autres commerçants!
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => navigate('/features?tab=referral')}
+                className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+              >
+                Voir Dashboard Complet →
+              </button>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Gift size={48} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 mb-3">Active ton programme de parrainage!</p>
+              <p className="text-sm text-gray-400 mb-3">Gagne des bonus en parrainant d'autres commerçants</p>
+              <button
+                onClick={() => navigate('/features?tab=referral')}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm"
+              >
+                Démarrer →
+              </button>
+            </div>
+          )}
+        </Card>
+
+        {/* Live Shopping - Produits en Live */}
+        <Card
+          title="🎥 Tes Produits en Live Shopping"
+          icon={<Video size={20} className="text-red-600" />}
+          className="border-l-4 border-red-500"
+        >
+          {productLives.length > 0 ? (
+            <div className="space-y-3">
+              <div className="bg-red-50 p-3 rounded-lg">
+                <div className="text-sm text-red-900 font-medium mb-2">
+                  📅 Lives à venir ({productLives.length})
+                </div>
+                {productLives.map((live, idx) => (
+                  <div key={idx} className="bg-white p-2 rounded mb-2 border-l-4 border-red-400">
+                    <div className="text-sm font-semibold text-gray-900">{live.title}</div>
+                    <div className="text-xs text-gray-500">
+                      Influenceur: {live.host_username} • {live.platform}
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1">
+                      {live.featured_products_count} produit(s) mis en avant
+                    </div>
+                    <div className="text-xs text-red-600 font-medium mt-1">
+                      Boost commission: {live.commission_boost} 🔥
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => navigate('/features?tab=live')}
+                className="w-full py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm font-medium"
+              >
+                Voir Tous les Lives →
+              </button>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Video size={48} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 mb-3">Aucun live prévu pour tes produits</p>
+              <div className="bg-yellow-50 p-3 rounded-lg mb-3 text-xs text-yellow-800">
+                Les influenceurs peuvent créer des lives pour promouvoir tes produits et augmenter les ventes!
+              </div>
+              <button
+                onClick={() => navigate('/influencers/search')}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+              >
+                Trouver des Influenceurs →
+              </button>
+            </div>
+          )}
+        </Card>
+      </div>
 
       {/* Collaboration Requests Section */}
       {sentRequests && sentRequests.length > 0 && (
