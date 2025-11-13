@@ -5,8 +5,8 @@ sys.path.insert(0, "C:\\Users\\Admin\\Desktop\\shareyoursales\\Getyourshare1\\ba
 try:
     from supabase_client import supabase
 
-    print("🔍 Test du statut 2FA...")
-    print("=" * 60)
+    logger.info("🔍 Test du statut 2FA...")
+    logger.info("=" * 60)
 
     # Vérifier l'utilisateur admin
     result = (
@@ -18,23 +18,24 @@ try:
 
     if result.data:
         user = result.data[0]
-        print(f"✅ Utilisateur trouvé: {user['email']}")
-        print(f"   2FA activée: {user.get('two_fa_enabled', False)}")
+        logger.info(f"✅ Utilisateur trouvé: {user['email']}")
+        logger.info(f"   2FA activée: {user.get('two_fa_enabled', False)}")
 
         if not user.get("two_fa_enabled"):
-            print("\n⚠️ 2FA n'est PAS activée! Activation...")
+            logger.info("\n⚠️ 2FA n'est PAS activée! Activation...")
             update_result = (
                 supabase.table("users")
                 .update({"two_fa_enabled": True})
                 .eq("email", "admin@shareyoursales.com")
                 .execute()
             )
-            print("✅ 2FA activée avec succès!")
+            logger.info("✅ 2FA activée avec succès!")
     else:
-        print("❌ Utilisateur non trouvé")
+        logger.info("❌ Utilisateur non trouvé")
 
 except Exception as e:
-    print(f"❌ Erreur: {e}")
+    logger.info(f"❌ Erreur: {e}")
     import traceback
+from utils.logger import logger
 
     traceback.print_exc()

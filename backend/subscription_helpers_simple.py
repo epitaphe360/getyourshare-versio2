@@ -9,13 +9,14 @@ Version simplifiée qui utilise merchants/influencers tables
 from typing import Optional, Dict, Any
 from supabase import create_client, Client
 import os
+from utils.logger import logger
 
 # Configuration Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    print("⚠️ Warning: Supabase credentials not configured for subscription helpers")
+    logger.warning("⚠️ Warning: Supabase credentials not configured for subscription helpers")
     supabase = None
 else:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -27,7 +28,7 @@ else:
 async def get_real_usage_counts(user_id: str, user_role: str) -> Dict[str, int]:
     """Compte l'utilisation réelle depuis la base de données"""
     if not supabase:
-        print("⚠️ Supabase not configured, returning mock data")
+        logger.info("⚠️ Supabase not configured, returning mock data")
         return {"products": 0, "campaigns": 0, "affiliates": 0}
     
     try:
@@ -99,7 +100,7 @@ async def get_real_usage_counts(user_id: str, user_role: str) -> Dict[str, int]:
             }
     
     except Exception as e:
-        print(f"❌ Error counting usage: {e}")
+        logger.error(f"❌ Error counting usage: {e}")
         # Retourner des valeurs par défaut en cas d'erreur
         if user_role == "merchant":
             return {"products": 0, "campaigns": 0, "affiliates": 0}
@@ -301,7 +302,7 @@ async def get_user_subscription_data(user_id: str, user_role: str) -> Optional[D
                 }
                 
     except Exception as e:
-        print(f"❌ Error fetching subscription data: {e}")
+        logger.error(f"❌ Error fetching subscription data: {e}")
         return None
     
     return None

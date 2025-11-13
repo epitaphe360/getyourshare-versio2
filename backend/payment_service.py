@@ -35,7 +35,7 @@ class PaymentService:
             )
             return customer.id
         except stripe.error.StripeError as e:
-            print(f"Error creating Stripe customer: {e}")
+            logger.error(f"Error creating Stripe customer: {e}")
             return None
 
     @staticmethod
@@ -54,7 +54,7 @@ class PaymentService:
             )
             return True
         except stripe.error.StripeError as e:
-            print(f"Error attaching payment method: {e}")
+            logger.error(f"Error attaching payment method: {e}")
             return False
 
     @staticmethod
@@ -92,7 +92,7 @@ class PaymentService:
                 "amount": amount
             }
         except stripe.error.StripeError as e:
-            print(f"Error creating payment intent: {e}")
+            logger.error(f"Error creating payment intent: {e}")
             return None
 
     @staticmethod
@@ -106,7 +106,7 @@ class PaymentService:
                 "amount": intent.amount / 100
             }
         except stripe.error.StripeError as e:
-            print(f"Error confirming payment intent: {e}")
+            logger.error(f"Error confirming payment intent: {e}")
             return None
 
     @staticmethod
@@ -185,7 +185,7 @@ class PaymentService:
             }
 
         except Exception as e:
-            print(f"Error creating subscription payment: {e}")
+            logger.error(f"Error creating subscription payment: {e}")
             return {"success": False, "error": str(e)}
 
     @staticmethod
@@ -239,6 +239,7 @@ class PaymentService:
                     new_end = current_end + timedelta(days=365)
 
                 from supabase_client import supabase
+from utils.logger import logger
                 supabase.table("subscriptions").update({
                     "current_period_start": current_end.isoformat(),
                     "current_period_end": new_end.isoformat(),
@@ -253,7 +254,7 @@ class PaymentService:
             return result
 
         except Exception as e:
-            print(f"Error processing recurring payment: {e}")
+            logger.error(f"Error processing recurring payment: {e}")
             return {"success": False, "error": str(e)}
 
     @staticmethod
@@ -277,7 +278,7 @@ class PaymentService:
                 "amount": refund.amount / 100
             }
         except stripe.error.StripeError as e:
-            print(f"Error creating refund: {e}")
+            logger.error(f"Error creating refund: {e}")
             return None
 
     @staticmethod
@@ -291,7 +292,7 @@ class PaymentService:
             event_type = event["type"]
             data = event["data"]["object"]
 
-            print(f"Received webhook: {event_type}")
+            logger.info(f"Received webhook: {event_type}")
 
             # Payment Intent réussi
             if event_type == "payment_intent.succeeded":
@@ -337,10 +338,10 @@ class PaymentService:
             return {"success": True, "message": f"Unhandled event: {event_type}"}
 
         except stripe.error.SignatureVerificationError as e:
-            print(f"Webhook signature verification failed: {e}")
+            logger.error(f"Webhook signature verification failed: {e}")
             return {"success": False, "error": "Invalid signature"}
         except Exception as e:
-            print(f"Error handling webhook: {e}")
+            logger.error(f"Error handling webhook: {e}")
             return {"success": False, "error": str(e)}
 
 

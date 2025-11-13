@@ -4,31 +4,31 @@ Script pour activer la 2FA pour tous les utilisateurs
 
 from supabase_client import supabase
 
-print("\n" + "=" * 60)
-print("ACTIVATION DE LA 2FA POUR TOUS LES UTILISATEURS")
-print("=" * 60 + "\n")
+logger.info("\n" + "=" * 60)
+logger.info("ACTIVATION DE LA 2FA POUR TOUS LES UTILISATEURS")
+logger.info("=" * 60 + "\n")
 
 try:
     # 1. Récupérer tous les utilisateurs
-    print("1. Récupération des utilisateurs...")
+    logger.info("1. Récupération des utilisateurs...")
     users_response = supabase.table("users").select("id, email, role, two_fa_enabled").execute()
 
     if not users_response.data:
-        print("   ERREUR: Aucun utilisateur trouvé dans la base de données")
+        logger.info("   ERREUR: Aucun utilisateur trouvé dans la base de données")
         exit(1)
 
-    print(f"   OK: {len(users_response.data)} utilisateurs trouvés\n")
+    logger.info(f"   OK: {len(users_response.data)} utilisateurs trouvés\n")
 
     # 2. Afficher l'état actuel
-    print("2. État actuel de la 2FA:")
-    print("-" * 60)
+    logger.info("2. État actuel de la 2FA:")
+    logger.info("-" * 60)
     for user in users_response.data:
         status = "ACTIVEE" if user.get("two_fa_enabled") else "DESACTIVEE"
-        print(f"   {user['email']:<35} | {status}")
+        logger.info(f"   {user['email']:<35} | {status}")
     print()
 
     # 3. Activer la 2FA pour tous
-    print("3. Activation de la 2FA pour tous les utilisateurs...")
+    logger.info("3. Activation de la 2FA pour tous les utilisateurs...")
     updated_count = 0
 
     for user in users_response.data:
@@ -42,28 +42,29 @@ try:
                 )
 
                 if update_response.data:
-                    print(f"   OK: {user['email']}")
+                    logger.info(f"   OK: {user['email']}")
                     updated_count += 1
                 else:
-                    print(f"   ERREUR: {user['email']} - Aucune mise à jour")
+                    logger.info(f"   ERREUR: {user['email']} - Aucune mise à jour")
             except Exception as e:
-                print(f"   ERREUR: {user['email']} - {str(e)}")
+                logger.info(f"   ERREUR: {user['email']} - {str(e)}")
         else:
-            print(f"   SKIP: {user['email']} (déjà activée)")
+            logger.info(f"   SKIP: {user['email']} (déjà activée)")
 
     print()
-    print("=" * 60)
-    print(f"SUCCÈS: 2FA activée pour {updated_count} utilisateur(s)")
-    print("=" * 60)
-    print("\nVous pouvez maintenant vous connecter avec:")
-    print("   Email: admin@shareyoursales.com")
-    print("   Password: admin123")
-    print("   Code 2FA: 123456")
+    logger.info("=" * 60)
+    logger.info(f"SUCCÈS: 2FA activée pour {updated_count} utilisateur(s)")
+    logger.info("=" * 60)
+    logger.info("\nVous pouvez maintenant vous connecter avec:")
+    logger.info("   Email: admin@shareyoursales.com")
+    logger.info("   Password: admin123")
+    logger.info("   Code 2FA: 123456")
     print()
 
 except Exception as e:
-    print(f"\nERREUR CRITIQUE: {str(e)}")
+    logger.info(f"\nERREUR CRITIQUE: {str(e)}")
     import traceback
+from utils.logger import logger
 
     traceback.print_exc()
     exit(1)

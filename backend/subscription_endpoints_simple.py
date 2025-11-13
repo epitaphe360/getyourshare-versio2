@@ -14,6 +14,7 @@ from auth import get_current_user
 
 # Import des helpers pour éviter la duplication de code
 from subscription_helpers_simple import (
+from utils.logger import logger
     get_user_subscription_data,
     get_merchant_limits,
     get_influencer_limits,
@@ -27,7 +28,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    print("⚠️ Warning: Supabase credentials not configured")
+    logger.warning("⚠️ Warning: Supabase credentials not configured")
     supabase = None
 else:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -111,7 +112,7 @@ async def get_current_subscription(current_user: dict = Depends(get_current_user
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error in get_current_subscription: {e}")
+        logger.error(f"Error in get_current_subscription: {e}")
         raise HTTPException(status_code=500, detail=f"Error fetching subscription: {str(e)}")
 
 @router.get("/plans")
@@ -152,7 +153,7 @@ async def get_available_plans():
         }
         
     except Exception as e:
-        print(f"Error fetching plans: {e}")
+        logger.error(f"Error fetching plans: {e}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @router.get("/usage")
@@ -194,7 +195,7 @@ async def get_usage_stats(current_user: dict = Depends(get_current_user)):
         return result
         
     except Exception as e:
-        print(f"Error fetching usage: {e}")
+        logger.error(f"Error fetching usage: {e}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 @router.post("/check-limit")
@@ -237,7 +238,7 @@ async def check_limit(
         }
         
     except Exception as e:
-        print(f"❌ Error checking limit: {e}")
+        logger.error(f"❌ Error checking limit: {e}")
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 # ============================================
@@ -285,9 +286,9 @@ async def cancel_subscription(
     
     # Log de la raison d'annulation pour analytics
     if request.reason or request.feedback:
-        print(f"📊 Cancellation feedback from user {user_id}:")
-        print(f"   Reason: {request.reason}")
-        print(f"   Feedback: {request.feedback}")
+        logger.info(f"📊 Cancellation feedback from user {user_id}:")
+        logger.info(f"   Reason: {request.reason}")
+        logger.info(f"   Feedback: {request.feedback}")
     
     return {
         "success": True,

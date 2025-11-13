@@ -22,13 +22,13 @@ const MobileLayout = ({ children }) => {
     const handleOnline = () => {
       setIsOnline(true);
       setShowOfflineBanner(false);
-      console.log('🟢 Application en ligne');
+
     };
 
     const handleOffline = () => {
       setIsOnline(false);
       setShowOfflineBanner(true);
-      console.log('🔴 Application hors ligne');
+
     };
 
     window.addEventListener('online', handleOnline);
@@ -49,7 +49,7 @@ const MobileLayout = ({ children }) => {
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.register('/service-worker.js');
-        console.log('✅ Service Worker registered:', registration.scope);
+
         setServiceWorkerReady(true);
 
         // Check for updates periodically

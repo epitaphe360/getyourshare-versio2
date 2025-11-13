@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from uuid import UUID
 from supabase import Client
+from utils.logger import logger
 
 
 class DepositService:
@@ -96,7 +97,7 @@ class DepositService:
             return deposit
             
         except Exception as e:
-            print(f"Erreur create_deposit: {e}")
+            logger.info(f"Erreur create_deposit: {e}")
             raise
     
     
@@ -165,7 +166,7 @@ class DepositService:
             return updated_deposit
             
         except Exception as e:
-            print(f"Erreur recharge_deposit: {e}")
+            logger.info(f"Erreur recharge_deposit: {e}")
             raise
     
     
@@ -227,7 +228,7 @@ class DepositService:
             }
             
         except Exception as e:
-            print(f"Erreur get_deposit_balance: {e}")
+            logger.info(f"Erreur get_deposit_balance: {e}")
             return {'has_deposit': False, 'error': str(e)}
     
     
@@ -264,7 +265,7 @@ class DepositService:
             return result.data or []
             
         except Exception as e:
-            print(f"Erreur get_deposit_history: {e}")
+            logger.info(f"Erreur get_deposit_history: {e}")
             return []
     
     
@@ -294,7 +295,7 @@ class DepositService:
             return result.data or []
             
         except Exception as e:
-            print(f"Erreur get_all_deposits: {e}")
+            logger.info(f"Erreur get_all_deposits: {e}")
             return []
     
     
@@ -337,7 +338,7 @@ class DepositService:
             return low_deposits
             
         except Exception as e:
-            print(f"Erreur check_low_balances: {e}")
+            logger.info(f"Erreur check_low_balances: {e}")
             return []
     
     
@@ -373,7 +374,7 @@ class DepositService:
             return result.data[0]
             
         except Exception as e:
-            print(f"Erreur update_alert_threshold: {e}")
+            logger.info(f"Erreur update_alert_threshold: {e}")
             raise
     
     
@@ -415,7 +416,7 @@ class DepositService:
             return result.data[0]
             
         except Exception as e:
-            print(f"Erreur configure_auto_recharge: {e}")
+            logger.info(f"Erreur configure_auto_recharge: {e}")
             raise
     
     
@@ -459,7 +460,7 @@ class DepositService:
             return result.data[0]
             
         except Exception as e:
-            print(f"Erreur suspend_deposit: {e}")
+            logger.info(f"Erreur suspend_deposit: {e}")
             raise
     
     
@@ -529,7 +530,7 @@ class DepositService:
             }
             
         except Exception as e:
-            print(f"Erreur get_deposit_stats: {e}")
+            logger.info(f"Erreur get_deposit_stats: {e}")
             return {}
     
     
@@ -568,4 +569,4 @@ class DepositService:
             self.supabase.table('deposit_transactions').insert(transaction_data).execute()
             
         except Exception as e:
-            print(f"Erreur _record_transaction: {e}")
+            logger.info(f"Erreur _record_transaction: {e}")

@@ -19,6 +19,7 @@ from supabase import create_client, Client
 import os
 from auth import get_current_user
 from utils.db_safe import safe_ilike
+from utils.logger import logger
 
 router = APIRouter(prefix="/api/commercials", tags=["Commercials Directory"])
 
@@ -130,7 +131,7 @@ async def increment_view_count(profile_id: str):
             "column_name": "view_count"
         }).execute()
     except Exception as e:
-        print(f"Error incrementing view count: {e}")
+        logger.error(f"Error incrementing view count: {e}")
 
 async def increment_contact_count(profile_id: str):
     """Incrémenter le compteur de contacts"""
@@ -141,7 +142,7 @@ async def increment_contact_count(profile_id: str):
             "column_name": "contact_count"
         }).execute()
     except Exception as e:
-        print(f"Error incrementing contact count: {e}")
+        logger.error(f"Error incrementing contact count: {e}")
 
 # ============================================
 # ENDPOINTS - PROFILE MANAGEMENT

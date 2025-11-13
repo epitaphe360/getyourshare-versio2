@@ -38,7 +38,7 @@ def create_product(
         result = supabase.table("products").insert(product_data).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error creating product: {e}")
+        logger.error(f"Error creating product: {e}")
         return None
 
 
@@ -49,7 +49,7 @@ def update_product(product_id: str, updates: Dict) -> bool:
         supabase.table("products").update(updates).eq("id", product_id).execute()
         return True
     except Exception as e:
-        print(f"Error updating product: {e}")
+        logger.error(f"Error updating product: {e}")
         return False
 
 
@@ -61,7 +61,7 @@ def delete_product(product_id: str) -> bool:
         ).eq("id", product_id).execute()
         return True
     except Exception as e:
-        print(f"Error deleting product: {e}")
+        logger.error(f"Error deleting product: {e}")
         return False
 
 
@@ -77,7 +77,7 @@ def update_campaign(campaign_id: str, updates: Dict) -> bool:
         supabase.table("campaigns").update(updates).eq("id", campaign_id).execute()
         return True
     except Exception as e:
-        print(f"Error updating campaign: {e}")
+        logger.error(f"Error updating campaign: {e}")
         return False
 
 
@@ -89,7 +89,7 @@ def delete_campaign(campaign_id: str) -> bool:
         ).eq("id", campaign_id).execute()
         return True
     except Exception as e:
-        print(f"Error deleting campaign: {e}")
+        logger.error(f"Error deleting campaign: {e}")
         return False
 
 
@@ -103,7 +103,7 @@ def assign_products_to_campaign(campaign_id: str, product_ids: List[str]) -> boo
         # supabase.table("campaign_products").insert(assignments).execute()
         return True
     except Exception as e:
-        print(f"Error assigning products: {e}")
+        logger.error(f"Error assigning products: {e}")
         return False
 
 
@@ -134,7 +134,7 @@ def create_invitation(merchant_id: str, email: str, **kwargs) -> Optional[Dict]:
 
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error creating invitation: {e}")
+        logger.error(f"Error creating invitation: {e}")
         return None
 
 
@@ -170,7 +170,7 @@ def accept_invitation(invitation_code: str, user_id: str) -> bool:
 
         return True
     except Exception as e:
-        print(f"Error accepting invitation: {e}")
+        logger.error(f"Error accepting invitation: {e}")
         return False
 
 
@@ -219,7 +219,7 @@ def create_sale(
         sale_data = result.data if isinstance(result.data, dict) else result.data[0]
         return sale_data
     except Exception as e:
-        print(f"Error creating sale: {e}")
+        logger.error(f"Error creating sale: {e}")
         return None
 
 
@@ -246,7 +246,7 @@ def update_link_stats(link_id: str, revenue: float, commission: float):
                 }
             ).eq("id", link_id).execute()
     except Exception as e:
-        print(f"Error updating link stats: {e}")
+        logger.error(f"Error updating link stats: {e}")
 
 
 # ============================================
@@ -276,7 +276,7 @@ def create_payout_request(influencer_id: str, amount: float, payment_method: str
         result = supabase.table("commissions").insert(payout_data).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error creating payout request: {e}")
+        logger.error(f"Error creating payout request: {e}")
         return None
 
 
@@ -291,7 +291,7 @@ def approve_payout(payout_id: str) -> bool:
             return bool(data and data[0])
         return bool(data)
     except Exception as e:
-        print(f"Error approving payout: {e}")
+        logger.error(f"Error approving payout: {e}")
         return False
 
 
@@ -339,7 +339,7 @@ def record_click(link_id: str, ip_address: str, user_agent: str, **kwargs) -> Op
 
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error recording click: {e}")
+        logger.error(f"Error recording click: {e}")
         return None
 
 
@@ -401,7 +401,7 @@ def get_performance_report(influencer_id: str, start_date: str, end_date: str) -
             "average_order_value": round(total_revenue / total_sales, 2) if total_sales > 0 else 0,
         }
     except Exception as e:
-        print(f"Error generating report: {e}")
+        logger.error(f"Error generating report: {e}")
         return {}
 
 
@@ -426,7 +426,7 @@ def get_platform_settings() -> Dict:
             "default_commission_rate": 10.0,
         }
     except Exception as e:
-        print(f"Error getting settings: {e}")
+        logger.error(f"Error getting settings: {e}")
         return {}
 
 
@@ -443,7 +443,7 @@ def update_platform_setting(key: str, value: Any) -> bool:
 
         return True
     except Exception as e:
-        print(f"Error updating setting: {e}")
+        logger.error(f"Error updating setting: {e}")
         return False
 
 
@@ -459,7 +459,7 @@ def update_user_profile(user_id: str, updates: Dict) -> bool:
         supabase.table("users").update(updates).eq("id", user_id).execute()
         return True
     except Exception as e:
-        print(f"Error updating user profile: {e}")
+        logger.error(f"Error updating user profile: {e}")
         return False
 
 
@@ -471,7 +471,7 @@ def deactivate_user(user_id: str) -> bool:
         ).eq("id", user_id).execute()
         return True
     except Exception as e:
-        print(f"Error deactivating user: {e}")
+        logger.error(f"Error deactivating user: {e}")
         return False
 
 
@@ -491,4 +491,5 @@ def send_verification_email(to_email: str, token: str) -> str:
     Wrapper autour de email_service.send_verification_email
     """
     from email_service import send_verification_email as send_email_verification
+from utils.logger import logger
     return send_email_verification(to_email, token)

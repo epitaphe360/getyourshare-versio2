@@ -26,22 +26,23 @@ class TestDatabase:
         if self.supabase_client is None:
             try:
                 from supabase import create_client
+from utils.logger import logger
                 supabase_url = os.getenv("SUPABASE_URL")
                 supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
                 
                 if supabase_url and supabase_key:
                     self.supabase_client = create_client(supabase_url, supabase_key)
-                    print(f"Test Supabase client initialized")
+                    logger.info(f"Test Supabase client initialized")
                 else:
-                    print("Warning: Supabase credentials not found in environment")
+                    logger.warning("Warning: Supabase credentials not found in environment")
             except Exception as e:
-                print(f"Error creating Supabase client: {e}")
+                logger.error(f"Error creating Supabase client: {e}")
         
         return self.supabase_client
     
     async def cleanup(self):
         """Nettoie les donnees de test creees"""
-        print("Cleaning up test data...")
+        logger.info("Cleaning up test data...")
         pass
 
 
@@ -116,15 +117,15 @@ def get_test_data() -> Dict[str, Any]:
 
 async def setup_test_database() -> Dict[str, Any]:
     """Configure la base de donnees de test avec des donnees initiales"""
-    print("Setting up test database...")
+    logger.info("Setting up test database...")
     
     supabase = get_supabase_for_tests()
     
     if supabase is None:
-        print("Warning: Supabase client not available, using mock data")
+        logger.warning("Warning: Supabase client not available, using mock data")
         return get_test_data()
     
     test_data = get_test_data()
     
-    print("Test database setup complete")
+    logger.info("Test database setup complete")
     return test_data

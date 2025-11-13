@@ -50,8 +50,8 @@ const InViewExample = () => {
  */
 const HoverExample = () => {
   const { ref, isHovered } = useHover({
-    onEnter: () => console.log('Entered'),
-    onLeave: () => console.log('Left'),
+    onEnter: () =>,
+    onLeave: () =>,
   });
 
   return (

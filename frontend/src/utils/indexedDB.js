@@ -78,7 +78,6 @@ function openDB() {
         db.createObjectStore(STORES.SETTINGS, { keyPath: 'key' });
       }
 
-      console.log('✅ IndexedDB initialisée avec succès');
     };
   });
 }
@@ -108,7 +107,6 @@ export async function setCache(key, value, ttl = CACHE_TTL.MEDIUM) {
       request.onerror = () => reject(request.error);
     });
 
-    console.log(`✅ Cache set: ${key}`);
     return true;
   } catch (error) {
     console.error('❌ Erreur setCache:', error);
@@ -135,12 +133,11 @@ export async function getCache(key, ignoreExpiration = false) {
 
     // Vérifier l'expiration
     if (!ignoreExpiration && cacheItem.expiresAt !== Infinity && Date.now() > cacheItem.expiresAt) {
-      console.log(`⏰ Cache expiré: ${key}`);
+
       await deleteCache(key);
       return null;
     }
 
-    console.log(`✅ Cache hit: ${key}`);
     return cacheItem.value;
   } catch (error) {
     console.error('❌ Erreur getCache:', error);
@@ -161,7 +158,6 @@ export async function deleteCache(key) {
       request.onerror = () => reject(request.error);
     });
 
-    console.log(`🗑️ Cache deleted: ${key}`);
     return true;
   } catch (error) {
     console.error('❌ Erreur deleteCache:', error);
@@ -182,7 +178,6 @@ export async function clearCache() {
       request.onerror = () => reject(request.error);
     });
 
-    console.log('🗑️ Cache entièrement vidé');
     return true;
   } catch (error) {
     console.error('❌ Erreur clearCache:', error);
@@ -213,7 +208,6 @@ export async function cleanExpiredCache() {
       }
     }
 
-    console.log(`🧹 ${deletedCount} entrées expirées supprimées`);
     return deletedCount;
   } catch (error) {
     console.error('❌ Erreur cleanExpiredCache:', error);
@@ -248,7 +242,6 @@ export async function addToSyncQueue(url, method, data, options = {}) {
       request.onerror = () => reject(request.error);
     });
 
-    console.log(`📥 Ajouté à la queue de sync: ${url} (ID: ${id})`);
     return id;
   } catch (error) {
     console.error('❌ Erreur addToSyncQueue:', error);
@@ -302,7 +295,6 @@ export async function updateSyncQueueItem(id, updates) {
       request.onerror = () => reject(request.error);
     });
 
-    console.log(`✅ Sync queue item mis à jour: ${id}`);
     return true;
   } catch (error) {
     console.error('❌ Erreur updateSyncQueueItem:', error);
@@ -323,7 +315,6 @@ export async function removeFromSyncQueue(id) {
       request.onerror = () => reject(request.error);
     });
 
-    console.log(`🗑️ Supprimé de la queue: ${id}`);
     return true;
   } catch (error) {
     console.error('❌ Erreur removeFromSyncQueue:', error);
@@ -344,7 +335,6 @@ export async function clearSyncQueue() {
       request.onerror = () => reject(request.error);
     });
 
-    console.log('🗑️ Queue de synchronisation vidée');
     return true;
   } catch (error) {
     console.error('❌ Erreur clearSyncQueue:', error);
@@ -502,7 +492,7 @@ export async function deleteDatabase() {
     const request = indexedDB.deleteDatabase(DB_NAME);
 
     request.onsuccess = () => {
-      console.log('🗑️ Base de données supprimée');
+
       resolve(true);
     };
 

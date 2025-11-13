@@ -10,6 +10,7 @@ from uuid import uuid4
 
 # Import du setup de la vraie DB
 from .test_database_setup import (
+from utils.logger import logger
     setup_test_database,
     get_test_data,
     get_supabase_for_tests,
@@ -32,18 +33,18 @@ def event_loop():
 @pytest.fixture(scope="session", autouse=True)
 async def setup_database():
     """Setup de la base de données AVANT tous les tests"""
-    print("\n" + "="*60)
-    print("🚀 INITIALISATION BASE DE DONNÉES DE TEST")
-    print("="*60)
+    logger.info("\n" + "="*60)
+    logger.info("🚀 INITIALISATION BASE DE DONNÉES DE TEST")
+    logger.info("="*60)
     
     test_data = await setup_test_database()
     
     yield test_data
     
     # Cleanup après tous les tests
-    print("\n" + "="*60)
-    print("🧹 NETTOYAGE BASE DE DONNÉES DE TEST")
-    print("="*60)
+    logger.info("\n" + "="*60)
+    logger.info("🧹 NETTOYAGE BASE DE DONNÉES DE TEST")
+    logger.info("="*60)
     await test_db.cleanup()
 
 

@@ -10,6 +10,7 @@ from trust_score_service import TrustScoreService, TrustReport
 from auth import get_current_user
 # from db_helpers import log_user_activity  # TODO: Implémenter log_user_activity dans db_helpers
 from supabase_client import supabase
+from utils.logger import logger
 
 router = APIRouter(prefix="/api/trust-score", tags=["Trust Score"])
 
@@ -265,7 +266,7 @@ async def get_user_campaign_history(user_id: str) -> List[dict]:
         ).execute()
 
         return result.data if result.data else []
-    except:
+    except Exception:
         return []
 
 
@@ -282,7 +283,7 @@ async def get_user_traffic_data(user_id: str) -> dict:
             "click_pattern_score": 85.0,
             "geo_consistency": 92.0
         }
-    except:
+    except Exception:
         return {}
 
 
@@ -303,7 +304,7 @@ async def save_trust_score(user_id: str, trust_report: TrustReport):
         result = supabase.table("trust_scores").upsert(data).execute()
         return result
     except Exception as e:
-        print(f"Error saving trust score: {e}")
+        logger.error(f"Error saving trust score: {e}")
 
 
 async def get_cached_trust_score(user_id: str) -> Optional[TrustReport]:
@@ -317,7 +318,7 @@ async def get_cached_trust_score(user_id: str) -> Optional[TrustReport]:
             # TODO: Convertir en TrustReport
             return None  # Pour l'instant
         return None
-    except:
+    except Exception:
         return None
 
 
@@ -329,7 +330,7 @@ async def get_user_data(user_id: str) -> dict:
         ).single().execute()
 
         return result.data if result.data else {}
-    except:
+    except Exception:
         return {}
 
 
@@ -341,5 +342,5 @@ async def get_last_score_update(user_id: str) -> Optional[str]:
         ).single().execute()
 
         return result.data.get("last_updated") if result.data else None
-    except:
+    except Exception:
         return None

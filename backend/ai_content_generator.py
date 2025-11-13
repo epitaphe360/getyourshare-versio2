@@ -9,6 +9,7 @@ from datetime import datetime
 import os
 import httpx
 from enum import Enum
+from utils.logger import logger
 
 # ============================================
 # MODELS
@@ -349,11 +350,11 @@ Langue: {request.language}
                     data = response.json()
                     return data["content"][0]["text"]
                 else:
-                    print(f"Claude API Error: {response.status_code}")
+                    logger.error(f"Claude API Error: {response.status_code}")
                     return self._generate_template_content(prompt)
 
         except Exception as e:
-            print(f"Error calling Claude API: {e}")
+            logger.error(f"Error calling Claude API: {e}")
             return self._generate_template_content(prompt)
 
     async def _call_openai_api(self, prompt: str) -> str:
@@ -388,11 +389,11 @@ Langue: {request.language}
                     data = response.json()
                     return data["choices"][0]["message"]["content"]
                 else:
-                    print(f"OpenAI API Error: {response.status_code}")
+                    logger.error(f"OpenAI API Error: {response.status_code}")
                     return self._generate_template_content(prompt)
 
         except Exception as e:
-            print(f"Error calling OpenAI API: {e}")
+            logger.error(f"Error calling OpenAI API: {e}")
             return self._generate_template_content(prompt)
 
     def _generate_template_content(self, prompt: str) -> str:

@@ -14,6 +14,7 @@ if sys.platform == "win32":
 from fastapi import FastAPI, HTTPException, Depends, status, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from middleware.security import csrf_middleware, security_headers_middleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
@@ -275,6 +276,15 @@ app.add_middleware(
 )
 
 # ============================================
+# SECURITY MIDDLEWARE
+# ============================================
+# Add CSRF protection middleware
+app.middleware("http")(csrf_middleware)
+
+# Add security headers middleware
+app.middleware("http")(security_headers_middleware)
+
+# ============================================
 # INCLUDE ROUTERS (Modular Endpoints)
 # ============================================
 
@@ -351,7 +361,7 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
 
 if JWT_SECRET == "fallback-secret-please-set-env-variable":
-    print("⚠️  WARNING: JWT_SECRET not set in environment!")
+    logger.warning("⚠️  WARNING: JWT_SECRET not set in environment!")
 
 # Pydantic Models
 class LoginRequest(BaseModel):
@@ -500,7 +510,7 @@ async def login(login_data: LoginRequest):
             expires_delta=timedelta(minutes=5)
         )
 
-        print(f"📱 Code 2FA pour {user['email']}: {code}")
+        logger.info(f"📱 Code 2FA pour {user['email']}: {code}")
 
         return {
             "requires_2fa": True,
@@ -626,7 +636,7 @@ async def register(data: RegisterRequest):
             }
             supabase.table('influencers').insert(influencer_data).execute()
     except Exception as e:
-        print(f"Warning: Could not create profile for {data.role}: {e}")
+        logger.warning(f"Warning: Could not create profile for {data.role}: {e}")
         # Continue anyway, profile can be created later
 
     return {"message": "Compte créé avec succès", "user_id": user["id"]}
@@ -786,7 +796,7 @@ async def get_influencer_stats(influencer_id: str, payload: dict = Depends(verif
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching influencer stats: {e}")
+        logger.error(f"Error fetching influencer stats: {e}")
         # Fallback avec données estimées
         return {
             "total_sales": 15000,
@@ -1870,7 +1880,7 @@ async def get_products(
             if merchant_response.data:
                 merchant_id = merchant_response.data["id"]
         except Exception as e:
-            print(f"Error getting merchant_id: {e}")
+            logger.error(f"Error getting merchant_id: {e}")
     
     # Admin voit tous les produits
     products = get_all_products(category=category, merchant_id=merchant_id)
@@ -2063,7 +2073,7 @@ async def update_campaign_status(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error updating campaign status: {e}")
+        logger.error(f"Error updating campaign status: {e}")
         raise HTTPException(status_code=500, detail="Erreur lors de la mise à jour du statut")
 
 # ============================================
@@ -2077,7 +2087,7 @@ async def get_conversions_endpoint(payload: dict = Depends(verify_token)):
         user_id = payload.get("user_id")
         role = payload.get("role")
         
-        print(f"🔍 Fetching conversions for user_id={user_id}, role={role}")
+        logger.info(f"🔍 Fetching conversions for user_id={user_id}, role={role}")
         
         # Récupérer toutes les conversions directement depuis la table (pas la vue)
         response = supabase.table('conversions').select(
@@ -2097,7 +2107,7 @@ async def get_conversions_endpoint(payload: dict = Depends(verify_token)):
         ).order('conversion_date', desc=True).execute()
         
         conversions = response.data if response.data else []
-        print(f"✅ Found {len(conversions)} total conversions")
+        logger.info(f"✅ Found {len(conversions)} total conversions")
         
         # Filtrer par rôle après récupération
         if role == 'merchant':
@@ -2105,15 +2115,15 @@ async def get_conversions_endpoint(payload: dict = Depends(verify_token)):
             if merchant_result.data:
                 merchant_id = merchant_result.data[0]['id']
                 conversions = [c for c in conversions if c.get('merchant_id') == merchant_id]
-                print(f"📦 Merchant filter: {len(conversions)} conversions for merchant_id={merchant_id}")
+                logger.info(f"📦 Merchant filter: {len(conversions)} conversions for merchant_id={merchant_id}")
         elif role == 'influencer':
             influencer_result = supabase.table('influencers').select('id').eq('user_id', user_id).execute()
             if influencer_result.data:
                 influencer_id = influencer_result.data[0]['id']
                 conversions = [c for c in conversions if c.get('influencer_id') == influencer_id]
-                print(f"👤 Influencer filter: {len(conversions)} conversions for influencer_id={influencer_id}")
+                logger.info(f"👤 Influencer filter: {len(conversions)} conversions for influencer_id={influencer_id}")
         else:
-            print(f"👑 Admin: showing all {len(conversions)} conversions")
+            logger.info(f"👑 Admin: showing all {len(conversions)} conversions")
         
         # Récupérer les noms des campagnes et influenceurs
         formatted_conversions = []
@@ -2143,11 +2153,11 @@ async def get_conversions_endpoint(payload: dict = Depends(verify_token)):
                 'created_at': conv.get('conversion_date'),
             })
         
-        print(f"✅ Returning {len(formatted_conversions)} formatted conversions")
+        logger.info(f"✅ Returning {len(formatted_conversions)} formatted conversions")
         return {"data": formatted_conversions, "total": len(formatted_conversions)}
         
     except Exception as e:
-        print(f"❌ Error fetching conversions: {e}")
+        logger.error(f"❌ Error fetching conversions: {e}")
         import traceback
         traceback.print_exc()
         return {"data": [], "total": 0}
@@ -2200,7 +2210,7 @@ async def get_leads_endpoint(payload: dict = Depends(verify_token)):
             return {"data": leads, "total": len(leads)}
             
         except Exception as leads_error:
-            print(f"⚠️ Table 'leads' non disponible: {leads_error}")
+            logger.error(f"⚠️ Table 'leads' non disponible: {leads_error}")
             
             # Fallback: essayer la table 'sales' (ancien système)
             query = supabase.table('sales').select(
@@ -2231,7 +2241,7 @@ async def get_leads_endpoint(payload: dict = Depends(verify_token)):
             return {"data": leads, "total": len(leads)}
         
     except Exception as e:
-        print(f"❌ Error fetching leads: {e}")
+        logger.error(f"❌ Error fetching leads: {e}")
         import traceback
         traceback.print_exc()
         return {"data": [], "total": 0}
@@ -2292,7 +2302,7 @@ async def get_merchant_sales_chart(payload: dict = Depends(verify_token)):
         return {"data": days_data}
         
     except Exception as e:
-        print(f"Error fetching merchant sales chart: {e}")
+        logger.error(f"Error fetching merchant sales chart: {e}")
         # Retourner des données vides en cas d'erreur
         return {"data": [{"date": f"0{i}/01", "ventes": 0, "revenus": 0} for i in range(1, 8)]}
 
@@ -2330,7 +2340,7 @@ async def get_influencer_earnings_chart(payload: dict = Depends(verify_token)):
         return {"data": days_data}
         
     except Exception as e:
-        print(f"Error fetching influencer earnings chart: {e}")
+        logger.error(f"Error fetching influencer earnings chart: {e}")
         return {"data": [{"date": f"0{i}/01", "gains": 0} for i in range(1, 8)]}
 
 @app.get("/api/analytics/admin/revenue-chart")
@@ -2371,7 +2381,7 @@ async def get_admin_revenue_chart(payload: dict = Depends(verify_token)):
         return {"data": days_data}
         
     except Exception as e:
-        print(f"Error fetching admin revenue chart: {e}")
+        logger.error(f"Error fetching admin revenue chart: {e}")
         return {"data": [{"date": f"0{i}/01", "revenus": 0} for i in range(1, 8)]}
 
 @app.get("/api/analytics/admin/categories")
@@ -2500,7 +2510,7 @@ async def get_company_settings(payload: dict = Depends(verify_token)):
                 "logo_url": ""
             }
     except Exception as e:
-        print(f"❌ Erreur lors de la récupération des paramètres: {e}")
+        logger.info(f"❌ Erreur lors de la récupération des paramètres: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
 @app.put("/api/settings/company")
@@ -2530,7 +2540,7 @@ async def update_company_settings(settings: CompanySettingsUpdate, payload: dict
             "data": response.data[0] if response.data else update_data
         }
     except Exception as e:
-        print(f"❌ Erreur lors de la mise à jour des paramètres: {e}")
+        logger.info(f"❌ Erreur lors de la mise à jour des paramètres: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
 # ============================================
@@ -2663,7 +2673,7 @@ async def get_ai_predictions(payload: dict = Depends(verify_token)):
             "growth_potential": "+10% estimé"
         }
     except Exception as e:
-        print(f"Error generating predictions: {e}")
+        logger.error(f"Error generating predictions: {e}")
         return {
             "predicted_sales_next_month": 0,
             "trend_score": 0,
@@ -2743,7 +2753,7 @@ async def send_message(message_data: MessageCreate, payload: dict = Depends(veri
         }
         
     except Exception as e:
-        print(f"Error sending message: {e}")
+        logger.error(f"Error sending message: {e}")
         raise HTTPException(status_code=500, detail=f"Error sending message: {str(e)}")
 
 @app.get("/api/messages/conversations")
@@ -2907,7 +2917,7 @@ async def get_notifications(limit: int = 20, payload: dict = Depends(verify_toke
         }
         
     except Exception as e:
-        print(f"Error fetching notifications: {e}")
+        logger.error(f"Error fetching notifications: {e}")
         return {"notifications": [], "unread_count": 0}
 
 @app.put("/api/notifications/{notification_id}/read")
@@ -2924,7 +2934,7 @@ async def mark_notification_read(notification_id: str, payload: dict = Depends(v
         return {"success": True}
         
     except Exception as e:
-        print(f"Error marking notification as read: {e}")
+        logger.error(f"Error marking notification as read: {e}")
         raise HTTPException(status_code=500, detail="Error updating notification")
 
 # ============================================
@@ -3044,7 +3054,7 @@ async def get_merchant_performance(payload: dict = Depends(verify_token)):
             "monthly_goal_progress": 78.0  # TODO: Calculer basé sur objectif
         }
     except Exception as e:
-        print(f"Error getting merchant performance: {e}")
+        logger.error(f"Error getting merchant performance: {e}")
         return {
             "conversion_rate": 14.2,
             "engagement_rate": 68.0,
@@ -3092,7 +3102,7 @@ async def get_influencer_performance(payload: dict = Depends(verify_token)):
             "avg_commission_rate": round(avg_commission, 2)
         }
     except Exception as e:
-        print(f"Error getting influencer performance: {e}")
+        logger.error(f"Error getting influencer performance: {e}")
         return {
             "best_product": None,
             "avg_commission_rate": 0
@@ -3277,11 +3287,11 @@ async def get_platform_revenue(
 try:
     from advanced_endpoints import integrate_all_endpoints
     integrate_all_endpoints(app, verify_token)
-    print("✅ Endpoints avancés chargés avec succès")
+    logger.info("✅ Endpoints avancés chargés avec succès")
 except ImportError as e:
-    print(f"⚠️  Les endpoints avancés n'ont pas pu être chargés: {e}")
+    logger.info(f"⚠️  Les endpoints avancés n'ont pas pu être chargés: {e}")
 except Exception as e:
-    print(f"⚠️  Erreur lors du chargement des endpoints avancés: {e}")
+    logger.info(f"⚠️  Erreur lors du chargement des endpoints avancés: {e}")
 
 # ============================================
 # INTÉGRATION DU SYSTÈME D'ABONNEMENT SaaS
@@ -3289,14 +3299,14 @@ except Exception as e:
 try:
     from subscription_endpoints import router as subscription_router
     app.include_router(subscription_router)
-    print("✅ Système d'abonnement SaaS chargé avec succès")
-    print("   📦 Plans d'abonnement disponibles")
-    print("   💳 Paiements récurrents activés")
-    print("   📄 Facturation automatique configurée")
+    logger.info("✅ Système d'abonnement SaaS chargé avec succès")
+    logger.info("   📦 Plans d'abonnement disponibles")
+    logger.info("   💳 Paiements récurrents activés")
+    logger.info("   📄 Facturation automatique configurée")
 except ImportError as e:
-    print(f"⚠️  Le système d'abonnement n'a pas pu être chargé: {e}")
+    logger.info(f"⚠️  Le système d'abonnement n'a pas pu être chargé: {e}")
 except Exception as e:
-    print(f"⚠️  Erreur lors du chargement du système d'abonnement: {e}")
+    logger.info(f"⚠️  Erreur lors du chargement du système d'abonnement: {e}")
 
 # ============================================
 # ÉVÉNEMENTS STARTUP/SHUTDOWN
@@ -3305,29 +3315,29 @@ except Exception as e:
 @app.on_event("startup")
 async def startup_event():
     """Événement de démarrage - Lance le scheduler"""
-    print("🚀 Démarrage du serveur...")
-    print("📊 Base de données: Supabase PostgreSQL")
+    logger.info("🚀 Démarrage du serveur...")
+    logger.info("📊 Base de données: Supabase PostgreSQL")
     # Start the scheduler if available. Wrapped in try/except to avoid bringing down the app
     if SCHEDULER_AVAILABLE:
         try:
-            print("⏰ Démarrage du scheduler LEADS...")
+            logger.info("⏰ Démarrage du scheduler LEADS...")
             start_scheduler()
         except Exception as e:
-            print(f"⚠️ Erreur démarrage scheduler (non bloquant): {e}")
+            logger.info(f"⚠️ Erreur démarrage scheduler (non bloquant): {e}")
     else:
-        print("⏰ Scheduler non disponible (import failed or disabled)")
-    print("✅ Serveur prêt")
+        logger.error("⏰ Scheduler non disponible (import failed or disabled)")
+    logger.info("✅ Serveur prêt")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Événement d'arrêt - Arrête le scheduler"""
-    print("🛑 Arrêt du serveur...")
+    logger.info("🛑 Arrêt du serveur...")
     if SCHEDULER_AVAILABLE:
         try:
             stop_scheduler()
         except Exception as e:
-            print(f"⚠️ Erreur arrêt scheduler (non bloquant): {e}")
-    print("✅ Arrêt propre")
+            logger.info(f"⚠️ Erreur arrêt scheduler (non bloquant): {e}")
+    logger.info("✅ Arrêt propre")
 
 # ============================================
 # ENDPOINTS PAIEMENTS AUTOMATIQUES
@@ -3495,7 +3505,7 @@ async def redirect_tracking_link(short_code: str, request: Request, response: Re
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur tracking: {e}")
+        logger.info(f"❌ Erreur tracking: {e}")
         raise HTTPException(status_code=500, detail="Erreur lors du tracking")
 
 
@@ -3556,7 +3566,7 @@ async def generate_tracking_link(data: AffiliateLinkGenerate, payload: dict = De
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur génération lien: {e}")
+        logger.info(f"❌ Erreur génération lien: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3585,7 +3595,7 @@ async def get_tracking_link_stats(link_id: str, payload: dict = Depends(verify_t
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur stats lien: {e}")
+        logger.info(f"❌ Erreur stats lien: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3635,7 +3645,7 @@ async def shopify_webhook(merchant_id: str, request: Request):
             return {"status": "error", "message": result.get('error')}
             
     except Exception as e:
-        print(f"❌ Erreur webhook Shopify: {e}")
+        logger.info(f"❌ Erreur webhook Shopify: {e}")
         return {"status": "error", "message": str(e)}
 
 
@@ -3684,7 +3694,7 @@ async def woocommerce_webhook(merchant_id: str, request: Request):
             return {"status": "error", "message": result.get('error')}
             
     except Exception as e:
-        print(f"❌ Erreur webhook WooCommerce: {e}")
+        logger.info(f"❌ Erreur webhook WooCommerce: {e}")
         return {"status": "error", "message": str(e)}
 
 
@@ -3770,7 +3780,7 @@ async def tiktok_shop_webhook(merchant_id: str, request: Request):
             }
             
     except Exception as e:
-        print(f"❌ Erreur webhook TikTok Shop: {e}")
+        logger.info(f"❌ Erreur webhook TikTok Shop: {e}")
         return {
             "code": 1,
             "message": str(e),
@@ -3839,7 +3849,7 @@ async def create_payment(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Payment creation error: {e}")
+        logger.error(f"❌ Payment creation error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3874,7 +3884,7 @@ async def get_payment_status(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error getting transaction status: {e}")
+        logger.error(f"❌ Error getting transaction status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3928,7 +3938,7 @@ async def cmi_webhook(merchant_id: str, request: Request):
             return {"status": "error", "message": result.get('error')}
             
     except Exception as e:
-        print(f"❌ CMI webhook error: {e}")
+        logger.error(f"❌ CMI webhook error: {e}")
         return {"status": "error", "message": str(e)}
 
 
@@ -3996,7 +4006,7 @@ async def payzen_webhook(merchant_id: str, request: Request):
             return {"status": "error", "message": result.get('error')}
             
     except Exception as e:
-        print(f"❌ PayZen webhook error: {e}")
+        logger.error(f"❌ PayZen webhook error: {e}")
         return {"status": "error", "message": str(e)}
 
 
@@ -4046,7 +4056,7 @@ async def sg_maroc_webhook(merchant_id: str, request: Request):
             return {"status": "error", "message": result.get('error')}
             
     except Exception as e:
-        print(f"❌ SG Maroc webhook error: {e}")
+        logger.error(f"❌ SG Maroc webhook error: {e}")
         return {"status": "error", "message": str(e)}
 
 
@@ -4088,7 +4098,7 @@ async def get_gateway_statistics(payload: dict = Depends(verify_token)):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error getting gateway stats: {e}")
+        logger.error(f"❌ Error getting gateway stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4144,7 +4154,7 @@ async def get_merchant_payment_config(payload: dict = Depends(verify_token)):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error getting payment config: {e}")
+        logger.error(f"❌ Error getting payment config: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4204,7 +4214,7 @@ async def update_merchant_payment_config(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error updating payment config: {e}")
+        logger.error(f"❌ Error updating payment config: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4252,7 +4262,7 @@ async def generate_monthly_invoices(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error generating invoices: {e}")
+        logger.error(f"❌ Error generating invoices: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4298,7 +4308,7 @@ async def get_all_invoices(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error getting invoices: {e}")
+        logger.error(f"❌ Error getting invoices: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4324,7 +4334,7 @@ async def get_invoice_details_admin(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error getting invoice details: {e}")
+        logger.error(f"❌ Error getting invoice details: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4361,7 +4371,7 @@ async def mark_invoice_paid_admin(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error marking invoice as paid: {e}")
+        logger.error(f"❌ Error marking invoice as paid: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4395,7 +4405,7 @@ async def get_merchant_invoices(payload: dict = Depends(verify_token)):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error getting merchant invoices: {e}")
+        logger.error(f"❌ Error getting merchant invoices: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4426,7 +4436,7 @@ async def get_invoice_details_merchant(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error getting invoice details: {e}")
+        logger.error(f"❌ Error getting invoice details: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4477,7 +4487,7 @@ async def pay_invoice_merchant(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error initiating invoice payment: {e}")
+        logger.error(f"❌ Error initiating invoice payment: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4497,7 +4507,7 @@ async def send_payment_reminders(payload: dict = Depends(verify_token)):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error sending reminders: {e}")
+        logger.error(f"❌ Error sending reminders: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -6167,7 +6177,7 @@ async def connect_social_platform(
                 "success": True,
                 "connection": result.data[0] if result.data else None
             }
-        except:
+        except Exception:
             # Si la table n'existe pas, retourner succès simulé
             return {
                 "success": True,
@@ -6302,7 +6312,7 @@ async def invite_team_member(
                 "success": True,
                 "invitation": result.data[0] if result.data else None
             }
-        except:
+        except Exception:
             return {"success": True, "email": email, "status": "sent"}
     
     except Exception as e:
@@ -6951,7 +6961,7 @@ async def submit_contact_form(
         try:
             result = supabase.table("contact_messages").insert(contact).execute()
             return {"success": True, "message_id": result.data[0]["id"] if result.data else None}
-        except:
+        except Exception:
             return {"success": True}
     
     except Exception as e:
@@ -7066,26 +7076,27 @@ async def get_bot_suggestions(
 
 if __name__ == "__main__":
     import uvicorn
+from utils.logger import logger
     
-    print("\n" + "="*60)
-    print("🚀 Démarrage du serveur ShareYourSales API")
-    print("="*60)
-    print("📊 Base de données: Supabase PostgreSQL")
-    print("🔐 Authentification: JWT + 2FA")
-    print("💰 Système d'abonnement SaaS: Activé")
-    print("💳 Paiements automatiques: ACTIVÉS")
-    print("🔗 Tracking: ACTIVÉ (endpoint /r/{short_code})")
-    print("📡 Webhooks: ACTIVÉS (Shopify, WooCommerce, TikTok Shop)")
-    print("💳 Gateways: CMI, PayZen, Société Générale Maroc")
-    print("📄 Facturation: AUTOMATIQUE (PDF + Emails)")
-    print("🎯 LEADS System: ACTIVÉ (Marketplace Services)")
-    print("   ├─ 🔄 Alertes automatiques: Toutes les heures")
-    print("   ├─ 📧 Alertes multi-niveau: 50%, 80%, 90%, 100%")
-    print("   ├─ 🧹 Nettoyage leads: 23:00 quotidien")
-    print("   └─ 📊 Rapports: 09:00 quotidien")
-    print("🌐 API disponible sur: http://localhost:8000")
-    print("📖 Documentation: http://localhost:8000/docs")
-    print("="*60 + "\n")
+    logger.info("\n" + "="*60)
+    logger.info("🚀 Démarrage du serveur ShareYourSales API")
+    logger.info("="*60)
+    logger.info("📊 Base de données: Supabase PostgreSQL")
+    logger.info("🔐 Authentification: JWT + 2FA")
+    logger.info("💰 Système d'abonnement SaaS: Activé")
+    logger.info("💳 Paiements automatiques: ACTIVÉS")
+    logger.info("🔗 Tracking: ACTIVÉ (endpoint /r/{short_code})")
+    logger.info("📡 Webhooks: ACTIVÉS (Shopify, WooCommerce, TikTok Shop)")
+    logger.info("💳 Gateways: CMI, PayZen, Société Générale Maroc")
+    logger.info("📄 Facturation: AUTOMATIQUE (PDF + Emails)")
+    logger.info("🎯 LEADS System: ACTIVÉ (Marketplace Services)")
+    logger.info("   ├─ 🔄 Alertes automatiques: Toutes les heures")
+    logger.info("   ├─ 📧 Alertes multi-niveau: 50%, 80%, 90%, 100%")
+    logger.info("   ├─ 🧹 Nettoyage leads: 23:00 quotidien")
+    logger.info("   └─ 📊 Rapports: 09:00 quotidien")
+    logger.info("🌐 API disponible sur: http://localhost:8000")
+    logger.info("📖 Documentation: http://localhost:8000/docs")
+    logger.info("="*60 + "\n")
     
     # Lancement sans reload (plus stable)
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False)

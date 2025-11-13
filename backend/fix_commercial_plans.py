@@ -1,5 +1,6 @@
 """Vérifier et corriger les plans des commerciaux"""
 from supabase_client import supabase
+from utils.logger import logger
 
 # Plans des commerciaux selon leurs emails
 commerciaux = {
@@ -11,9 +12,9 @@ commerciaux = {
     "youssef.alami@getyourshare.com": "professional"
 }
 
-print("\n" + "="*70)
-print("CORRECTION DES PLANS DES COMMERCIAUX")
-print("="*70 + "\n")
+logger.info("\n" + "="*70)
+logger.info("CORRECTION DES PLANS DES COMMERCIAUX")
+logger.info("="*70 + "\n")
 
 for email, expected_plan in commerciaux.items():
     # Vérifier le plan actuel
@@ -25,12 +26,12 @@ for email, expected_plan in commerciaux.items():
         if current_plan != expected_plan:
             # Corriger
             supabase.table("users").update({"subscription_plan": expected_plan}).eq("email", email).execute()
-            print(f"✅ {email:45} {current_plan} → {expected_plan}")
+            logger.info(f"✅ {email:45} {current_plan} → {expected_plan}")
         else:
-            print(f"✓  {email:45} {expected_plan} (OK)")
+            logger.info(f"✓  {email:45} {expected_plan} (OK)")
     else:
-        print(f"❌ {email:45} NON TROUVÉ")
+        logger.info(f"❌ {email:45} NON TROUVÉ")
 
-print("\n" + "="*70)
-print("✅ Vérification terminée")
-print("="*70 + "\n")
+logger.info("\n" + "="*70)
+logger.info("✅ Vérification terminée")
+logger.info("="*70 + "\n")

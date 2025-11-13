@@ -105,7 +105,7 @@ async def check_can_add_domain(company_id: str) -> bool:
 
         return response.data if response.data is not None else False
     except Exception as e:
-        print(f"Error checking domain limit: {e}")
+        logger.error(f"Error checking domain limit: {e}")
         return False
 
 async def get_domain_count(company_id: str) -> int:
@@ -119,7 +119,7 @@ async def get_domain_count(company_id: str) -> int:
 
         return response.count if response.count else 0
     except Exception as e:
-        print(f"Error counting domains: {e}")
+        logger.error(f"Error counting domains: {e}")
         return 0
 
 async def update_subscription_domain_count(company_id: str):
@@ -133,7 +133,7 @@ async def update_subscription_domain_count(company_id: str):
             .in_("status", ["active", "trialing"]) \
             .execute()
     except Exception as e:
-        print(f"Error updating domain count: {e}")
+        logger.error(f"Error updating domain count: {e}")
 
 def generate_verification_instructions(domain: str, token: str) -> Dict[str, Any]:
     """Génère les instructions de vérification du domaine"""
@@ -650,6 +650,7 @@ async def validate_redirect_url(
 
         # Extraire le domaine de l'URL
         from urllib.parse import urlparse
+from utils.logger import logger
         parsed = urlparse(url)
         domain = parsed.netloc.lower()
 

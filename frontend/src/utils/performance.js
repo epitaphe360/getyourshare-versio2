@@ -269,19 +269,20 @@ export const optimizeThirdPartyScripts = () => {
     // Show placeholder with "Click to load" button
     const placeholder = document.createElement('div');
     placeholder.className = 'embed-placeholder';
-    placeholder.innerHTML = `
-      <button onclick="this.parentElement.remove()">
-        Load ${embedType || 'content'}
-      </button>
-    `;
 
-    placeholder.querySelector('button').addEventListener('click', () => {
+    // Create button safely without innerHTML to prevent XSS
+    const button = document.createElement('button');
+    button.textContent = `Load ${embedType || 'content'}`;
+
+    button.addEventListener('click', () => {
       const iframe = document.createElement('iframe');
       iframe.src = embedSrc;
       iframe.loading = 'lazy';
       container.appendChild(iframe);
+      placeholder.remove();
     });
 
+    placeholder.appendChild(button);
     container.appendChild(placeholder);
   });
 };

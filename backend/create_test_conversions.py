@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import random
+from utils.logger import logger
 
 # Charger les variables d'environnement
 load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
@@ -20,46 +21,46 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ ERREUR: Variables SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY requises dans .env")
+    logger.info("❌ ERREUR: Variables SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY requises dans .env")
     sys.exit(1)
 
 # Initialiser le client Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-print("\n" + "="*60)
-print("🎯 CRÉATION DE CONVERSIONS DE TEST")
-print("="*60 + "\n")
+logger.info("\n" + "="*60)
+logger.info("🎯 CRÉATION DE CONVERSIONS DE TEST")
+logger.info("="*60 + "\n")
 
 # ============================================
 # 1. RÉCUPÉRER LES DONNÉES EXISTANTES
 # ============================================
 
-print("📊 Récupération des données...")
+logger.info("📊 Récupération des données...")
 
 # Récupérer les campagnes
 campaigns_response = supabase.table("campaigns").select("*").limit(10).execute()
 campaigns = campaigns_response.data
-print(f"✅ {len(campaigns)} campagnes trouvées")
+logger.info(f"✅ {len(campaigns)} campagnes trouvées")
 
 # Récupérer les influenceurs
 influencers_response = supabase.table("influencers").select("*").limit(10).execute()
 influencers = influencers_response.data
-print(f"✅ {len(influencers)} influenceurs trouvés")
+logger.info(f"✅ {len(influencers)} influenceurs trouvés")
 
 # Récupérer les marchands
 merchants_response = supabase.table("merchants").select("*").limit(10).execute()
 merchants = merchants_response.data
-print(f"✅ {len(merchants)} marchands trouvés")
+logger.info(f"✅ {len(merchants)} marchands trouvés")
 
 if not campaigns or not influencers:
-    print("\n❌ ERREUR: Pas assez de données (besoin de campagnes et influenceurs)")
+    logger.info("\n❌ ERREUR: Pas assez de données (besoin de campagnes et influenceurs)")
     sys.exit(1)
 
 # ============================================
 # 2. CRÉER DES LIENS D'AFFILIATION
 # ============================================
 
-print("\n📎 Création des liens d'affiliation...")
+logger.info("\n📎 Création des liens d'affiliation...")
 
 affiliate_links = []
 link_count = 0
@@ -86,18 +87,18 @@ for campaign in campaigns[:5]:  # 5 campagnes max
             result = supabase.table("affiliate_links").insert(link_data).execute()
             affiliate_links.append(result.data[0])
             link_count += 1
-            print(f"  ✅ Lien créé: {short_code}")
+            logger.info(f"  ✅ Lien créé: {short_code}")
         except Exception as e:
             if "duplicate" not in str(e).lower():
-                print(f"  ⚠️  Erreur lien {short_code}: {e}")
+                logger.info(f"  ⚠️  Erreur lien {short_code}: {e}")
 
-print(f"\n✅ {link_count} liens d'affiliation créés")
+logger.info(f"\n✅ {link_count} liens d'affiliation créés")
 
 # ============================================
 # 3. CRÉER DES CONVERSIONS
 # ============================================
 
-print("\n💰 Création des conversions...")
+logger.info("\n💰 Création des conversions...")
 
 CONVERSION_STATUSES = ["pending", "validated", "paid", "refunded"]
 CONVERSION_WEIGHTS = [0.3, 0.5, 0.15, 0.05]  # Probabilities
@@ -165,19 +166,19 @@ for link in affiliate_links:
                 "paid": "💵",
                 "refunded": "↩️"
             }
-            print(f"  {status_emoji.get(status, '•')} {order_id}: {order_amount:.2f} MAD → {commission_amount:.2f} MAD ({status})")
+            logger.info(f"  {status_emoji.get(status, '•')} {order_id}: {order_amount:.2f} MAD → {commission_amount:.2f} MAD ({status})")
             
         except Exception as e:
-            print(f"  ❌ Erreur conversion {order_id}: {e}")
+            logger.info(f"  ❌ Erreur conversion {order_id}: {e}")
 
-print(f"\n✅ {conversions_created} CONVERSIONS CRÉÉES!")
-print(f"💰 Revenu total commissions: {total_revenue:.2f} MAD")
+logger.info(f"\n✅ {conversions_created} CONVERSIONS CRÉÉES!")
+logger.info(f"💰 Revenu total commissions: {total_revenue:.2f} MAD")
 
 # ============================================
 # 4. METTRE À JOUR LES STATISTIQUES
 # ============================================
 
-print("\n📊 Mise à jour des statistiques...")
+logger.info("\n📊 Mise à jour des statistiques...")
 
 for link in affiliate_links:
     try:
@@ -200,18 +201,18 @@ for link in affiliate_links:
             .eq("id", link["id"])\
             .execute()
         
-        print(f"  ✅ Lien {link['short_code']}: {conversion_count} conversions, {revenue:.2f} MAD")
+        logger.info(f"  ✅ Lien {link['short_code']}: {conversion_count} conversions, {revenue:.2f} MAD")
         
     except Exception as e:
-        print(f"  ⚠️  Erreur mise à jour lien: {e}")
+        logger.info(f"  ⚠️  Erreur mise à jour lien: {e}")
 
 # ============================================
 # 5. STATISTIQUES FINALES
 # ============================================
 
-print("\n" + "="*60)
-print("📊 STATISTIQUES FINALES")
-print("="*60)
+logger.info("\n" + "="*60)
+logger.info("📊 STATISTIQUES FINALES")
+logger.info("="*60)
 
 # Compter par statut
 for status in CONVERSION_STATUSES:
@@ -227,18 +228,18 @@ for status in CONVERSION_STATUSES:
         "paid": "💵 Payées",
         "refunded": "↩️ Remboursées"
     }
-    print(f"{status_labels.get(status, status)}: {count}")
+    logger.info(f"{status_labels.get(status, status)}: {count}")
 
-print("\n" + "="*60)
-print("✅ CONVERSIONS PRÊTES À ÊTRE TESTÉES!")
-print("="*60)
-print("\n🌐 PAGES À TESTER:")
-print("  • http://localhost:3000/merchant/conversions")
-print("  • http://localhost:3000/influencer/conversions")
-print("  • http://localhost:3000/admin/conversions")
-print("\n📝 FONCTIONNALITÉS:")
-print("  ✅ Export des conversions")
-print("  ✅ Filtrage par statut")
-print("  ✅ Tri par date, montant, commission")
-print("  ✅ Recherche par ID commande")
-print("\n")
+logger.info("\n" + "="*60)
+logger.info("✅ CONVERSIONS PRÊTES À ÊTRE TESTÉES!")
+logger.info("="*60)
+logger.info("\n🌐 PAGES À TESTER:")
+logger.info("  • http://localhost:3000/merchant/conversions")
+logger.info("  • http://localhost:3000/influencer/conversions")
+logger.info("  • http://localhost:3000/admin/conversions")
+logger.info("\n📝 FONCTIONNALITÉS:")
+logger.info("  ✅ Export des conversions")
+logger.info("  ✅ Filtrage par statut")
+logger.info("  ✅ Tri par date, montant, commission")
+logger.info("  ✅ Recherche par ID commande")
+logger.info("\n")

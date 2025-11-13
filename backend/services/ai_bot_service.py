@@ -584,12 +584,13 @@ async def example_usage():
 
     for user_msg in messages:
         response, action = await bot.chat(user_msg, context)
-        print(f"\n👤 User: {user_msg}")
-        print(f"🤖 Bot: {response}")
+        logger.info(f"\n👤 User: {user_msg}")
+        logger.info(f"🤖 Bot: {response}")
         if action:
-            print(f"⚡ Action: {action.action_type}")
+            logger.info(f"⚡ Action: {action.action_type}")
 
 
 if __name__ == "__main__":
     import asyncio
+from utils.logger import logger
     asyncio.run(example_usage())

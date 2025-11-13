@@ -1,10 +1,11 @@
 """Vérification des 5 fonctionnalités TOP"""
 import os
 from pathlib import Path
+from utils.logger import logger
 
-print("\n" + "="*80)
-print("VÉRIFICATION DES 5 FONCTIONNALITÉS FLAGSHIP")
-print("="*80 + "\n")
+logger.info("\n" + "="*80)
+logger.info("VÉRIFICATION DES 5 FONCTIONNALITÉS FLAGSHIP")
+logger.info("="*80 + "\n")
 
 # Racine du projet
 root = Path(r"C:\Users\samye\OneDrive\Desktop\v3\getyourshareversion2-")
@@ -36,8 +37,8 @@ features = {
 }
 
 for feature, files in features.items():
-    print(f"\n{feature}")
-    print("-" * 70)
+    logger.info(f"\n{feature}")
+    logger.info("-" * 70)
     
     found = 0
     total = len(files)
@@ -47,21 +48,21 @@ for feature, files in features.items():
         exists = full_path.exists()
         
         status = "✅" if exists else "❌"
-        print(f"  {status} {file_path}")
+        logger.info(f"  {status} {file_path}")
         
         if exists:
             found += 1
             # Afficher la taille
             size = full_path.stat().st_size
-            print(f"     ({size:,} bytes)")
+            logger.info(f"     ({size:,} bytes)")
     
     percentage = (found / total * 100) if total > 0 else 0
     status_emoji = "✅" if percentage == 100 else ("⚠️" if percentage > 0 else "❌")
-    print(f"\n  {status_emoji} Status: {found}/{total} fichiers présents ({percentage:.0f}%)")
+    logger.info(f"\n  {status_emoji} Status: {found}/{total} fichiers présents ({percentage:.0f}%)")
 
-print("\n" + "="*80)
-print("RÉSUMÉ")
-print("="*80)
+logger.info("\n" + "="*80)
+logger.info("RÉSUMÉ")
+logger.info("="*80)
 
 # Compter le total
 all_files = []
@@ -71,13 +72,13 @@ for files in features.values():
 found_total = sum(1 for f in all_files if (root / f).exists())
 total_files = len(all_files)
 
-print(f"\n✅ {found_total}/{total_files} fichiers trouvés ({found_total/total_files*100:.0f}%)")
+logger.info(f"\n✅ {found_total}/{total_files} fichiers trouvés ({found_total/total_files*100:.0f}%)")
 
 if found_total < total_files:
-    print(f"\n⚠️  {total_files - found_total} fichiers manquants")
-    print("\nFichiers manquants:")
+    logger.info(f"\n⚠️  {total_files - found_total} fichiers manquants")
+    logger.info("\nFichiers manquants:")
     for f in all_files:
         if not (root / f).exists():
-            print(f"  ❌ {f}")
+            logger.info(f"  ❌ {f}")
 
-print("\n" + "="*80 + "\n")
+logger.info("\n" + "="*80 + "\n")

@@ -16,19 +16,19 @@ load_dotenv()
 def generate_seed_data():
     """Génère et insère des données de test complètes"""
 
-    print("="*70)
-    print("🌱 GÉNÉRATION DE DONNÉES DE TEST POUR LES DASHBOARDS")
-    print("="*70)
+    logger.info("="*70)
+    logger.info("🌱 GÉNÉRATION DE DONNÉES DE TEST POUR LES DASHBOARDS")
+    logger.info("="*70)
     print()
 
     try:
         # 1. Ajouter des produits supplémentaires
-        print("📦 Ajout de produits de test...")
+        logger.info("📦 Ajout de produits de test...")
 
         # Récupérer un merchant existant
         merchants = supabase.table("merchants").select("id").limit(1).execute()
         if not merchants.data:
-            print("❌ Aucun merchant trouvé. Créez d'abord des utilisateurs.")
+            logger.info("❌ Aucun merchant trouvé. Créez d'abord des utilisateurs.")
             return False
 
         merchant_id = merchants.data[0]["id"]
@@ -110,15 +110,15 @@ def generate_seed_data():
         for product in products:
             try:
                 supabase.table("products").insert(product).execute()
-                print(f"  ✅ Produit ajouté: {product['name']}")
+                logger.info(f"  ✅ Produit ajouté: {product['name']}")
             except Exception as e:
                 # Produit existe peut-être déjà, on continue
-                print(f"  ⚠️  {product['name']}: {str(e)[:50]}")
+                logger.info(f"  ⚠️  {product['name']}: {str(e)[:50]}")
 
         print()
 
         # 2. Ajouter des influencers supplémentaires
-        print("👥 Ajout d'influencers de test...")
+        logger.info("👥 Ajout d'influencers de test...")
 
         influencers_data = [
             {
@@ -187,27 +187,27 @@ def generate_seed_data():
                             "balance": inf_data["balance"]
                         }
                         supabase.table("influencers").insert(influencer).execute()
-                        print(f"  ✅ Influencer ajouté: {inf_data['full_name']}")
+                        logger.info(f"  ✅ Influencer ajouté: {inf_data['full_name']}")
                 else:
-                    print(f"  ⚠️  {inf_data['full_name']} existe déjà")
+                    logger.info(f"  ⚠️  {inf_data['full_name']} existe déjà")
             except Exception as e:
-                print(f"  ⚠️  Erreur {inf_data['full_name']}: {str(e)[:50]}")
+                logger.info(f"  ⚠️  Erreur {inf_data['full_name']}: {str(e)[:50]}")
 
         print()
 
         # 3. Générer des ventes pour les derniers 30 jours
-        print("💰 Génération de ventes historiques (30 jours)...")
+        logger.info("💰 Génération de ventes historiques (30 jours)...")
 
         # Récupérer tous les produits
         all_products = supabase.table("products").select("id, price, merchant_id").execute()
         if not all_products.data:
-            print("  ⚠️  Aucun produit trouvé")
+            logger.info("  ⚠️  Aucun produit trouvé")
             return False
 
         # Récupérer tous les influencers
         all_influencers = supabase.table("influencers").select("id").execute()
         if not all_influencers.data:
-            print("  ⚠️  Aucun influencer trouvé")
+            logger.info("  ⚠️  Aucun influencer trouvé")
             return False
 
         sales_generated = 0
@@ -240,11 +240,11 @@ def generate_seed_data():
                 except Exception as e:
                     pass  # Continue même en cas d'erreur
 
-        print(f"  ✅ {sales_generated} ventes générées sur 30 jours")
+        logger.info(f"  ✅ {sales_generated} ventes générées sur 30 jours")
         print()
 
         # 4. Générer des clics
-        print("🖱️  Génération de clics...")
+        logger.info("🖱️  Génération de clics...")
 
         # Récupérer tous les liens trackables
         trackable_links = supabase.table("trackable_links").select("id").execute()
@@ -274,12 +274,12 @@ def generate_seed_data():
                     try:
                         supabase.table("click_tracking").insert(click_data).execute()
                         clicks_generated += 1
-                    except:
+                    except Exception:
                         pass
 
-            print(f"  ✅ {clicks_generated} clics générés")
+            logger.info(f"  ✅ {clicks_generated} clics générés")
         else:
-            print("  ⚠️  Aucun lien trackable trouvé, création de liens...")
+            logger.info("  ⚠️  Aucun lien trackable trouvé, création de liens...")
 
             # Créer des liens trackables
             products = all_products.data[:5]  # 5 premiers produits
@@ -299,15 +299,15 @@ def generate_seed_data():
                     }
                     try:
                         supabase.table("trackable_links").insert(link_data).execute()
-                    except:
+                    except Exception:
                         pass
 
-            print("  ✅ Liens trackables créés")
+            logger.info("  ✅ Liens trackables créés")
 
         print()
 
         # 5. Mettre à jour les stats des merchants
-        print("📊 Mise à jour des statistiques merchants...")
+        logger.info("📊 Mise à jour des statistiques merchants...")
 
         for merchant_data in merchants.data:
             # Calculer les ventes totales
@@ -323,36 +323,37 @@ def generate_seed_data():
             }
 
             supabase.table("merchants").update(update_data).eq("id", merchant_data["id"]).execute()
-            print(f"  ✅ Stats merchant mises à jour")
+            logger.info(f"  ✅ Stats merchant mises à jour")
 
         print()
-        print("="*70)
-        print("✅ DONNÉES DE TEST GÉNÉRÉES AVEC SUCCÈS!")
-        print("="*70)
+        logger.info("="*70)
+        logger.info("✅ DONNÉES DE TEST GÉNÉRÉES AVEC SUCCÈS!")
+        logger.info("="*70)
         print()
-        print("📈 Résumé:")
-        print(f"  • Produits: 5 nouveaux produits ajoutés")
-        print(f"  • Influencers: 3 nouveaux influencers")
-        print(f"  • Ventes: {sales_generated} ventes sur 30 jours")
-        print(f"  • Clics: Historique de 7 jours")
+        logger.info("📈 Résumé:")
+        logger.info(f"  • Produits: 5 nouveaux produits ajoutés")
+        logger.info(f"  • Influencers: 3 nouveaux influencers")
+        logger.info(f"  • Ventes: {sales_generated} ventes sur 30 jours")
+        logger.info(f"  • Clics: Historique de 7 jours")
         print()
-        print("🎉 Vous pouvez maintenant tester les dashboards avec des données réalistes!")
+        logger.info("🎉 Vous pouvez maintenant tester les dashboards avec des données réalistes!")
         print()
 
         return True
 
     except Exception as e:
-        print(f"\n❌ Erreur: {e}")
+        logger.info(f"\n❌ Erreur: {e}")
         import traceback
+from utils.logger import logger
         traceback.print_exc()
         return False
 
 
 if __name__ == "__main__":
     try:
-        print("\n🔍 Vérification de la connexion Supabase...")
+        logger.info("\n🔍 Vérification de la connexion Supabase...")
         result = supabase.table("users").select("id").limit(1).execute()
-        print("✅ Connexion Supabase OK\n")
+        logger.info("✅ Connexion Supabase OK\n")
 
         success = generate_seed_data()
 
@@ -362,8 +363,8 @@ if __name__ == "__main__":
             sys.exit(1)
 
     except KeyboardInterrupt:
-        print("\n\n❌ Opération annulée par l'utilisateur")
+        logger.info("\n\n❌ Opération annulée par l'utilisateur")
         sys.exit(1)
     except Exception as e:
-        print(f"\n❌ Erreur fatale: {e}")
+        logger.error(f"\n❌ Erreur fatale: {e}")
         sys.exit(1)

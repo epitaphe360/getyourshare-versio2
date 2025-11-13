@@ -1,5 +1,6 @@
 """Mettre à jour les plans d'abonnement selon les boutons de connexion rapide"""
 from supabase_client import supabase
+from utils.logger import logger
 
 # Mapping des comptes avec leurs vrais plans
 comptes_plans = {
@@ -18,9 +19,9 @@ comptes_plans = {
     "sofia.chakir@getyourshare.com": "premium"
 }
 
-print("\n" + "="*70)
-print("MISE À JOUR DES PLANS D'ABONNEMENT")
-print("="*70 + "\n")
+logger.info("\n" + "="*70)
+logger.info("MISE À JOUR DES PLANS D'ABONNEMENT")
+logger.info("="*70 + "\n")
 
 for email, plan in comptes_plans.items():
     try:
@@ -30,13 +31,13 @@ for email, plan in comptes_plans.items():
         }).eq("email", email).execute()
         
         if result.data:
-            print(f"✅ {email:45} → {plan.upper()}")
+            logger.info(f"✅ {email:45} → {plan.upper()}")
         else:
-            print(f"⚠️  {email:45} → Compte non trouvé")
+            logger.info(f"⚠️  {email:45} → Compte non trouvé")
     except Exception as e:
-        print(f"❌ {email:45} → Erreur: {e}")
+        logger.info(f"❌ {email:45} → Erreur: {e}")
 
-print("\n" + "="*70)
-print("✅ Mise à jour terminée")
-print("="*70)
-print("\nLes boutons de connexion rapide correspondent maintenant aux vrais plans!\n")
+logger.info("\n" + "="*70)
+logger.info("✅ Mise à jour terminée")
+logger.info("="*70)
+logger.info("\nLes boutons de connexion rapide correspondent maintenant aux vrais plans!\n")

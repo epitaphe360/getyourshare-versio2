@@ -3,41 +3,42 @@ Création des tables manquantes pour les nouvelles fonctionnalités
 """
 
 from supabase_client import get_supabase_client
+from utils.logger import logger
 
 
 def create_missing_tables():
     """Créer les tables manquantes"""
     supabase = get_supabase_client()
 
-    print("🔨 Création des tables manquantes...")
+    logger.info("🔨 Création des tables manquantes...")
 
     # Table invitations
-    print("\n📧 Création table invitations...")
+    logger.info("\n📧 Création table invitations...")
     try:
         result = supabase.table("invitations").select("*").limit(1).execute()
-        print("✅ Table invitations existe déjà")
+        logger.info("✅ Table invitations existe déjà")
     except Exception as e:
-        print(f"⚠️  Table invitations n'existe pas encore - à créer via SQL")
+        logger.info(f"⚠️  Table invitations n'existe pas encore - à créer via SQL")
 
     # Table settings
-    print("\n⚙️  Création table settings...")
+    logger.info("\n⚙️  Création table settings...")
     try:
         result = supabase.table("settings").select("*").limit(1).execute()
-        print("✅ Table settings existe déjà")
+        logger.info("✅ Table settings existe déjà")
     except Exception as e:
-        print(f"⚠️  Table settings n'existe pas encore - à créer via SQL")
+        logger.info(f"⚠️  Table settings n'existe pas encore - à créer via SQL")
 
     # Table campaign_products
-    print("\n🔗 Création table campaign_products...")
+    logger.info("\n🔗 Création table campaign_products...")
     try:
         result = supabase.table("campaign_products").select("*").limit(1).execute()
-        print("✅ Table campaign_products existe déjà")
+        logger.info("✅ Table campaign_products existe déjà")
     except Exception as e:
-        print(f"⚠️  Table campaign_products n'existe pas encore - à créer via SQL")
+        logger.info(f"⚠️  Table campaign_products n'existe pas encore - à créer via SQL")
 
-    print("\n" + "=" * 60)
-    print("SQL à exécuter dans Supabase:")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("SQL à exécuter dans Supabase:")
+    logger.info("=" * 60)
 
     sql_script = """
 -- Table invitations
@@ -89,9 +90,9 @@ CREATE INDEX IF NOT EXISTS idx_campaign_products_campaign ON campaign_products(c
 CREATE INDEX IF NOT EXISTS idx_campaign_products_product ON campaign_products(product_id);
 """
 
-    print(sql_script)
-    print("\n💡 Copiez ce SQL et exécutez-le dans l'éditeur SQL de Supabase")
-    print("   URL: https://iamezkmapbhlhhvvsits.supabase.co")
+    logger.info(sql_script)
+    logger.info("\n💡 Copiez ce SQL et exécutez-le dans l'éditeur SQL de Supabase")
+    logger.info("   URL: https://iamezkmapbhlhhvvsits.supabase.co")
 
 
 if __name__ == "__main__":

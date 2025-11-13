@@ -6,6 +6,7 @@ from supabase import create_client
 from datetime import datetime, timedelta
 import uuid
 from dotenv import load_dotenv
+from utils.logger import logger
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -15,7 +16,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "https://tuvgjccfplguagdgigyo.supabase.
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not SUPABASE_SERVICE_ROLE_KEY:
-    print("❌ SUPABASE_SERVICE_ROLE_KEY non trouvé dans les variables d'environnement")
+    logger.info("❌ SUPABASE_SERVICE_ROLE_KEY non trouvé dans les variables d'environnement")
     exit(1)
 
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -26,7 +27,7 @@ def get_merchant_ids():
         response = supabase.table("merchants").select("id, user_id").limit(5).execute()
         return response.data if response.data else []
     except Exception as e:
-        print(f"❌ Erreur lors de la récupération des merchants: {e}")
+        logger.info(f"❌ Erreur lors de la récupération des merchants: {e}")
         return []
 
 def create_campaigns():
@@ -35,10 +36,10 @@ def create_campaigns():
     merchants = get_merchant_ids()
     
     if not merchants:
-        print("❌ Aucun merchant trouvé dans la base de données")
+        logger.info("❌ Aucun merchant trouvé dans la base de données")
         return
     
-    print(f"✅ {len(merchants)} merchants trouvés\n")
+    logger.info(f"✅ {len(merchants)} merchants trouvés\n")
     
     # Campagnes à créer - Adaptées à la structure existante
     # Colonnes disponibles: id, merchant_id, name, description, budget, spent, 
@@ -148,31 +149,31 @@ def create_campaigns():
                 created_count += 1
                 status_emoji = "🟢" if campaign_data["status"] == "active" else "⏸️" if campaign_data["status"] == "paused" else "📝"
                 
-                print(f"{status_emoji} {campaign_data['name']}")
-                print(f"   Budget: {campaign_data['budget']} MAD | Dépensé: {campaign_data['spent']} MAD")
-                print(f"   Période: {campaign_data['start_date']} → {campaign_data['end_date']}")
-                print(f"   Statut: {campaign_data['status']} | Merchant: {merchant['id'][:8]}...\n")
+                logger.info(f"{status_emoji} {campaign_data['name']}")
+                logger.info(f"   Budget: {campaign_data['budget']} MAD | Dépensé: {campaign_data['spent']} MAD")
+                logger.info(f"   Période: {campaign_data['start_date']} → {campaign_data['end_date']}")
+                logger.info(f"   Statut: {campaign_data['status']} | Merchant: {merchant['id'][:8]}...\n")
             
         except Exception as e:
-            print(f"❌ Erreur création '{campaign_data['name']}': {e}\n")
+            logger.info(f"❌ Erreur création '{campaign_data['name']}': {e}\n")
             continue
     
-    print(f"\n{'='*60}")
-    print(f"✅ {created_count}/{len(campaigns_data)} CAMPAGNES CRÉÉES AVEC SUCCÈS!")
-    print(f"{'='*60}\n")
+    logger.info(f"\n{'='*60}")
+    logger.info(f"✅ {created_count}/{len(campaigns_data)} CAMPAGNES CRÉÉES AVEC SUCCÈS!")
+    logger.info(f"{'='*60}\n")
     
     # Récapitulatif
-    print("📊 RÉCAPITULATIF:")
-    print(f"   🟢 Actives: {sum(1 for c in campaigns_data[:created_count] if c['status'] == 'active')}")
-    print(f"   📝 Brouillons: {sum(1 for c in campaigns_data[:created_count] if c['status'] == 'draft')}")
-    print(f"   ⏸️  Pausées: {sum(1 for c in campaigns_data[:created_count] if c['status'] == 'paused')}")
-    print(f"\n🌐 Accédez à: http://localhost:3000/campaigns")
-    print("📝 Rafraîchissez la page pour voir les nouvelles campagnes!")
-    print(f"\n{'='*60}\n")
+    logger.info("📊 RÉCAPITULATIF:")
+    logger.info(f"   🟢 Actives: {sum(1 for c in campaigns_data[:created_count] if c['status'] == 'active')}")
+    logger.info(f"   📝 Brouillons: {sum(1 for c in campaigns_data[:created_count] if c['status'] == 'draft')}")
+    logger.info(f"   ⏸️  Pausées: {sum(1 for c in campaigns_data[:created_count] if c['status'] == 'paused')}")
+    logger.info(f"\n🌐 Accédez à: http://localhost:3000/campaigns")
+    logger.info("📝 Rafraîchissez la page pour voir les nouvelles campagnes!")
+    logger.info(f"\n{'='*60}\n")
 
 if __name__ == "__main__":
-    print("\n" + "="*60)
-    print("🎯 CRÉATION DE CAMPAGNES DE TEST")
-    print("="*60 + "\n")
+    logger.info("\n" + "="*60)
+    logger.info("🎯 CRÉATION DE CAMPAGNES DE TEST")
+    logger.info("="*60 + "\n")
     
     create_campaigns()

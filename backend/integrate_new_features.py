@@ -160,6 +160,7 @@ import MobilePayments from './pages/MobilePayments';
 import SmartMatch from './pages/SmartMatch';
 import TrustScore from './pages/TrustScore';
 import PredictiveDashboard from './pages/PredictiveDashboard';
+from utils.logger import logger
 
 // Ajouter ces routes dans <Routes>:
 <Route path="/ai-content-generator" element={<AIContentGenerator />} />
@@ -170,33 +171,33 @@ import PredictiveDashboard from './pages/PredictiveDashboard';
 """
 
 if __name__ == "__main__":
-    print("=" * 80)
-    print("INTEGRATION DES NOUVELLES FEATURES")
-    print("=" * 80)
-    print("\n📋 ÉTAPES D'INTÉGRATION:\n")
+    logger.info("=" * 80)
+    logger.info("INTEGRATION DES NOUVELLES FEATURES")
+    logger.info("=" * 80)
+    logger.info("\n📋 ÉTAPES D'INTÉGRATION:\n")
 
-    print("1. Backend - Ajouter les imports dans server.py (ligne 223):")
-    print(IMPORTS_TO_ADD)
+    logger.info("1. Backend - Ajouter les imports dans server.py (ligne 223):")
+    logger.info(IMPORTS_TO_ADD)
 
-    print("\n2. Backend - Inclure les routers dans server.py (ligne 240):")
-    print(ROUTERS_TO_INCLUDE)
+    logger.info("\n2. Backend - Inclure les routers dans server.py (ligne 240):")
+    logger.info(ROUTERS_TO_INCLUDE)
 
-    print("\n3. Backend - Ajouter les dépendances dans requirements.txt:")
-    print(NEW_DEPENDENCIES)
+    logger.info("\n3. Backend - Ajouter les dépendances dans requirements.txt:")
+    logger.info(NEW_DEPENDENCIES)
 
-    print("\n4. Database - Exécuter les migrations SQL dans Supabase:")
-    print(SQL_MIGRATIONS)
+    logger.info("\n4. Database - Exécuter les migrations SQL dans Supabase:")
+    logger.info(SQL_MIGRATIONS)
 
-    print("\n5. Configuration - Ajouter les variables dans .env:")
-    print(ENV_VARIABLES)
+    logger.info("\n5. Configuration - Ajouter les variables dans .env:")
+    logger.info(ENV_VARIABLES)
 
-    print("\n6. Frontend - Ajouter les routes dans App.js:")
-    print(FRONTEND_ROUTES)
+    logger.info("\n6. Frontend - Ajouter les routes dans App.js:")
+    logger.info(FRONTEND_ROUTES)
 
-    print("\n" + "=" * 80)
-    print("✅ FEATURES AJOUTÉES:")
-    print("=" * 80)
-    print("""
+    logger.info("\n" + "=" * 80)
+    logger.info("✅ FEATURES AJOUTÉES:")
+    logger.info("=" * 80)
+    logger.info("""
     1. 🤖 AI Content Generator
        - Génération de contenu TikTok, Instagram, YouTube
        - Hooks viraux automatiques
@@ -230,10 +231,10 @@ if __name__ == "__main__":
        - Insights intelligents
     """)
 
-    print("\n" + "=" * 80)
-    print("🚀 PROCHAINES ÉTAPES:")
-    print("=" * 80)
-    print("""
+    logger.info("\n" + "=" * 80)
+    logger.info("🚀 PROCHAINES ÉTAPES:")
+    logger.info("=" * 80)
+    logger.info("""
     1. Exécuter: pip install -r requirements.txt
     2. Exécuter les migrations SQL dans Supabase
     3. Configurer les variables d'environnement .env
@@ -243,4 +244,4 @@ if __name__ == "__main__":
     7. Documenter les APIs pour les utilisateurs
     """)
 
-    print("\n" + "=" * 80)
+    logger.info("\n" + "=" * 80)

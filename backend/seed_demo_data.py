@@ -45,7 +45,7 @@ class DemoDataSeeder:
     
     def create_users(self):
         """Créer 3 utilisateurs: admin, merchant, influencer"""
-        print("\n📝 Création des utilisateurs...")
+        logger.info("\n📝 Création des utilisateurs...")
         
         users_data = [
             {
@@ -84,14 +84,14 @@ class DemoDataSeeder:
                 if existing.data and len(existing.data) > 0:
                     user_id = existing.data[0]['id']
                     self.created_ids['users'].append(user_id)
-                    print(f"  ⚠️  User existe déjà: {user_data['email']} (ID: {user_id})")
+                    logger.info(f"  ⚠️  User existe déjà: {user_data['email']} (ID: {user_id})")
                 else:
                     result = self.supabase.table("users").insert(user_data).execute()
                     user_id = result.data[0]['id']
                     self.created_ids['users'].append(user_id)
-                    print(f"  ✅ User créé: {user_data['email']} (ID: {user_id}, Role: {user_data['role']})")
+                    logger.info(f"  ✅ User créé: {user_data['email']} (ID: {user_id}, Role: {user_data['role']})")
             except Exception as e:
-                print(f"  ❌ Erreur création user {user_data['email']}: {e}")
+                logger.info(f"  ❌ Erreur création user {user_data['email']}: {e}")
         
         return self.created_ids['users']
     
@@ -101,7 +101,7 @@ class DemoDataSeeder:
     
     def create_merchants(self, user_ids: List[str]):
         """Créer 2 merchants avec profils complets"""
-        print("\n🏢 Création des merchants...")
+        logger.info("\n🏢 Création des merchants...")
         
         # user_ids[1] est le merchant
         merchant_user_id = user_ids[1]
@@ -129,9 +129,9 @@ class DemoDataSeeder:
                 result = self.supabase.table("merchants").insert(merchant_data).execute()
                 merchant_id = result.data[0]['id']
                 self.created_ids['merchants'].append(merchant_id)
-                print(f"  ✅ Merchant créé: {merchant_data['company_name']} (ID: {merchant_id})")
+                logger.info(f"  ✅ Merchant créé: {merchant_data['company_name']} (ID: {merchant_id})")
             except Exception as e:
-                print(f"  ❌ Erreur création merchant: {e}")
+                logger.info(f"  ❌ Erreur création merchant: {e}")
         
         return self.created_ids['merchants']
     
@@ -141,7 +141,7 @@ class DemoDataSeeder:
     
     def create_influencers(self, user_ids: List[str]):
         """Créer 1 influencer avec profil complet"""
-        print("\n🌟 Création des influencers...")
+        logger.info("\n🌟 Création des influencers...")
         
         # user_ids[2] est l'influencer
         influencer_user_id = user_ids[2]
@@ -177,9 +177,9 @@ class DemoDataSeeder:
                 result = self.supabase.table("influencers").insert(influencer_data).execute()
                 influencer_id = result.data[0]['id']
                 self.created_ids['influencers'].append(influencer_id)
-                print(f"  ✅ Influencer créé: {influencer_data['username']} (ID: {influencer_id}, {influencer_data['followers_count']} followers)")
+                logger.info(f"  ✅ Influencer créé: {influencer_data['username']} (ID: {influencer_id}, {influencer_data['followers_count']} followers)")
             except Exception as e:
-                print(f"  ❌ Erreur création influencer: {e}")
+                logger.info(f"  ❌ Erreur création influencer: {e}")
         
         return self.created_ids['influencers']
     
@@ -189,7 +189,7 @@ class DemoDataSeeder:
     
     def create_products(self, merchant_ids: List[str]):
         """Créer 5 produits pour les merchants"""
-        print("\n📦 Création des produits...")
+        logger.info("\n📦 Création des produits...")
         
         merchant_id = merchant_ids[0]
         
@@ -287,9 +287,9 @@ class DemoDataSeeder:
                 result = self.supabase.table("products").insert(product_data).execute()
                 product_id = result.data[0]['id']
                 self.created_ids['products'].append(product_id)
-                print(f"  ✅ Produit créé: {product_data['name']} (ID: {product_id}, Prix: {product_data['price']} {product_data['currency']})")
+                logger.info(f"  ✅ Produit créé: {product_data['name']} (ID: {product_id}, Prix: {product_data['price']} {product_data['currency']})")
             except Exception as e:
-                print(f"  ❌ Erreur création produit {product_data['name']}: {e}")
+                logger.info(f"  ❌ Erreur création produit {product_data['name']}: {e}")
         
         return self.created_ids['products']
     
@@ -299,7 +299,7 @@ class DemoDataSeeder:
     
     def create_trackable_links(self, product_ids: List[str], influencer_ids: List[str]):
         """Créer des liens d'affiliation entre influencers et produits"""
-        print("\n🔗 Création des liens d'affiliation...")
+        logger.info("\n🔗 Création des liens d'affiliation...")
         
         influencer_id = influencer_ids[0]
         
@@ -357,9 +357,9 @@ class DemoDataSeeder:
                 result = self.supabase.table("trackable_links").insert(link_data).execute()
                 link_id = result.data[0]['id']
                 self.created_ids['trackable_links'].append(link_id)
-                print(f"  ✅ Lien créé: {link_data['unique_code']} (ID: {link_id}, {link_data['clicks']} clicks, {link_data['sales']} ventes)")
+                logger.info(f"  ✅ Lien créé: {link_data['unique_code']} (ID: {link_id}, {link_data['clicks']} clicks, {link_data['sales']} ventes)")
             except Exception as e:
-                print(f"  ❌ Erreur création lien {link_data['unique_code']}: {e}")
+                logger.info(f"  ❌ Erreur création lien {link_data['unique_code']}: {e}")
         
         return self.created_ids['trackable_links']
     
@@ -369,7 +369,7 @@ class DemoDataSeeder:
     
     def create_sales(self, link_ids: List[str], product_ids: List[str], influencer_ids: List[str], merchant_ids: List[str]):
         """Créer des ventes réalistes sur les 60 derniers jours"""
-        print("\n💰 Création des ventes...")
+        logger.info("\n💰 Création des ventes...")
         
         influencer_id = influencer_ids[0]
         merchant_id = merchant_ids[0]
@@ -418,9 +418,9 @@ class DemoDataSeeder:
                 self.create_commission_for_sale(sale_id, sale_data, influencer_commission, commission_rate)
                 
             except Exception as e:
-                print(f"  ❌ Erreur création vente {i}: {e}")
+                logger.info(f"  ❌ Erreur création vente {i}: {e}")
         
-        print(f"  ✅ {sales_count} ventes créées avec succès")
+        logger.info(f"  ✅ {sales_count} ventes créées avec succès")
         return self.created_ids['sales']
     
     # ==========================================
@@ -450,7 +450,7 @@ class DemoDataSeeder:
             commission_id = result.data[0]['id']
             self.created_ids['commissions'].append(commission_id)
         except Exception as e:
-            print(f"  ⚠️ Erreur création commission pour vente {sale_id}: {e}")
+            logger.info(f"  ⚠️ Erreur création commission pour vente {sale_id}: {e}")
     
     # ==========================================
     # ÉTAPE 8: Créer les campagnes
@@ -458,7 +458,7 @@ class DemoDataSeeder:
     
     def create_campaigns(self, merchant_ids: List[str]):
         """Créer 3 campagnes marketing"""
-        print("\n📢 Création des campagnes...")
+        logger.info("\n📢 Création des campagnes...")
         
         merchant_id = merchant_ids[0]
         
@@ -518,9 +518,9 @@ class DemoDataSeeder:
                 result = self.supabase.table("campaigns").insert(campaign_data).execute()
                 campaign_id = result.data[0]['id']
                 self.created_ids['campaigns'].append(campaign_id)
-                print(f"  ✅ Campagne créée: {campaign_data['name']} (ID: {campaign_id}, Budget: {campaign_data['budget']} {campaign_data['currency']})")
+                logger.info(f"  ✅ Campagne créée: {campaign_data['name']} (ID: {campaign_id}, Budget: {campaign_data['budget']} {campaign_data['currency']})")
             except Exception as e:
-                print(f"  ❌ Erreur création campagne {campaign_data['name']}: {e}")
+                logger.info(f"  ❌ Erreur création campagne {campaign_data['name']}: {e}")
         
         return self.created_ids['campaigns']
     
@@ -530,89 +530,90 @@ class DemoDataSeeder:
     
     def seed_all(self):
         """Exécuter tout le processus de seeding"""
-        print("\n" + "="*60)
-        print("🌱 DÉMARRAGE DU SEEDING - Données de démonstration")
-        print("="*60)
+        logger.info("\n" + "="*60)
+        logger.info("🌱 DÉMARRAGE DU SEEDING - Données de démonstration")
+        logger.info("="*60)
         
         try:
             # Étape 1: Users
             user_ids = self.create_users()
             if len(user_ids) < 3:
-                print("❌ Échec: Impossible de créer les users")
+                logger.info("❌ Échec: Impossible de créer les users")
                 return False
             
             # Étape 2: Merchants
             merchant_ids = self.create_merchants(user_ids)
             if len(merchant_ids) == 0:
-                print("❌ Échec: Impossible de créer les merchants")
+                logger.info("❌ Échec: Impossible de créer les merchants")
                 return False
             
             # Étape 3: Influencers
             influencer_ids = self.create_influencers(user_ids)
             if len(influencer_ids) == 0:
-                print("❌ Échec: Impossible de créer les influencers")
+                logger.info("❌ Échec: Impossible de créer les influencers")
                 return False
             
             # Étape 4: Products
             product_ids = self.create_products(merchant_ids)
             if len(product_ids) == 0:
-                print("❌ Échec: Impossible de créer les produits")
+                logger.info("❌ Échec: Impossible de créer les produits")
                 return False
             
             # Étape 5: Trackable Links
             link_ids = self.create_trackable_links(product_ids, influencer_ids)
             if len(link_ids) == 0:
-                print("❌ Échec: Impossible de créer les liens")
+                logger.info("❌ Échec: Impossible de créer les liens")
                 return False
             
             # Étape 6: Sales + Commissions
             sale_ids = self.create_sales(link_ids, product_ids, influencer_ids, merchant_ids)
             if len(sale_ids) == 0:
-                print("❌ Échec: Impossible de créer les ventes")
+                logger.info("❌ Échec: Impossible de créer les ventes")
                 return False
             
             # Étape 7: Campaigns
             campaign_ids = self.create_campaigns(merchant_ids)
             
             # Résumé
-            print("\n" + "="*60)
-            print("✅ SEEDING TERMINÉ AVEC SUCCÈS!")
-            print("="*60)
-            print(f"\n📊 RÉSUMÉ:")
-            print(f"  - {len(self.created_ids['users'])} utilisateurs créés")
-            print(f"  - {len(self.created_ids['merchants'])} merchants créés")
-            print(f"  - {len(self.created_ids['influencers'])} influencers créés")
-            print(f"  - {len(self.created_ids['products'])} produits créés")
-            print(f"  - {len(self.created_ids['trackable_links'])} liens d'affiliation créés")
-            print(f"  - {len(self.created_ids['sales'])} ventes créées")
-            print(f"  - {len(self.created_ids['commissions'])} commissions créées")
-            print(f"  - {len(self.created_ids['campaigns'])} campagnes créées")
+            logger.info("\n" + "="*60)
+            logger.info("✅ SEEDING TERMINÉ AVEC SUCCÈS!")
+            logger.info("="*60)
+            logger.info(f"\n📊 RÉSUMÉ:")
+            logger.info(f"  - {len(self.created_ids['users'])} utilisateurs créés")
+            logger.info(f"  - {len(self.created_ids['merchants'])} merchants créés")
+            logger.info(f"  - {len(self.created_ids['influencers'])} influencers créés")
+            logger.info(f"  - {len(self.created_ids['products'])} produits créés")
+            logger.info(f"  - {len(self.created_ids['trackable_links'])} liens d'affiliation créés")
+            logger.info(f"  - {len(self.created_ids['sales'])} ventes créées")
+            logger.info(f"  - {len(self.created_ids['commissions'])} commissions créées")
+            logger.info(f"  - {len(self.created_ids['campaigns'])} campagnes créées")
             
-            print("\n🔐 COMPTES DE TEST:")
-            print("  Admin:")
-            print("    Email: admin@tracknow.io")
-            print("    Password: Admin123!")
-            print("\n  Merchant:")
-            print("    Email: merchant@beautymaroc.com")
-            print("    Password: Merchant123!")
-            print("\n  Influencer:")
-            print("    Email: sarah@influencer.com")
-            print("    Password: Influencer123!")
+            logger.info("\n🔐 COMPTES DE TEST:")
+            logger.info("  Admin:")
+            logger.info("    Email: admin@tracknow.io")
+            logger.info("    Password: Admin123!")
+            logger.info("\n  Merchant:")
+            logger.info("    Email: merchant@beautymaroc.com")
+            logger.info("    Password: Merchant123!")
+            logger.info("\n  Influencer:")
+            logger.info("    Email: sarah@influencer.com")
+            logger.info("    Password: Influencer123!")
             
-            print("\n✅ Vous pouvez maintenant tester les endpoints avec ces comptes!")
+            logger.info("\n✅ Vous pouvez maintenant tester les endpoints avec ces comptes!")
             
             return True
             
         except Exception as e:
-            print(f"\n❌ ERREUR CRITIQUE: {e}")
+            logger.info(f"\n❌ ERREUR CRITIQUE: {e}")
             import traceback
+from utils.logger import logger
             traceback.print_exc()
             return False
 
 
 if __name__ == "__main__":
-    print("\n⚠️  ATTENTION: Ce script va insérer des données de démonstration dans Supabase")
-    print("⚠️  Assurez-vous que votre .env contient les bonnes credentials Supabase\n")
+    logger.info("\n⚠️  ATTENTION: Ce script va insérer des données de démonstration dans Supabase")
+    logger.info("⚠️  Assurez-vous que votre .env contient les bonnes credentials Supabase\n")
     
     response = input("Voulez-vous continuer? (oui/non): ")
     if response.lower() in ['oui', 'yes', 'y', 'o']:
@@ -620,11 +621,11 @@ if __name__ == "__main__":
         success = seeder.seed_all()
         
         if success:
-            print("\n🎉 Seeding terminé! Les endpoints sont maintenant connectés à de vraies données.")
+            logger.info("\n🎉 Seeding terminé! Les endpoints sont maintenant connectés à de vraies données.")
             sys.exit(0)
         else:
-            print("\n❌ Seeding échoué. Vérifiez les logs ci-dessus.")
+            logger.info("\n❌ Seeding échoué. Vérifiez les logs ci-dessus.")
             sys.exit(1)
     else:
-        print("\n❌ Seeding annulé.")
+        logger.info("\n❌ Seeding annulé.")
         sys.exit(0)

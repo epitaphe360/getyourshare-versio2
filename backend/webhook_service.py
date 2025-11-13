@@ -595,7 +595,7 @@ class WebhookService:
             )
 
             return result.data[0] if result.data else None
-        except:
+        except Exception:
             return None
 
     # ============================================
@@ -607,7 +607,7 @@ class WebhookService:
         try:
             result = supabase.table("merchants").select("*").eq("id", merchant_id).execute()
             return result.data[0] if result.data else {}
-        except:
+        except Exception:
             return {}
 
     async def _increment_link_conversion(self, link_id: str, revenue: float):

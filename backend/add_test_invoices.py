@@ -9,6 +9,7 @@ import random
 
 # Importer le client Supabase du module existant
 from supabase_client import supabase
+from utils.logger import logger
 
 def get_merchants():
     """Récupérer les marchands actifs"""
@@ -16,7 +17,7 @@ def get_merchants():
         result = supabase.from_("users").select("id, email, company_name, username").eq("role", "merchant").eq("status", "active").execute()
         return result.data if result.data else []
     except Exception as e:
-        print(f"❌ Erreur lors de la récupération des marchands: {e}")
+        logger.info(f"❌ Erreur lors de la récupération des marchands: {e}")
         return []
 
 def create_invoice(merchant, invoice_data):
@@ -25,7 +26,7 @@ def create_invoice(merchant, invoice_data):
         # Vérifier si la facture existe déjà
         existing = supabase.from_("invoices").select("id").eq("invoice_number", invoice_data["invoice_number"]).execute()
         if existing.data:
-            print(f"⚠️  Facture {invoice_data['invoice_number']} existe déjà - ignorée")
+            logger.info(f"⚠️  Facture {invoice_data['invoice_number']} existe déjà - ignorée")
             return None
         
         # Calculer total_amount avec taxes
@@ -58,14 +59,14 @@ def create_invoice(merchant, invoice_data):
         if result.data:
             invoice_created = result.data[0]
             status_emoji = "✅" if invoice_created["status"] == "paid" else "⏳"
-            print(f"{status_emoji} Facture créée: {invoice_created['invoice_number']} - {merchant['company_name'] or merchant['username']} - {total_amount}€ ({invoice_created['status']})")
+            logger.info(f"{status_emoji} Facture créée: {invoice_created['invoice_number']} - {merchant['company_name'] or merchant['username']} - {total_amount}€ ({invoice_created['status']})")
             return invoice_created
         else:
-            print(f"❌ Erreur lors de la création de la facture pour {merchant['company_name']}")
+            logger.info(f"❌ Erreur lors de la création de la facture pour {merchant['company_name']}")
             return None
             
     except Exception as e:
-        print(f"❌ Erreur pour {merchant['company_name']}: {str(e)}")
+        logger.info(f"❌ Erreur pour {merchant['company_name']}: {str(e)}")
         return None
 
 # Descriptions de services typiques
@@ -87,18 +88,18 @@ SERVICE_DESCRIPTIONS = [
 def generate_test_invoices():
     """Générer des factures de test pour chaque marchand"""
     
-    print("\n" + "="*70)
-    print("📄 CRÉATION DES FACTURES DE TEST")
-    print("="*70 + "\n")
+    logger.info("\n" + "="*70)
+    logger.info("📄 CRÉATION DES FACTURES DE TEST")
+    logger.info("="*70 + "\n")
     
     # Récupérer les marchands
     merchants = get_merchants()
     
     if not merchants:
-        print("❌ Aucun marchand trouvé. Exécutez d'abord add_budgets.py")
+        logger.info("❌ Aucun marchand trouvé. Exécutez d'abord add_budgets.py")
         return
     
-    print(f"✅ {len(merchants)} marchands trouvés\n")
+    logger.info(f"✅ {len(merchants)} marchands trouvés\n")
     
     created_count = 0
     current_year = 2024
@@ -151,12 +152,12 @@ def generate_test_invoices():
                 created_count += 1
                 invoice_counter += 1
     
-    print("\n" + "="*70)
-    print(f"✨ RÉSULTAT: {created_count} factures créées")
-    print("="*70)
+    logger.info("\n" + "="*70)
+    logger.info(f"✨ RÉSULTAT: {created_count} factures créées")
+    logger.info("="*70)
     
     # Afficher le résumé
-    print("\n📊 RÉSUMÉ DES FACTURES:\n")
+    logger.info("\n📊 RÉSUMÉ DES FACTURES:\n")
     
     # Récupérer toutes les factures avec les infos des marchands
     # Utiliser merchant_id pour faire le JOIN manuellement
@@ -169,12 +170,12 @@ def generate_test_invoices():
         total_amount = sum(float(inv["total_amount"]) for inv in invoices_result.data)
         paid_amount = sum(float(inv["total_amount"]) for inv in invoices_result.data if inv["status"] == "paid")
         
-        print(f"📈 Total factures: {total_invoices}")
-        print(f"✅ Payées: {paid_invoices} ({paid_amount:.2f}€)")
-        print(f"⏳ En attente: {pending_invoices} ({total_amount - paid_amount:.2f}€)")
-        print(f"💰 Montant total: {total_amount:.2f}€\n")
+        logger.info(f"📈 Total factures: {total_invoices}")
+        logger.info(f"✅ Payées: {paid_invoices} ({paid_amount:.2f}€)")
+        logger.info(f"⏳ En attente: {pending_invoices} ({total_amount - paid_amount:.2f}€)")
+        logger.info(f"💰 Montant total: {total_amount:.2f}€\n")
         
-        print("📋 Dernières factures créées:\n")
+        logger.info("📋 Dernières factures créées:\n")
         
         # Récupérer les infos des merchants séparément
         merchant_ids = [inv["merchant_id"] for inv in invoices_result.data[:10]]
@@ -185,20 +186,20 @@ def generate_test_invoices():
             merchant = merchants_dict.get(inv["merchant_id"], {})
             merchant_name = merchant.get("company_name") or merchant.get("username", "Inconnu")
             status_symbol = "✅" if inv["status"] == "paid" else "⏳"
-            print(f"  {status_symbol} {inv['invoice_number']} - {merchant_name}")
-            print(f"     Montant: {inv['total_amount']}€ | Statut: {inv['status']}")
-            print(f"     Créée: {inv['created_at'][:10]} | Échéance: {inv['due_date'][:10]}")
+            logger.info(f"  {status_symbol} {inv['invoice_number']} - {merchant_name}")
+            logger.info(f"     Montant: {inv['total_amount']}€ | Statut: {inv['status']}")
+            logger.info(f"     Créée: {inv['created_at'][:10]} | Échéance: {inv['due_date'][:10]}")
             if inv.get('paid_at'):
-                print(f"     Payée le: {inv['paid_at'][:10]}")
+                logger.info(f"     Payée le: {inv['paid_at'][:10]}")
             print()
     else:
-        print("Aucune facture trouvée.")
+        logger.info("Aucune facture trouvée.")
     
-    print("\n💡 INSTRUCTIONS:")
-    print("   1. Allez sur la page 'Facturation - Annonceurs'")
-    print("   2. Vous verrez toutes les factures créées")
-    print("   3. Cliquez sur 'Nouvelle Facture' pour en créer d'autres")
-    print("   4. Les factures sont maintenant stockées dans Supabase!")
+    logger.info("\n💡 INSTRUCTIONS:")
+    logger.info("   1. Allez sur la page 'Facturation - Annonceurs'")
+    logger.info("   2. Vous verrez toutes les factures créées")
+    logger.info("   3. Cliquez sur 'Nouvelle Facture' pour en créer d'autres")
+    logger.info("   4. Les factures sont maintenant stockées dans Supabase!")
     print()
 
 if __name__ == "__main__":

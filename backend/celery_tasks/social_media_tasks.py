@@ -246,7 +246,7 @@ def sync_single_connection(self, connection_id: str, user_id: str, platform: str
             conn.commit()
             cursor.close()
             conn.close()
-        except:
+        except Exception:
             pass
 
         raise self.retry(exc=exc)

@@ -4,24 +4,25 @@ Script de test pour les nouveaux endpoints
 
 import requests
 import json
+from utils.logger import logger
 
 BASE_URL = "http://localhost:8001"
 
 
 def test_login():
     """Test de connexion"""
-    print("\n🔐 Test de connexion...")
+    logger.info("\n🔐 Test de connexion...")
     response = requests.post(
         f"{BASE_URL}/api/auth/login",
         json={"email": "admin@shareyoursales.com", "password": "Admin123!"},
     )
     if response.status_code == 200:
         token = response.json().get("token")
-        print(f"✅ Connexion réussie - Token obtenu")
+        logger.info(f"✅ Connexion réussie - Token obtenu")
         return token
     else:
-        print(f"❌ Erreur de connexion: {response.status_code}")
-        print(response.text)
+        logger.info(f"❌ Erreur de connexion: {response.status_code}")
+        logger.info(response.text)
         return None
 
 
@@ -29,63 +30,63 @@ def test_products(token):
     """Test des endpoints produits"""
     headers = {"Authorization": f"Bearer {token}"}
 
-    print("\n📦 Test GET /api/products...")
+    logger.info("\n📦 Test GET /api/products...")
     response = requests.get(f"{BASE_URL}/api/products", headers=headers)
     if response.status_code == 200:
         products = response.json()
-        print(f"✅ {len(products)} produits trouvés")
+        logger.info(f"✅ {len(products)} produits trouvés")
         if products:
-            print(f"   Premier produit: {products[0].get('name', 'N/A')}")
+            logger.info(f"   Premier produit: {products[0].get('name', 'N/A')}")
     else:
-        print(f"❌ Erreur: {response.status_code} - {response.text}")
+        logger.info(f"❌ Erreur: {response.status_code} - {response.text}")
 
 
 def test_campaigns(token):
     """Test des endpoints campagnes"""
     headers = {"Authorization": f"Bearer {token}"}
 
-    print("\n🎯 Test GET /api/campaigns...")
+    logger.info("\n🎯 Test GET /api/campaigns...")
     response = requests.get(f"{BASE_URL}/api/campaigns", headers=headers)
     if response.status_code == 200:
         campaigns = response.json()
-        print(f"✅ {len(campaigns)} campagnes trouvées")
+        logger.info(f"✅ {len(campaigns)} campagnes trouvées")
         if campaigns:
-            print(f"   Première campagne: {campaigns[0].get('name', 'N/A')}")
+            logger.info(f"   Première campagne: {campaigns[0].get('name', 'N/A')}")
     else:
-        print(f"❌ Erreur: {response.status_code} - {response.text}")
+        logger.info(f"❌ Erreur: {response.status_code} - {response.text}")
 
 
 def test_sales(token):
     """Test des endpoints ventes"""
     headers = {"Authorization": f"Bearer {token}"}
 
-    print("\n💰 Test GET /api/sales/1...")
+    logger.info("\n💰 Test GET /api/sales/1...")
     response = requests.get(f"{BASE_URL}/api/sales/1", headers=headers)
     if response.status_code == 200:
         sales = response.json()
-        print(f"✅ {len(sales)} ventes trouvées pour l'influenceur 1")
+        logger.info(f"✅ {len(sales)} ventes trouvées pour l'influenceur 1")
     else:
-        print(f"❌ Erreur: {response.status_code} - {response.text}")
+        logger.info(f"❌ Erreur: {response.status_code} - {response.text}")
 
 
 def test_commissions(token):
     """Test des endpoints commissions"""
     headers = {"Authorization": f"Bearer {token}"}
 
-    print("\n💵 Test GET /api/commissions/1...")
+    logger.info("\n💵 Test GET /api/commissions/1...")
     response = requests.get(f"{BASE_URL}/api/commissions/1", headers=headers)
     if response.status_code == 200:
         commissions = response.json()
-        print(f"✅ {len(commissions)} commissions trouvées pour l'influenceur 1")
+        logger.info(f"✅ {len(commissions)} commissions trouvées pour l'influenceur 1")
     else:
-        print(f"❌ Erreur: {response.status_code} - {response.text}")
+        logger.info(f"❌ Erreur: {response.status_code} - {response.text}")
 
 
 def test_reports(token):
     """Test des endpoints rapports"""
     headers = {"Authorization": f"Bearer {token}"}
 
-    print("\n📊 Test GET /api/reports/performance...")
+    logger.info("\n📊 Test GET /api/reports/performance...")
     response = requests.get(
         f"{BASE_URL}/api/reports/performance",
         headers=headers,
@@ -93,36 +94,36 @@ def test_reports(token):
     )
     if response.status_code == 200:
         report = response.json()
-        print(f"✅ Rapport généré:")
-        print(f"   Total ventes: {report.get('total_sales', 0)}")
-        print(f"   Revenus: {report.get('total_revenue', 0)}€")
-        print(f"   Commissions: {report.get('total_commission', 0)}€")
+        logger.info(f"✅ Rapport généré:")
+        logger.info(f"   Total ventes: {report.get('total_sales', 0)}")
+        logger.info(f"   Revenus: {report.get('total_revenue', 0)}€")
+        logger.info(f"   Commissions: {report.get('total_commission', 0)}€")
     else:
-        print(f"❌ Erreur: {response.status_code} - {response.text}")
+        logger.info(f"❌ Erreur: {response.status_code} - {response.text}")
 
 
 def test_settings(token):
     """Test des endpoints paramètres"""
     headers = {"Authorization": f"Bearer {token}"}
 
-    print("\n⚙️  Test GET /api/settings...")
+    logger.info("\n⚙️  Test GET /api/settings...")
     response = requests.get(f"{BASE_URL}/api/settings", headers=headers)
     if response.status_code == 200:
         settings = response.json()
-        print(f"✅ {len(settings)} paramètres trouvés")
+        logger.info(f"✅ {len(settings)} paramètres trouvés")
     else:
-        print(f"❌ Erreur: {response.status_code} - {response.text}")
+        logger.info(f"❌ Erreur: {response.status_code} - {response.text}")
 
 
 def main():
-    print("=" * 60)
-    print("🧪 TEST DES NOUVEAUX ENDPOINTS")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("🧪 TEST DES NOUVEAUX ENDPOINTS")
+    logger.info("=" * 60)
 
     # Test de connexion
     token = test_login()
     if not token:
-        print("\n❌ Impossible de continuer sans token")
+        logger.info("\n❌ Impossible de continuer sans token")
         return
 
     # Tests des différents endpoints
@@ -133,9 +134,9 @@ def main():
     test_reports(token)
     test_settings(token)
 
-    print("\n" + "=" * 60)
-    print("✅ Tests terminés")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("✅ Tests terminés")
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":

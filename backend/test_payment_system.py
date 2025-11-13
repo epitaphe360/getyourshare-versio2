@@ -7,12 +7,13 @@ from datetime import datetime, timedelta
 from supabase_client import supabase
 from auto_payment_service import AutoPaymentService
 import uuid
+from utils.logger import logger
 
 
 def create_test_data():
     """Crée des données de test"""
-    print("\n🧪 CRÉATION DES DONNÉES DE TEST")
-    print("=" * 60)
+    logger.info("\n🧪 CRÉATION DES DONNÉES DE TEST")
+    logger.info("=" * 60)
 
     try:
         # 1. Créer un influenceur de test
@@ -25,7 +26,7 @@ def create_test_data():
 
         user_result = supabase.table("users").insert(test_user).execute()
         user_id = user_result.data[0]["id"]
-        print(f"✅ Utilisateur créé: {user_id}")
+        logger.info(f"✅ Utilisateur créé: {user_id}")
 
         # 2. Créer le profil influenceur
         test_influencer = {
@@ -40,7 +41,7 @@ def create_test_data():
 
         inf_result = supabase.table("influencers").insert(test_influencer).execute()
         influencer_id = inf_result.data[0]["id"]
-        print(f"✅ Influenceur créé: {influencer_id}")
+        logger.info(f"✅ Influenceur créé: {influencer_id}")
 
         # 3. Créer un produit de test
         test_product = {
@@ -52,10 +53,10 @@ def create_test_data():
 
         prod_result = supabase.table("products").insert(test_product).execute()
         product_id = prod_result.data[0]["id"]
-        print(f"✅ Produit créé: {product_id}")
+        logger.info(f"✅ Produit créé: {product_id}")
 
         # 4. Créer des ventes de test
-        print("\n📦 Création de ventes de test...")
+        logger.info("\n📦 Création de ventes de test...")
 
         # Vente 1: Ancienne (sera validée)
         old_date = (datetime.now() - timedelta(days=20)).isoformat()
@@ -72,7 +73,7 @@ def create_test_data():
         }
 
         supabase.table("sales").insert(sale1).execute()
-        print(f"  ✅ Vente ancienne créée (sera validée)")
+        logger.info(f"  ✅ Vente ancienne créée (sera validée)")
 
         # Vente 2: Récente (ne sera pas validée)
         recent_date = (datetime.now() - timedelta(days=5)).isoformat()
@@ -89,7 +90,7 @@ def create_test_data():
         }
 
         supabase.table("sales").insert(sale2).execute()
-        print(f"  ✅ Vente récente créée (ne sera pas validée)")
+        logger.info(f"  ✅ Vente récente créée (ne sera pas validée)")
 
         # Vente 3: Ancienne (sera validée)
         sale3 = {
@@ -105,7 +106,7 @@ def create_test_data():
         }
 
         supabase.table("sales").insert(sale3).execute()
-        print(f"  ✅ Vente ancienne 2 créée (sera validée)")
+        logger.info(f"  ✅ Vente ancienne 2 créée (sera validée)")
 
         # Vente 4: Déjà complète (pour le solde)
         sale4 = {
@@ -127,77 +128,77 @@ def create_test_data():
             "id", influencer_id
         ).execute()
 
-        print(f"  ✅ Vente complète créée (solde initial: 22.50€)")
+        logger.info(f"  ✅ Vente complète créée (solde initial: 22.50€)")
 
-        print(f"\n✅ Données de test créées avec succès!")
-        print(f"\n📊 Résumé:")
-        print(f"   - Influenceur ID: {influencer_id}")
-        print(f"   - Solde initial: 22.50€")
-        print(f"   - Ventes en attente: 2 (33€ total)")
-        print(f"   - Après validation: 55.50€ (≥ 50€ = éligible paiement)")
+        logger.info(f"\n✅ Données de test créées avec succès!")
+        logger.info(f"\n📊 Résumé:")
+        logger.info(f"   - Influenceur ID: {influencer_id}")
+        logger.info(f"   - Solde initial: 22.50€")
+        logger.info(f"   - Ventes en attente: 2 (33€ total)")
+        logger.info(f"   - Après validation: 55.50€ (≥ 50€ = éligible paiement)")
 
         return {"user_id": user_id, "influencer_id": influencer_id, "product_id": product_id}
 
     except Exception as e:
-        print(f"❌ Erreur création données test: {e}")
+        logger.info(f"❌ Erreur création données test: {e}")
         return None
 
 
 def test_validation():
     """Test de la validation automatique"""
-    print("\n" + "=" * 60)
-    print("TEST 1: VALIDATION AUTOMATIQUE DES VENTES")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("TEST 1: VALIDATION AUTOMATIQUE DES VENTES")
+    logger.info("=" * 60)
 
     service = AutoPaymentService()
     result = service.validate_pending_sales()
 
     if result.get("success"):
-        print(f"\n✅ TEST RÉUSSI")
-        print(f"   - Ventes validées: {result.get('validated_sales', 0)}")
-        print(f"   - Commission totale: {result.get('total_commission', 0)}€")
-        print(f"   - Influenceurs mis à jour: {result.get('influencers_updated', 0)}")
+        logger.info(f"\n✅ TEST RÉUSSI")
+        logger.info(f"   - Ventes validées: {result.get('validated_sales', 0)}")
+        logger.info(f"   - Commission totale: {result.get('total_commission', 0)}€")
+        logger.info(f"   - Influenceurs mis à jour: {result.get('influencers_updated', 0)}")
     else:
-        print(f"\n❌ TEST ÉCHOUÉ")
-        print(f"   Erreur: {result.get('error')}")
+        logger.info(f"\n❌ TEST ÉCHOUÉ")
+        logger.error(f"   Erreur: {result.get('error')}")
 
     return result
 
 
 def test_payouts():
     """Test des paiements automatiques"""
-    print("\n" + "=" * 60)
-    print("TEST 2: PAIEMENTS AUTOMATIQUES")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("TEST 2: PAIEMENTS AUTOMATIQUES")
+    logger.info("=" * 60)
 
     service = AutoPaymentService()
     result = service.process_automatic_payouts()
 
     if result.get("success"):
-        print(f"\n✅ TEST RÉUSSI")
-        print(f"   - Paiements traités: {result.get('processed_count', 0)}")
-        print(f"   - Montant total: {result.get('total_paid', 0)}€")
-        print(f"   - Échecs: {result.get('failed_count', 0)}")
+        logger.info(f"\n✅ TEST RÉUSSI")
+        logger.info(f"   - Paiements traités: {result.get('processed_count', 0)}")
+        logger.info(f"   - Montant total: {result.get('total_paid', 0)}€")
+        logger.error(f"   - Échecs: {result.get('failed_count', 0)}")
 
         if result.get("failed_count", 0) > 0:
-            print(f"\n⚠️  PAIEMENTS ÉCHOUÉS:")
+            logger.info(f"\n⚠️  PAIEMENTS ÉCHOUÉS:")
             for failure in result.get("failed_payments", []):
-                print(f"      - {failure}")
+                logger.info(f"      - {failure}")
     else:
-        print(f"\n❌ TEST ÉCHOUÉ")
-        print(f"   Erreur: {result.get('error')}")
+        logger.info(f"\n❌ TEST ÉCHOUÉ")
+        logger.error(f"   Erreur: {result.get('error')}")
 
     return result
 
 
 def test_refund(test_data):
     """Test du système de remboursement"""
-    print("\n" + "=" * 60)
-    print("TEST 3: REMBOURSEMENT")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("TEST 3: REMBOURSEMENT")
+    logger.info("=" * 60)
 
     if not test_data:
-        print("❌ Pas de données de test disponibles")
+        logger.info("❌ Pas de données de test disponibles")
         return
 
     try:
@@ -212,38 +213,38 @@ def test_refund(test_data):
         )
 
         if not sales.data:
-            print("⚠️  Aucune vente complétée trouvée pour test de remboursement")
+            logger.info("⚠️  Aucune vente complétée trouvée pour test de remboursement")
             return
 
         sale_id = sales.data[0]["id"]
         commission = sales.data[0]["influencer_commission"]
 
-        print(f"\n📦 Test de remboursement pour vente: {sale_id}")
-        print(f"   Commission à annuler: {commission}€")
+        logger.info(f"\n📦 Test de remboursement pour vente: {sale_id}")
+        logger.info(f"   Commission à annuler: {commission}€")
 
         service = AutoPaymentService()
         result = service.process_refund(sale_id, "test_refund")
 
         if result.get("success"):
-            print(f"\n✅ TEST RÉUSSI")
-            print(f"   - Vente remboursée: {sale_id}")
-            print(f"   - Commission annulée: {result.get('commission_cancelled')}€")
+            logger.info(f"\n✅ TEST RÉUSSI")
+            logger.info(f"   - Vente remboursée: {sale_id}")
+            logger.info(f"   - Commission annulée: {result.get('commission_cancelled')}€")
         else:
-            print(f"\n❌ TEST ÉCHOUÉ")
-            print(f"   Erreur: {result.get('error')}")
+            logger.info(f"\n❌ TEST ÉCHOUÉ")
+            logger.error(f"   Erreur: {result.get('error')}")
 
     except Exception as e:
-        print(f"❌ Erreur test remboursement: {e}")
+        logger.info(f"❌ Erreur test remboursement: {e}")
 
 
 def cleanup_test_data(test_data):
     """Nettoie les données de test"""
-    print("\n" + "=" * 60)
-    print("NETTOYAGE DES DONNÉES DE TEST")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("NETTOYAGE DES DONNÉES DE TEST")
+    logger.info("=" * 60)
 
     if not test_data:
-        print("⚠️  Pas de données à nettoyer")
+        logger.info("⚠️  Pas de données à nettoyer")
         return
 
     try:
@@ -251,47 +252,47 @@ def cleanup_test_data(test_data):
 
         # 1. Supprimer les ventes
         supabase.table("sales").delete().eq("influencer_id", test_data["influencer_id"]).execute()
-        print("✅ Ventes supprimées")
+        logger.info("✅ Ventes supprimées")
 
         # 2. Supprimer les commissions
         supabase.table("commissions").delete().eq(
             "influencer_id", test_data["influencer_id"]
         ).execute()
-        print("✅ Commissions supprimées")
+        logger.info("✅ Commissions supprimées")
 
         # 3. Supprimer les payouts
         supabase.table("payouts").delete().eq("influencer_id", test_data["influencer_id"]).execute()
-        print("✅ Payouts supprimés")
+        logger.info("✅ Payouts supprimés")
 
         # 4. Supprimer l'influenceur
         supabase.table("influencers").delete().eq("id", test_data["influencer_id"]).execute()
-        print("✅ Influenceur supprimé")
+        logger.info("✅ Influenceur supprimé")
 
         # 5. Supprimer l'utilisateur
         supabase.table("users").delete().eq("id", test_data["user_id"]).execute()
-        print("✅ Utilisateur supprimé")
+        logger.info("✅ Utilisateur supprimé")
 
         # 6. Supprimer le produit
         supabase.table("products").delete().eq("id", test_data["product_id"]).execute()
-        print("✅ Produit supprimé")
+        logger.info("✅ Produit supprimé")
 
-        print("\n✅ Nettoyage terminé")
+        logger.info("\n✅ Nettoyage terminé")
 
     except Exception as e:
-        print(f"❌ Erreur nettoyage: {e}")
+        logger.info(f"❌ Erreur nettoyage: {e}")
 
 
 def main():
     """Fonction principale de test"""
-    print("\n" + "=" * 60)
-    print("🧪 TESTS DU SYSTÈME DE PAIEMENT AUTOMATIQUE")
-    print("=" * 60)
-    print("\nCe script va:")
-    print("1. Créer des données de test")
-    print("2. Tester la validation automatique")
-    print("3. Tester les paiements automatiques")
-    print("4. Tester le système de remboursement")
-    print("5. Nettoyer les données de test")
+    logger.info("\n" + "=" * 60)
+    logger.info("🧪 TESTS DU SYSTÈME DE PAIEMENT AUTOMATIQUE")
+    logger.info("=" * 60)
+    logger.info("\nCe script va:")
+    logger.info("1. Créer des données de test")
+    logger.info("2. Tester la validation automatique")
+    logger.info("3. Tester les paiements automatiques")
+    logger.info("4. Tester le système de remboursement")
+    logger.info("5. Nettoyer les données de test")
 
     input("\nAppuyez sur ENTRÉE pour continuer...")
 
@@ -299,7 +300,7 @@ def main():
     test_data = create_test_data()
 
     if not test_data:
-        print("\n❌ Impossible de créer les données de test. Arrêt.")
+        logger.info("\n❌ Impossible de créer les données de test. Arrêt.")
         return
 
     input("\n\nAppuyez sur ENTRÉE pour tester la validation...")
@@ -318,18 +319,18 @@ def main():
     test_refund(test_data)
 
     # Proposer le nettoyage
-    print("\n" + "=" * 60)
+    logger.info("\n" + "=" * 60)
     cleanup = input("\nVoulez-vous nettoyer les données de test ? (o/N): ")
 
     if cleanup.lower() == "o":
         cleanup_test_data(test_data)
     else:
-        print("\n⚠️  Données de test conservées")
-        print(f"   Influenceur ID: {test_data.get('influencer_id')}")
+        logger.info("\n⚠️  Données de test conservées")
+        logger.info(f"   Influenceur ID: {test_data.get('influencer_id')}")
 
-    print("\n" + "=" * 60)
-    print("✅ TESTS TERMINÉS")
-    print("=" * 60 + "\n")
+    logger.info("\n" + "=" * 60)
+    logger.info("✅ TESTS TERMINÉS")
+    logger.info("=" * 60 + "\n")
 
 
 if __name__ == "__main__":

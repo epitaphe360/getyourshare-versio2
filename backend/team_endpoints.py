@@ -19,6 +19,7 @@ from supabase import create_client, Client
 import os
 import secrets
 from auth import get_current_user
+from utils.logger import logger
 
 router = APIRouter(prefix="/api/team", tags=["Team Management"])
 
@@ -134,7 +135,7 @@ async def check_can_add_team_member(company_id: str) -> bool:
 
         return response.data if response.data is not None else False
     except Exception as e:
-        print(f"Error checking team limit: {e}")
+        logger.error(f"Error checking team limit: {e}")
         return False
 
 async def get_team_member_count(company_id: str) -> int:
@@ -148,7 +149,7 @@ async def get_team_member_count(company_id: str) -> int:
 
         return response.count if response.count else 0
     except Exception as e:
-        print(f"Error counting team members: {e}")
+        logger.error(f"Error counting team members: {e}")
         return 0
 
 async def update_subscription_team_count(company_id: str):
@@ -162,14 +163,14 @@ async def update_subscription_team_count(company_id: str):
             .in_("status", ["active", "trialing"]) \
             .execute()
     except Exception as e:
-        print(f"Error updating team count: {e}")
+        logger.error(f"Error updating team count: {e}")
 
 async def send_invitation_email(email: str, company_name: str, token: str):
     """Envoie l'email d'invitation (à implémenter avec votre service email)"""
     # TODO: Intégrer avec votre service d'envoi d'emails
     invitation_link = f"https://shareyoursales.ma/accept-invitation?token={token}"
 
-    print(f"""
+    logger.info(f"""
     ==============================================
     INVITATION EMAIL
     ==============================================

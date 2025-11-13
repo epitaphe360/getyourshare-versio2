@@ -7,6 +7,7 @@ from typing import Optional
 from datetime import datetime
 from supabase_client import get_supabase_client
 from auth import verify_token
+from utils.logger import logger
 
 router = APIRouter(prefix="/api/admin/platform-settings", tags=["Platform Settings"])
 
@@ -86,7 +87,7 @@ async def get_platform_settings(user: dict = Depends(verify_token)):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur lors de la récupération des paramètres: {str(e)}")
+        logger.info(f"❌ Erreur lors de la récupération des paramètres: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur lors de la récupération des paramètres: {str(e)}"
@@ -171,7 +172,7 @@ async def update_platform_settings(
         
         updated_settings = update_response.data[0]
         
-        print(f"✅ Paramètres de plateforme mis à jour par l'admin {user['email']}")
+        logger.info(f"✅ Paramètres de plateforme mis à jour par l'admin {user['email']}")
         
         return PlatformSettingsResponse(
             id=updated_settings["id"],
@@ -189,7 +190,7 @@ async def update_platform_settings(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur lors de la mise à jour des paramètres: {str(e)}")
+        logger.info(f"❌ Erreur lors de la mise à jour des paramètres: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erreur lors de la mise à jour: {str(e)}"
@@ -219,6 +220,6 @@ async def get_min_payout_public():
         }
     
     except Exception as e:
-        print(f"❌ Erreur lors de la récupération du min payout: {str(e)}")
+        logger.info(f"❌ Erreur lors de la récupération du min payout: {str(e)}")
         # Retourner valeur par défaut en cas d'erreur
         return {"min_payout_amount": 50.00}

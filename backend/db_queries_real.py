@@ -63,7 +63,7 @@ async def get_influencer_overview_stats(user_id: str) -> Dict[str, Any]:
         }
     
     except Exception as e:
-        print(f"❌ Erreur get_influencer_overview_stats: {str(e)}")
+        logger.info(f"❌ Erreur get_influencer_overview_stats: {str(e)}")
         return {
             "balance": 0.00,
             "total_clicks": 0,
@@ -125,7 +125,7 @@ async def get_influencer_earnings_chart(user_id: str, weeks: int = 4) -> List[Di
         return chart_data if chart_data else [{"week": "Sem 1", "earnings": 0}]
     
     except Exception as e:
-        print(f"❌ Erreur get_influencer_earnings_chart: {str(e)}")
+        logger.info(f"❌ Erreur get_influencer_earnings_chart: {str(e)}")
         return [{"week": f"Sem {i+1}", "earnings": 0} for i in range(weeks)]
 
 
@@ -190,7 +190,7 @@ async def get_merchant_sales_chart(user_id: str, days: int = 7) -> List[Dict[str
         return chart_data
     
     except Exception as e:
-        print(f"❌ Erreur get_merchant_sales_chart: {str(e)}")
+        logger.info(f"❌ Erreur get_merchant_sales_chart: {str(e)}")
         return [
             {"date": (datetime.now() - timedelta(days=i)).strftime("%d/%m"), "ventes": 0, "revenus": 0}
             for i in range(days)
@@ -258,7 +258,7 @@ async def get_user_affiliate_links(user_id: str) -> List[Dict[str, Any]]:
         return links
     
     except Exception as e:
-        print(f"❌ Erreur get_user_affiliate_links: {str(e)}")
+        logger.info(f"❌ Erreur get_user_affiliate_links: {str(e)}")
         return []
 
 
@@ -326,7 +326,7 @@ async def get_payment_history(user_id: str) -> Dict[str, Any]:
         }
     
     except Exception as e:
-        print(f"❌ Erreur get_payment_history: {str(e)}")
+        logger.info(f"❌ Erreur get_payment_history: {str(e)}")
         return {"payments": [], "total_earned": 0.00, "pending_amount": 0.00, "balance": 0.00}
 
 
@@ -383,7 +383,7 @@ async def get_merchant_products(user_id: str) -> List[Dict[str, Any]]:
         return products
     
     except Exception as e:
-        print(f"❌ Erreur get_merchant_products: {str(e)}")
+        logger.info(f"❌ Erreur get_merchant_products: {str(e)}")
         return []
 
 
@@ -433,7 +433,7 @@ async def get_user_payouts(user_id: str) -> List[Dict[str, Any]]:
         return payouts
     
     except Exception as e:
-        print(f"❌ Erreur get_user_payouts: {str(e)}")
+        logger.info(f"❌ Erreur get_user_payouts: {str(e)}")
         return []
 
 
@@ -488,7 +488,7 @@ async def get_user_campaigns(user_id: str) -> List[Dict[str, Any]]:
         return campaigns
     
     except Exception as e:
-        print(f"❌ Erreur get_user_campaigns: {str(e)}")
+        logger.info(f"❌ Erreur get_user_campaigns: {str(e)}")
         return []
 
 
@@ -566,7 +566,7 @@ async def create_affiliate_link(
         }
     
     except Exception as e:
-        print(f"❌ Erreur create_affiliate_link: {str(e)}")
+        logger.info(f"❌ Erreur create_affiliate_link: {str(e)}")
         return {"success": False, "error": str(e)}
 
 
@@ -664,7 +664,7 @@ async def get_all_products(
         }
     
     except Exception as e:
-        print(f"❌ Erreur get_all_products: {str(e)}")
+        logger.info(f"❌ Erreur get_all_products: {str(e)}")
         return {
             "products": [],
             "pagination": {"total": 0, "limit": limit, "offset": offset, "has_more": False}
@@ -710,7 +710,7 @@ async def get_all_merchants() -> List[Dict[str, Any]]:
         return merchants
     
     except Exception as e:
-        print(f"❌ Erreur get_all_merchants: {str(e)}")
+        logger.info(f"❌ Erreur get_all_merchants: {str(e)}")
         return []
 
 
@@ -770,7 +770,7 @@ async def get_all_influencers(
         return influencers
     
     except Exception as e:
-        print(f"❌ Erreur get_all_influencers: {str(e)}")
+        logger.info(f"❌ Erreur get_all_influencers: {str(e)}")
         return []
 
 
@@ -823,7 +823,7 @@ async def create_product(merchant_id: str, product_data: Dict[str, Any]) -> Dict
         }
     
     except Exception as e:
-        print(f"❌ Erreur create_product: {str(e)}")
+        logger.info(f"❌ Erreur create_product: {str(e)}")
         return {
             "success": False,
             "error": str(e)
@@ -894,7 +894,7 @@ async def get_merchant_performance(user_id: str) -> Dict[str, Any]:
         }
     
     except Exception as e:
-        print(f"❌ Erreur get_merchant_performance: {str(e)}")
+        logger.info(f"❌ Erreur get_merchant_performance: {str(e)}")
         return {
             "conversion_rate": 0,
             "engagement_rate": 0,
@@ -992,7 +992,7 @@ async def get_all_sales(
         }
     
     except Exception as e:
-        print(f"❌ Erreur get_all_sales: {str(e)}")
+        logger.info(f"❌ Erreur get_all_sales: {str(e)}")
         return {
             "sales": [],
             "total": 0,
@@ -1046,7 +1046,7 @@ async def get_user_notifications(
         }
     
     except Exception as e:
-        print(f"❌ Erreur get_user_notifications (table peut ne pas exister): {str(e)}")
+        logger.info(f"❌ Erreur get_user_notifications (table peut ne pas exister): {str(e)}")
         # Retourner notifications système par défaut
         return {
             "notifications": [
@@ -1104,7 +1104,7 @@ async def get_top_products(
         return products
     
     except Exception as e:
-        print(f"❌ Erreur get_top_products: {str(e)}")
+        logger.info(f"❌ Erreur get_top_products: {str(e)}")
         return []
 
 
@@ -1175,7 +1175,7 @@ async def get_conversion_funnel(user_id: str, user_role: str) -> Dict[str, Any]:
         }
     
     except Exception as e:
-        print(f"❌ Erreur get_conversion_funnel: {str(e)}")
+        logger.info(f"❌ Erreur get_conversion_funnel: {str(e)}")
         return {
             "funnel": [
                 {"stage": "Impressions", "count": 0, "percentage": 100},
@@ -1277,7 +1277,7 @@ async def get_all_commissions(
         }
     
     except Exception as e:
-        print(f"❌ Erreur get_all_commissions: {str(e)}")
+        logger.info(f"❌ Erreur get_all_commissions: {str(e)}")
         return {
             "commissions": [],
             "total": 0,
@@ -1334,7 +1334,7 @@ async def request_payout(
         }
     
     except Exception as e:
-        print(f"❌ Erreur request_payout: {str(e)}")
+        logger.info(f"❌ Erreur request_payout: {str(e)}")
         return {
             "success": False,
             "error": str(e)
@@ -1367,7 +1367,7 @@ async def approve_payout(payout_id: str, admin_user_id: str) -> Dict[str, Any]:
         }
     
     except Exception as e:
-        print(f"❌ Erreur approve_payout: {str(e)}")
+        logger.info(f"❌ Erreur approve_payout: {str(e)}")
         return {
             "success": False,
             "error": str(e)
@@ -1439,7 +1439,7 @@ async def update_sale_status(
         }
     
     except Exception as e:
-        print(f"❌ Erreur update_sale_status: {str(e)}")
+        logger.info(f"❌ Erreur update_sale_status: {str(e)}")
         return {
             "success": False,
             "error": str(e)
@@ -1502,7 +1502,7 @@ async def get_payment_methods(user_id: str) -> List[Dict[str, Any]]:
         return methods
     
     except Exception as e:
-        print(f"❌ Erreur get_payment_methods: {str(e)}")
+        logger.info(f"❌ Erreur get_payment_methods: {str(e)}")
         return [
             {
                 "id": "default_1",
@@ -1577,7 +1577,7 @@ async def get_all_users_admin(
         }
     
     except Exception as e:
-        print(f"❌ Erreur get_all_users_admin: {str(e)}")
+        logger.info(f"❌ Erreur get_all_users_admin: {str(e)}")
         return {
             "users": [],
             "total": 0,
@@ -1635,7 +1635,7 @@ async def get_admin_stats() -> Dict[str, Any]:
         }
     
     except Exception as e:
-        print(f"❌ Erreur get_admin_stats: {str(e)}")
+        logger.info(f"❌ Erreur get_admin_stats: {str(e)}")
         return {
             "platform_stats": {
                 "total_users": 0,
@@ -1675,7 +1675,7 @@ async def activate_user(user_id: str, active: bool) -> Dict[str, Any]:
         }
     
     except Exception as e:
-        print(f"❌ Erreur activate_user: {str(e)}")
+        logger.info(f"❌ Erreur activate_user: {str(e)}")
         return {
             "success": False,
             "error": str(e)
@@ -1747,7 +1747,7 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
         return profile
     
     except Exception as e:
-        print(f"❌ Erreur get_user_profile: {str(e)}")
+        logger.info(f"❌ Erreur get_user_profile: {str(e)}")
         return {}
 
 
@@ -1805,7 +1805,7 @@ async def update_user_profile(user_id: str, profile_data: Dict[str, Any]) -> Dic
         }
     
     except Exception as e:
-        print(f"❌ Erreur update_user_profile: {str(e)}")
+        logger.info(f"❌ Erreur update_user_profile: {str(e)}")
         return {
             "success": False,
             "error": str(e)
@@ -1826,6 +1826,7 @@ async def update_user_password(
     """
     try:
         import bcrypt
+from utils.logger import logger
         supabase = get_supabase_client()
         
         # Récupérer le hash actuel
@@ -1859,7 +1860,7 @@ async def update_user_password(
         }
     
     except Exception as e:
-        print(f"❌ Erreur update_user_password: {str(e)}")
+        logger.info(f"❌ Erreur update_user_password: {str(e)}")
         return {
             "success": False,
             "error": str(e)

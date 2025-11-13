@@ -292,5 +292,5 @@ async def get_user_campaigns(user_id: str):
         ).execute()
 
         return result.data if result.data else []
-    except:
+    except Exception:
         return []

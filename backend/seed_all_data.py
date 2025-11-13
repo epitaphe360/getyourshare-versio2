@@ -24,10 +24,10 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 # Client Supabase avec droits admin
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-print("=" * 80)
-print("🌱 SEED COMPLET - Toutes les Tables Supabase")
-print("=" * 80)
-print(f"📍 URL: {SUPABASE_URL}\n")
+logger.info("=" * 80)
+logger.info("🌱 SEED COMPLET - Toutes les Tables Supabase")
+logger.info("=" * 80)
+logger.info(f"📍 URL: {SUPABASE_URL}\n")
 
 # Mappings pour stocker les IDs créés
 user_ids = {}
@@ -41,8 +41,8 @@ campaign_ids = {}
 # ÉTAPE 1: Migrer les USERS
 # ============================================
 
-print("📋 ÉTAPE 1: Migration des utilisateurs")
-print("-" * 80)
+logger.info("📋 ÉTAPE 1: Migration des utilisateurs")
+logger.info("-" * 80)
 
 for user in MOCK_USERS:
     try:
@@ -61,17 +61,17 @@ for user in MOCK_USERS:
 
         if result.data:
             user_ids[user["email"]] = result.data[0]["id"]
-            print(f"  ✅ {user['email']} ({user['role']})")
+            logger.info(f"  ✅ {user['email']} ({user['role']})")
 
     except Exception as e:
-        print(f"  ⚠️  {user['email']}: {str(e)}")
+        logger.info(f"  ⚠️  {user['email']}: {str(e)}")
 
 # ============================================
 # ÉTAPE 2: Migrer les MERCHANTS
 # ============================================
 
-print("\n📋 ÉTAPE 2: Migration des merchants")
-print("-" * 80)
+logger.info("\n📋 ÉTAPE 2: Migration des merchants")
+logger.info("-" * 80)
 
 merchant_emails = {"merchant_1": "contact@techstyle.fr", "merchant_2": "hello@beautypro.com"}
 
@@ -81,7 +81,7 @@ for merchant in MOCK_MERCHANTS:
         user_id = user_ids.get(email)
 
         if not user_id:
-            print(f"  ⚠️  User introuvable pour {merchant['company_name']}")
+            logger.info(f"  ⚠️  User introuvable pour {merchant['company_name']}")
             continue
 
         merchant_data = {
@@ -101,17 +101,17 @@ for merchant in MOCK_MERCHANTS:
 
         if result.data:
             merchant_ids[merchant["id"]] = result.data[0]["id"]
-            print(f"  ✅ {merchant['company_name']}")
+            logger.info(f"  ✅ {merchant['company_name']}")
 
     except Exception as e:
-        print(f"  ❌ {merchant['company_name']}: {str(e)}")
+        logger.info(f"  ❌ {merchant['company_name']}: {str(e)}")
 
 # ============================================
 # ÉTAPE 3: Migrer les INFLUENCERS
 # ============================================
 
-print("\n📋 ÉTAPE 3: Migration des influencers")
-print("-" * 80)
+logger.info("\n📋 ÉTAPE 3: Migration des influencers")
+logger.info("-" * 80)
 
 influencer_emails = {
     "influencer_1": "emma.style@instagram.com",
@@ -125,7 +125,7 @@ for influencer in MOCK_INFLUENCERS:
         user_id = user_ids.get(email)
 
         if not user_id:
-            print(f"  ⚠️  User introuvable pour {influencer['full_name']}")
+            logger.info(f"  ⚠️  User introuvable pour {influencer['full_name']}")
             continue
 
         influencer_data = {
@@ -149,23 +149,23 @@ for influencer in MOCK_INFLUENCERS:
 
         if result.data:
             influencer_ids[influencer["id"]] = result.data[0]["id"]
-            print(f"  ✅ {influencer['full_name']} (@{influencer['username']})")
+            logger.info(f"  ✅ {influencer['full_name']} (@{influencer['username']})")
 
     except Exception as e:
-        print(f"  ❌ {influencer['full_name']}: {str(e)}")
+        logger.info(f"  ❌ {influencer['full_name']}: {str(e)}")
 
 # ============================================
 # ÉTAPE 4: Migrer les PRODUCTS
 # ============================================
 
-print("\n📋 ÉTAPE 4: Migration des produits")
-print("-" * 80)
+logger.info("\n📋 ÉTAPE 4: Migration des produits")
+logger.info("-" * 80)
 
 # Récupérer le premier merchant_id pour les produits
 default_merchant_id = list(merchant_ids.values())[0] if merchant_ids else None
 
 if not default_merchant_id:
-    print("  ❌ Aucun merchant trouvé, impossible d'ajouter des produits")
+    logger.info("  ❌ Aucun merchant trouvé, impossible d'ajouter des produits")
 else:
     for product in MOCK_PRODUCTS:
         try:
@@ -187,21 +187,22 @@ else:
 
             if result.data:
                 product_ids[product["id"]] = result.data[0]["id"]
-                print(f"  ✅ {product['name']} ({product['category']})")
+                logger.info(f"  ✅ {product['name']} ({product['category']})")
 
         except Exception as e:
-            print(f"  ⚠️  {product['name']}: {str(e)}")
+            logger.info(f"  ⚠️  {product['name']}: {str(e)}")
 
 # ============================================
 # ÉTAPE 5: Créer des TRACKABLE LINKS
 # ============================================
 
-print("\n📋 ÉTAPE 5: Création de liens d'affiliation")
-print("-" * 80)
+logger.info("\n📋 ÉTAPE 5: Création de liens d'affiliation")
+logger.info("-" * 80)
 
 if influencer_ids and product_ids:
     # Créer 10 liens d'affiliation
     import secrets
+from utils.logger import logger
 
     influencer_list = list(influencer_ids.values())
     product_list = list(product_ids.values())
@@ -229,17 +230,17 @@ if influencer_ids and product_ids:
 
             if result.data:
                 link_ids[i] = result.data[0]["id"]
-                print(f"  ✅ Lien {i+1}: {unique_code[:12]}... ({link_data['clicks']} clics)")
+                logger.info(f"  ✅ Lien {i+1}: {unique_code[:12]}... ({link_data['clicks']} clics)")
 
         except Exception as e:
-            print(f"  ⚠️  Lien {i+1}: {str(e)}")
+            logger.info(f"  ⚠️  Lien {i+1}: {str(e)}")
 
 # ============================================
 # ÉTAPE 6: Créer des CAMPAIGNS
 # ============================================
 
-print("\n📋 ÉTAPE 6: Création de campagnes")
-print("-" * 80)
+logger.info("\n📋 ÉTAPE 6: Création de campagnes")
+logger.info("-" * 80)
 
 if merchant_ids:
     campaigns_data = [
@@ -272,17 +273,17 @@ if merchant_ids:
 
             if result.data:
                 campaign_ids[camp["name"]] = result.data[0]["id"]
-                print(f"  ✅ {camp['name']} ({camp['status']})")
+                logger.info(f"  ✅ {camp['name']} ({camp['status']})")
 
         except Exception as e:
-            print(f"  ⚠️  {camp['name']}: {str(e)}")
+            logger.info(f"  ⚠️  {camp['name']}: {str(e)}")
 
 # ============================================
 # ÉTAPE 7: Créer des SALES
 # ============================================
 
-print("\n📋 ÉTAPE 7: Création de ventes")
-print("-" * 80)
+logger.info("\n📋 ÉTAPE 7: Création de ventes")
+logger.info("-" * 80)
 
 if link_ids and product_ids and influencer_ids and merchant_ids:
     link_list = list(link_ids.values())
@@ -321,17 +322,17 @@ if link_ids and product_ids and influencer_ids and merchant_ids:
             result = supabase.table("sales").insert(sale_data).execute()
 
             if result.data:
-                print(f"  ✅ Vente {i+1}: {amount}€ ({sale_data['status']})")
+                logger.info(f"  ✅ Vente {i+1}: {amount}€ ({sale_data['status']})")
 
         except Exception as e:
-            print(f"  ⚠️  Vente {i+1}: {str(e)}")
+            logger.info(f"  ⚠️  Vente {i+1}: {str(e)}")
 
 # ============================================
 # ÉTAPE 8: Créer des COMMISSIONS
 # ============================================
 
-print("\n📋 ÉTAPE 8: Création de commissions")
-print("-" * 80)
+logger.info("\n📋 ÉTAPE 8: Création de commissions")
+logger.info("-" * 80)
 
 if influencer_ids:
     # Récupérer les sales
@@ -352,19 +353,19 @@ if influencer_ids:
             result = supabase.table("commissions").insert(commission_data).execute()
 
             if result.data:
-                print(
+                logger.info(
                     f"  ✅ Commission: {commission_data['amount']}€ ({commission_data['status']})"
                 )
 
         except Exception as e:
-            print(f"  ⚠️  Commission: {str(e)}")
+            logger.info(f"  ⚠️  Commission: {str(e)}")
 
 # ============================================
 # ÉTAPE 9: Créer des CLICKS
 # ============================================
 
-print("\n📋 ÉTAPE 9: Création de clics")
-print("-" * 80)
+logger.info("\n📋 ÉTAPE 9: Création de clics")
+logger.info("-" * 80)
 
 if link_ids:
     link_list = list(link_ids.values())
@@ -403,20 +404,20 @@ if link_ids:
             result = supabase.table("click_tracking").insert(click_data).execute()
 
             if result.data and i % 10 == 0:
-                print(f"  ✅ {i+1} clics créés...")
+                logger.info(f"  ✅ {i+1} clics créés...")
 
         except Exception as e:
             if i == 0:
-                print(f"  ⚠️  Clic: {str(e)}")
+                logger.info(f"  ⚠️  Clic: {str(e)}")
 
-    print(f"  ✅ Total: 50 clics créés")
+    logger.info(f"  ✅ Total: 50 clics créés")
 
 # ============================================
 # ÉTAPE 10: Créer des REVIEWS
 # ============================================
 
-print("\n📋 ÉTAPE 10: Création d'avis")
-print("-" * 80)
+logger.info("\n📋 ÉTAPE 10: Création d'avis")
+logger.info("-" * 80)
 
 if product_ids and user_ids:
     product_list = list(product_ids.values())
@@ -448,18 +449,18 @@ if product_ids and user_ids:
             result = supabase.table("reviews").insert(review_data).execute()
 
             if result.data:
-                print(f"  ✅ Avis {i+1}: {review_data['rating']}⭐ - {title}")
+                logger.info(f"  ✅ Avis {i+1}: {review_data['rating']}⭐ - {title}")
 
         except Exception as e:
-            print(f"  ⚠️  Avis {i+1}: {str(e)}")
+            logger.info(f"  ⚠️  Avis {i+1}: {str(e)}")
 
 # ============================================
 # FINALISATION
 # ============================================
 
-print("\n" + "=" * 80)
-print("✅ SEED COMPLET TERMINÉ !")
-print("=" * 80)
+logger.info("\n" + "=" * 80)
+logger.info("✅ SEED COMPLET TERMINÉ !")
+logger.info("=" * 80)
 
 # Compter les données créées
 try:
@@ -482,22 +483,22 @@ try:
         "reviews": supabase.table("reviews").select("id", count="exact").execute().count,
     }
 
-    print("\n📊 Données créées:")
-    print(f"  ✅ {stats['users']} utilisateurs")
-    print(f"  ✅ {stats['merchants']} merchants")
-    print(f"  ✅ {stats['influencers']} influencers")
-    print(f"  ✅ {stats['products']} produits")
-    print(f"  ✅ {stats['trackable_links']} liens d'affiliation")
-    print(f"  ✅ {stats['campaigns']} campagnes")
-    print(f"  ✅ {stats['sales']} ventes")
-    print(f"  ✅ {stats['commissions']} commissions")
-    print(f"  ✅ {stats['click_tracking']} clics")
-    print(f"  ✅ {stats['reviews']} avis")
+    logger.info("\n📊 Données créées:")
+    logger.info(f"  ✅ {stats['users']} utilisateurs")
+    logger.info(f"  ✅ {stats['merchants']} merchants")
+    logger.info(f"  ✅ {stats['influencers']} influencers")
+    logger.info(f"  ✅ {stats['products']} produits")
+    logger.info(f"  ✅ {stats['trackable_links']} liens d'affiliation")
+    logger.info(f"  ✅ {stats['campaigns']} campagnes")
+    logger.info(f"  ✅ {stats['sales']} ventes")
+    logger.info(f"  ✅ {stats['commissions']} commissions")
+    logger.info(f"  ✅ {stats['click_tracking']} clics")
+    logger.info(f"  ✅ {stats['reviews']} avis")
 
 except Exception as e:
-    print(f"\n⚠️  Erreur lors du comptage: {e}")
+    logger.info(f"\n⚠️  Erreur lors du comptage: {e}")
 
-print(
+logger.info(
     """
 🎉 Toutes les tables sont maintenant peuplées avec des données de test !
 

@@ -4,6 +4,7 @@ Résout le problème UnicodeEncodeError sur Windows PowerShell
 """
 
 import re
+from utils.logger import logger
 
 # Lire le fichier
 with open("server.py", "r", encoding="utf-8") as f:
@@ -36,4 +37,4 @@ for emoji, text in replacements.items():
 with open("server.py", "w", encoding="utf-8") as f:
     f.write(content)
 
-print("OK - Emojis supprimés de server.py")
+logger.info("OK - Emojis supprimés de server.py")

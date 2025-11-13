@@ -21,16 +21,17 @@ try:
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
-    print("⚠️ reportlab pas installé - Génération PDF désactivée")
+    logger.info("⚠️ reportlab pas installé - Génération PDF désactivée")
 
 try:
     import openpyxl
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     from openpyxl.chart import BarChart, Reference, LineChart
+from utils.logger import logger
     OPENPYXL_AVAILABLE = True
 except ImportError:
     OPENPYXL_AVAILABLE = False
-    print("⚠️ openpyxl pas installé - Génération Excel désactivée")
+    logger.info("⚠️ openpyxl pas installé - Génération Excel désactivée")
 
 
 class ReportType(str, Enum):
@@ -435,7 +436,7 @@ class ReportGenerator:
                 try:
                     if len(str(cell.value)) > max_length:
                         max_length = len(cell.value)
-                except:
+                except Exception:
                     pass
             adjusted_width = min(max_length + 2, 50)
             ws.column_dimensions[column_letter].width = adjusted_width

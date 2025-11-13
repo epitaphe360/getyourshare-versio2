@@ -7,6 +7,7 @@ Migration des tables de settings dans Supabase
 import os
 import psycopg2
 from dotenv import load_dotenv
+from utils.logger import logger
 
 load_dotenv()
 
@@ -14,16 +15,16 @@ load_dotenv()
 def run_migration():
     """Execute la migration SQL pour créer les tables de settings"""
 
-    print("\n" + "=" * 60)
-    print("  MIGRATION: Tables de Settings")
-    print("=" * 60 + "\n")
+    logger.info("\n" + "=" * 60)
+    logger.info("  MIGRATION: Tables de Settings")
+    logger.info("=" * 60 + "\n")
 
     # Connexion PostgreSQL directe
-    print("Connexion à Supabase PostgreSQL...")
+    logger.info("Connexion à Supabase PostgreSQL...")
 
     db_url = os.getenv("SUPABASE_DB_URL")
     if not db_url:
-        print("ERREUR: SUPABASE_DB_URL non trouvée dans .env")
+        logger.info("ERREUR: SUPABASE_DB_URL non trouvée dans .env")
         return False
 
     conn = psycopg2.connect(db_url)
@@ -31,19 +32,19 @@ def run_migration():
 
     # Lire le fichier SQL
     migration_file = os.path.join("..", "database", "migrations", "add_all_settings_tables.sql")
-    print(f"Lecture du fichier: {migration_file}")
+    logger.info(f"Lecture du fichier: {migration_file}")
 
     with open(migration_file, "r", encoding="utf-8") as f:
         sql_content = f.read()
 
-    print(f"\nExecution du script SQL...\n")
+    logger.info(f"\nExecution du script SQL...\n")
 
     try:
         # Exécuter tout le SQL d'un coup
         cursor.execute(sql_content)
         conn.commit()
 
-        print("OK - Script execute avec succes!")
+        logger.info("OK - Script execute avec succes!")
 
         # Vérifier les tables créées
         cursor.execute(
@@ -64,11 +65,11 @@ def run_migration():
     except Exception as e:
         error_msg = str(e)
         if "already exists" in error_msg.lower():
-            print(f"INFO: Certaines tables existent deja")
+            logger.info(f"INFO: Certaines tables existent deja")
             success_count = 5
             error_count = 0
         else:
-            print(f"ERREUR: {error_msg}")
+            logger.error(f"ERREUR: {error_msg}")
             success_count = 0
             error_count = 1
 
@@ -76,25 +77,25 @@ def run_migration():
         cursor.close()
         conn.close()
 
-    print("\n" + "=" * 60)
-    print(f"  RÉSULTATS:")
-    print(f"    Succès: {success_count}")
-    print(f"    Erreurs: {error_count}")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info(f"  RÉSULTATS:")
+    logger.info(f"    Succès: {success_count}")
+    logger.error(f"    Erreurs: {error_count}")
+    logger.info("=" * 60)
 
     if error_count == 0:
-        print("\n  MIGRATION TERMINÉE AVEC SUCCÈS!\n")
-        print("  Tables créées:")
-        print("    - permissions_settings")
-        print("    - affiliate_settings")
-        print("    - registration_settings")
-        print("    - mlm_settings")
-        print("    - whitelabel_settings")
-        print("\n  Les boutons 'Enregistrer' sont maintenant fonctionnels!\n")
+        logger.info("\n  MIGRATION TERMINÉE AVEC SUCCÈS!\n")
+        logger.info("  Tables créées:")
+        logger.info("    - permissions_settings")
+        logger.info("    - affiliate_settings")
+        logger.info("    - registration_settings")
+        logger.info("    - mlm_settings")
+        logger.info("    - whitelabel_settings")
+        logger.info("\n  Les boutons 'Enregistrer' sont maintenant fonctionnels!\n")
         return True
     else:
-        print("\n  MIGRATION TERMINÉE AVEC ERREURS")
-        print("  Vérifiez les messages ci-dessus\n")
+        logger.info("\n  MIGRATION TERMINÉE AVEC ERREURS")
+        logger.info("  Vérifiez les messages ci-dessus\n")
         return False
 
 

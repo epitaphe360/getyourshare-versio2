@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import uuid
 import random
 import string
+from utils.logger import logger
 
 # ============================================
 # SUBSCRIPTION PLANS
@@ -27,7 +28,7 @@ def get_all_plans(user_type: Optional[str] = None, active_only: bool = True) -> 
         result = query.order("display_order").execute()
         return result.data
     except Exception as e:
-        print(f"Error getting subscription plans: {e}")
+        logger.error(f"Error getting subscription plans: {e}")
         return []
 
 def get_plan_by_id(plan_id: str) -> Optional[Dict]:
@@ -36,7 +37,7 @@ def get_plan_by_id(plan_id: str) -> Optional[Dict]:
         result = supabase.table("subscription_plans").select("*").eq("id", plan_id).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting plan: {e}")
+        logger.error(f"Error getting plan: {e}")
         return None
 
 def get_plan_by_slug(slug: str) -> Optional[Dict]:
@@ -45,7 +46,7 @@ def get_plan_by_slug(slug: str) -> Optional[Dict]:
         result = supabase.table("subscription_plans").select("*").eq("slug", slug).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting plan by slug: {e}")
+        logger.error(f"Error getting plan by slug: {e}")
         return None
 
 # ============================================
@@ -87,7 +88,7 @@ def get_user_subscription(user_id: str) -> Optional[Dict]:
 
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting user subscription: {e}")
+        logger.error(f"Error getting user subscription: {e}")
         return None
 
 def get_subscription_by_id(subscription_id: str) -> Optional[Dict]:
@@ -99,7 +100,7 @@ def get_subscription_by_id(subscription_id: str) -> Optional[Dict]:
         """).eq("id", subscription_id).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting subscription: {e}")
+        logger.error(f"Error getting subscription: {e}")
         return None
 
 def create_subscription(
@@ -115,13 +116,13 @@ def create_subscription(
         # Vérifier si l'utilisateur a déjà un abonnement actif
         existing = get_user_subscription(user_id)
         if existing:
-            print(f"User {user_id} already has an active subscription")
+            logger.info(f"User {user_id} already has an active subscription")
             return None
 
         # Récupérer le plan
         plan = get_plan_by_id(plan_id)
         if not plan:
-            print(f"Plan {plan_id} not found")
+            logger.info(f"Plan {plan_id} not found")
             return None
 
         # Calculer les dates
@@ -184,7 +185,7 @@ def create_subscription(
 
         return None
     except Exception as e:
-        print(f"Error creating subscription: {e}")
+        logger.error(f"Error creating subscription: {e}")
         return None
 
 def update_subscription_status(subscription_id: str, status: str, reason: Optional[str] = None) -> bool:
@@ -206,7 +207,7 @@ def update_subscription_status(subscription_id: str, status: str, reason: Option
 
         return False
     except Exception as e:
-        print(f"Error updating subscription status: {e}")
+        logger.error(f"Error updating subscription status: {e}")
         return False
 
 def cancel_subscription(subscription_id: str, reason: Optional[str] = None, immediate: bool = False) -> bool:
@@ -241,7 +242,7 @@ def cancel_subscription(subscription_id: str, reason: Optional[str] = None, imme
 
         return False
     except Exception as e:
-        print(f"Error canceling subscription: {e}")
+        logger.error(f"Error canceling subscription: {e}")
         return False
 
 def upgrade_subscription(subscription_id: str, new_plan_id: str) -> Optional[Dict]:
@@ -297,7 +298,7 @@ def upgrade_subscription(subscription_id: str, new_plan_id: str) -> Optional[Dic
 
         return None
     except Exception as e:
-        print(f"Error upgrading subscription: {e}")
+        logger.error(f"Error upgrading subscription: {e}")
         return None
 
 def downgrade_subscription(subscription_id: str, new_plan_id: str) -> Optional[Dict]:
@@ -324,7 +325,7 @@ def downgrade_subscription(subscription_id: str, new_plan_id: str) -> Optional[D
 
         return None
     except Exception as e:
-        print(f"Error downgrading subscription: {e}")
+        logger.error(f"Error downgrading subscription: {e}")
         return None
 
 # ============================================
@@ -337,7 +338,7 @@ def get_user_payment_methods(user_id: str) -> List[Dict]:
         result = supabase.table("payment_methods").select("*").eq("user_id", user_id).order("is_default", desc=True).execute()
         return result.data
     except Exception as e:
-        print(f"Error getting payment methods: {e}")
+        logger.error(f"Error getting payment methods: {e}")
         return []
 
 def get_default_payment_method(user_id: str) -> Optional[Dict]:
@@ -346,7 +347,7 @@ def get_default_payment_method(user_id: str) -> Optional[Dict]:
         result = supabase.table("payment_methods").select("*").eq("user_id", user_id).eq("is_default", True).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting default payment method: {e}")
+        logger.error(f"Error getting default payment method: {e}")
         return None
 
 def add_payment_method(
@@ -382,7 +383,7 @@ def add_payment_method(
         result = supabase.table("payment_methods").insert(payment_data).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error adding payment method: {e}")
+        logger.error(f"Error adding payment method: {e}")
         return None
 
 def set_default_payment_method(payment_method_id: str, user_id: str) -> bool:
@@ -395,7 +396,7 @@ def set_default_payment_method(payment_method_id: str, user_id: str) -> bool:
         result = supabase.table("payment_methods").update({"is_default": True}).eq("id", payment_method_id).execute()
         return bool(result.data)
     except Exception as e:
-        print(f"Error setting default payment method: {e}")
+        logger.error(f"Error setting default payment method: {e}")
         return False
 
 def delete_payment_method(payment_method_id: str) -> bool:
@@ -404,7 +405,7 @@ def delete_payment_method(payment_method_id: str) -> bool:
         result = supabase.table("payment_methods").delete().eq("id", payment_method_id).execute()
         return bool(result.data)
     except Exception as e:
-        print(f"Error deleting payment method: {e}")
+        logger.error(f"Error deleting payment method: {e}")
         return False
 
 # ============================================
@@ -450,7 +451,7 @@ def create_invoice(
         result = supabase.table("invoices").insert(invoice_data).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error creating invoice: {e}")
+        logger.error(f"Error creating invoice: {e}")
         return None
 
 def get_user_invoices(user_id: str, limit: int = 20) -> List[Dict]:
@@ -466,7 +467,7 @@ def get_user_invoices(user_id: str, limit: int = 20) -> List[Dict]:
         """).eq("user_id", user_id).order("issue_date", desc=True).limit(limit).execute()
         return result.data
     except Exception as e:
-        print(f"Error getting invoices: {e}")
+        logger.error(f"Error getting invoices: {e}")
         return []
 
 def get_invoice_by_id(invoice_id: str) -> Optional[Dict]:
@@ -475,7 +476,7 @@ def get_invoice_by_id(invoice_id: str) -> Optional[Dict]:
         result = supabase.table("invoices").select("*").eq("id", invoice_id).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting invoice: {e}")
+        logger.error(f"Error getting invoice: {e}")
         return None
 
 def mark_invoice_paid(invoice_id: str, payment_intent_id: Optional[str] = None) -> bool:
@@ -490,7 +491,7 @@ def mark_invoice_paid(invoice_id: str, payment_intent_id: Optional[str] = None) 
         result = supabase.table("invoices").update(update_data).eq("id", invoice_id).execute()
         return bool(result.data)
     except Exception as e:
-        print(f"Error marking invoice paid: {e}")
+        logger.error(f"Error marking invoice paid: {e}")
         return False
 
 # ============================================
@@ -523,7 +524,7 @@ def create_transaction(
         result = supabase.table("payment_transactions").insert(transaction_data).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error creating transaction: {e}")
+        logger.error(f"Error creating transaction: {e}")
         return None
 
 def update_transaction_status(
@@ -547,7 +548,7 @@ def update_transaction_status(
         result = supabase.table("payment_transactions").update(update_data).eq("id", transaction_id).execute()
         return bool(result.data)
     except Exception as e:
-        print(f"Error updating transaction: {e}")
+        logger.error(f"Error updating transaction: {e}")
         return False
 
 def get_user_transactions(user_id: str, limit: int = 50) -> List[Dict]:
@@ -556,7 +557,7 @@ def get_user_transactions(user_id: str, limit: int = 50) -> List[Dict]:
         result = supabase.table("payment_transactions").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(limit).execute()
         return result.data
     except Exception as e:
-        print(f"Error getting transactions: {e}")
+        logger.error(f"Error getting transactions: {e}")
         return []
 
 # ============================================
@@ -569,7 +570,7 @@ def get_coupon_by_code(code: str) -> Optional[Dict]:
         result = supabase.table("subscription_coupons").select("*").eq("code", code.upper()).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting coupon: {e}")
+        logger.error(f"Error getting coupon: {e}")
         return None
 
 def is_coupon_valid(coupon: Dict, plan_id: str, user_id: str) -> bool:
@@ -611,7 +612,7 @@ def is_coupon_valid(coupon: Dict, plan_id: str, user_id: str) -> bool:
 
         return True
     except Exception as e:
-        print(f"Error validating coupon: {e}")
+        logger.error(f"Error validating coupon: {e}")
         return False
 
 def increment_coupon_usage(coupon_id: str) -> bool:
@@ -624,7 +625,7 @@ def increment_coupon_usage(coupon_id: str) -> bool:
             return True
         return False
     except Exception as e:
-        print(f"Error incrementing coupon usage: {e}")
+        logger.error(f"Error incrementing coupon usage: {e}")
         return False
 
 # ============================================
@@ -649,7 +650,7 @@ def create_usage_record(subscription_id: str, user_id: str, period_start: dateti
         result = supabase.table("subscription_usage").insert(usage_data).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error creating usage record: {e}")
+        logger.error(f"Error creating usage record: {e}")
         return None
 
 def get_current_usage(subscription_id: str) -> Optional[Dict]:
@@ -658,7 +659,7 @@ def get_current_usage(subscription_id: str) -> Optional[Dict]:
         result = supabase.table("subscription_usage").select("*").eq("subscription_id", subscription_id).order("period_start", desc=True).limit(1).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error getting current usage: {e}")
+        logger.error(f"Error getting current usage: {e}")
         return None
 
 def increment_usage(subscription_id: str, metric: str) -> bool:
@@ -672,7 +673,7 @@ def increment_usage(subscription_id: str, metric: str) -> bool:
         supabase.table("subscription_usage").update({metric: current_value + 1}).eq("id", usage["id"]).execute()
         return True
     except Exception as e:
-        print(f"Error incrementing usage: {e}")
+        logger.error(f"Error incrementing usage: {e}")
         return False
 
 def check_usage_limit(user_id: str, limit_type: str) -> Dict[str, Any]:
@@ -712,7 +713,7 @@ def check_usage_limit(user_id: str, limit_type: str) -> Dict[str, Any]:
             "remaining": max(0, limit - current)
         }
     except Exception as e:
-        print(f"Error checking usage limit: {e}")
+        logger.error(f"Error checking usage limit: {e}")
         return {"allowed": False, "reason": str(e)}
 
 # ============================================
@@ -741,7 +742,7 @@ def log_subscription_event(
         result = supabase.table("subscription_events").insert(event_data).execute()
         return result.data[0] if result.data else None
     except Exception as e:
-        print(f"Error logging subscription event: {e}")
+        logger.error(f"Error logging subscription event: {e}")
         return None
 
 def get_subscription_events(subscription_id: str, limit: int = 50) -> List[Dict]:
@@ -750,7 +751,7 @@ def get_subscription_events(subscription_id: str, limit: int = 50) -> List[Dict]
         result = supabase.table("subscription_events").select("*").eq("subscription_id", subscription_id).order("created_at", desc=True).limit(limit).execute()
         return result.data
     except Exception as e:
-        print(f"Error getting subscription events: {e}")
+        logger.error(f"Error getting subscription events: {e}")
         return []
 
 # ============================================
@@ -792,5 +793,5 @@ def get_subscription_summary(user_id: str) -> Dict[str, Any]:
             "features": plan["features"]
         }
     except Exception as e:
-        print(f"Error getting subscription summary: {e}")
+        logger.error(f"Error getting subscription summary: {e}")
         return {"has_subscription": False, "error": str(e)}

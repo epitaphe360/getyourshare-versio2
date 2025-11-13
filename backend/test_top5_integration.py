@@ -6,6 +6,7 @@ import sys
 import requests
 import json
 from datetime import datetime
+from utils.logger import logger
 
 API_URL = "http://localhost:8000"
 
@@ -18,18 +19,18 @@ class Colors:
     RESET = '\033[0m'
 
 def print_header(text):
-    print(f"\n{Colors.BLUE}{'='*60}{Colors.RESET}")
-    print(f"{Colors.BLUE}{text.center(60)}{Colors.RESET}")
-    print(f"{Colors.BLUE}{'='*60}{Colors.RESET}\n")
+    logger.info(f"\n{Colors.BLUE}{'='*60}{Colors.RESET}")
+    logger.info(f"{Colors.BLUE}{text.center(60)}{Colors.RESET}")
+    logger.info(f"{Colors.BLUE}{'='*60}{Colors.RESET}\n")
 
 def print_success(text):
-    print(f"{Colors.GREEN}✓ {text}{Colors.RESET}")
+    logger.info(f"{Colors.GREEN}✓ {text}{Colors.RESET}")
 
 def print_error(text):
-    print(f"{Colors.RED}✗ {text}{Colors.RESET}")
+    logger.info(f"{Colors.RED}✗ {text}{Colors.RESET}")
 
 def print_info(text):
-    print(f"{Colors.YELLOW}ℹ {text}{Colors.RESET}")
+    logger.info(f"{Colors.YELLOW}ℹ {text}{Colors.RESET}")
 
 def test_endpoint(endpoint, method='GET', data=None, token=None):
     """Test un endpoint API"""

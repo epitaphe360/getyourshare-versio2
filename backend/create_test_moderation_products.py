@@ -10,6 +10,7 @@ import asyncio
 from datetime import datetime
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from utils.logger import logger
 
 load_dotenv()
 
@@ -17,7 +18,7 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    print("❌ Erreur: Variables d'environnement Supabase manquantes")
+    logger.info("❌ Erreur: Variables d'environnement Supabase manquantes")
     exit(1)
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
@@ -136,9 +137,9 @@ test_products = [
 async def create_moderation_products():
     """Crée des produits de test dans la queue de modération"""
     
-    print("\n" + "="*60)
-    print("🔍 CRÉATION DE PRODUITS EN MODÉRATION")
-    print("="*60 + "\n")
+    logger.info("\n" + "="*60)
+    logger.info("🔍 CRÉATION DE PRODUITS EN MODÉRATION")
+    logger.info("="*60 + "\n")
     
     # 1. Récupérer les merchants disponibles
     try:
@@ -146,13 +147,13 @@ async def create_moderation_products():
         merchants = merchants_response.data
         
         if not merchants:
-            print("❌ Aucun merchant trouvé dans la base de données")
+            logger.info("❌ Aucun merchant trouvé dans la base de données")
             return
         
-        print(f"✅ {len(merchants)} merchants trouvés\n")
+        logger.info(f"✅ {len(merchants)} merchants trouvés\n")
         
     except Exception as e:
-        print(f"❌ Erreur lors de la récupération des merchants: {e}")
+        logger.info(f"❌ Erreur lors de la récupération des merchants: {e}")
         return
     
     # 2. Créer les produits dans la queue de modération
@@ -198,21 +199,21 @@ async def create_moderation_products():
             emoji = risk_emoji.get(product["ai_risk_level"], "⚪")
             status_text = "APPROVED ✓" if product["ai_decision"] == "approved" else "REJECTED ✗"
             
-            print(f"{emoji} {product['product_name'][:50]}")
-            print(f"   Prix: {product['product_price']:.2f} MAD | Risque: {product['ai_risk_level'].upper()}")
-            print(f"   Décision IA: {status_text} (confiance: {product['ai_confidence']:.0%})")
-            print(f"   Merchant: {merchant['company_name']}\n")
+            logger.info(f"{emoji} {product['product_name'][:50]}")
+            logger.info(f"   Prix: {product['product_price']:.2f} MAD | Risque: {product['ai_risk_level'].upper()}")
+            logger.info(f"   Décision IA: {status_text} (confiance: {product['ai_confidence']:.0%})")
+            logger.info(f"   Merchant: {merchant['company_name']}\n")
             
             created_count += 1
             
         except Exception as e:
-            print(f"❌ Erreur lors de la création du produit '{product['product_name']}': {e}\n")
+            logger.info(f"❌ Erreur lors de la création du produit '{product['product_name']}': {e}\n")
             continue
     
     # 3. Récapitulatif
-    print("="*60)
-    print(f"✅ {created_count}/{len(test_products)} PRODUITS CRÉÉS EN MODÉRATION!")
-    print("="*60 + "\n")
+    logger.info("="*60)
+    logger.info(f"✅ {created_count}/{len(test_products)} PRODUITS CRÉÉS EN MODÉRATION!")
+    logger.info("="*60 + "\n")
     
     # Compter par niveau de risque
     risk_counts = {}
@@ -220,15 +221,15 @@ async def create_moderation_products():
         risk = product["ai_risk_level"]
         risk_counts[risk] = risk_counts.get(risk, 0) + 1
     
-    print("📊 RÉPARTITION PAR NIVEAU DE RISQUE:")
-    print(f"   🔴 Critical: {risk_counts.get('critical', 0)}")
-    print(f"   🟠 High: {risk_counts.get('high', 0)}")
-    print(f"   🟡 Medium: {risk_counts.get('medium', 0)}")
-    print(f"   🟢 Low: {risk_counts.get('low', 0)}")
+    logger.info("📊 RÉPARTITION PAR NIVEAU DE RISQUE:")
+    logger.error(f"   🔴 Critical: {risk_counts.get('critical', 0)}")
+    logger.info(f"   🟠 High: {risk_counts.get('high', 0)}")
+    logger.info(f"   🟡 Medium: {risk_counts.get('medium', 0)}")
+    logger.info(f"   🟢 Low: {risk_counts.get('low', 0)}")
     
-    print(f"\n🌐 Accédez à: http://localhost:3000/admin/moderation")
-    print(f"📝 Rafraîchissez la page pour voir les produits en attente!\n")
-    print("="*60)
+    logger.info(f"\n🌐 Accédez à: http://localhost:3000/admin/moderation")
+    logger.info(f"📝 Rafraîchissez la page pour voir les produits en attente!\n")
+    logger.info("="*60)
 
 if __name__ == "__main__":
     asyncio.run(create_moderation_products())

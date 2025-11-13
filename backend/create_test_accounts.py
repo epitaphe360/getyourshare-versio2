@@ -1,6 +1,7 @@
 """Créer les comptes de test pour l'application"""
 import bcrypt
 from supabase_client import supabase
+from utils.logger import logger
 
 def hash_password(password: str) -> str:
     """Hasher un mot de passe avec bcrypt"""
@@ -10,11 +11,11 @@ def hash_password(password: str) -> str:
 DEFAULT_PASSWORD = "Test123!"
 password_hash = hash_password(DEFAULT_PASSWORD)
 
-print("=== CRÉATION DES COMPTES DE TEST ===")
-print(f"Mot de passe pour tous les comptes: {DEFAULT_PASSWORD}\n")
+logger.info("=== CRÉATION DES COMPTES DE TEST ===")
+logger.info(f"Mot de passe pour tous les comptes: {DEFAULT_PASSWORD}\n")
 
 # 1. Admin Enterprise
-print("1. Création du compte ADMIN...")
+logger.info("1. Création du compte ADMIN...")
 try:
     # Créer l'utilisateur admin
     admin_data = {
@@ -27,12 +28,12 @@ try:
         "two_fa_enabled": False
     }
     result = supabase.table("users").insert(admin_data).execute()
-    print("   ✅ Admin créé avec succès")
+    logger.info("   ✅ Admin créé avec succès")
 except Exception as e:
-    print(f"   ❌ Erreur: {e}")
+    logger.info(f"   ❌ Erreur: {e}")
 
 # 2. Influenceurs
-print("\n2. Création des INFLUENCEURS...")
+logger.info("\n2. Création des INFLUENCEURS...")
 influencers = [
     {
         "email": "hassan.oudrhiri@getyourshare.com",
@@ -90,12 +91,12 @@ for inf in influencers:
         }
         supabase.table("influencers").insert(influencer_data).execute()
         
-        print(f"   ✅ {inf['username']} ({inf['subscription_plan'].upper()}) créé")
+        logger.info(f"   ✅ {inf['username']} ({inf['subscription_plan'].upper()}) créé")
     except Exception as e:
-        print(f"   ❌ Erreur pour {inf['username']}: {e}")
+        logger.info(f"   ❌ Erreur pour {inf['username']}: {e}")
 
 # 3. Marchands
-print("\n3. Création des MARCHANDS...")
+logger.info("\n3. Création des MARCHANDS...")
 merchants = [
     {
         "email": "boutique.maroc@getyourshare.com",
@@ -145,12 +146,12 @@ for mer in merchants:
         }
         supabase.table("merchants").insert(merchant_data).execute()
         
-        print(f"   ✅ {mer['company_name']} ({mer['subscription_plan'].upper()}) créé")
+        logger.info(f"   ✅ {mer['company_name']} ({mer['subscription_plan'].upper()}) créé")
     except Exception as e:
-        print(f"   ❌ Erreur pour {mer['company_name']}: {e}")
+        logger.info(f"   ❌ Erreur pour {mer['company_name']}: {e}")
 
 # 4. Commercial (utiliser le rôle 'admin' car 'commercial' n'existe pas dans le schema)
-print("\n4. Création du compte COMMERCIAL...")
+logger.info("\n4. Création du compte COMMERCIAL...")
 try:
     # Créer l'utilisateur commercial (role=admin pour accès complet)
     commercial_data = {
@@ -163,19 +164,19 @@ try:
         "two_fa_enabled": False
     }
     result = supabase.table("users").insert(commercial_data).execute()
-    print("   ✅ Sofia Chakir (ADMIN/COMMERCIAL) créé avec succès")
+    logger.info("   ✅ Sofia Chakir (ADMIN/COMMERCIAL) créé avec succès")
 except Exception as e:
-    print(f"   ❌ Erreur: {e}")
+    logger.info(f"   ❌ Erreur: {e}")
 
-print("\n\n=== RÉSUMÉ DES COMPTES CRÉÉS ===")
-print(f"Email: [nom]@getyourshare.com")
-print(f"Mot de passe: {DEFAULT_PASSWORD}")
-print("\nComptes disponibles:")
-print("  - admin@getyourshare.com (ADMIN - ENTERPRISE)")
-print("  - hassan.oudrhiri@getyourshare.com (INFLUENCER - STARTER)")
-print("  - sarah.benali@getyourshare.com (INFLUENCER - PRO)")
-print("  - karim.benjelloun@getyourshare.com (INFLUENCER - ENTERPRISE)")
-print("  - boutique.maroc@getyourshare.com (MERCHANT - STARTER)")
-print("  - luxury.crafts@getyourshare.com (MERCHANT - PRO)")
-print("  - electro.maroc@getyourshare.com (MERCHANT - ENTERPRISE)")
-print("  - sofia.chakir@getyourshare.com (COMMERCIAL - ENTERPRISE)")
+logger.info("\n\n=== RÉSUMÉ DES COMPTES CRÉÉS ===")
+logger.info(f"Email: [nom]@getyourshare.com")
+logger.info(f"Mot de passe: {DEFAULT_PASSWORD}")
+logger.info("\nComptes disponibles:")
+logger.info("  - admin@getyourshare.com (ADMIN - ENTERPRISE)")
+logger.info("  - hassan.oudrhiri@getyourshare.com (INFLUENCER - STARTER)")
+logger.info("  - sarah.benali@getyourshare.com (INFLUENCER - PRO)")
+logger.info("  - karim.benjelloun@getyourshare.com (INFLUENCER - ENTERPRISE)")
+logger.info("  - boutique.maroc@getyourshare.com (MERCHANT - STARTER)")
+logger.info("  - luxury.crafts@getyourshare.com (MERCHANT - PRO)")
+logger.info("  - electro.maroc@getyourshare.com (MERCHANT - ENTERPRISE)")
+logger.info("  - sofia.chakir@getyourshare.com (COMMERCIAL - ENTERPRISE)")

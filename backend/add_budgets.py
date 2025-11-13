@@ -3,6 +3,7 @@ Script pour ajouter des données budgétaires aux merchants
 """
 import os
 from supabase import create_client
+from utils.logger import logger
 
 # Charger manuellement les variables depuis .env
 try:
@@ -13,33 +14,33 @@ try:
                 key, value = line.split('=', 1)
                 os.environ[key] = value
 except Exception as e:
-    print(f"Erreur lors du chargement du .env: {e}")
+    logger.info(f"Erreur lors du chargement du .env: {e}")
 
 # Connexion Supabase
 supabase_url = os.getenv("SUPABASE_URL")
 supabase_key = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_ANON_KEY")
 
-print(f"URL: {supabase_url[:30] if supabase_url else 'None'}...")
-print(f"Key: {'✅ Chargée' if supabase_key else '❌ Manquante'}\n")
+logger.info(f"URL: {supabase_url[:30] if supabase_url else 'None'}...")
+logger.info(f"Key: {'✅ Chargée' if supabase_key else '❌ Manquante'}\n")
 
 supabase = create_client(supabase_url, supabase_key)
 
 def add_budgets():
     """Ajoute des budgets réalistes aux merchants"""
     
-    print("\n" + "="*60)
-    print("🔧 AJOUT DES BUDGETS AUX MERCHANTS")
-    print("="*60 + "\n")
+    logger.info("\n" + "="*60)
+    logger.info("🔧 AJOUT DES BUDGETS AUX MERCHANTS")
+    logger.info("="*60 + "\n")
     
     # Récupérer tous les merchants
     result = supabase.table("users").select("id, email, company_name").eq("role", "merchant").execute()
     merchants = result.data
     
     if not merchants:
-        print("❌ Aucun merchant trouvé")
+        logger.info("❌ Aucun merchant trouvé")
         return
     
-    print(f"✅ {len(merchants)} merchants trouvés\n")
+    logger.info(f"✅ {len(merchants)} merchants trouvés\n")
     
     # Données budgétaires réalistes
     budgets = [
@@ -67,22 +68,22 @@ def add_budgets():
                 "status": "active"
             }).eq("id", merchant["id"]).execute()
             
-            print(f"✅ {merchant.get('email', 'N/A')}")
-            print(f"   Entreprise: {budget_data['company_name']}")
-            print(f"   Pays: {budget_data['country']}")
-            print(f"   Balance: {budget_data['balance']} €")
-            print(f"   Total dépensé: {budget_data['total_spent']} €")
-            print(f"   Campagnes: {budget_data['campaigns_count']}")
+            logger.info(f"✅ {merchant.get('email', 'N/A')}")
+            logger.info(f"   Entreprise: {budget_data['company_name']}")
+            logger.info(f"   Pays: {budget_data['country']}")
+            logger.info(f"   Balance: {budget_data['balance']} €")
+            logger.info(f"   Total dépensé: {budget_data['total_spent']} €")
+            logger.info(f"   Campagnes: {budget_data['campaigns_count']}")
             print()
             
         except Exception as e:
-            print(f"❌ Erreur: {e}")
+            logger.info(f"❌ Erreur: {e}")
             return
     
-    print("\n" + "="*60)
-    print("✅ BUDGETS AJOUTÉS AVEC SUCCÈS!")
-    print("="*60)
-    print("\n💡 Rafraîchissez la page 'Annonceurs'")
+    logger.info("\n" + "="*60)
+    logger.info("✅ BUDGETS AJOUTÉS AVEC SUCCÈS!")
+    logger.info("="*60)
+    logger.info("\n💡 Rafraîchissez la page 'Annonceurs'")
 
 if __name__ == "__main__":
     add_budgets()

@@ -476,7 +476,7 @@ class ContentStudioService:
             try:
                 font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 36)
                 font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
-            except:
+            except Exception:
                 font = ImageFont.load_default()
                 font_small = font
 

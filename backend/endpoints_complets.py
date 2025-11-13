@@ -1,4 +1,5 @@
 """
+from utils.logger import logger
 ENDPOINTS COMPLETS - À ajouter à server_complete.py
 Tous les endpoints manquants pour tous les dashboards
 """
@@ -206,4 +207,4 @@ ENDPOINTS_MANQUANTS = """
 
 """
 
-print(ENDPOINTS_MANQUANTS)
+logger.info(ENDPOINTS_MANQUANTS)

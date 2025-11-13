@@ -6,6 +6,7 @@ Fournit une instance globale du client Supabase pour toute l'application
 import os
 from typing import Optional
 from supabase import create_client, Client
+from utils.logger import logger
 
 # Instance globale du client Supabase
 _supabase_client: Optional[Client] = None
@@ -27,15 +28,15 @@ def init_supabase() -> Optional[Client]:
     supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
     
     if not supabase_url or not supabase_key:
-        print("WARNING: SUPABASE_URL ou SUPABASE_KEY non configures")
+        logger.warning("WARNING: SUPABASE_URL ou SUPABASE_KEY non configures")
         return None
     
     try:
         _supabase_client = create_client(supabase_url, supabase_key)
-        print("OK: Client Supabase initialise")
+        logger.info("OK: Client Supabase initialise")
         return _supabase_client
     except Exception as e:
-        print(f"ERROR: Erreur initialisation Supabase: {e}")
+        logger.error(f"ERROR: Erreur initialisation Supabase: {e}")
         return None
 
 
