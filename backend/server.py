@@ -356,12 +356,19 @@ app.include_router(commercial_router)  # Dashboard Commercial - 3 niveaux d'abon
 
 # Security
 security = HTTPBearer()
-JWT_SECRET = os.getenv("JWT_SECRET", "fallback-secret-please-set-env-variable")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-JWT_EXPIRATION_HOURS = int(os.getenv("JWT_EXPIRATION_HOURS", "24"))
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    if os.getenv("ENVIRONMENT", "development") == "production":
+        raise ValueError("JWT_SECRET environment variable must be set in production")
+    else:
+        JWT_SECRET = "dev-secret-key-change-in-production"
+        logger.warning("⚠️  WARNING: Using default JWT_SECRET for development. DO NOT use in production!")
 
-if JWT_SECRET == "fallback-secret-please-set-env-variable":
-    logger.warning("⚠️  WARNING: JWT_SECRET not set in environment!")
+REFRESH_TOKEN_SECRET = os.getenv("REFRESH_TOKEN_SECRET", JWT_SECRET + "_refresh")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "15"))
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 # Pydantic Models
 class LoginRequest(BaseModel):
@@ -427,16 +434,26 @@ class CompanySettingsUpdate(BaseModel):
 
 # Helper Functions
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    """Create JWT access token with short expiration (15 minutes)"""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(hours=JWT_EXPIRATION_HOURS)
-    to_encode.update({"exp": expire})
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return encoded_jwt
 
+def create_refresh_token(data: dict):
+    """Create refresh token with long expiration (7 days)"""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    encoded_jwt = jwt.encode(to_encode, REFRESH_TOKEN_SECRET, algorithm=JWT_ALGORITHM)
+    return encoded_jwt
+
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Verify JWT token from Authorization header (legacy support)"""
     try:
         token = credentials.credentials
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
@@ -447,6 +464,48 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
             detail="Token expired"
         )
     except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials"
+        )
+
+def get_current_user_from_cookie(request: Request):
+    """
+    Get current user from httpOnly cookie (secure method)
+    Fallback to Authorization header for backward compatibility
+    """
+    # Try to get token from cookie first (secure)
+    token = request.cookies.get("access_token")
+
+    # Fallback to Authorization header (legacy)
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+
+        # Verify token type
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type"
+            )
+
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired"
+        )
+    except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials"
@@ -476,8 +535,8 @@ async def health_check():
     }
 
 @app.post("/api/auth/login")
-async def login(login_data: LoginRequest):
-    """Login avec email et mot de passe"""
+async def login(login_data: LoginRequest, response: Response):
+    """Login avec email et mot de passe - Tokens dans httpOnly cookies"""
     # Trouver l'utilisateur dans Supabase
     user = get_user_by_email(login_data.email)
 
@@ -522,21 +581,120 @@ async def login(login_data: LoginRequest):
     # Pas de 2FA, connexion directe
     update_user_last_login(user["id"])
 
+    # Créer access token (15 minutes) et refresh token (7 jours)
     access_token = create_access_token({
         "sub": user["id"],
         "email": user["email"],
         "role": user["role"]
     })
 
+    refresh_token = create_refresh_token({
+        "sub": user["id"]
+    })
+
+    # Définir les tokens dans des cookies httpOnly (sécurisé contre XSS)
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,  # Pas accessible en JavaScript
+        secure=ENVIRONMENT == "production",  # HTTPS only en production
+        samesite="lax",  # Protection CSRF
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60  # 15 minutes en secondes
+    )
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=ENVIRONMENT == "production",
+        samesite="lax",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60  # 7 jours en secondes
+    )
+
     # Retirer le password_hash de la réponse
     user_data = {k: v for k, v in user.items() if k != "password_hash"}
 
+    # Ne pas retourner les tokens dans le JSON (ils sont dans les cookies)
     return {
-        "access_token": access_token,
-        "token_type": "bearer",
         "requires_2fa": False,
-        "user": user_data
+        "user": user_data,
+        "message": "Login successful"
     }
+
+@app.post("/api/auth/refresh")
+async def refresh_access_token(request: Request, response: Response):
+    """
+    Rafraîchir l'access token en utilisant le refresh token
+    Access token expiré (15min) → Utiliser refresh token (7 jours) pour obtenir un nouveau
+    """
+    refresh_token = request.cookies.get("refresh_token")
+
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token missing"
+        )
+
+    try:
+        # Décoder le refresh token
+        payload = jwt.decode(refresh_token, REFRESH_TOKEN_SECRET, algorithms=[JWT_ALGORITHM])
+
+        # Vérifier que c'est bien un refresh token
+        if payload.get("type") != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type"
+            )
+
+        # Récupérer les infos utilisateur
+        user_id = payload.get("sub")
+        user = get_user_by_id(user_id)
+
+        if not user or not user.get("is_active", True):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found or inactive"
+            )
+
+        # Créer nouveau access token
+        new_access_token = create_access_token({
+            "sub": user["id"],
+            "email": user["email"],
+            "role": user["role"]
+        })
+
+        # Définir le nouveau access token dans le cookie
+        response.set_cookie(
+            key="access_token",
+            value=new_access_token,
+            httponly=True,
+            secure=ENVIRONMENT == "production",
+            samesite="lax",
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        )
+
+        return {
+            "message": "Access token refreshed",
+            "user": {k: v for k, v in user.items() if k != "password_hash"}
+        }
+
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token expired, please login again"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token"
+        )
+
+@app.post("/api/auth/logout")
+async def logout(response: Response):
+    """Logout - Supprime les cookies de tokens"""
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
+    return {"message": "Logged out successfully"}
 
 @app.post("/api/auth/verify-2fa")
 async def verify_2fa(data: TwoFAVerifyRequest):

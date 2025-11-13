@@ -7,21 +7,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important: Envoie les cookies httpOnly automatiquement
 });
-
-// Request interceptor to add auth token
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 // Response interceptor to handle errors
 api.interceptors.response.use(
@@ -32,22 +19,14 @@ api.interceptors.response.use(
 
     // Gestion détaillée des erreurs
     if (status === 401) {
-      console.error('🚫 Erreur 401: Non autorisé -', url);
-
-      // Éviter les boucles de redirection
-      if (!window.location.pathname.includes('/login')) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login?session_expired=true';
-      }
+      // 401 géré par AuthContext avec auto-refresh
+      // Ne pas rediriger automatiquement ici
     } else if (status === 403) {
-      console.error('🚫 Erreur 403: Accès interdit -', url);
+      // 403 Forbidden
     } else if (status === 404) {
-      console.error('🔍 Erreur 404: Ressource non trouvée -', url);
+      // 404 Not Found
     } else if (status >= 500) {
-      console.error('💥 Erreur serveur', status, '-', url);
-    } else {
-      console.error('❌ Erreur API:', status, error.response?.data?.detail || error.message);
+      // Server error
     }
 
     return Promise.reject(error);
