@@ -14,8 +14,21 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# Token Vercel (fourni)
-VERCEL_TOKEN="O0sBOF9tJcu74F9w9yKfuScF"
+# Token Vercel (fourni via variable d'environnement)
+VERCEL_TOKEN="${VERCEL_TOKEN:-}"
+
+# Vérifier que le token est défini
+if [ -z "$VERCEL_TOKEN" ]; then
+    echo -e "${RED}❌ Erreur : VERCEL_TOKEN n'est pas défini${NC}"
+    echo ""
+    echo "Pour obtenir un token :"
+    echo "  1. Allez sur https://vercel.com/account/tokens"
+    echo "  2. Créez un nouveau token"
+    echo "  3. Exportez-le : export VERCEL_TOKEN='votre_token'"
+    echo ""
+    echo "Ou utilisez : vercel login"
+    exit 1
+fi
 
 # Vérifier si Vercel CLI est installé
 if ! command -v vercel &> /dev/null; then

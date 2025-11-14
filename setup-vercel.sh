@@ -7,9 +7,22 @@ echo "🚀 Configuration Vercel pour ShareYourSales Frontend"
 echo "=================================================="
 
 # Variables
-VERCEL_TOKEN="O0sBOF9tJcu74F9w9yKfuScF"
+VERCEL_TOKEN="${VERCEL_TOKEN:-}"
 PROJECT_NAME="shareyoursales-frontend"
 BACKEND_URL="https://getyourshare-backend-production.up.railway.app"
+
+# Vérifier que le token est défini
+if [ -z "$VERCEL_TOKEN" ]; then
+    echo "❌ Erreur : VERCEL_TOKEN n'est pas défini"
+    echo ""
+    echo "Pour obtenir un token :"
+    echo "  1. Allez sur https://vercel.com/account/tokens"
+    echo "  2. Créez un nouveau token"
+    echo "  3. Exportez-le : export VERCEL_TOKEN='votre_token'"
+    echo ""
+    echo "Ou utilisez : vercel login"
+    exit 1
+fi
 
 # Vérifier si vercel CLI est installé
 if ! command -v vercel &> /dev/null; then
