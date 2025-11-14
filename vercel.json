@@ -35,12 +35,25 @@
   },
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!favicon\\.ico|manifest\\.json|robots\\.txt|sitemap\\.xml|.*\\.png|.*\\.jpg|.*\\.svg|static/.*|icons/.*).*)",
       "destination": "/index.html"
     }
   ],
   "cleanUrls": true,
   "headers": [
+    {
+      "source": "/favicon.ico",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "image/x-icon"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    },
     {
       "source": "/manifest.json",
       "headers": [
