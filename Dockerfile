@@ -1,8 +1,12 @@
 # ============================================
-# Root Dockerfile for Railway - Monorepo setup - Fixed
+# Root Dockerfile for Railway - Backend deployment
+# Updated to use run.py for proper PORT handling
 # ============================================
 
 FROM python:3.11-slim
+
+# Bust cache to force rebuild
+ARG CACHEBUST=20251114145500
 
 # Set working directory
 WORKDIR /app
@@ -19,5 +23,6 @@ COPY backend/ ./
 # Expose port
 EXPOSE 8000
 
-# Start the application
-CMD ["sh", "-c", "uvicorn server_complete:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start with Python script to properly handle PORT variable
+# Using ENTRYPOINT to prevent Railway from overriding it
+ENTRYPOINT ["python", "run.py"]
