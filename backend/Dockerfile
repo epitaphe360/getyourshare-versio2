@@ -20,5 +20,5 @@ COPY . .
 EXPOSE 8000
 
 # Start with Python script (bypasses all shell variable issues)
-CMD ["python", "run.py"]
+CMD exec uvicorn server_complete:app --host 0.0.0.0 --port ${PORT:-8000}
 
