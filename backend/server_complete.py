@@ -6561,5 +6561,4 @@ async def import_translations(
 
 if __name__ == "__main__":
     import uvicorn
-from utils.logger import logger
     uvicorn.run(app, host="0.0.0.0", port=8000)
