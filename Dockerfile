@@ -11,15 +11,18 @@ WORKDIR /app
 # Copy requirements from backend directory (build context is root)
 COPY backend/requirements.txt ./
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies - Changed to force rebuild
+RUN pip install -r requirements.txt
 
-# FORCE CACHE INVALIDATION - RUN command ensures Docker rebuilds everything after this
-ARG CACHEBUST=20251114152000
-RUN echo "Cache bust: ${CACHEBUST}"
+# ABSOLUTE CACHE KILLER - Multiple random operations
+RUN date > /tmp/build_timestamp.txt && cat /tmp/build_timestamp.txt
+RUN echo "Build ID: railway-$(date +%s)" && ls -la
 
-# Copy all backend application files (will NOT use cache due to RUN above)
+# Copy all backend application files - NO CACHE POSSIBLE
 COPY backend/ ./
+
+# Verify correct file was copied
+RUN head -10 db_queries_real.py | grep "from utils.logger import logger" || (echo "ERROR: Wrong file version!" && exit 1)
 
 # Expose port
 EXPOSE 8000
