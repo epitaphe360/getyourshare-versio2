@@ -18,7 +18,6 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Start the application with proper PORT handling
-# Using sh -c to ensure shell variable substitution works
-CMD sh -c 'exec uvicorn server_complete:app --host 0.0.0.0 --port ${PORT:-8000}'
+# Start with Python script (bypasses all shell variable issues)
+CMD ["python", "run.py"]
 
