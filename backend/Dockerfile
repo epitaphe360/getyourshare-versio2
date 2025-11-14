@@ -15,12 +15,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application
 COPY . .
 
-# Make start script executable
-RUN chmod +x start.sh
+# Make all start scripts executable
+RUN chmod +x start.sh start-fast.sh
 
 # Expose port
 EXPOSE 8000
 
-# Start the application using the wrapper script
-CMD ["./start.sh"]
+# Start with minimal server by default (faster, always works)
+# To use full server, change Railway start command to: ./start.sh
+CMD ["./start-fast.sh"]
 
