@@ -1,24 +1,20 @@
 # ============================================
-# Root Dockerfile for Railway - Monorepo setup - Force rebuild
+# Root Dockerfile for Railway - Monorepo setup - Fixed
 # ============================================
 
 FROM python:3.11-slim
 
-# Définir le répertoire de travail temporaire
-WORKDIR /tmp/app
+# Set working directory
+WORKDIR /app
 
-# Copier TOUT le contexte de build dans le répertoire temporaire
-COPY . .
+# Copy requirements from backend directory (build context is root)
+COPY backend/requirements.txt ./
 
-# Déplacer le contenu du backend vers le répertoire de travail final
-# Nous supposons que le Dockerfile est à la racine et que le dossier backend existe
-RUN mv backend/. . && rm -rf backend
-
-# Installer les dépendances (le fichier est maintenant à /tmp/app/requirements.txt)
+# Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Définir le répertoire de travail final
-WORKDIR /tmp/app
+# Copy all backend application files
+COPY backend/ ./
 
 # Expose port
 EXPOSE 8000
