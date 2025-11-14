@@ -11,10 +11,10 @@ from typing import Optional, Dict, Any
 from supabase import create_client, Client
 import os
 from auth import get_current_user
+from utils.logger import logger
 
 # Import des helpers pour éviter la duplication de code
 from subscription_helpers_simple import (
-from utils.logger import logger
     get_user_subscription_data,
     get_merchant_limits,
     get_influencer_limits,
