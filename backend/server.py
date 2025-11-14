@@ -275,11 +275,6 @@ if vercel_production_url:
         vercel_production_url = f"https://{vercel_production_url}"
     allowed_origins.append(vercel_production_url)
 
-# Ajouter l'URL Vercel actuelle du déploiement
-current_vercel_url = "https://getyourshare-7h1z5006j-getyourshares-projects.vercel.app"
-if current_vercel_url not in allowed_origins:
-    allowed_origins.append(current_vercel_url)
-
 # Ajouter origines de développement si ENV=development
 if os.getenv("ENV", "development") == "development":
     allowed_origins.extend([
@@ -290,9 +285,14 @@ if os.getenv("ENV", "development") == "development":
 # Log les origines autorisées pour faciliter le débogage
 logger.info(f"CORS allowed origins: {allowed_origins}")
 
+# Regex pattern to allow all Vercel preview and production deployments
+# This handles URLs like: https://getyourshare-*.vercel.app
+vercel_regex = r"https://.*\.vercel\.app"
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,  # ✅ Whitelist au lieu de wildcard
+    allow_origin_regex=vercel_regex,  # ✅ Allow all Vercel deployments
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
