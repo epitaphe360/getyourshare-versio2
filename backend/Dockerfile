@@ -25,4 +25,3 @@ EXPOSE 8000
 # Start with Python script (bypasses all shell variable issues)
 # Using ENTRYPOINT instead of CMD to prevent Railway from overriding it
 ENTRYPOINT ["python", "run.py"]
-
