@@ -30,20 +30,7 @@
       "purpose": "any maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshots/dashboard.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "label": "Dashboard principal avec statistiques en temps réel"
-    },
-    {
-      "src": "/screenshots/ai-content.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "label": "Générateur de contenu IA multi-plateforme"
-    }
-  ],
+  "screenshots": [],
   "categories": ["business", "finance", "productivity", "social"],
   "shortcuts": [
     {
