@@ -1,0 +1,48 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
+  "framework": "create-react-app",
+  "installCommand": "npm install",
+  "devCommand": "npm start",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ],
+  "env": {
+    "REACT_APP_API_URL": "https://getyourshare-backend-production.up.railway.app/api",
+    "REACT_APP_BACKEND_URL": "https://getyourshare-backend-production.up.railway.app",
+    "REACT_APP_SUPABASE_URL": "https://iamezkmapbhlhhvvsits.supabase.co",
+    "REACT_APP_NAME": "ShareYourSales",
+    "REACT_APP_VERSION": "1.0.0",
+    "REACT_APP_ENV": "production",
+    "REACT_APP_FEATURE_MLM": "false",
+    "REACT_APP_FEATURE_ANALYTICS": "true",
+    "REACT_APP_FEATURE_AI_MARKETING": "false",
+    "REACT_APP_DEBUG": "false",
+    "DISABLE_ESLINT_PLUGIN": "true"
+  },
+  "build": {
+    "env": {
+      "DISABLE_ESLINT_PLUGIN": "true"
+    }
+  },
+  "github": {
+    "enabled": true,
+    "autoAlias": true,
+    "silent": false
+  }
+}
