@@ -1,8 +1,11 @@
 # ============================================
-# Dockerfile - Backend Only (Updated for Railway) - v4
-# Force rebuild: 2025-11-14T14:30:00Z
+# Dockerfile - Backend Only (Updated for Railway) - v5
+# Force rebuild: 2025-11-14T14:45:00Z - Clear cache for db_helpers.py fix
 # ============================================
 FROM python:3.11-slim
+
+# Bust cache to force rebuild with fixed db_helpers.py
+ARG CACHEBUST=20251114144500
 
 # Set working directory
 WORKDIR /app
@@ -20,5 +23,5 @@ COPY . .
 EXPOSE 8000
 
 # Start with Python script (bypasses all shell variable issues)
-CMD exec uvicorn server_complete:app --host 0.0.0.0 --port ${PORT:-8000}
-
+# Using ENTRYPOINT instead of CMD to prevent Railway from overriding it
+ENTRYPOINT ["python", "run.py"]
