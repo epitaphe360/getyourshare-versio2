@@ -14,10 +14,11 @@ COPY backend/requirements.txt ./
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Bust cache RIGHT BEFORE copying application files to force fresh copy
-ARG CACHEBUST=20251114151500
+# FORCE CACHE INVALIDATION - RUN command ensures Docker rebuilds everything after this
+ARG CACHEBUST=20251114152000
+RUN echo "Cache bust: ${CACHEBUST}"
 
-# Copy all backend application files (cache busted - will always copy fresh)
+# Copy all backend application files (will NOT use cache due to RUN above)
 COPY backend/ ./
 
 # Expose port
