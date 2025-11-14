@@ -6,6 +6,7 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime, timedelta
 from supabase_client import get_supabase_client
 from utils.db_safe import safe_ilike
+from utils.logger import logger
 
 # ============================================
 # ANALYTICS - INFLUENCER
@@ -1826,7 +1827,6 @@ async def update_user_password(
     """
     try:
         import bcrypt
-from utils.logger import logger
         supabase = get_supabase_client()
         
         # Récupérer le hash actuel
