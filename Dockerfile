@@ -5,9 +5,6 @@
 
 FROM python:3.11-slim
 
-# Bust cache to force rebuild
-ARG CACHEBUST=20251114145500
-
 # Set working directory
 WORKDIR /app
 
@@ -17,7 +14,10 @@ COPY backend/requirements.txt ./
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all backend application files
+# Bust cache RIGHT BEFORE copying application files to force fresh copy
+ARG CACHEBUST=20251114151500
+
+# Copy all backend application files (cache busted - will always copy fresh)
 COPY backend/ ./
 
 # Expose port
