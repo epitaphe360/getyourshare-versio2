@@ -1,0 +1,84 @@
+{
+  "version": 2,
+  "name": "getyourshare-versio2",
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/build",
+  "framework": "create-react-app",
+  "installCommand": "cd frontend && npm install",
+  "devCommand": "cd frontend && npm start",
+  "regions": ["iad1"],
+  "env": {
+    "REACT_APP_API_URL": "https://getyourshare-backend-production.up.railway.app/api",
+    "REACT_APP_SUPABASE_URL": "https://iamezkmapbhlhhvvsits.supabase.co",
+    "REACT_APP_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhbWV6a21hcGJobGhodnZzaXRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNDQ0MTMsImV4cCI6MjA3NjcyMDQxM30.drzPDA02bKMv-_DxxyWtdwqg0a8nEIdHTu8UXIslgfo",
+    "REACT_APP_NAME": "ShareYourSales",
+    "REACT_APP_VERSION": "1.0.0",
+    "REACT_APP_ENV": "production",
+    "REACT_APP_FEATURE_MLM": "false",
+    "REACT_APP_FEATURE_ANALYTICS": "true",
+    "REACT_APP_FEATURE_AI_MARKETING": "false"
+  },
+  "build": {
+    "env": {
+      "REACT_APP_API_URL": "https://getyourshare-backend-production.up.railway.app/api",
+      "REACT_APP_SUPABASE_URL": "https://iamezkmapbhlhhvvsits.supabase.co",
+      "REACT_APP_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlhbWV6a21hcGJobGhodnZzaXRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNDQ0MTMsImV4cCI6MjA3NjcyMDQxM30.drzPDA02bKMv-_DxxyWtdwqg0a8nEIdHTu8UXIslgfo",
+      "REACT_APP_NAME": "ShareYourSales",
+      "REACT_APP_VERSION": "1.0.0",
+      "REACT_APP_ENV": "production",
+      "REACT_APP_FEATURE_MLM": "false",
+      "REACT_APP_FEATURE_ANALYTICS": "true",
+      "REACT_APP_FEATURE_AI_MARKETING": "false"
+    }
+  },
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/manifest.json"
+    },
+    {
+      "src": "/robots.txt",
+      "dest": "/robots.txt"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    },
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}
