@@ -233,16 +233,53 @@ app = FastAPI(
 # MIDDLEWARE
 # ============================================
 
-# Récupérer CORS origins depuis les variables d'environnement
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
-logger.info(f"🔐 CORS Origins configurés: {cors_origins}")
+# CORS configuration - Whitelist sécurisée par environnement
+# ✅ FIX SÉCURITÉ P0: Remplacement wildcard par whitelist
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    os.getenv("FRONTEND_URL", "https://getyourshare.com"),
+    os.getenv("PRODUCTION_URL", "https://www.getyourshare.com"),
+]
+
+# Ajouter les URLs Vercel (déploiement et preview)
+vercel_url = os.getenv("VERCEL_URL")
+if vercel_url:
+    # Vercel fournit l'URL sans protocole, on ajoute https://
+    if not vercel_url.startswith("http"):
+        vercel_url = f"https://{vercel_url}"
+    allowed_origins.append(vercel_url)
+
+# Ajouter les URLs Vercel spécifiques connues
+vercel_production_url = os.getenv("VERCEL_PRODUCTION_URL")
+if vercel_production_url:
+    if not vercel_production_url.startswith("http"):
+        vercel_production_url = f"https://{vercel_production_url}"
+    allowed_origins.append(vercel_production_url)
+
+# Ajouter l'URL Vercel actuelle du déploiement
+current_vercel_url = "https://getyourshare-7h1z5006j-getyourshares-projects.vercel.app"
+if current_vercel_url not in allowed_origins:
+    allowed_origins.append(current_vercel_url)
+
+# Ajouter origines de développement si ENV=development
+if os.getenv("ENV", "development") == "development":
+    allowed_origins.extend([
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ])
+
+# Log les origines autorisées pour faciliter le débogage
+logger.info(f"🔐 CORS allowed origins: {allowed_origins}")
 
 # CORS Configuration - Must be added FIRST
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En développement, autoriser toutes les origins
+    allow_origins=allowed_origins,  # ✅ Whitelist au lieu de wildcard
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
