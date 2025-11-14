@@ -7,6 +7,7 @@ from supabase_client import supabase
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import bcrypt
+from utils.logger import logger
 
 # ============================================
 # USERS
@@ -598,7 +599,6 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
                 
                 # Calculer les croissances (comparaison 30 derniers jours vs 30 jours précédents)
                 from datetime import datetime, timedelta
-from utils.logger import logger
                 now = datetime.now()
                 thirty_days_ago = now - timedelta(days=30)
                 sixty_days_ago = now - timedelta(days=60)
