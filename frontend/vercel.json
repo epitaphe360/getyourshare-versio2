@@ -5,27 +5,49 @@
   "framework": "create-react-app",
   "installCommand": "npm install",
   "devCommand": "npm start",
-  "rewrites": [
+  "routes": [
     {
-      "source": "/((?!static/|favicon\\.ico|manifest\\.json|robots\\.txt|sitemap\\.xml|service-worker\\.js|logo\\.png|icons/).+)",
-      "destination": "/index.html"
+      "src": "/favicon.png",
+      "dest": "/favicon.png",
+      "headers": {
+        "Content-Type": "image/png",
+        "Cache-Control": "public, max-age=86400"
+      }
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "dest": "/apple-touch-icon.png"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/icons/(.*)",
+      "dest": "/icons/$1"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/manifest.json"
+    },
+    {
+      "src": "/robots.txt",
+      "dest": "/robots.txt"
+    },
+    {
+      "src": "/sitemap.xml",
+      "dest": "/sitemap.xml"
+    },
+    {
+      "src": "/service-worker.js",
+      "dest": "/service-worker.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ],
-  "cleanUrls": true,
   "headers": [
-    {
-      "source": "/favicon.ico",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "image/x-icon"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400"
-        }
-      ]
-    },
     {
       "source": "/manifest.json",
       "headers": [
