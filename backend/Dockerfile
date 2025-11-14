@@ -1,5 +1,6 @@
 # ============================================
-# Dockerfile - Backend Only (Updated for Railway) - v3
+# Dockerfile - Backend Only (Updated for Railway) - v4
+# Force rebuild: 2025-11-14T14:30:00Z
 # ============================================
 FROM python:3.11-slim
 
