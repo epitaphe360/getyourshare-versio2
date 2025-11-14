@@ -5,28 +5,13 @@
   "framework": "create-react-app",
   "installCommand": "npm install",
   "devCommand": "npm start",
-  "routes": [
+  "rewrites": [
     {
-      "src": "/manifest.json",
-      "dest": "/manifest.json"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "/favicon.ico"
-    },
-    {
-      "src": "/robots.txt",
-      "dest": "/robots.txt"
-    },
-    {
-      "src": "/icons/(.*)",
-      "dest": "/icons/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
+  "cleanUrls": true,
   "headers": [
     {
       "source": "/manifest.json",
