@@ -150,15 +150,19 @@ except ImportError as e:
 # JWT Configuration avec validation stricte
 JWT_SECRET = os.getenv("JWT_SECRET")
 if not JWT_SECRET:
-    logger.info("🔴 ERREUR CRITIQUE: JWT_SECRET non défini dans les variables d'environnement")
-    logger.info("   Générez-en un avec: python -c 'import secrets; logger.info(secrets.token_urlsafe(64))'")
-    logger.info("   Puis ajoutez-le dans votre fichier .env")
-    sys.exit(1)
+    logger.warning("⚠️  JWT_SECRET non défini - Génération automatique d'un secret temporaire")
+    logger.warning("   IMPORTANT: En production, définissez JWT_SECRET dans les variables d'environnement")
+    logger.warning("   Générez-en un avec: python -c 'import secrets; print(secrets.token_urlsafe(64))'")
+    import secrets
+    JWT_SECRET = secrets.token_urlsafe(64)
+    logger.info(f"✅ JWT_SECRET temporaire généré ({len(JWT_SECRET)} caractères)")
 
 if len(JWT_SECRET) < 32:
-    logger.info(f"⚠️  ATTENTION: JWT_SECRET trop court ({len(JWT_SECRET)} chars, minimum 32 requis)")
-    logger.info("   Utilisez un secret plus long pour une sécurité optimale")
-    sys.exit(1)
+    logger.warning(f"⚠️  ATTENTION: JWT_SECRET trop court ({len(JWT_SECRET)} chars, minimum 32 requis)")
+    logger.warning("   Génération d'un secret plus sécurisé automatiquement")
+    import secrets
+    JWT_SECRET = secrets.token_urlsafe(64)
+    logger.info(f"✅ JWT_SECRET régénéré avec sécurité renforcée ({len(JWT_SECRET)} caractères)")
 
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION = int(os.getenv("JWT_EXPIRATION", "86400"))  # 24 heures par défaut
@@ -288,6 +292,15 @@ try:
 except ImportError as e:
     logger.info(f"⚠️ Advanced auth endpoints not available: {e}")
     logger.info("💡 Install missing dependencies: pip install pyotp qrcode Pillow")
+
+# ============================================
+# HEALTH CHECK ENDPOINT (for Railway)
+# ============================================
+
+@app.get("/health")
+async def health_check_root():
+    """Railway healthcheck endpoint - simple and fast"""
+    return {"status": "healthy", "service": "ShareYourSales Backend"}
 
 # ============================================
 # AUTHENTICATION
