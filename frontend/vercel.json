@@ -7,7 +7,7 @@
   "devCommand": "npm start",
   "routes": [
     {
-      "src": "/favicon.png",
+      "src": "/favicon\\.png",
       "dest": "/favicon.png",
       "headers": {
         "Content-Type": "image/png",
@@ -15,7 +15,7 @@
       }
     },
     {
-      "src": "/apple-touch-icon.png",
+      "src": "/apple-touch-icon\\.png",
       "dest": "/apple-touch-icon.png"
     },
     {
@@ -27,20 +27,23 @@
       "dest": "/icons/$1"
     },
     {
-      "src": "/manifest.json",
+      "src": "/manifest\\.json",
       "dest": "/manifest.json"
     },
     {
-      "src": "/robots.txt",
+      "src": "/robots\\.txt",
       "dest": "/robots.txt"
     },
     {
-      "src": "/sitemap.xml",
+      "src": "/sitemap\\.xml",
       "dest": "/sitemap.xml"
     },
     {
-      "src": "/service-worker.js",
+      "src": "/service-worker\\.js",
       "dest": "/service-worker.js"
+    },
+    {
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",

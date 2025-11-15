@@ -207,15 +207,41 @@
     </div>
 
     <script>
-        // Log 404 error for monitoring
-        console.error('404 Error - Page not found:', window.location.pathname);
+        // SPA Redirect Logic for React Router
+        // If this looks like a SPA route (not a static file), redirect to index.html
+        (function() {
+            const path = window.location.pathname;
+            const isStaticFile = /\.(html|css|js|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|xml|txt)$/i.test(path);
 
-        // Optional: Send error tracking to analytics
-        if (window.gtag) {
-            gtag('event', 'page_not_found', {
-                page_path: window.location.pathname
-            });
-        }
+            // List of known SPA routes that should be handled by React Router
+            const spaRoutes = [
+                '/about', '/contact', '/pricing', '/pricing-v3', '/marketplace',
+                '/login', '/register', '/dashboard', '/terms', '/privacy',
+                '/products', '/services', '/campaigns', '/influencers', '/merchants',
+                '/messages', '/settings', '/subscription', '/team', '/admin'
+            ];
+
+            // Check if the current path starts with any SPA route
+            const isSpaRoute = spaRoutes.some(route => path === route || path.startsWith(route + '/'));
+
+            // If this looks like a SPA route and not a static file, redirect to index.html
+            // This allows React Router to handle the routing
+            if (!isStaticFile && (isSpaRoute || path.startsWith('/app'))) {
+                // Redirect to the base URL, preserving the path for React Router
+                window.location.replace('/index.html' + window.location.search + window.location.hash);
+                return;
+            }
+
+            // Otherwise, show the 404 page and log the error
+            console.error('404 Error - Page not found:', path);
+
+            // Optional: Send error tracking to analytics
+            if (window.gtag) {
+                gtag('event', 'page_not_found', {
+                    page_path: path
+                });
+            }
+        })();
     </script>
 </body>
 </html>
