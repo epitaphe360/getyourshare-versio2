@@ -44,13 +44,72 @@ try:
     def get_supabase_client():
         """Return the global Supabase client instance"""
         return supabase
-        
+
+    # ============================================
+    # SUPABASE USER HELPERS
+    # ============================================
+
+    def get_user_by_email(email: str):
+        """Get user from Supabase by email"""
+        try:
+            response = supabase.table("users").select("*").eq("email", email).execute()
+            if response.data and len(response.data) > 0:
+                return response.data[0]
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching user by email: {e}")
+            return None
+
+    def get_user_by_id(user_id: str):
+        """Get user from Supabase by ID"""
+        try:
+            response = supabase.table("users").select("*").eq("id", user_id).execute()
+            if response.data and len(response.data) > 0:
+                return response.data[0]
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching user by ID: {e}")
+            return None
+
+    def create_user_in_supabase(user_data: dict):
+        """Create new user in Supabase"""
+        try:
+            response = supabase.table("users").insert(user_data).execute()
+            if response.data and len(response.data) > 0:
+                return response.data[0]
+            return None
+        except Exception as e:
+            logger.error(f"Error creating user: {e}")
+            return None
+
+    def get_users_by_role(role: str):
+        """Get all users with specific role from Supabase"""
+        try:
+            response = supabase.table("users").select("*").eq("role", role).execute()
+            return response.data if response.data else []
+        except Exception as e:
+            logger.error(f"Error fetching users by role: {e}")
+            return []
+
 except Exception as e:
     logger.info(f"⚠️ Supabase non disponible: {e}")
     import traceback
     traceback.print_exc()
     supabase = None
     SUPABASE_ENABLED = False
+
+    # Fallback functions when Supabase is not available
+    def get_user_by_email(email: str):
+        return None
+
+    def get_user_by_id(user_id: str):
+        return None
+
+    def create_user_in_supabase(user_data: dict):
+        return None
+
+    def get_users_by_role(role: str):
+        return []
 
 # Services
 try:
@@ -1012,26 +1071,52 @@ async def health_check():
 @app.post("/api/auth/register")
 @limiter.limit("5/minute")
 async def register(request: Request, user_data: UserCreate):
-    """Inscription d'un nouvel utilisateur"""
-    # Vérifier si l'email existe déjà
-    for user in MOCK_USERS.values():
-        if user["email"] == user_data.email:
-            raise HTTPException(status_code=400, detail="Email déjà utilisé")
-    
-    # Créer nouvel utilisateur
-    user_id = str(len(MOCK_USERS) + 1)
-    new_user = {
+    """Inscription d'un nouvel utilisateur - Crée dans Supabase"""
+
+    # Vérifier si l'email existe déjà (Supabase ou MOCK_USERS)
+    existing_user = None
+    if SUPABASE_ENABLED:
+        existing_user = get_user_by_email(user_data.email)
+
+    if not existing_user:
+        # Fallback check in MOCK_USERS
+        for user in MOCK_USERS.values():
+            if user["email"] == user_data.email:
+                existing_user = user
+                break
+
+    if existing_user:
+        logger.warning(f"❌ Registration failed: Email already exists {user_data.email}")
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+
+    # Préparer les données utilisateur
+    import uuid
+    user_id = str(uuid.uuid4())
+    new_user_data = {
         "id": user_id,
         "email": user_data.email,
-        "username": user_data.username,
         "role": user_data.role,
-        "subscription_plan": "free",
         "password_hash": hash_password(user_data.password),
-        "created_at": datetime.now().isoformat()
+        "phone_verified": False,
+        "two_fa_enabled": False,
+        "is_active": True
     }
-    
-    MOCK_USERS[user_id] = new_user
-    
+
+    # Essayer de créer dans Supabase d'abord
+    created_user = None
+    if SUPABASE_ENABLED:
+        created_user = create_user_in_supabase(new_user_data)
+        logger.info(f"✅ User created in Supabase: {user_data.email}")
+
+    # Fallback to MOCK_USERS if Supabase fails
+    if not created_user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user creation: {user_data.email}")
+        new_user_data["username"] = user_data.username
+        new_user_data["subscription_plan"] = "free"
+        new_user_data["created_at"] = datetime.now().isoformat()
+        MOCK_USERS[user_id] = new_user_data
+        created_user = new_user_data
+
     # Envoyer email de bienvenue
     if EMAIL_ENABLED:
         try:
@@ -1042,10 +1127,12 @@ async def register(request: Request, user_data: UserCreate):
             )
         except Exception as e:
             logger.error(f"Email sending failed: {e}")
-    
+
     # Générer token JWT avec fonction dédiée
     access_token = create_token(user_id, user_data.email, user_data.role)
-    
+
+    logger.info(f"✅ User registered successfully: {user_data.email} (role: {user_data.role})")
+
     return {
         "message": "Inscription réussie",
         "user": {
@@ -1062,32 +1149,45 @@ async def register(request: Request, user_data: UserCreate):
 @app.post("/api/auth/login")
 @limiter.limit("10/minute")
 async def login(request: Request, credentials: UserLogin):
-    """Connexion utilisateur"""
-    # Trouver l'utilisateur par email
+    """Connexion utilisateur - Lit depuis Supabase"""
+
+    # Essayer de lire depuis Supabase d'abord
     user = None
-    for u in MOCK_USERS.values():
-        if u["email"] == credentials.email:
-            user = u
-            break
-    
+    if SUPABASE_ENABLED:
+        user = get_user_by_email(credentials.email)
+        logger.info(f"🔍 Login attempt for {credentials.email} - User found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for {credentials.email}")
+        for u in MOCK_USERS.values():
+            if u["email"] == credentials.email:
+                user = u
+                break
+
+    if not user:
+        logger.warning(f"❌ Login failed: User not found for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Vérifier le mot de passe
     if not verify_password(credentials.password, user["password_hash"]):
+        logger.warning(f"❌ Login failed: Invalid password for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Générer token JWT avec fonction dédiée
-    access_token = create_token(user["id"], user["email"], user["role"])
-    
+    user_id = str(user["id"])  # Ensure ID is string
+    access_token = create_token(user_id, user["email"], user["role"])
+
+    logger.info(f"✅ Login successful for {credentials.email} (role: {user['role']})")
+
     return {
         "message": "Connexion réussie",
         "user": {
-            "id": user["id"],
+            "id": user_id,
             "email": user["email"],
-            "username": user["username"],
+            "username": user.get("username", user["email"].split("@")[0]),
             "role": user["role"],
-            "subscription_plan": user["subscription_plan"]
+            "subscription_plan": user.get("subscription_plan", "free")
         },
         "access_token": access_token,
         "token_type": "bearer"
@@ -1095,20 +1195,31 @@ async def login(request: Request, credentials: UserLogin):
 
 @app.get("/api/auth/me")
 async def get_current_user(payload: dict = Depends(verify_token)):
-    """Obtenir les informations de l'utilisateur connecté"""
+    """Obtenir les informations de l'utilisateur connecté - Lit depuis Supabase"""
     user_id = payload.get("sub")
-    user = MOCK_USERS.get(user_id)
-    
+
+    # Essayer de lire depuis Supabase d'abord
+    user = None
+    if SUPABASE_ENABLED:
+        user = get_user_by_id(user_id)
+        logger.info(f"🔍 /api/auth/me for user ID {user_id} - Found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user ID {user_id}")
+        user = MOCK_USERS.get(user_id)
+
+    if not user:
+        logger.warning(f"❌ User not found: {user_id}")
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
+
     return {
-        "id": user["id"],
+        "id": str(user["id"]),
         "email": user["email"],
-        "username": user["username"],
+        "username": user.get("username", user["email"].split("@")[0]),
         "role": user["role"],
-        "subscription_plan": user["subscription_plan"],
-        "created_at": user["created_at"]
+        "subscription_plan": user.get("subscription_plan", "free"),
+        "created_at": user.get("created_at")
     }
 
 @app.post("/api/auth/logout")
@@ -2812,26 +2923,52 @@ async def health_check():
 @app.post("/api/auth/register")
 @limiter.limit("5/minute")
 async def register(request: Request, user_data: UserCreate):
-    """Inscription d'un nouvel utilisateur"""
-    # Vérifier si l'email existe déjà
-    for user in MOCK_USERS.values():
-        if user["email"] == user_data.email:
-            raise HTTPException(status_code=400, detail="Email déjà utilisé")
-    
-    # Créer nouvel utilisateur
-    user_id = str(len(MOCK_USERS) + 1)
-    new_user = {
+    """Inscription d'un nouvel utilisateur - Crée dans Supabase"""
+
+    # Vérifier si l'email existe déjà (Supabase ou MOCK_USERS)
+    existing_user = None
+    if SUPABASE_ENABLED:
+        existing_user = get_user_by_email(user_data.email)
+
+    if not existing_user:
+        # Fallback check in MOCK_USERS
+        for user in MOCK_USERS.values():
+            if user["email"] == user_data.email:
+                existing_user = user
+                break
+
+    if existing_user:
+        logger.warning(f"❌ Registration failed: Email already exists {user_data.email}")
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+
+    # Préparer les données utilisateur
+    import uuid
+    user_id = str(uuid.uuid4())
+    new_user_data = {
         "id": user_id,
         "email": user_data.email,
-        "username": user_data.username,
         "role": user_data.role,
-        "subscription_plan": "free",
         "password_hash": hash_password(user_data.password),
-        "created_at": datetime.now().isoformat()
+        "phone_verified": False,
+        "two_fa_enabled": False,
+        "is_active": True
     }
-    
-    MOCK_USERS[user_id] = new_user
-    
+
+    # Essayer de créer dans Supabase d'abord
+    created_user = None
+    if SUPABASE_ENABLED:
+        created_user = create_user_in_supabase(new_user_data)
+        logger.info(f"✅ User created in Supabase: {user_data.email}")
+
+    # Fallback to MOCK_USERS if Supabase fails
+    if not created_user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user creation: {user_data.email}")
+        new_user_data["username"] = user_data.username
+        new_user_data["subscription_plan"] = "free"
+        new_user_data["created_at"] = datetime.now().isoformat()
+        MOCK_USERS[user_id] = new_user_data
+        created_user = new_user_data
+
     # Envoyer email de bienvenue
     if EMAIL_ENABLED:
         try:
@@ -2842,10 +2979,12 @@ async def register(request: Request, user_data: UserCreate):
             )
         except Exception as e:
             logger.error(f"Email sending failed: {e}")
-    
+
     # Générer token JWT avec fonction dédiée
     access_token = create_token(user_id, user_data.email, user_data.role)
-    
+
+    logger.info(f"✅ User registered successfully: {user_data.email} (role: {user_data.role})")
+
     return {
         "message": "Inscription réussie",
         "user": {
@@ -2862,32 +3001,45 @@ async def register(request: Request, user_data: UserCreate):
 @app.post("/api/auth/login")
 @limiter.limit("10/minute")
 async def login(request: Request, credentials: UserLogin):
-    """Connexion utilisateur"""
-    # Trouver l'utilisateur par email
+    """Connexion utilisateur - Lit depuis Supabase"""
+
+    # Essayer de lire depuis Supabase d'abord
     user = None
-    for u in MOCK_USERS.values():
-        if u["email"] == credentials.email:
-            user = u
-            break
-    
+    if SUPABASE_ENABLED:
+        user = get_user_by_email(credentials.email)
+        logger.info(f"🔍 Login attempt for {credentials.email} - User found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for {credentials.email}")
+        for u in MOCK_USERS.values():
+            if u["email"] == credentials.email:
+                user = u
+                break
+
+    if not user:
+        logger.warning(f"❌ Login failed: User not found for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Vérifier le mot de passe
     if not verify_password(credentials.password, user["password_hash"]):
+        logger.warning(f"❌ Login failed: Invalid password for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Générer token JWT avec fonction dédiée
-    access_token = create_token(user["id"], user["email"], user["role"])
-    
+    user_id = str(user["id"])  # Ensure ID is string
+    access_token = create_token(user_id, user["email"], user["role"])
+
+    logger.info(f"✅ Login successful for {credentials.email} (role: {user['role']})")
+
     return {
         "message": "Connexion réussie",
         "user": {
-            "id": user["id"],
+            "id": user_id,
             "email": user["email"],
-            "username": user["username"],
+            "username": user.get("username", user["email"].split("@")[0]),
             "role": user["role"],
-            "subscription_plan": user["subscription_plan"]
+            "subscription_plan": user.get("subscription_plan", "free")
         },
         "access_token": access_token,
         "token_type": "bearer"
@@ -2895,20 +3047,31 @@ async def login(request: Request, credentials: UserLogin):
 
 @app.get("/api/auth/me")
 async def get_current_user(payload: dict = Depends(verify_token)):
-    """Obtenir les informations de l'utilisateur connecté"""
+    """Obtenir les informations de l'utilisateur connecté - Lit depuis Supabase"""
     user_id = payload.get("sub")
-    user = MOCK_USERS.get(user_id)
-    
+
+    # Essayer de lire depuis Supabase d'abord
+    user = None
+    if SUPABASE_ENABLED:
+        user = get_user_by_id(user_id)
+        logger.info(f"🔍 /api/auth/me for user ID {user_id} - Found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user ID {user_id}")
+        user = MOCK_USERS.get(user_id)
+
+    if not user:
+        logger.warning(f"❌ User not found: {user_id}")
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
+
     return {
-        "id": user["id"],
+        "id": str(user["id"]),
         "email": user["email"],
-        "username": user["username"],
+        "username": user.get("username", user["email"].split("@")[0]),
         "role": user["role"],
-        "subscription_plan": user["subscription_plan"],
-        "created_at": user["created_at"]
+        "subscription_plan": user.get("subscription_plan", "free"),
+        "created_at": user.get("created_at")
     }
 
 @app.post("/api/auth/logout")
@@ -4612,26 +4775,52 @@ async def health_check():
 @app.post("/api/auth/register")
 @limiter.limit("5/minute")
 async def register(request: Request, user_data: UserCreate):
-    """Inscription d'un nouvel utilisateur"""
-    # Vérifier si l'email existe déjà
-    for user in MOCK_USERS.values():
-        if user["email"] == user_data.email:
-            raise HTTPException(status_code=400, detail="Email déjà utilisé")
-    
-    # Créer nouvel utilisateur
-    user_id = str(len(MOCK_USERS) + 1)
-    new_user = {
+    """Inscription d'un nouvel utilisateur - Crée dans Supabase"""
+
+    # Vérifier si l'email existe déjà (Supabase ou MOCK_USERS)
+    existing_user = None
+    if SUPABASE_ENABLED:
+        existing_user = get_user_by_email(user_data.email)
+
+    if not existing_user:
+        # Fallback check in MOCK_USERS
+        for user in MOCK_USERS.values():
+            if user["email"] == user_data.email:
+                existing_user = user
+                break
+
+    if existing_user:
+        logger.warning(f"❌ Registration failed: Email already exists {user_data.email}")
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+
+    # Préparer les données utilisateur
+    import uuid
+    user_id = str(uuid.uuid4())
+    new_user_data = {
         "id": user_id,
         "email": user_data.email,
-        "username": user_data.username,
         "role": user_data.role,
-        "subscription_plan": "free",
         "password_hash": hash_password(user_data.password),
-        "created_at": datetime.now().isoformat()
+        "phone_verified": False,
+        "two_fa_enabled": False,
+        "is_active": True
     }
-    
-    MOCK_USERS[user_id] = new_user
-    
+
+    # Essayer de créer dans Supabase d'abord
+    created_user = None
+    if SUPABASE_ENABLED:
+        created_user = create_user_in_supabase(new_user_data)
+        logger.info(f"✅ User created in Supabase: {user_data.email}")
+
+    # Fallback to MOCK_USERS if Supabase fails
+    if not created_user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user creation: {user_data.email}")
+        new_user_data["username"] = user_data.username
+        new_user_data["subscription_plan"] = "free"
+        new_user_data["created_at"] = datetime.now().isoformat()
+        MOCK_USERS[user_id] = new_user_data
+        created_user = new_user_data
+
     # Envoyer email de bienvenue
     if EMAIL_ENABLED:
         try:
@@ -4642,10 +4831,12 @@ async def register(request: Request, user_data: UserCreate):
             )
         except Exception as e:
             logger.error(f"Email sending failed: {e}")
-    
+
     # Générer token JWT avec fonction dédiée
     access_token = create_token(user_id, user_data.email, user_data.role)
-    
+
+    logger.info(f"✅ User registered successfully: {user_data.email} (role: {user_data.role})")
+
     return {
         "message": "Inscription réussie",
         "user": {
@@ -4662,32 +4853,45 @@ async def register(request: Request, user_data: UserCreate):
 @app.post("/api/auth/login")
 @limiter.limit("10/minute")
 async def login(request: Request, credentials: UserLogin):
-    """Connexion utilisateur"""
-    # Trouver l'utilisateur par email
+    """Connexion utilisateur - Lit depuis Supabase"""
+
+    # Essayer de lire depuis Supabase d'abord
     user = None
-    for u in MOCK_USERS.values():
-        if u["email"] == credentials.email:
-            user = u
-            break
-    
+    if SUPABASE_ENABLED:
+        user = get_user_by_email(credentials.email)
+        logger.info(f"🔍 Login attempt for {credentials.email} - User found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for {credentials.email}")
+        for u in MOCK_USERS.values():
+            if u["email"] == credentials.email:
+                user = u
+                break
+
+    if not user:
+        logger.warning(f"❌ Login failed: User not found for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Vérifier le mot de passe
     if not verify_password(credentials.password, user["password_hash"]):
+        logger.warning(f"❌ Login failed: Invalid password for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Générer token JWT avec fonction dédiée
-    access_token = create_token(user["id"], user["email"], user["role"])
-    
+    user_id = str(user["id"])  # Ensure ID is string
+    access_token = create_token(user_id, user["email"], user["role"])
+
+    logger.info(f"✅ Login successful for {credentials.email} (role: {user['role']})")
+
     return {
         "message": "Connexion réussie",
         "user": {
-            "id": user["id"],
+            "id": user_id,
             "email": user["email"],
-            "username": user["username"],
+            "username": user.get("username", user["email"].split("@")[0]),
             "role": user["role"],
-            "subscription_plan": user["subscription_plan"]
+            "subscription_plan": user.get("subscription_plan", "free")
         },
         "access_token": access_token,
         "token_type": "bearer"
@@ -4695,20 +4899,31 @@ async def login(request: Request, credentials: UserLogin):
 
 @app.get("/api/auth/me")
 async def get_current_user(payload: dict = Depends(verify_token)):
-    """Obtenir les informations de l'utilisateur connecté"""
+    """Obtenir les informations de l'utilisateur connecté - Lit depuis Supabase"""
     user_id = payload.get("sub")
-    user = MOCK_USERS.get(user_id)
-    
+
+    # Essayer de lire depuis Supabase d'abord
+    user = None
+    if SUPABASE_ENABLED:
+        user = get_user_by_id(user_id)
+        logger.info(f"🔍 /api/auth/me for user ID {user_id} - Found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user ID {user_id}")
+        user = MOCK_USERS.get(user_id)
+
+    if not user:
+        logger.warning(f"❌ User not found: {user_id}")
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
+
     return {
-        "id": user["id"],
+        "id": str(user["id"]),
         "email": user["email"],
-        "username": user["username"],
+        "username": user.get("username", user["email"].split("@")[0]),
         "role": user["role"],
-        "subscription_plan": user["subscription_plan"],
-        "created_at": user["created_at"]
+        "subscription_plan": user.get("subscription_plan", "free"),
+        "created_at": user.get("created_at")
     }
 
 @app.post("/api/auth/logout")
