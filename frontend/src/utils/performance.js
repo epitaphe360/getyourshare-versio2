@@ -176,19 +176,20 @@ export const optimizeFonts = () => {
   });
 
   // Preload critical fonts
-  const criticalFonts = [
-    '/fonts/inter-var.woff2'
-  ];
+  // Note: Font preloading disabled - add fonts to /public/fonts/ directory to enable
+  // const criticalFonts = [
+  //   '/fonts/inter-var.woff2'
+  // ];
 
-  criticalFonts.forEach(font => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'font';
-    link.type = 'font/woff2';
-    link.href = font;
-    link.crossOrigin = 'anonymous';
-    document.head.appendChild(link);
-  });
+  // criticalFonts.forEach(font => {
+  //   const link = document.createElement('link');
+  //   link.rel = 'preload';
+  //   link.as = 'font';
+  //   link.type = 'font/woff2';
+  //   link.href = font;
+  //   link.crossOrigin = 'anonymous';
+  //   document.head.appendChild(link);
+  // });
 };
 
 /**
@@ -370,9 +371,11 @@ export const initPerformanceOptimizations = () => {
  */
 export const preloadCriticalResources = () => {
   const criticalResources = [
-    { href: '/logo.svg', as: 'image', type: 'image/svg+xml' },
-    { href: '/fonts/inter-var.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
-    { href: '/api/user/profile', as: 'fetch', crossorigin: 'anonymous' }
+    // Preload the actual logo file that exists
+    { href: '/logo.png', as: 'image', type: 'image/png' }
+    // Note: Additional resources can be added here when they become available:
+    // - Add fonts to /public/fonts/ directory
+    // - Add API endpoints only if they exist and are used immediately on page load
   ];
 
   criticalResources.forEach(resource => {
