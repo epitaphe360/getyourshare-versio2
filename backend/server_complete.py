@@ -274,10 +274,15 @@ if os.getenv("ENV", "development") == "development":
 # Log les origines autorisées pour faciliter le débogage
 logger.info(f"🔐 CORS allowed origins: {allowed_origins}")
 
+# Regex pattern to allow all Vercel preview and production deployments
+# This handles URLs like: https://getyourshare-*.vercel.app
+vercel_regex = r"https://.*\.vercel\.app"
+
 # CORS Configuration - Must be added FIRST
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,  # ✅ Whitelist au lieu de wildcard
+    allow_origin_regex=vercel_regex,  # ✅ Allow all Vercel deployments
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
