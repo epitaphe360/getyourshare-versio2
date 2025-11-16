@@ -16,6 +16,7 @@ from services.deposit_service import DepositService
 from services.notification_service import NotificationService
 from services.lead_service import LeadService
 from supabase_client import supabase
+from utils.logger import logger
 
 # Delayed initialization of services and scheduler to avoid import-time side-effects
 deposit_service = None
@@ -192,9 +193,6 @@ def cleanup_expired_leads():
     
     try:
         # Récupérer les leads en attente depuis plus de 72h
-        from datetime import timedelta
-from utils.logger import logger
-        
         expiration_date = (datetime.now() - timedelta(hours=72)).isoformat()
         
         response = supabase.table('leads')\
