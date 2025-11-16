@@ -773,7 +773,7 @@ async def verify_2fa(data: TwoFAVerifyRequest):
     }
 
 @app.get("/api/auth/me")
-async def get_current_user(payload: dict = Depends(verify_token)):
+async def get_current_user(payload: dict = Depends(get_current_user_from_cookie)):
     """Récupère l'utilisateur connecté"""
     user = get_user_by_id(payload["sub"])
     if not user:
@@ -782,7 +782,7 @@ async def get_current_user(payload: dict = Depends(verify_token)):
     return user_data
 
 @app.post("/api/auth/logout")
-async def logout(payload: dict = Depends(verify_token)):
+async def logout():
     """Logout (invalidation côté client)"""
     return {"message": "Logged out successfully"}
 
