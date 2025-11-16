@@ -723,10 +723,22 @@ async def refresh_access_token(request: Request, response: Response):
         )
 
 @app.post("/api/auth/logout")
-async def logout(response: Response):
+async def logout(response: Response, payload: dict = Depends(get_current_user_from_cookie)):
     """Logout - Supprime les cookies de tokens"""
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+    # Delete access_token cookie with same settings as when it was set
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        samesite="lax"
+    )
+
+    # Delete refresh_token cookie with same settings as when it was set
+    response.delete_cookie(
+        key="refresh_token",
+        path="/",
+        samesite="lax"
+    )
+
     return {"message": "Logged out successfully"}
 
 @app.post("/api/auth/verify-2fa")
@@ -773,18 +785,13 @@ async def verify_2fa(data: TwoFAVerifyRequest):
     }
 
 @app.get("/api/auth/me")
-async def get_current_user(payload: dict = Depends(get_current_user_from_cookie)):
+async def get_current_user_endpoint(payload: dict = Depends(get_current_user_from_cookie)):
     """Récupère l'utilisateur connecté"""
     user = get_user_by_id(payload["sub"])
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user_data = {k: v for k, v in user.items() if k != "password_hash"}
     return user_data
-
-@app.post("/api/auth/logout")
-async def logout():
-    """Logout (invalidation côté client)"""
-    return {"message": "Logged out successfully"}
 
 @app.post("/api/auth/register")
 async def register(data: RegisterRequest):
