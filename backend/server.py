@@ -7274,8 +7274,7 @@ async def get_bot_suggestions(
 
 if __name__ == "__main__":
     import uvicorn
-from utils.logger import logger
-    
+
     logger.info("\n" + "="*60)
     logger.info("🚀 Démarrage du serveur ShareYourSales API")
     logger.info("="*60)
