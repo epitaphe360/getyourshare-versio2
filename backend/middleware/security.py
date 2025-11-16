@@ -94,11 +94,14 @@ async def csrf_middleware(request: Request, call_next: Callable):
 
         return response
 
-    # Exclure certains endpoints (webhooks externes)
+    # Exclure certains endpoints (webhooks externes et auth endpoints)
     excluded_paths = [
         "/api/stripe/webhook",
         "/api/social-media/webhooks",
-        "/api/auth/login",  # Géré différemment
+        "/api/auth/login",  # Login endpoint
+        "/api/auth/logout",  # Logout endpoint - uses cookie auth
+        "/api/auth/refresh",  # Refresh token endpoint - uses cookie auth
+        "/api/auth/register",  # Registration endpoint
         "/docs",
         "/openapi.json"
     ]
