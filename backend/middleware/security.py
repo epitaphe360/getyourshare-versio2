@@ -102,6 +102,9 @@ async def csrf_middleware(request: Request, call_next: Callable):
         "/api/auth/logout",  # Logout endpoint - uses cookie auth
         "/api/auth/refresh",  # Refresh token endpoint - uses cookie auth
         "/api/auth/register",  # Registration endpoint
+        "/api/auth/me",  # Get current user - uses cookie auth
+        "/api/bot/",  # Bot endpoints
+        "/health",  # Health check endpoint
         "/docs",
         "/openapi.json"
     ]
