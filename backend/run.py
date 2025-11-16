@@ -9,7 +9,7 @@ import sys
 if __name__ == "__main__":
     # DEBUG: Confirmer que ce script s'exécute
     print("="*70)
-    print("🔍 DEBUG: run.py is EXECUTING (version: force-rebuild-1)")
+    print("🔍 DEBUG: run.py is EXECUTING (version: syntax-fixes-final)")
     print("="*70)
 
     # DEBUG: Afficher toutes les variables d'environnement
