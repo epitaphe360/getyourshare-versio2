@@ -51,7 +51,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "server_complete:app",
+        "server:app",  # Changed from server_complete to server (has httpOnly cookie auth)
         host="0.0.0.0",
         port=port,
         log_level="info"
