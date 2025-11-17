@@ -650,7 +650,6 @@ async def validate_redirect_url(
 
         # Extraire le domaine de l'URL
         from urllib.parse import urlparse
-from utils.logger import logger
         parsed = urlparse(url)
         domain = parsed.netloc.lower()
 
