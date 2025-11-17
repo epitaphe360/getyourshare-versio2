@@ -17,7 +17,7 @@ def add_upload_endpoints(app, verify_token):
         file: UploadFile = File(...), folder: str = "general", payload: dict = Depends(verify_token)
     ):
         """Upload un fichier vers Supabase Storage"""
-        from db_helpers import get_supabase_client
+        from supabase_client import supabase
 
         # Vérifier le type de fichier
         allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx", ".zip"}
@@ -101,7 +101,7 @@ def add_upload_endpoints(app, verify_token):
     @app.delete("/api/upload/{file_path:path}")
     async def delete_file(file_path: str, payload: dict = Depends(verify_token)):
         """Supprime un fichier de Supabase Storage"""
-        from db_helpers import get_supabase_client
+        from supabase_client import supabase
 
         try:
             supabase = get_supabase_client()
@@ -117,7 +117,7 @@ def add_upload_endpoints(app, verify_token):
     @app.get("/api/uploads/list")
     async def list_uploads(folder: str = "general", payload: dict = Depends(verify_token)):
         """Liste les fichiers uploadés dans un dossier"""
-        from db_helpers import get_supabase_client
+        from supabase_client import supabase
 
         try:
             supabase = get_supabase_client()

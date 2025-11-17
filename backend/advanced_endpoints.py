@@ -235,7 +235,7 @@ def add_campaigns_endpoints(app, verify_token):
         if not merchant:
             raise HTTPException(status_code=404, detail="Profil merchant non trouvé")
 
-        from db_helpers import get_supabase_client
+        from supabase_client import supabase
 
         supabase = get_supabase_client()
 
