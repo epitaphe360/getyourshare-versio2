@@ -7,14 +7,26 @@ Utilise OpenAI pour détecter contenu inapproprié
 
 import os
 from typing import Dict, Any, Optional
-from openai import OpenAI
 import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Import optionnel d'OpenAI
+try:
+    from openai import OpenAI
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    OpenAI = None
+    logger.warning("⚠️ OpenAI module not installed - moderation features disabled")
 
 # Configuration OpenAI
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-if not OPENAI_API_KEY:
-    logger.warning("⚠️ Warning: OpenAI API key not configured for content moderation")
+if not OPENAI_AVAILABLE or not OPENAI_API_KEY:
+    if not OPENAI_API_KEY and OPENAI_AVAILABLE:
+        logger.warning("⚠️ OpenAI API key not configured for content moderation")
     client = None
 else:
     client = OpenAI(api_key=OPENAI_API_KEY)
