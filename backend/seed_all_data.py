@@ -202,7 +202,6 @@ logger.info("-" * 80)
 if influencer_ids and product_ids:
     # Créer 10 liens d'affiliation
     import secrets
-from utils.logger import logger
 
     influencer_list = list(influencer_ids.values())
     product_list = list(product_ids.values())

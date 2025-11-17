@@ -16,6 +16,7 @@ import os
 
 from subscription_helpers import get_invoice_by_id
 from db_helpers import get_user_by_id
+from utils.logger import logger
 
 
 class InvoiceService:
@@ -229,7 +230,6 @@ class InvoiceService:
         except Exception as e:
             logger.error(f"Error generating invoice PDF: {e}")
             import traceback
-from utils.logger import logger
             traceback.print_exc()
             return None
 

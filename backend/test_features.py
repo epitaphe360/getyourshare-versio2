@@ -91,7 +91,6 @@ for i in range(1, 7):
 
     # Petite pause entre les requêtes
     import time
-from utils.logger import logger
 
     time.sleep(0.2)
 

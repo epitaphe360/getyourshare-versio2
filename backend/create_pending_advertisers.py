@@ -119,5 +119,4 @@ try:
 except Exception as e:
     logger.info(f"\n❌ ERREUR: {e}\n")
     import traceback
-from utils.logger import logger
     traceback.print_exc()

@@ -606,7 +606,6 @@ class DemoDataSeeder:
         except Exception as e:
             logger.info(f"\n❌ ERREUR CRITIQUE: {e}")
             import traceback
-from utils.logger import logger
             traceback.print_exc()
             return False
 

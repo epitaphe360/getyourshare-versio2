@@ -34,5 +34,4 @@ try:
 except Exception as e:
     logger.info(f"\n❌ Erreur: {e}")
     import traceback
-from utils.logger import logger
     traceback.print_exc()

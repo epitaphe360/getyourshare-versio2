@@ -64,7 +64,6 @@ try:
 except Exception as e:
     logger.info(f"\nERREUR CRITIQUE: {str(e)}")
     import traceback
-from utils.logger import logger
 
     traceback.print_exc()
     exit(1)

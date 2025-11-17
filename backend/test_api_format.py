@@ -4,6 +4,7 @@ Tester l'API conversations pour voir le format exact des données
 import os
 from supabase import create_client
 from dotenv import load_dotenv
+from utils.logger import logger
 
 load_dotenv()
 
@@ -55,5 +56,4 @@ try:
 except Exception as e:
     logger.info(f"❌ Erreur: {e}")
     import traceback
-from utils.logger import logger
     traceback.print_exc()

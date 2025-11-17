@@ -478,4 +478,3 @@ async def get_my_products(payload: dict = Depends(verify_token)):
     }
 
 # Je continue dans le prochain message...
-"""

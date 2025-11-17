@@ -5,6 +5,7 @@ Script pour créer des demandes d'inscription d'annonceurs en attente (pending)
 import os
 import sys
 from datetime import datetime, timedelta
+from utils.logger import logger
 
 # Importer le client Supabase du module existant
 from supabase_client import supabase
@@ -12,7 +13,6 @@ from supabase_client import supabase
 def hash_password(password: str) -> str:
     """Hasher un mot de passe avec bcrypt"""
     import bcrypt
-from utils.logger import logger
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
 # Données des demandes d'inscription en attente

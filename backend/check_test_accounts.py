@@ -7,7 +7,8 @@ logger.info("=== VÉRIFICATION DES COMPTES DE TEST ===\n")
 # 1. Admin
 logger.info("1. ADMIN:")
 admin = supabase.table("users").select("*").eq("email", "admin@getyourshare.com").execute()
-logger.info(f"   admin@getyourshare.com: {'✅ EXISTE' if admin.data else '❌ N\'EXISTE PAS'}")
+status = '✅ EXISTE' if admin.data else "❌ N'EXISTE PAS"
+logger.info(f"   admin@getyourshare.com: {status}")
 if admin.data:
     logger.info(f"   Role: {admin.data[0].get('role')}, Tier: {admin.data[0].get('tier')}")
 
@@ -22,7 +23,8 @@ influencers = [
 for name, email, tier in influencers:
     user = supabase.table("users").select("*").eq("email", email).execute()
     logger.info(f"   {name} ({email}):")
-    logger.info(f"      {'✅ EXISTE' if user.data else '❌ N\'EXISTE PAS'}")
+    status = '✅ EXISTE' if user.data else "❌ N'EXISTE PAS"
+    logger.info(f"      {status}")
     if user.data:
         logger.info(f"      Role: {user.data[0].get('role')}, Tier: {user.data[0].get('tier')}")
 
@@ -37,7 +39,8 @@ merchants = [
 for name, email, tier in merchants:
     user = supabase.table("users").select("*").eq("email", email).execute()
     logger.info(f"   {name} ({email}):")
-    logger.info(f"      {'✅ EXISTE' if user.data else '❌ N\'EXISTE PAS'}")
+    status = '✅ EXISTE' if user.data else "❌ N'EXISTE PAS"
+    logger.info(f"      {status}")
     if user.data:
         logger.info(f"      Role: {user.data[0].get('role')}, Tier: {user.data[0].get('tier')}")
 
@@ -45,7 +48,8 @@ for name, email, tier in merchants:
 logger.info("\n4. COMMERCIAL:")
 commercial = supabase.table("users").select("*").eq("email", "sofia.chakir@getyourshare.com").execute()
 logger.info(f"   Sofia Chakir (sofia.chakir@getyourshare.com):")
-logger.info(f"      {'✅ EXISTE' if commercial.data else '❌ N\'EXISTE PAS'}")
+status = '✅ EXISTE' if commercial.data else "❌ N'EXISTE PAS"
+logger.info(f"      {status}")
 if commercial.data:
     logger.info(f"      Role: {commercial.data[0].get('role')}, Tier: {commercial.data[0].get('tier')}")
 

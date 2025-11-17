@@ -10,6 +10,7 @@ from io import BytesIO, StringIO
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from enum import Enum
+from utils.logger import logger
 
 try:
     from reportlab.lib import colors
@@ -27,7 +28,6 @@ try:
     import openpyxl
     from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
     from openpyxl.chart import BarChart, Reference, LineChart
-from utils.logger import logger
     OPENPYXL_AVAILABLE = True
 except ImportError:
     OPENPYXL_AVAILABLE = False

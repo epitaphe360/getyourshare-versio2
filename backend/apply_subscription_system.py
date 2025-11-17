@@ -211,6 +211,5 @@ if __name__ == "__main__":
     except Exception as e:
         logger.info(f"\n❌ Erreur inattendue: {e}")
         import traceback
-from utils.logger import logger
         traceback.print_exc()
         sys.exit(1)

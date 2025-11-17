@@ -1,4 +1,5 @@
 import sys
+from utils.logger import logger
 
 sys.path.insert(0, "C:\\Users\\Admin\\Desktop\\shareyoursales\\Getyourshare1\\backend")
 
@@ -36,6 +37,4 @@ try:
 except Exception as e:
     logger.info(f"❌ Erreur: {e}")
     import traceback
-from utils.logger import logger
-
     traceback.print_exc()

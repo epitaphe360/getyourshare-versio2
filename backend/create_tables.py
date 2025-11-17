@@ -6,6 +6,7 @@ Exécute le fichier database/schema.sql
 import os
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from utils.logger import logger
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -55,7 +56,6 @@ def create_tables():
     try:
         import psycopg2
         from urllib.parse import urlparse
-from utils.logger import logger
 
         # Construire l'URL PostgreSQL depuis l'URL Supabase
         # Format: postgres://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres

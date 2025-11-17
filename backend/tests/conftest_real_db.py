@@ -7,10 +7,10 @@ import pytest
 import asyncio
 from datetime import datetime, timedelta
 from uuid import uuid4
+from utils.logger import logger
 
 # Import du setup de la vraie DB
 from .test_database_setup import (
-from utils.logger import logger
     setup_test_database,
     get_test_data,
     get_supabase_for_tests,
