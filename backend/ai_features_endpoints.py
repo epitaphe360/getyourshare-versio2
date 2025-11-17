@@ -9,7 +9,7 @@ from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 import os
 from utils.logger import logger
-from db_helpers import get_supabase_client
+from supabase_client import supabase
 
 router = APIRouter(prefix="/api/ai", tags=["AI Features"])
 
