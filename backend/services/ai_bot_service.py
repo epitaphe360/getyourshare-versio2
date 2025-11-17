@@ -592,5 +592,4 @@ async def example_usage():
 
 if __name__ == "__main__":
     import asyncio
-from utils.logger import logger
     asyncio.run(example_usage())

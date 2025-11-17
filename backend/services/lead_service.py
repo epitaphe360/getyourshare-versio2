@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 # Import optimiseur DB
 try:
     from utils.db_optimized import DBOptimizer
-from utils.logger import logger
 except ImportError:
     DBOptimizer = None
 
