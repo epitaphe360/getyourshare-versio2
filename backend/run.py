@@ -28,19 +28,19 @@ if __name__ == "__main__":
 
     # Si PORT n'est pas défini, utiliser le défaut
     if port_str is None:
-        print("⚠️  WARNING: PORT not defined in environment, using 8000")
-        port = 8000
-    # Si PORT contient littéralement "$PORT" (variable Railway mal configurée), utiliser 8000
+        print("⚠️  WARNING: PORT not defined in environment, using 8003")
+        port = 8003
+    # Si PORT contient littéralement "$PORT" (variable Railway mal configurée), utiliser 8003
     elif port_str in ["$PORT", "${PORT}", ""]:
-        print(f"⚠️  WARNING: PORT variable contains '{port_str}', using default 8000")
-        port = 8000
+        print(f"⚠️  WARNING: PORT variable contains '{port_str}', using default 8003")
+        port = 8003
     else:
         try:
             port = int(port_str)
             print(f"✅ PORT successfully parsed: {port}")
         except ValueError as e:
-            print(f"⚠️  WARNING: Invalid PORT value '{port_str}' (error: {e}), using default 8000")
-            port = 8000
+            print(f"⚠️  WARNING: Invalid PORT value '{port_str}' (error: {e}), using default 8003")
+            port = 8003
 
     print(f"\n🚀 Starting ShareYourSales Backend...")
     print(f"📍 Port: {port}")

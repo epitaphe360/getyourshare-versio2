@@ -483,7 +483,7 @@ class LeadService:
     ) -> Optional[Dict]:
         """Récupérer le dépôt actif d'un merchant"""
         try:
-            query = self.supabase.table('company_deposits').select('*').eq('merchant_id', merchant_id).eq('status', 'active')
+            query = self.supabase.table('company_deposits').select('*').eq('company_id', merchant_id).eq('status', 'active')
             
             if campaign_id:
                 query = query.eq('campaign_id', campaign_id)

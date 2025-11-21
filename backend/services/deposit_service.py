@@ -62,7 +62,7 @@ class DepositService:
             
             # Données du dépôt
             deposit_data = {
-                'merchant_id': merchant_id,
+                'company_id': merchant_id,
                 'campaign_id': campaign_id,
                 'initial_amount': float(initial_amount),
                 'current_balance': float(initial_amount),
@@ -126,7 +126,7 @@ class DepositService:
         """
         try:
             # Récupérer le dépôt
-            deposit = self.supabase.table('company_deposits').select('*').eq('id', deposit_id).eq('merchant_id', merchant_id).single().execute()
+            deposit = self.supabase.table('company_deposits').select('*').eq('id', deposit_id).eq('company_id', merchant_id).single().execute()
             
             if not deposit.data:
                 raise ValueError("Dépôt non trouvé")
@@ -186,7 +186,7 @@ class DepositService:
             Informations sur le solde
         """
         try:
-            query = self.supabase.table('company_deposits').select('*').eq('merchant_id', merchant_id).eq('status', 'active')
+            query = self.supabase.table('company_deposits').select('*').eq('company_id', merchant_id).eq('status', 'active')
             
             if campaign_id:
                 query = query.eq('campaign_id', campaign_id)
@@ -285,7 +285,7 @@ class DepositService:
             Liste des dépôts
         """
         try:
-            query = self.supabase.table('company_deposits').select('*').eq('merchant_id', merchant_id)
+            query = self.supabase.table('company_deposits').select('*').eq('company_id', merchant_id)
             
             if status:
                 query = query.eq('status', status)
@@ -366,7 +366,7 @@ class DepositService:
             result = self.supabase.table('company_deposits').update({
                 'alert_threshold': float(new_threshold),
                 'updated_at': datetime.now().isoformat()
-            }).eq('id', deposit_id).eq('merchant_id', merchant_id).execute()
+            }).eq('id', deposit_id).eq('company_id', merchant_id).execute()
             
             if not result.data:
                 raise Exception("Dépôt non trouvé")
@@ -408,7 +408,7 @@ class DepositService:
                     raise ValueError("Montant minimum recharge auto: 1000 dhs")
                 update_data['auto_recharge_amount'] = float(recharge_amount)
             
-            result = self.supabase.table('company_deposits').update(update_data).eq('id', deposit_id).eq('merchant_id', merchant_id).execute()
+            result = self.supabase.table('company_deposits').update(update_data).eq('id', deposit_id).eq('company_id', merchant_id).execute()
             
             if not result.data:
                 raise Exception("Dépôt non trouvé")
@@ -441,7 +441,7 @@ class DepositService:
             result = self.supabase.table('company_deposits').update({
                 'status': 'suspended',
                 'updated_at': datetime.now().isoformat()
-            }).eq('id', deposit_id).eq('merchant_id', merchant_id).execute()
+            }).eq('id', deposit_id).eq('company_id', merchant_id).execute()
             
             if not result.data:
                 raise Exception("Dépôt non trouvé")

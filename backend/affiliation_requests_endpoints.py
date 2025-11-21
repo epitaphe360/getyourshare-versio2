@@ -9,6 +9,7 @@ from typing import Optional, List
 from datetime import datetime
 from supabase_client import supabase
 from tracking_service import tracking_service
+from auth import get_current_user_from_cookie
 import logging
 
 logger = logging.getLogger(__name__)
@@ -41,7 +42,7 @@ class AffiliationRequestResponse(BaseModel):
 async def create_affiliation_request(
     request_data: AffiliationRequestCreate,
     request: Request,
-    user = Depends(lambda: {})  # TODO: Remplacer par vrai système d'auth
+    user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Endpoint pour qu'un influenceur demande l'affiliation à un produit
@@ -64,8 +65,7 @@ async def create_affiliation_request(
         merchant_id = product['merchant_id']
 
         # 2. Récupérer l'influenceur depuis l'utilisateur connecté
-        # TODO: Récupérer user_id depuis le token JWT
-        user_id = request.headers.get('X-User-Id', 'mock-user-id')  # Mock pour l'instant
+        user_id = user['id']
 
         influencer_result = supabase.table('influencers').select('*').eq('user_id', user_id).execute()
 
@@ -91,7 +91,7 @@ async def create_affiliation_request(
             'influencer_followers': request_data.influencer_followers or influencer.get('audience_size', 0),
             'influencer_engagement_rate': request_data.influencer_engagement_rate or influencer.get('engagement_rate', 0),
             'influencer_social_links': request_data.influencer_social_links or influencer.get('social_links', {}),
-            'requested_at': datetime.now().isoformat()
+            'created_at': datetime.now().isoformat()
         }
 
         result = supabase.table('affiliation_requests').insert(affiliation_request).execute()
@@ -124,14 +124,13 @@ async def create_affiliation_request(
 @router.get("/my-requests")
 async def get_my_requests(
     request: Request,
-    user = Depends(lambda: {})  # TODO: Remplacer par vrai système d'auth
+    user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Récupère toutes les demandes d'affiliation de l'influenceur connecté
     """
     try:
-        # TODO: Récupérer user_id depuis le token JWT
-        user_id = request.headers.get('X-User-Id', 'mock-user-id')
+        user_id = user['id']
 
         influencer_result = supabase.table('influencers').select('id').eq('user_id', user_id).execute()
 
@@ -140,14 +139,31 @@ async def get_my_requests(
 
         influencer_id = influencer_result.data[0]['id']
 
-        # Récupérer les demandes avec les infos produit et marchand
-        requests = supabase.table('affiliation_requests').select(
-            '*, products(name, price, commission_rate, images), merchants(company_name, logo_url)'
-        ).eq('influencer_id', influencer_id).order('requested_at', desc=True).execute()
+        # Récupérer les demandes
+        requests_result = supabase.table('affiliation_requests').select('*').eq('influencer_id', influencer_id).order('created_at', desc=True).execute()
+        requests = requests_result.data or []
+
+        # Manual joins
+        product_ids = list(set(r['product_id'] for r in requests if r.get('product_id')))
+        products_map = {}
+        if product_ids:
+            p_res = supabase.table('products').select('id, name, price, commission_rate, images').in_('id', product_ids).execute()
+            products_map = {p['id']: p for p in p_res.data} if p_res.data else {}
+
+        merchant_ids = list(set(r['merchant_id'] for r in requests if r.get('merchant_id')))
+        merchants_map = {}
+        if merchant_ids:
+            m_res = supabase.table('merchants').select('id, company_name, logo_url').in_('id', merchant_ids).execute()
+            merchants_map = {m['id']: m for m in m_res.data} if m_res.data else {}
+
+        # Enrich
+        for req in requests:
+            req['products'] = products_map.get(req['product_id'])
+            req['merchants'] = merchants_map.get(req['merchant_id'])
 
         return {
             "success": True,
-            "requests": requests.data or []
+            "requests": requests
         }
 
     except HTTPException:
@@ -160,14 +176,13 @@ async def get_my_requests(
 @router.get("/merchant/pending")
 async def get_merchant_pending_requests(
     request: Request,
-    user = Depends(lambda: {})  # TODO: Remplacer par vrai système d'auth
+    user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Récupère toutes les demandes d'affiliation EN ATTENTE pour le marchand connecté
     """
     try:
-        # TODO: Récupérer user_id depuis le token JWT
-        user_id = request.headers.get('X-User-Id', 'mock-merchant-id')
+        user_id = user['id']
 
         merchant_result = supabase.table('merchants').select('id').eq('user_id', user_id).execute()
 
@@ -176,15 +191,52 @@ async def get_merchant_pending_requests(
 
         merchant_id = merchant_result.data[0]['id']
 
-        # Récupérer les demandes pending avec les infos influenceur et produit
-        requests = supabase.table('affiliation_requests').select(
-            '*, influencers(username, full_name, profile_picture_url, audience_size, engagement_rate, total_sales, total_earnings), products(name, price, commission_rate, images)'
-        ).eq('merchant_id', merchant_id).eq('status', 'pending').order('requested_at', desc=True).execute()
+        # Récupérer les demandes pending
+        requests_result = supabase.table('affiliation_requests').select('*').eq('merchant_id', merchant_id).eq('status', 'pending').order('created_at', desc=True).execute()
+        requests = requests_result.data or []
+
+        # Manual joins
+        influencer_ids = list(set(r['influencer_id'] for r in requests if r.get('influencer_id')))
+        influencers_map = {}
+        if influencer_ids:
+            # Note: influencers table might not have username/full_name directly if they are in users table.
+            # But the original code selected them from influencers table.
+            # Let's check influencers table columns or assume they are there or joined from users.
+            # Based on schema, influencers table has handles but not full_name (in users).
+            # But let's try to fetch what we can from influencers table first.
+            i_res = supabase.table('influencers').select('id, audience_size, engagement_rate, total_sales, total_earnings, user_id').in_('id', influencer_ids).execute()
+            
+            if i_res.data:
+                influencers_data = {i['id']: i for i in i_res.data}
+                # Fetch user details for names
+                user_ids = [i['user_id'] for i in i_res.data if i.get('user_id')]
+                if user_ids:
+                    u_res = supabase.table('users').select('id, full_name, avatar_url, email').in_('id', user_ids).execute()
+                    users_map = {u['id']: u for u in u_res.data} if u_res.data else {}
+                    
+                    # Merge
+                    for i_id, i_data in influencers_data.items():
+                        u_data = users_map.get(i_data['user_id'], {})
+                        i_data['full_name'] = u_data.get('full_name')
+                        i_data['profile_picture_url'] = u_data.get('avatar_url')
+                        i_data['username'] = u_data.get('email', '').split('@')[0] # Fallback
+                        influencers_map[i_id] = i_data
+
+        product_ids = list(set(r['product_id'] for r in requests if r.get('product_id')))
+        products_map = {}
+        if product_ids:
+            p_res = supabase.table('products').select('id, name, price, commission_rate, images').in_('id', product_ids).execute()
+            products_map = {p['id']: p for p in p_res.data} if p_res.data else {}
+
+        # Enrich
+        for req in requests:
+            req['influencers'] = influencers_map.get(req['influencer_id'])
+            req['products'] = products_map.get(req['product_id'])
 
         return {
             "success": True,
-            "pending_requests": requests.data or [],
-            "count": len(requests.data) if requests.data else 0
+            "pending_requests": requests,
+            "count": len(requests)
         }
 
     except HTTPException:
@@ -199,7 +251,7 @@ async def respond_to_request(
     request_id: str,
     response_data: AffiliationRequestResponse,
     request: Request,
-    user = Depends(lambda: {})  # TODO: Remplacer par vrai système d'auth
+    user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Endpoint pour qu'un marchand approuve ou refuse une demande d'affiliation
@@ -226,8 +278,7 @@ async def respond_to_request(
         affiliation_request = request_result.data[0]
 
         # 2. Vérifier que le marchand a le droit de répondre
-        # TODO: Vérifier user_id du marchand connecté
-        user_id = request.headers.get('X-User-Id', 'mock-merchant-id')
+        user_id = user['id']
 
         merchant_result = supabase.table('merchants').select('id').eq('user_id', user_id).execute()
 

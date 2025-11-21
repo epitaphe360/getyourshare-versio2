@@ -7,6 +7,7 @@ from fastapi import HTTPException, Depends, status
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from datetime import datetime
+from utils.logger import logger
 
 # Imports depuis db_helpers
 from db_helpers import (
@@ -580,8 +581,6 @@ def integrate_all_endpoints(app, verify_token):
     # Ajouter les endpoints de recherche d'influenceurs
     try:
         from influencer_search_endpoints import add_influencer_search_endpoints
-from utils.logger import logger
-
         add_influencer_search_endpoints(app, verify_token)
         logger.info("✅ Endpoints de recherche d'influenceurs intégrés")
     except ImportError:

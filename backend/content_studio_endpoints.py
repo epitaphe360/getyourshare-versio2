@@ -343,32 +343,39 @@ async def get_scheduled_posts(user_id: str):
 
     Permet de gérer et modifier les posts avant publication
     """
-    # TODO: Récupérer depuis la DB
+    # Récupérer depuis la DB
+    try:
+        result = content_studio_service.supabase.table("scheduled_posts").select("*").eq("user_id", user_id).order("scheduled_time", desc=True).execute()
+        scheduled_posts = result.data if result.data else []
+    except Exception as e:
+        # logger.error(f"Error fetching scheduled posts: {e}")
+        scheduled_posts = []
 
-    # Données demo
-    scheduled_posts = [
-        {
-            "id": "sched_123",
-            "content": {
-                "text": "Découvrez ce super produit! 🔥",
-                "image_url": "https://...",
-                "hashtags": ["#promo", "#maroc"]
+    # Données demo si vide (pour la démo)
+    if not scheduled_posts:
+        scheduled_posts = [
+            {
+                "id": "sched_123",
+                "content": {
+                    "text": "Découvrez ce super produit! 🔥",
+                    "image_url": "https://...",
+                    "hashtags": ["#promo", "#maroc"]
+                },
+                "platforms": ["instagram", "facebook"],
+                "scheduled_time": "2025-11-01T18:00:00",
+                "status": "pending"
             },
-            "platforms": ["instagram", "facebook"],
-            "scheduled_time": "2025-11-01T18:00:00",
-            "status": "pending"
-        },
-        {
-            "id": "sched_124",
-            "content": {
-                "text": "Nouvelle vidéo TikTok! 🎬",
-                "video_url": "https://..."
-            },
-            "platforms": ["tiktok", "instagram"],
-            "scheduled_time": "2025-11-01T20:00:00",
-            "status": "pending"
-        }
-    ]
+            {
+                "id": "sched_124",
+                "content": {
+                    "text": "Nouvelle vidéo TikTok! 🎬",
+                    "video_url": "https://..."
+                },
+                "platforms": ["tiktok", "instagram"],
+                "scheduled_time": "2025-11-01T20:00:00",
+                "status": "pending"
+            }
+        ]
 
     return {
         "scheduled_posts": scheduled_posts,

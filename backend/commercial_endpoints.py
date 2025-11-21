@@ -3,12 +3,13 @@ ENDPOINTS BACKEND POUR DASHBOARD COMMERCIAL
 ============================================
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from typing import Optional, List
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 import logging
 import os
+import jwt
 from supabase import create_client, Client
 
 # Configuration Supabase
@@ -16,19 +17,67 @@ SUPABASE_URL = os.getenv("SUPABASE_URL", "https://gwgvnusegnnhiciprvyc.supabase.
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd3Z3ZudXNlZ25uaGljaXBydnljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzA4MjE3NjgsImV4cCI6MjA0NjM5Nzc2OH0.gftLI_u0AxQUVIUi3hWjfJQ-m6Y56b5H5lDwbMEDGbU")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Importer la fonction d'authentification existante
-import sys
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Import de la fonction d'authentification du serveur principal
+from db_helpers import get_user_by_id
 
-# Fonction simplifiée d'authentification (à remplacer par votre version)
-async def get_current_user(token: str = Depends(lambda: None)):
-    """Récupère l'utilisateur courant depuis le token JWT"""
-    # Cette fonction devrait être importée depuis votre module auth existant
-    # Pour l'instant, on simule en retournant un dict
+# Configuration JWT (même que server.py)
+JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-key-change-in-production")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+
+def get_current_user_from_cookie(request: Request):
+    """
+    Get current user from httpOnly cookie (secure method)
+    Fallback to Authorization header for backward compatibility
+    """
+    # Try to get token from cookie first (secure)
+    token = request.cookies.get("access_token")
+
+    # Fallback to Authorization header (legacy)
     if not token:
-        raise HTTPException(status_code=401, detail="Non authentifié")
-    # TODO: Décoder le JWT et récupérer l'utilisateur
-    return {"id": "user-id", "role": "commercial", "subscription_tier": "pro"}
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+
+        # Verify token type
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type"
+            )
+
+        # Récupérer l'utilisateur complet depuis la DB
+        user = get_user_by_id(payload["sub"])
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found"
+            )
+        
+        return {
+            "id": user["id"],
+            "email": user.get("email"),
+            "role": user.get("role"),
+            "subscription_tier": user.get("subscription_plan", "starter")
+        }
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials"
+        )
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +168,7 @@ class Template(BaseModel):
 # =====================================================
 
 @router.get("/stats", response_model=CommercialStats)
-async def get_commercial_stats(current_user: dict = Depends(get_current_user)):
+async def get_commercial_stats(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Récupère les statistiques du dashboard commercial
     Vérifie le niveau d'abonnement pour limiter l'accès aux données
@@ -230,7 +279,7 @@ async def get_leads(
     temperature: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Récupère la liste des leads du commercial
@@ -272,7 +321,7 @@ async def get_leads(
 @router.post("/leads", response_model=Lead)
 async def create_lead(
     lead_data: CreateLeadRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Crée un nouveau lead
@@ -334,7 +383,7 @@ async def create_lead(
 async def update_lead(
     lead_id: str,
     update_data: dict,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Met à jour un lead
@@ -380,7 +429,7 @@ async def update_lead(
 
 @router.get("/tracking-links", response_model=List[TrackingLink])
 async def get_tracking_links(
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Récupère les liens trackés du commercial
@@ -431,7 +480,7 @@ async def get_tracking_links(
 @router.post("/tracking-links", response_model=TrackingLink)
 async def create_tracking_link(
     link_data: CreateTrackingLinkRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Crée un nouveau lien tracké
@@ -513,7 +562,7 @@ async def create_tracking_link(
 @router.get("/templates", response_model=List[Template])
 async def get_templates(
     category: Optional[str] = None,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Récupère les templates disponibles selon l'abonnement
@@ -553,7 +602,7 @@ async def get_templates(
 @router.post("/templates/{template_id}/use")
 async def use_template(
     template_id: str,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Incrémente le compteur d'utilisation d'un template
@@ -584,7 +633,7 @@ async def use_template(
 @router.get("/analytics/performance")
 async def get_performance_data(
     period: str = '30',  # '7', '30', '90'
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Données pour les graphiques de performance
@@ -637,7 +686,7 @@ async def get_performance_data(
 
 @router.get("/analytics/funnel")
 async def get_funnel_data(
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Données pour le funnel de conversion (pipeline)

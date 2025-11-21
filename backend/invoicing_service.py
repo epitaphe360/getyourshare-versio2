@@ -504,7 +504,7 @@ class InvoicingService:
                 supabase.table("platform_invoices")
                 .select("*")
                 .eq("merchant_id", merchant_id)
-                .order("invoice_date", desc=True)
+                .order("created_at", desc=True)
                 .execute()
             )
 

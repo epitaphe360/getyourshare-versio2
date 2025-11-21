@@ -197,7 +197,36 @@ async def check_my_compatibility(
 # ============================================
 
 async def get_mock_influencers() -> List[InfluencerProfile]:
-    """Mock influencers data"""
+    """Get influencers from DB (fallback to mock)"""
+    try:
+        from supabase_client import supabase
+        result = supabase.table("smart_match_influencers").select("*").execute()
+        if result.data:
+            influencers = []
+            for inf in result.data:
+                # Convert DB fields to Pydantic model
+                # Note: Enums need to be handled if they are strict
+                influencers.append(InfluencerProfile(
+                    user_id=inf["user_id"],
+                    name=inf["name"],
+                    niches=inf["niches"],
+                    followers_count=inf["followers_count"],
+                    engagement_rate=inf["engagement_rate"],
+                    audience_age=inf["audience_age"],
+                    audience_gender=inf["audience_gender"],
+                    audience_location=inf["audience_location"],
+                    platforms=inf["platforms"],
+                    average_views=inf["average_views"],
+                    content_quality_score=inf["content_quality_score"],
+                    reliability_score=inf["reliability_score"],
+                    preferred_commission=inf["preferred_commission"],
+                    language=inf["language"]
+                ))
+            return influencers
+    except Exception as e:
+        print(f"Error fetching influencers from DB: {e}")
+    
+    # Fallback
     return [
         InfluencerProfile(
             user_id="inf_1",
@@ -235,7 +264,33 @@ async def get_mock_influencers() -> List[InfluencerProfile]:
 
 
 async def get_mock_brands() -> List[BrandProfile]:
-    """Mock brands data"""
+    """Get brands from DB (fallback to mock)"""
+    try:
+        from supabase_client import supabase
+        result = supabase.table("smart_match_brands").select("*").execute()
+        if result.data:
+            brands = []
+            for brand in result.data:
+                brands.append(BrandProfile(
+                    company_id=brand["company_id"],
+                    company_name=brand["company_name"],
+                    product_category=brand["product_category"],
+                    target_audience_age=brand["target_audience_age"],
+                    target_audience_gender=brand["target_audience_gender"],
+                    target_locations=brand["target_locations"],
+                    budget_per_influencer=brand["budget_per_influencer"],
+                    commission_percentage=brand["commission_percentage"],
+                    campaign_description=brand["campaign_description"],
+                    required_followers_min=brand["required_followers_min"],
+                    required_engagement_min=brand["required_engagement_min"],
+                    preferred_platforms=brand["preferred_platforms"],
+                    language=brand["language"]
+                ))
+            return brands
+    except Exception as e:
+        print(f"Error fetching brands from DB: {e}")
+
+    # Fallback
     return [
         BrandProfile(
             company_id="brand_1",

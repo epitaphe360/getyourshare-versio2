@@ -252,11 +252,11 @@ async def get_top_influencers(limit: int = Query(10, description="Nombre d'influ
         # Récupérer infos des influencers
         top_influencers = []
         for influencer_id, earnings in sorted(influencers_earnings.items(), key=lambda x: x[1], reverse=True)[:limit]:
-            user = supabase.table('users').select('id, full_name, email, username').eq('id', influencer_id).single().execute()
+            user = supabase.table('users').select('id, full_name, email').eq('id', influencer_id).single().execute()
             if user.data:
                 top_influencers.append({
                     "influencer_id": influencer_id,
-                    "name": user.data.get('full_name') or user.data.get('username', 'Inconnu'),
+                    "name": user.data.get('full_name') or user.data.get('email', 'Inconnu'),
                     "email": user.data.get('email'),
                     "total_earnings": round(earnings, 2)
                 })
@@ -303,7 +303,7 @@ async def get_platform_metrics():
         
         # Active users (derniers 7 jours)
         seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
-        active_users = supabase.table('users').select('id', count='exact').gte('last_login_at', seven_days_ago).execute()
+        active_users = supabase.table('users').select('id', count='exact').gte('last_login', seven_days_ago).execute()
         
         return {
             "success": True,

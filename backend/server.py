@@ -11,6 +11,11 @@ if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
+# ⚠️ IMPORTANT: Charger .env AVANT tout autre import qui dépend des variables d'environnement
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException, Depends, status, Request, Response, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -74,9 +79,6 @@ except ImportError as e:
         pass
 
 import atexit
-
-# Charger les variables d'environnement
-load_dotenv()
 
 # ============================================
 # API METADATA & DOCUMENTATION
@@ -485,11 +487,22 @@ def create_refresh_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, REFRESH_TOKEN_SECRET, algorithm=JWT_ALGORITHM)
     return encoded_jwt
 
+from auth import get_current_user_from_cookie
+
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify JWT token from Authorization header (legacy support)"""
     try:
-        token = credentials.credentials
+        if hasattr(credentials, "credentials"):
+            token = credentials.credentials
+        else:
+            token = str(credentials)
+            
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        
+        # Ensure id is present (map sub to id)
+        if "id" not in payload and "sub" in payload:
+            payload["id"] = payload["sub"]
+            
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -502,47 +515,7 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
             detail="Invalid authentication credentials"
         )
 
-def get_current_user_from_cookie(request: Request):
-    """
-    Get current user from httpOnly cookie (secure method)
-    Fallback to Authorization header for backward compatibility
-    """
-    # Try to get token from cookie first (secure)
-    token = request.cookies.get("access_token")
-
-    # Fallback to Authorization header (legacy)
-    if not token:
-        auth_header = request.headers.get("Authorization")
-        if auth_header and auth_header.startswith("Bearer "):
-            token = auth_header.split(" ")[1]
-
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated"
-        )
-
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-
-        # Verify token type
-        if payload.get("type") != "access":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token type"
-            )
-
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expired"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials"
-        )
+# get_current_user_from_cookie imported from auth.py
 
 # ============================================
 # AUTHENTICATION ENDPOINTS
@@ -680,8 +653,8 @@ async def refresh_access_token(request: Request, response: Response):
             )
 
         # Récupérer les infos utilisateur
-        user_id = payload.get("sub")
-        user = get_user_by_id(user_id)
+        user_id = current_user.get("id")
+        user = current_user
 
         if not user or not user.get("is_active", True):
             raise HTTPException(
@@ -787,7 +760,10 @@ async def verify_2fa(data: TwoFAVerifyRequest):
 @app.get("/api/auth/me")
 async def get_current_user_endpoint(payload: dict = Depends(get_current_user_from_cookie)):
     """Récupère l'utilisateur connecté"""
-    user = get_user_by_id(payload["sub"])
+    user_id = payload.get("user_id") or payload.get("sub")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    user = get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user_data = {k: v for k, v in user.items() if k != "password_hash"}
@@ -827,7 +803,7 @@ async def register(data: RegisterRequest):
                 'user_id': user["id"],
                 'username': user["email"].split("@")[0],
                 'full_name': user["email"].split("@")[0],
-                'category': 'General',
+                'niche': ['General'],
                 'influencer_type': 'micro',
                 'audience_size': 1000,
                 'engagement_rate': 3.0
@@ -844,9 +820,9 @@ async def register(data: RegisterRequest):
 # ============================================
 
 @app.get("/api/dashboard/stats")
-async def get_dashboard_stats_endpoint(payload: dict = Depends(verify_token)):
+async def get_dashboard_stats_endpoint(request: Request, payload: dict = Depends(get_current_user_from_cookie)):
     """Statistiques du dashboard selon le rôle"""
-    user = get_user_by_id(payload["sub"])
+    user = get_user_by_id(payload["id"])
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -854,9 +830,9 @@ async def get_dashboard_stats_endpoint(payload: dict = Depends(verify_token)):
     return stats
 
 @app.get("/api/analytics/overview")
-async def get_analytics_overview(payload: dict = Depends(verify_token)):
+async def get_analytics_overview(request: Request, payload: dict = Depends(get_current_user_from_cookie)):
     """Vue d'ensemble des analytics"""
-    user = get_user_by_id(payload["sub"])
+    user = get_user_by_id(payload["id"])
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -868,7 +844,7 @@ async def get_analytics_overview(payload: dict = Depends(verify_token)):
 # ============================================
 
 @app.get("/api/merchants")
-async def get_merchants(payload: dict = Depends(verify_token)):
+async def get_merchants(request: Request, payload: dict = Depends(get_current_user_from_cookie)):
     """Liste tous les merchants depuis la table users"""
     try:
         # Récupérer les merchants depuis la table users
@@ -897,7 +873,7 @@ async def get_merchants(payload: dict = Depends(verify_token)):
         return {"merchants": [], "total": 0}
 
 @app.get("/api/merchants/{merchant_id}")
-async def get_merchant(merchant_id: str, payload: dict = Depends(verify_token)):
+async def get_merchant(merchant_id: str, current_user: dict = Depends(get_current_user_from_cookie)):
     """Récupère les détails d'un merchant"""
     merchant = get_merchant_by_id(merchant_id)
     if not merchant:
@@ -909,7 +885,7 @@ async def get_merchant(merchant_id: str, payload: dict = Depends(verify_token)):
 # ============================================
 
 @app.get("/api/influencers")
-async def get_influencers(payload: dict = Depends(verify_token)):
+async def get_influencers(request: Request, payload: dict = Depends(get_current_user_from_cookie)):
     """Liste tous les influencers depuis la table users"""
     try:
         # Récupérer les influenceurs depuis la table users
@@ -944,7 +920,7 @@ async def get_influencers(payload: dict = Depends(verify_token)):
         return {"influencers": [], "total": 0}
 
 @app.get("/api/influencers/{influencer_id}")
-async def get_influencer(influencer_id: str, payload: dict = Depends(verify_token)):
+async def get_influencer(influencer_id: str, current_user: dict = Depends(get_current_user_from_cookie)):
     """Récupère les détails d'un influencer"""
     influencer = get_influencer_by_id(influencer_id)
     if not influencer:
@@ -952,7 +928,7 @@ async def get_influencer(influencer_id: str, payload: dict = Depends(verify_toke
     return influencer
 
 @app.get("/api/influencers/{influencer_id}/stats")
-async def get_influencer_stats(influencer_id: str, payload: dict = Depends(verify_token)):
+async def get_influencer_stats(influencer_id: str, current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Statistiques détaillées d'un influenceur
     Retourne: total_sales, total_clicks, conversion_rate, campaigns_completed
@@ -1004,10 +980,10 @@ async def get_influencer_stats(influencer_id: str, payload: dict = Depends(verif
         }
 
 @app.get("/api/affiliate-links")
-async def get_affiliate_links(payload: dict = Depends(verify_token)):
+async def get_affiliate_links(request: Request, payload: dict = Depends(get_current_user_from_cookie)):
     """Récupère les liens d'affiliation de l'influenceur connecté"""
     try:
-        user_id = payload["sub"]
+        user_id = payload["id"]
         
         # Récupérer l'utilisateur pour vérifier qu'il est influenceur
         user = get_user_by_id(user_id)
@@ -1071,10 +1047,10 @@ async def get_affiliate_links(payload: dict = Depends(verify_token)):
         return {"links": [], "total": 0}
 
 @app.get("/api/subscriptions/current")
-async def get_current_subscription(payload: dict = Depends(verify_token)):
+async def get_current_subscription(request: Request, payload: dict = Depends(get_current_user_from_cookie)):
     """Récupère l'abonnement actif de l'utilisateur connecté"""
     try:
-        user_id = payload["sub"]
+        user_id = payload["id"]
         
         # Récupérer l'abonnement actif avec le plan associé
         sub_result = supabase.table("subscriptions").select("""
@@ -1148,10 +1124,17 @@ async def get_current_subscription(payload: dict = Depends(verify_token)):
         }
 
 @app.post("/api/payouts/request")
-async def request_payout(payload: dict = Depends(verify_token)):
-    """Permet à un influenceur de demander un payout"""
+async def request_payout(request: Request, current_user: dict = Depends(get_current_user_from_cookie)):
+    """Permet à un influenceur de demander un payout avec validation stricte du solde"""
     try:
-        user_id = payload["sub"]
+        # Récupérer les données de la requête
+        body = await request.json()
+        requested_amount = float(body.get("amount", 0))
+        payment_method = body.get("payment_method", "bank_transfer")
+        currency = body.get("currency", "EUR")
+        
+        # Récupérer l'ID utilisateur depuis le cookie
+        user_id = current_user.get("user_id") or current_user.get("id")
         
         # Vérifier que l'utilisateur est un influenceur
         user = get_user_by_id(user_id)
@@ -1160,35 +1143,81 @@ async def request_payout(payload: dict = Depends(verify_token)):
         
         influencer_id = user_id
         
-        # Calculer le balance disponible
-        # 1. Total des commissions gagnées
-        conversions_result = supabase.table("conversions").select("commission_amount").eq("influencer_id", influencer_id).eq("status", "completed").execute()
-        conversions = conversions_result.data if conversions_result.data else []
-        total_earned = sum([float(c.get("commission_amount", 0)) for c in conversions])
+        # RÈGLE OBLIGATOIRE: Calculer le balance disponible
         
-        # 2. Total des payouts déjà effectués
-        payouts_result = supabase.table("payouts").select("amount").eq("influencer_id", influencer_id).in_("status", ["paid", "processing"]).execute()
-        payouts = payouts_result.data if payouts_result.data else []
-        total_paid = sum([float(p.get("amount", 0)) for p in payouts])
+        logger.info(f"Payout request - Influencer: {influencer_id}")
         
-        # 3. Balance disponible
-        available_balance = total_earned - total_paid
+        # 1. Total des commissions gagnées depuis la table commissions
+        logger.info("Fetching commissions...")
+        commissions_result = supabase.table("commissions").select("amount").eq("influencer_id", influencer_id).execute()
+        commissions = commissions_result.data if commissions_result.data else []
+        total_earned = sum([float(c.get("amount", 0)) for c in commissions])
+        logger.info(f"Total earned: {total_earned}")
         
-        # Vérifier le montant minimum (50€)
-        if available_balance < 50:
+        # 2. Total des payouts déjà effectués (paid) ou en cours (processing)
+        logger.info("Fetching payouts...")
+        try:
+            payouts_result = supabase.table("payouts").select("amount, status").eq("influencer_id", influencer_id).execute()
+            payouts = payouts_result.data if payouts_result.data else []
+            total_withdrawn = sum([float(p.get("amount", 0)) for p in payouts if p.get("status") in ["paid", "processing"]])
+        except Exception as e:
+            logger.error(f"Error fetching payouts (table might be missing): {e}")
+            # If table missing, assume 0 withdrawn? Or fail?
+            # Let's assume 0 for now to prevent crash if table missing, but log it.
+            total_withdrawn = 0.0
+            
+        logger.info(f"Total withdrawn: {total_withdrawn}")
+        
+        # 3. Balance disponible = commissions - retraits
+        available_balance = total_earned - total_withdrawn
+        
+        logger.info(f"  Total earned: {total_earned:.2f}€")
+        logger.info(f"  Total withdrawn: {total_withdrawn:.2f}€")
+        logger.info(f"  Available balance: {available_balance:.2f}€")
+        logger.info(f"  Requested amount: {requested_amount:.2f}€")
+        
+        # VALIDATION 1: Montant demandé doit être positif
+        if requested_amount <= 0:
             raise HTTPException(
-                status_code=400, 
-                detail=f"Balance insuffisante. Minimum 50€ requis. Balance actuelle: {available_balance:.2f}€"
+                status_code=400,
+                detail="Le montant demandé doit être supérieur à 0€"
             )
         
-        # Créer la demande de payout
+        # VALIDATION 2: Montant minimum de retrait (50€)
+        if requested_amount < 50:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Le montant minimum de retrait est de 50€. Vous avez demandé {requested_amount:.2f}€"
+            )
+        
+        # VALIDATION 3 (RÈGLE OBLIGATOIRE): Le total retiré ne doit JAMAIS dépasser les commissions gagnées
+        new_total_withdrawn = total_withdrawn + requested_amount
+        if new_total_withdrawn > total_earned:
+            raise HTTPException(
+                status_code=400,
+                detail=f"❌ VALIDATION ÉCHOUÉE: Le retrait dépasserait vos commissions gagnées.\n"
+                       f"Commissions gagnées: {total_earned:.2f}€\n"
+                       f"Déjà retiré: {total_withdrawn:.2f}€\n"
+                       f"Solde disponible: {available_balance:.2f}€\n"
+                       f"Montant demandé: {requested_amount:.2f}€\n"
+                       f"Total après retrait: {new_total_withdrawn:.2f}€ (INTERDIT)"
+            )
+        
+        # VALIDATION 4: Le montant demandé ne doit pas dépasser le solde disponible
+        if requested_amount > available_balance:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Solde insuffisant. Disponible: {available_balance:.2f}€, Demandé: {requested_amount:.2f}€"
+            )
+        
+        # Créer la demande de payout (validations passées ✅)
         payout_data = {
             "influencer_id": influencer_id,
-            "amount": available_balance,
+            "amount": requested_amount,
             "status": "pending",
-            "requested_at": "now()",
-            "payment_method": "bank_transfer",  # Par défaut
-            "currency": "EUR"
+            # "requested_at": "now()", # Let DB handle timestamps if possible, or use created_at
+            "payment_method": payment_method, 
+            "currency": currency
         }
         
         result = supabase.table("payouts").insert(payout_data).execute()
@@ -1196,24 +1225,60 @@ async def request_payout(payload: dict = Depends(verify_token)):
         if not result.data:
             raise HTTPException(status_code=500, detail="Erreur lors de la création du payout")
         
+        logger.info(f"✅ Payout created successfully: {requested_amount:.2f}€ for influencer {influencer_id}")
+        
         return {
             "success": True,
-            "message": "Demande de payout créée avec succès",
+            "message": f"Demande de paiement de {requested_amount:.2f}€ créée avec succès",
             "payout": result.data[0],
-            "amount": available_balance
+            "amount": requested_amount,
+            "new_balance": available_balance - requested_amount
         }
         
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error requesting payout: {e}")
+        logger.error(f"DEBUG PAYOUT ERROR: type={type(e)}, repr={repr(e)}")
+        # Check if it's a Supabase/Postgres error (P0001 is custom exception)
+        error_msg = str(e)
+        
+        # Try to parse dictionary from string if it looks like one
+        if isinstance(e, dict):
+            error_data = e
+        elif hasattr(e, 'code'): # Postgrest error object
+            error_data = {'code': e.code, 'message': e.message, 'details': e.details}
+        else:
+            # Try to find dict-like structure in string
+            import re
+            import ast
+            try:
+                # Look for something that looks like a dict: {'message': ...}
+                match = re.search(r"\{.*\}", error_msg)
+                if match:
+                    error_data = ast.literal_eval(match.group(0))
+                else:
+                    error_data = {}
+            except:
+                error_data = {}
+
+        # Check for P0001 code or "Payout refusé" text
+        if "Payout refusé" in error_msg or "P0001" in error_msg or error_data.get('code') == 'P0001':
+             # Extract the message
+             detail = error_data.get('message') if error_data.get('message') else "Payout refusé par la banque (Solde insuffisant)"
+             # Clean up the message if it contains technical details
+             if "Payout refusé" in detail:
+                 # Keep the message as is, it's usually user friendly from the DB function
+                 pass
+             raise HTTPException(status_code=400, detail=detail)
+             
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
 @app.get("/api/invitations")
-async def get_invitations(payload: dict = Depends(verify_token)):
+async def get_invitations(current_user: dict = Depends(get_current_user_from_cookie)):
     """Récupère les invitations reçues par l'influenceur"""
     try:
-        user_id = payload["sub"]
+        user_id = current_user["id"]
         
         # Vérifier que l'utilisateur est un influenceur
         user = get_user_by_id(user_id)
@@ -1275,12 +1340,12 @@ async def get_invitations(payload: dict = Depends(verify_token)):
 # ============================================
 
 @app.get("/api/sales/dashboard/me")
-async def get_sales_dashboard(payload: dict = Depends(verify_token)):
+async def get_sales_dashboard(current_user: dict = Depends(get_current_user_from_cookie)):
     """Dashboard complet du commercial connecté"""
     try:
         from datetime import datetime, timedelta
         
-        user_id = payload["sub"]
+        user_id = current_user["id"]
         
         # Vérifier que l'utilisateur est un commercial
         user = get_user_by_id(user_id)
@@ -1288,7 +1353,7 @@ async def get_sales_dashboard(payload: dict = Depends(verify_token)):
             raise HTTPException(status_code=403, detail="Accès réservé aux commerciaux")
         
         # Récupérer le sales_rep_id
-        rep_result = supabase.table("sales_representatives").select("*").eq("user_id", user_id).single().execute()
+        rep_result = supabase.table("sales_representatives").select("*").eq("user_id", user_id).execute()
         if not rep_result.data:
             # Créer un enregistrement si n'existe pas
             rep_data = {
@@ -1302,8 +1367,9 @@ async def get_sales_dashboard(payload: dict = Depends(verify_token)):
             }
             rep_result = supabase.table("sales_representatives").insert(rep_data).execute()
         
-        sales_rep = rep_result.data
-        sales_rep_id = sales_rep["id"] if isinstance(sales_rep, dict) else sales_rep[0]["id"]
+        sales_rep = rep_result.data if isinstance(rep_result.data, list) else [rep_result.data]
+        sales_rep = sales_rep[0]
+        sales_rep_id = sales_rep["id"]
         
         # Date du début du mois
         now = datetime.now()
@@ -1400,17 +1466,17 @@ async def get_sales_dashboard(payload: dict = Depends(verify_token)):
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
 @app.get("/api/sales/leads/me")
-async def get_my_leads(payload: dict = Depends(verify_token)):
+async def get_my_leads(current_user: dict = Depends(get_current_user_from_cookie)):
     """Liste des leads du commercial connecté"""
     try:
-        user_id = payload["sub"]
+        user_id = current_user["id"]
         
         # Récupérer le sales_rep_id
-        rep_result = supabase.table("sales_representatives").select("id").eq("user_id", user_id).single().execute()
+        rep_result = supabase.table("sales_representatives").select("id").eq("user_id", user_id).execute()
         if not rep_result.data:
             return {"leads": [], "total": 0}
         
-        sales_rep_id = rep_result.data["id"]
+        sales_rep_id = rep_result.data[0]["id"]
         
         # Récupérer les leads
         leads_result = supabase.table("leads").select("""
@@ -1444,17 +1510,17 @@ async def get_my_leads(payload: dict = Depends(verify_token)):
         return {"leads": [], "total": 0}
 
 @app.get("/api/sales/deals/me")
-async def get_my_deals(payload: dict = Depends(verify_token)):
+async def get_my_deals(current_user: dict = Depends(get_current_user_from_cookie)):
     """Liste des deals du commercial connecté"""
     try:
-        user_id = payload["sub"]
+        user_id = current_user["id"]
         
         # Récupérer le sales_rep_id
-        rep_result = supabase.table("sales_representatives").select("id").eq("user_id", user_id).single().execute()
+        rep_result = supabase.table("sales_representatives").select("id").eq("user_id", user_id).execute()
         if not rep_result.data:
             return {"deals": [], "total": 0}
         
-        sales_rep_id = rep_result.data["id"]
+        sales_rep_id = rep_result.data[0]["id"]
         
         # Récupérer les deals
         deals_result = supabase.table("deals").select("""
@@ -1497,7 +1563,7 @@ async def get_my_deals(payload: dict = Depends(verify_token)):
         return {"deals": [], "total": 0}
 
 @app.get("/api/sales/leaderboard")
-async def get_sales_leaderboard(payload: dict = Depends(verify_token)):
+async def get_sales_leaderboard(current_user: dict = Depends(get_current_user_from_cookie)):
     """Classement des commerciaux"""
     try:
         from datetime import datetime, timedelta
@@ -1556,7 +1622,7 @@ async def get_sales_leaderboard(payload: dict = Depends(verify_token)):
 @app.get("/api/admin/users")
 async def get_admin_users(
     role: Optional[str] = None,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Liste tous les utilisateurs admin/moderator/support
@@ -1600,7 +1666,7 @@ async def get_admin_users(
 @app.post("/api/admin/users")
 async def create_admin_user(
     user_data: dict,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Créer un nouvel utilisateur admin/moderator/support"""
     try:
@@ -1620,7 +1686,7 @@ async def create_admin_user(
             "password_hash": hashed_password,
             "role": user_data.get("role", "admin"),
             "status": user_data.get("status", "active"),
-            "permissions": user_data.get("permissions", {}),
+            # "permissions": user_data.get("permissions", {}), # Column missing in DB
             "created_at": datetime.utcnow().isoformat()
         }
         
@@ -1641,7 +1707,7 @@ async def create_admin_user(
 async def update_admin_user(
     user_id: str,
     user_data: dict,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Mettre à jour un utilisateur admin"""
     try:
@@ -1652,7 +1718,7 @@ async def update_admin_user(
             "phone": user_data.get("phone"),
             "role": user_data.get("role"),
             "status": user_data.get("status"),
-            "permissions": user_data.get("permissions", {})
+            # "permissions": user_data.get("permissions", {}) # Column missing in DB
         }
         
         # Si un nouveau mot de passe est fourni
@@ -1678,7 +1744,7 @@ async def update_admin_user(
 @app.delete("/api/admin/users/{user_id}")
 async def delete_admin_user(
     user_id: str,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Supprimer un utilisateur admin"""
     try:
@@ -1699,7 +1765,7 @@ async def delete_admin_user(
 async def toggle_user_status(
     user_id: str,
     status_data: dict,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Activer/désactiver un utilisateur"""
     try:
@@ -1722,7 +1788,7 @@ async def toggle_user_status(
 async def update_user_permissions(
     user_id: str,
     permissions: dict,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Mettre à jour les permissions d'un utilisateur"""
     try:
@@ -1746,7 +1812,7 @@ async def update_user_permissions(
 @app.get("/api/advertiser-registrations")
 async def get_advertiser_registrations(
     status: Optional[str] = None,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Liste toutes les demandes d'inscription d'annonceurs
@@ -1788,7 +1854,7 @@ async def get_advertiser_registrations(
 @app.post("/api/advertiser-registrations/{registration_id}/approve")
 async def approve_advertiser_registration(
     registration_id: str,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Approuver une demande d'inscription d'annonceur"""
     try:
@@ -1831,7 +1897,7 @@ async def approve_advertiser_registration(
 @app.post("/api/advertiser-registrations/{registration_id}/reject")
 async def reject_advertiser_registration(
     registration_id: str,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Rejeter une demande d'inscription d'annonceur"""
     try:
@@ -1879,7 +1945,7 @@ async def reject_advertiser_registration(
 async def get_invoices(
     status: Optional[str] = None,
     merchant_id: Optional[str] = None,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Liste toutes les factures
@@ -1947,7 +2013,7 @@ async def get_invoices(
 @app.post("/api/invoices")
 async def create_invoice(
     invoice_data: dict,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Créer une nouvelle facture"""
     try:
@@ -2003,7 +2069,7 @@ async def create_invoice(
 @app.get("/api/invoices/{invoice_id}")
 async def get_invoice(
     invoice_id: str,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Récupérer les détails d'une facture"""
     try:
@@ -2018,7 +2084,7 @@ async def get_invoice(
 @app.get("/api/invoices/{invoice_id}/download")
 async def download_invoice(
     invoice_id: str,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Télécharger une facture en PDF"""
     try:
@@ -2034,7 +2100,7 @@ async def download_invoice(
 async def update_invoice_status(
     invoice_id: str,
     status_data: dict,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Mettre à jour le statut d'une facture (paid, cancelled, etc.)"""
     try:
@@ -2063,12 +2129,13 @@ async def update_invoice_status(
 
 @app.get("/api/products")
 async def get_products(
+    request: Request,
     category: Optional[str] = None, 
     merchant_id: Optional[str] = None,
-    payload: dict = Depends(verify_token)
+    payload: dict = Depends(get_current_user_from_cookie)
 ):
     """Liste tous les produits avec filtres optionnels"""
-    user = get_user_by_id(payload["sub"])
+    user = get_user_by_id(payload["id"])
     
     # Si merchant, filtrer par ses propres produits (sauf si admin)
     if user["role"] == "merchant" and not merchant_id:
@@ -2101,10 +2168,10 @@ async def get_product(product_id: str):
 async def get_services(
     category: Optional[str] = None, 
     merchant_id: Optional[str] = None,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Liste tous les services avec filtres optionnels"""
-    user = get_user_by_id(payload["sub"])
+    user = current_user
     
     # Si merchant, filtrer par ses propres services (sauf si admin)
     if user["role"] == "merchant" and not merchant_id:
@@ -2128,26 +2195,12 @@ async def get_service(service_id: str):
 # AFFILIATE LINKS ENDPOINTS
 # ============================================
 
-@app.get("/api/affiliate-links")
-async def get_affiliate_links_endpoint(payload: dict = Depends(verify_token)):
-    """Liste les liens d'affiliation"""
-    user = get_user_by_id(payload["sub"])
 
-    if user["role"] == "influencer":
-        influencer = get_influencer_by_user_id(user["id"])
-        if influencer:
-            links = get_affiliate_links(influencer_id=influencer["id"])
-        else:
-            links = []
-    else:
-        links = get_affiliate_links()
-
-    return {"links": links, "total": len(links)}
 
 @app.post("/api/affiliate-links/generate")
-async def generate_affiliate_link(data: AffiliateLinkGenerate, payload: dict = Depends(verify_token)):
+async def generate_affiliate_link(data: AffiliateLinkGenerate, current_user: dict = Depends(get_current_user_from_cookie)):
     """Génère un lien d'affiliation"""
-    user = get_user_by_id(payload["sub"])
+    user = get_user_by_id(current_user["id"])
 
     if user["role"] != "influencer":
         raise HTTPException(status_code=403, detail="Accès refusé")
@@ -2181,9 +2234,9 @@ async def generate_affiliate_link(data: AffiliateLinkGenerate, payload: dict = D
 # ============================================
 
 @app.get("/api/campaigns")
-async def get_campaigns_endpoint(payload: dict = Depends(verify_token)):
+async def get_campaigns_endpoint(current_user: dict = Depends(get_current_user_from_cookie)):
     """Liste toutes les campagnes"""
-    user = get_user_by_id(payload["sub"])
+    user = get_user_by_id(current_user["id"])
 
     if user["role"] == "merchant":
         merchant = get_merchant_by_user_id(user["id"])
@@ -2194,9 +2247,9 @@ async def get_campaigns_endpoint(payload: dict = Depends(verify_token)):
     return {"data": campaigns, "total": len(campaigns)}
 
 @app.post("/api/campaigns")
-async def create_campaign_endpoint(campaign_data: CampaignCreate, payload: dict = Depends(verify_token)):
+async def create_campaign_endpoint(campaign_data: CampaignCreate, current_user: dict = Depends(get_current_user_from_cookie)):
     """Créer une nouvelle campagne"""
-    user = get_user_by_id(payload["sub"])
+    user = get_user_by_id(current_user["id"])
 
     if user["role"] != "merchant":
         raise HTTPException(status_code=403, detail="Seuls les merchants peuvent créer des campagnes")
@@ -2222,15 +2275,15 @@ async def create_campaign_endpoint(campaign_data: CampaignCreate, payload: dict 
 async def update_campaign_status(
     campaign_id: str,
     status_data: dict,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Mettre à jour le statut d'une campagne
     Body: {"status": "active" | "paused" | "archived"}
     """
     try:
-        user_id = payload.get("sub")
-        role = payload.get("role")
+        user_id = current_user.get("id")
+        role = current_user.get("role")
         new_status = status_data.get("status")
         
         # Valider le statut
@@ -2279,11 +2332,11 @@ async def update_campaign_status(
 # ============================================
 
 @app.get("/api/conversions")
-async def get_conversions_endpoint(payload: dict = Depends(verify_token)):
+async def get_conversions_endpoint(current_user: dict = Depends(get_current_user_from_cookie)):
     """Liste des conversions depuis la table conversions"""
     try:
-        user_id = payload.get("user_id")
-        role = payload.get("role")
+        user_id = current_user.get("id")
+        role = current_user.get("role")
         
         logger.info(f"🔍 Fetching conversions for user_id={user_id}, role={role}")
         
@@ -2291,16 +2344,16 @@ async def get_conversions_endpoint(payload: dict = Depends(verify_token)):
         response = supabase.table('conversions').select(
             '''
             id,
-            order_id,
-            order_amount,
+            tracking_link_id,
+            sale_amount,
             commission_amount,
             commission_rate,
             status,
             conversion_date,
-            campaign_id,
             influencer_id,
             merchant_id,
-            affiliate_link_id
+            product_id,
+            created_at
             '''
         ).order('conversion_date', desc=True).execute()
         
@@ -2336,9 +2389,9 @@ async def get_conversions_endpoint(payload: dict = Depends(verify_token)):
             # Récupérer le nom de l'influenceur
             influencer_name = "N/A"
             if conv.get('influencer_id'):
-                inf_result = supabase.table('influencers').select('full_name').eq('id', conv['influencer_id']).execute()
+                inf_result = supabase.table('users').select('email').eq('id', conv['influencer_id']).execute()
                 if inf_result.data:
-                    influencer_name = inf_result.data[0]['full_name']
+                    influencer_name = inf_result.data[0]['email']
             
             formatted_conversions.append({
                 'id': conv.get('id'),
@@ -2361,21 +2414,21 @@ async def get_conversions_endpoint(payload: dict = Depends(verify_token)):
         return {"data": [], "total": 0}
 
 @app.get("/api/leads")
-async def get_leads_endpoint(payload: dict = Depends(verify_token)):
+async def get_leads_endpoint(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Liste des leads générés par les influenceurs
     Accessible aux marchands et aux admins
     Utilise la table 'leads' du système de génération de leads
     """
     try:
-        user_id = payload.get("user_id")
-        role = payload.get("role")
+        user_id = current_user.get("id")
+        role = current_user.get("role")
         
         # Essayer d'abord la table 'leads' (nouveau système)
         try:
             query = supabase.table('leads').select('''
                 *,
-                influencer:influencers(full_name, username),
+                influencer:users!influencer_id(email),
                 campaign:campaigns(name),
                 merchant:merchants(company_name)
             ''').order('created_at', desc=True)
@@ -2400,8 +2453,8 @@ async def get_leads_endpoint(payload: dict = Depends(verify_token)):
                     'campaign': lead.get('campaign', {}).get('name', 'N/A') if isinstance(lead.get('campaign'), dict) else 'N/A',
                     'affiliate': lead.get('influencer', {}).get('full_name', 'N/A') if isinstance(lead.get('influencer'), dict) else 'N/A',
                     'status': lead.get('status', 'pending'),
-                    'amount': float(lead.get('estimated_value', 0)),
-                    'commission': float(lead.get('commission_amount', 0)),
+                    'amount': float(lead.get('estimated_value') or 0),
+                    'commission': float(lead.get('commission_amount') or 0),
                     'created_at': lead.get('created_at'),
                 })
             
@@ -2412,7 +2465,7 @@ async def get_leads_endpoint(payload: dict = Depends(verify_token)):
             
             # Fallback: essayer la table 'sales' (ancien système)
             query = supabase.table('sales').select(
-                '*, affiliate:affiliates(email), campaign:campaigns(name)'
+                '*, users!influencer_id(email), campaign:campaigns(name)'
             ).eq('status', 'pending').order('created_at', desc=True)
             
             # Si pas admin, filtrer par merchant_id
@@ -2425,14 +2478,18 @@ async def get_leads_endpoint(payload: dict = Depends(verify_token)):
             # Formater en leads
             leads = []
             for sale in sales:
+                # Gérer les relations potentiellement manquantes ou mal formatées
+                user_data = sale.get('users') or {}
+                campaign_data = sale.get('campaign') or {}
+                
                 leads.append({
                     'id': sale.get('id'),
-                    'email': sale.get('affiliate', {}).get('email', 'N/A'),
-                    'campaign': sale.get('campaign', {}).get('name', 'N/A'),
-                    'affiliate': sale.get('affiliate', {}).get('email', 'N/A'),
+                    'email': user_data.get('email', 'N/A'),
+                    'campaign': campaign_data.get('name', 'N/A'),
+                    'affiliate': user_data.get('email', 'N/A'),
                     'status': sale.get('status', 'pending'),
-                    'amount': float(sale.get('amount', 0)),
-                    'commission': float(sale.get('commission', 0)),
+                    'amount': float(sale.get('amount') or 0),
+                    'commission': float(sale.get('commission') or 0),
                     'created_at': sale.get('created_at'),
                 })
             
@@ -2445,7 +2502,7 @@ async def get_leads_endpoint(payload: dict = Depends(verify_token)):
         return {"data": [], "total": 0}
 
 @app.get("/api/clicks")
-async def get_clicks_endpoint(payload: dict = Depends(verify_token)):
+async def get_clicks_endpoint(current_user: dict = Depends(get_current_user_from_cookie)):
     """Liste des clics"""
     clicks = get_clicks(limit=50)
     return {"data": clicks, "total": len(clicks)}
@@ -2455,7 +2512,7 @@ async def get_clicks_endpoint(payload: dict = Depends(verify_token)):
 # ============================================
 
 @app.get("/api/analytics/merchant/sales-chart")
-async def get_merchant_sales_chart(payload: dict = Depends(verify_token)):
+async def get_merchant_sales_chart(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Données de ventes des 7 derniers jours pour le marchand
     Format: [{date: '01/06', ventes: 12, revenus: 3500}, ...]
@@ -2463,8 +2520,8 @@ async def get_merchant_sales_chart(payload: dict = Depends(verify_token)):
     try:
         from datetime import datetime, timedelta
         
-        user_id = payload.get("user_id")
-        role = payload.get("role")
+        user_id = current_user.get("id")
+        role = current_user.get("role")
         
         # Calculer les 7 derniers jours
         today = datetime.now()
@@ -2504,8 +2561,80 @@ async def get_merchant_sales_chart(payload: dict = Depends(verify_token)):
         # Retourner des données vides en cas d'erreur
         return {"data": [{"date": f"0{i}/01", "ventes": 0, "revenus": 0} for i in range(1, 8)]}
 
+@app.get("/api/analytics/influencer/overview")
+async def get_influencer_overview(request: Request, payload: dict = Depends(get_current_user_from_cookie)):
+    """
+    Vue d'ensemble des analytics pour l'influenceur connecté
+    Retourne: total_earnings, total_clicks, total_conversions, active_links, etc.
+    """
+    try:
+        user_id = payload["id"]
+        
+        # Vérifier que l'utilisateur est bien un influenceur
+        user = get_user_by_id(user_id)
+        if not user or user.get("role") != "influencer":
+            raise HTTPException(status_code=403, detail="Accès réservé aux influenceurs")
+        
+        # Total des commissions gagnées
+        conversions_result = supabase.table("conversions").select("commission_amount").eq("influencer_id", user_id).eq("status", "completed").execute()
+        conversions = conversions_result.data if conversions_result.data else []
+        total_earnings = sum([float(c.get("commission_amount", 0)) for c in conversions])
+        
+        # Total des clics (conversions de tous statuts)
+        clicks_result = supabase.table("conversions").select("id", count="exact").eq("influencer_id", user_id).execute()
+        total_clicks = clicks_result.count or 0
+        
+        # Total des conversions (uniquement completed)
+        total_conversions = len(conversions)
+        
+        # Nombre de liens actifs
+        links_result = supabase.table("tracking_links").select("id", count="exact").eq("influencer_id", user_id).execute()
+        active_links = links_result.count or 0
+        
+        # Taux de conversion
+        conversion_rate = (total_conversions / total_clicks * 100) if total_clicks > 0 else 0
+        
+        # Revenus du mois en cours
+        from datetime import datetime
+        start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0).isoformat()
+        month_conversions = supabase.table("conversions").select("commission_amount").eq("influencer_id", user_id).eq("status", "completed").gte("created_at", start_of_month).execute()
+        monthly_earnings = sum([float(c.get("commission_amount", 0)) for c in (month_conversions.data or [])])
+        
+        # Balance disponible (gains - payouts)
+        payouts_result = supabase.table("payouts").select("amount").eq("influencer_id", user_id).in_("status", ["paid", "processing"]).execute()
+        payouts = payouts_result.data if payouts_result.data else []
+        total_paid = sum([float(p.get("amount", 0)) for p in payouts])
+        available_balance = total_earnings - total_paid
+        
+        return {
+            "total_earnings": round(total_earnings, 2),
+            "total_clicks": total_clicks,
+            "total_conversions": total_conversions,
+            "conversion_rate": round(conversion_rate, 2),
+            "active_links": active_links,
+            "monthly_earnings": round(monthly_earnings, 2),
+            "available_balance": round(available_balance, 2),
+            "avg_commission": round(total_earnings / total_conversions, 2) if total_conversions > 0 else 0
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching influencer overview: {e}")
+        # Retourner des données par défaut en cas d'erreur
+        return {
+            "total_earnings": 0,
+            "total_clicks": 0,
+            "total_conversions": 0,
+            "conversion_rate": 0,
+            "active_links": 0,
+            "monthly_earnings": 0,
+            "available_balance": 0,
+            "avg_commission": 0
+        }
+
 @app.get("/api/analytics/influencer/earnings-chart")
-async def get_influencer_earnings_chart(payload: dict = Depends(verify_token)):
+async def get_influencer_earnings_chart(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Données de revenus des 7 derniers jours pour l'influenceur
     Format: [{date: '01/06', gains: 450}, ...]
@@ -2513,7 +2642,7 @@ async def get_influencer_earnings_chart(payload: dict = Depends(verify_token)):
     try:
         from datetime import datetime, timedelta
         
-        user_id = payload.get("user_id")
+        user_id = current_user.get("id")
         today = datetime.now()
         days_data = []
         
@@ -2542,7 +2671,7 @@ async def get_influencer_earnings_chart(payload: dict = Depends(verify_token)):
         return {"data": [{"date": f"0{i}/01", "gains": 0} for i in range(1, 8)]}
 
 @app.get("/api/analytics/admin/revenue-chart")
-async def get_admin_revenue_chart(payload: dict = Depends(verify_token)):
+async def get_admin_revenue_chart(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Données de revenus des 7 derniers jours pour l'admin (toute la plateforme)
     Format: [{date: '01/06', revenus: 8500}, ...]
@@ -2550,7 +2679,7 @@ async def get_admin_revenue_chart(payload: dict = Depends(verify_token)):
     try:
         from datetime import datetime, timedelta
         
-        role = payload.get("role")
+        role = current_user.get("role")
         
         if role != 'admin':
             raise HTTPException(status_code=403, detail="Admin access required")
@@ -2582,14 +2711,19 @@ async def get_admin_revenue_chart(payload: dict = Depends(verify_token)):
         logger.error(f"Error fetching admin revenue chart: {e}")
         return {"data": [{"date": f"0{i}/01", "revenus": 0} for i in range(1, 8)]}
 
+@app.get("/api/analytics/revenue-chart")
+async def get_revenue_chart_alias(current_user: dict = Depends(get_current_user_from_cookie)):
+    """Alias pour /api/analytics/admin/revenue-chart"""
+    return await get_admin_revenue_chart(payload)
+
 @app.get("/api/analytics/admin/categories")
-async def get_admin_categories(payload: dict = Depends(verify_token)):
+async def get_admin_categories(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Distribution des produits par catégorie (données réelles)
     Format: [{category: 'Tech', count: 12}, ...]
     """
     try:
-        role = payload.get("role")
+        role = current_user.get("role")
         
         if role != 'admin':
             raise HTTPException(status_code=403, detail="Admin access required")
@@ -2643,18 +2777,23 @@ async def get_admin_categories(payload: dict = Depends(verify_token)):
             {"category": "Beauté", "count": 0}
         ]}
 
+@app.get("/api/analytics/categories")
+async def get_categories_alias(current_user: dict = Depends(get_current_user_from_cookie)):
+    """Alias pour /api/analytics/admin/categories"""
+    return await get_admin_categories(payload)
+
 # ============================================
 # PAYOUTS ENDPOINTS
 # ============================================
 
 @app.get("/api/payouts")
-async def get_payouts_endpoint(payload: dict = Depends(verify_token)):
+async def get_payouts_endpoint(current_user: dict = Depends(get_current_user_from_cookie)):
     """Liste des payouts"""
     payouts = get_payouts()
     return {"data": payouts, "total": len(payouts)}
 
 @app.put("/api/payouts/{payout_id}/status")
-async def update_payout_status_endpoint(payout_id: str, data: PayoutStatusUpdate, payload: dict = Depends(verify_token)):
+async def update_payout_status_endpoint(payout_id: str, data: PayoutStatusUpdate, current_user: dict = Depends(get_current_user_from_cookie)):
     """Mettre à jour le statut d'un payout"""
     success = update_payout_status(payout_id, data.status)
 
@@ -2668,7 +2807,7 @@ async def update_payout_status_endpoint(payout_id: str, data: PayoutStatusUpdate
 # ============================================
 
 @app.get("/api/settings")
-async def get_settings(payload: dict = Depends(verify_token)):
+async def get_settings(current_user: dict = Depends(get_current_user_from_cookie)):
     """Récupère les paramètres"""
     # Mock settings pour l'instant
     return {
@@ -2678,15 +2817,15 @@ async def get_settings(payload: dict = Depends(verify_token)):
     }
 
 @app.put("/api/settings")
-async def update_settings(settings: dict, payload: dict = Depends(verify_token)):
+async def update_settings(settings: dict, current_user: dict = Depends(get_current_user_from_cookie)):
     """Met à jour les paramètres"""
     # Mock pour l'instant
     return settings
 
 @app.get("/api/settings/company")
-async def get_company_settings(payload: dict = Depends(verify_token)):
+async def get_company_settings(current_user: dict = Depends(get_current_user_from_cookie)):
     """Récupère les paramètres de l'entreprise pour l'utilisateur connecté"""
-    user_id = payload.get("user_id")
+    user_id = current_user.get("id")
     
     try:
         # Chercher les paramètres de l'entreprise
@@ -2712,9 +2851,9 @@ async def get_company_settings(payload: dict = Depends(verify_token)):
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
 @app.put("/api/settings/company")
-async def update_company_settings(settings: CompanySettingsUpdate, payload: dict = Depends(verify_token)):
+async def update_company_settings(settings: CompanySettingsUpdate, current_user: dict = Depends(get_current_user_from_cookie)):
     """Met à jour les paramètres de l'entreprise"""
-    user_id = payload.get("user_id")
+    user_id = current_user.get("id")
     
     try:
         # Préparer les données à mettre à jour (exclure les valeurs None)
@@ -2746,12 +2885,12 @@ async def update_company_settings(settings: CompanySettingsUpdate, payload: dict
 # ============================================
 
 @app.post("/api/ai/generate-content")
-async def generate_ai_content(data: AIContentGenerate, payload: dict = Depends(verify_token)):
+async def generate_ai_content(data: AIContentGenerate, current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Génère du contenu avec l'IA
     Note: Pour une intégration ChatGPT réelle, configurer OPENAI_API_KEY dans .env
     """
-    user_id = payload.get("user_id")
+    user_id = current_user.get("id")
     
     # Récupérer quelques produits de l'utilisateur pour personnaliser
     try:
@@ -2824,12 +2963,12 @@ Ne laissez pas passer cette opportunité. Découvrez dès maintenant comment {pr
     }
 
 @app.get("/api/ai/predictions")
-async def get_ai_predictions(payload: dict = Depends(verify_token)):
+async def get_ai_predictions(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Récupère les prédictions IA basées sur les données réelles
     """
-    user_id = payload.get("user_id")
-    role = payload.get("role")
+    user_id = current_user.get("id")
+    role = current_user.get("role")
     
     try:
         # Récupérer les ventes des 30 derniers jours
@@ -2884,70 +3023,73 @@ async def get_ai_predictions(payload: dict = Depends(verify_token)):
 # ============================================
 
 @app.post("/api/messages/send")
-async def send_message(message_data: MessageCreate, payload: dict = Depends(verify_token)):
+async def send_message(message_data: MessageCreate, current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Envoyer un nouveau message
     Crée automatiquement une conversation si elle n'existe pas
     """
     try:
-        user_id = payload.get("user_id")
-        user_role = payload.get("role")
+        user_id = current_user.get("id")
+        user_role = current_user.get("role")
         
         # Déterminer le type d'utilisateur
         sender_type = 'merchant' if user_role == 'merchant' else ('influencer' if user_role == 'influencer' else 'admin')
         
-        # Chercher ou créer la conversation
-        # Format: user avec ID plus petit en user1
-        user1_id = min(user_id, message_data.recipient_id)
-        user2_id = max(user_id, message_data.recipient_id)
-        user1_type = sender_type if user1_id == user_id else message_data.recipient_type
-        user2_type = message_data.recipient_type if user2_id == message_data.recipient_id else sender_type
+        # Chercher conversation existante avec les deux participants
+        # Utilisation de contains pour vérifier la présence des deux IDs dans le tableau participant_ids
+        conv_response = supabase.table('conversations').select('*').contains('participant_ids', [user_id, message_data.recipient_id]).execute()
         
-        # Chercher conversation existante
-        conv_query = supabase.table('conversations').select('*')
-        conv_query = conv_query.eq('user1_id', user1_id).eq('user2_id', user2_id)
-        conv_response = conv_query.execute()
-        
+        conversation_id = None
         if conv_response.data and len(conv_response.data) > 0:
+            # Prendre la première conversation trouvée (ou filtrer plus si nécessaire)
             conversation_id = conv_response.data[0]['id']
         else:
             # Créer nouvelle conversation
             new_conv = {
-                'user1_id': user1_id,
-                'user1_type': user1_type,
-                'user2_id': user2_id,
-                'user2_type': user2_type,
-                'subject': message_data.subject or 'Nouvelle conversation',
-                'campaign_id': message_data.campaign_id
+                'participant_ids': [user_id, message_data.recipient_id],
+                'last_message': message_data.content,
+                'last_message_at': datetime.utcnow().isoformat()
+                # Note: subject et campaign_id retirés car absents du schéma actuel
             }
             conv_create = supabase.table('conversations').insert(new_conv).execute()
-            conversation_id = conv_create.data[0]['id']
+            if conv_create.data:
+                conversation_id = conv_create.data[0]['id']
+            else:
+                raise HTTPException(status_code=500, detail="Failed to create conversation")
         
         # Créer le message
         new_message = {
             'conversation_id': conversation_id,
             'sender_id': user_id,
-            'sender_type': sender_type,
             'content': message_data.content
         }
         message_create = supabase.table('messages').insert(new_message).execute()
         
+        # Mettre à jour la conversation avec le dernier message
+        supabase.table('conversations').update({
+            'last_message': message_data.content,
+            'last_message_at': datetime.utcnow().isoformat()
+        }).eq('id', conversation_id).execute()
+        
         # Créer notification pour le destinataire
-        notification = {
-            'user_id': message_data.recipient_id,
-            'user_type': message_data.recipient_type,
-            'type': 'message',
-            'title': 'Nouveau message',
-            'message': f'Vous avez reçu un nouveau message',
-            'link': f'/messages/{conversation_id}',
-            'data': {'conversation_id': conversation_id, 'sender_id': user_id}
-        }
-        supabase.table('notifications').insert(notification).execute()
+        try:
+            notification = {
+                'user_id': message_data.recipient_id,
+                'user_type': message_data.recipient_type,
+                'type': 'message',
+                'title': 'Nouveau message',
+                'message': f'Vous avez reçu un nouveau message',
+                'link': f'/messages/{conversation_id}',
+                'data': {'conversation_id': conversation_id, 'sender_id': user_id}
+            }
+            supabase.table('notifications').insert(notification).execute()
+        except Exception as e:
+            logger.warning(f"Failed to create notification: {e}")
         
         return {
             "success": True,
             "conversation_id": conversation_id,
-            "message": message_create.data[0]
+            "message": message_create.data[0] if message_create.data else {}
         }
         
     except Exception as e:
@@ -2955,135 +3097,144 @@ async def send_message(message_data: MessageCreate, payload: dict = Depends(veri
         raise HTTPException(status_code=500, detail=f"Error sending message: {str(e)}")
 
 @app.get("/api/messages/conversations")
-async def get_conversations(payload: dict = Depends(verify_token)):
+async def get_conversations(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Récupère toutes les conversations de l'utilisateur (merchant ou influencer)
+    Structure: conversations.participant_ids est un array de UUIDs
     """
     try:
-        user_id = payload.get("sub")
-        user = get_user_by_id(user_id)
+        user_id = current_user.get("id")
+        user_role = current_user.get("role")
         
-        # Récupérer conversations selon le rôle
-        if user["role"] == "merchant":
-            result = supabase.from_("conversations").select("""
-                *,
-                influencer:influencer_id(id, username, email, avatar_url)
-            """).eq("merchant_id", user_id).order("last_message_at", desc=True).execute()
-        elif user["role"] == "influencer":
-            result = supabase.from_("conversations").select("""
-                *,
-                merchant:merchant_id(id, username, email, company_name, avatar_url)
-            """).eq("influencer_id", user_id).order("last_message_at", desc=True).execute()
-        elif user["role"] == "admin":
-            # Admin voit toutes les conversations
-            result = supabase.from_("conversations").select("""
-                *,
-                merchant:merchant_id(id, username, email, company_name),
-                influencer:influencer_id(id, username, email)
-            """).order("last_message_at", desc=True).execute()
-        else:
-            return {"conversations": []}
-        
+        # Récupérer toutes les conversations
+        result = supabase.from_("conversations").select("*").order("last_message_at", desc=True).execute()
         conversations = result.data if result.data else []
+        
+        # Filtrer les conversations selon le rôle
+        filtered_convs = []
+        if user_role == "admin":
+            # Admin voit toutes les conversations
+            filtered_convs = conversations
+        else:
+            # Merchant/influencer ne voient que leurs conversations
+            filtered_convs = [
+                c for c in conversations 
+                if c.get("participant_ids") and user_id in c.get("participant_ids", [])
+            ]
+        
+        # Récupérer tous les users en une seule requête pour performance
+        all_users_result = supabase.from_("users").select("id, email, role, full_name, company_name, avatar_url").execute()
+        users_by_id = {u["id"]: u for u in (all_users_result.data or [])}
         
         # Formater les conversations pour le frontend
         formatted_conversations = []
-        for conv in conversations:
-            if user["role"] == "admin":
-                # Pour admin, afficher merchant et influencer
-                merchant = conv.get("merchant")
-                influencer = conv.get("influencer")
+        for conv in filtered_convs:
+            participant_ids = conv.get("participant_ids", [])
+            
+            if user_role == "admin":
+                # Pour admin, afficher tous les participants
+                participants = [users_by_id.get(pid, {}) for pid in participant_ids]
+                names = [p.get("company_name") or p.get("full_name") or "Utilisateur" for p in participants]
+                
                 formatted_conversations.append({
                     "id": conv.get("id"),
-                    "merchant": {
-                        "id": merchant.get("id") if merchant else None,
-                        "name": merchant.get("company_name") or merchant.get("username") if merchant else "Marchand",
-                        "email": merchant.get("email") if merchant else None
-                    },
-                    "influencer": {
-                        "id": influencer.get("id") if influencer else None,
-                        "name": influencer.get("username") if influencer else "Influenceur",
-                        "email": influencer.get("email") if influencer else None
-                    },
+                    "participants": participants,
+                    "participant_names": " ↔ ".join(names),
                     "last_message": conv.get("last_message"),
                     "last_message_at": conv.get("last_message_at"),
-                    "unread_count_merchant": conv.get("unread_count_merchant"),
-                    "unread_count_influencer": conv.get("unread_count_influencer"),
-                    "status": conv.get("status")
+                    "status": "active"  # Default status
                 })
             else:
-                # Pour merchant/influencer, afficher l'autre utilisateur
-                other_user = conv.get("influencer") if user["role"] == "merchant" else conv.get("merchant")
-                formatted_conversations.append({
-                    "id": conv.get("id"),
-                    "other_user": {
-                        "id": other_user.get("id") if other_user else None,
-                        "name": other_user.get("company_name") or other_user.get("username") if other_user else "Utilisateur",
-                        "avatar": other_user.get("avatar_url") if other_user else None
-                    },
-                    "last_message": conv.get("last_message"),
-                    "last_message_at": conv.get("last_message_at"),
-                    "unread_count": conv.get("unread_count_merchant") if user["role"] == "merchant" else conv.get("unread_count_influencer"),
-                    "status": conv.get("status")
-                })
+                # Pour merchant/influencer, afficher seulement l'autre utilisateur
+                other_ids = [pid for pid in participant_ids if pid != user_id]
+                if other_ids:
+                    other_user = users_by_id.get(other_ids[0], {})
+                    formatted_conversations.append({
+                        "id": conv.get("id"),
+                        "other_user": {
+                            "id": other_user.get("id"),
+                            "name": other_user.get("company_name") or other_user.get("full_name") or "Utilisateur",
+                            "email": other_user.get("email"),
+                            "avatar": other_user.get("avatar_url")
+                        },
+                        "last_message": conv.get("last_message"),
+                        "last_message_at": conv.get("last_message_at"),
+                        "unread_count": 0,  # TODO: implémenter le tracking des non-lus
+                        "status": "active"
+                    })
         
         return {"conversations": formatted_conversations}
         
     except Exception as e:
         logger.error(f"Error fetching conversations: {e}")
+        import traceback
+        traceback.print_exc()
         return {"conversations": []}
 
 @app.get("/api/messages/{conversation_id}")
-async def get_messages(conversation_id: str, payload: dict = Depends(verify_token)):
+async def get_messages(conversation_id: str, current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Récupère tous les messages d'une conversation
+    Structure: conversations.participant_ids est un array de UUIDs
     """
     try:
-        user_id = payload.get("sub")
-        user = get_user_by_id(user_id)
+        user_id = current_user.get("id")
+        user_role = current_user.get("role")
         
         # Vérifier que l'utilisateur fait partie de la conversation ou est admin
-        conv = supabase.from_('conversations').select('*').eq('id', conversation_id).execute()
-        if not conv.data:
+        conv_result = supabase.from_('conversations').select('*').eq('id', conversation_id).execute()
+        if not conv_result.data:
             raise HTTPException(status_code=404, detail="Conversation not found")
         
-        conversation = conv.data[0]
+        conversation = conv_result.data[0]
+        participant_ids = conversation.get('participant_ids', [])
         
-        # Vérifier l'accès (admin peut tout voir, sinon vérifier merchant_id ou influencer_id)
-        if user["role"] != "admin":
-            if conversation['merchant_id'] != user_id and conversation['influencer_id'] != user_id:
-                raise HTTPException(status_code=403, detail="Access denied")
+        # Vérifier l'accès
+        if user_role != "admin" and user_id not in participant_ids:
+            raise HTTPException(status_code=403, detail="Access denied")
         
-        # Récupérer les messages avec les infos de l'expéditeur
-        messages_query = supabase.from_('messages').select('''
-            *,
-            sender:sender_id(id, username, email, role, company_name)
-        ''').eq('conversation_id', conversation_id).order('created_at', desc=False)
-        messages_response = messages_query.execute()
+        # Récupérer les messages
+        messages_result = supabase.from_('messages').select('*').eq('conversation_id', conversation_id).order('created_at', desc=False).execute()
+        messages = messages_result.data or []
+        
+        # Récupérer les infos des expéditeurs
+        sender_ids = set(msg.get('sender_id') for msg in messages if msg.get('sender_id'))
+        users_result = supabase.from_("users").select("id, full_name, email, role, company_name, avatar_url").execute()
+        users_by_id = {u["id"]: u for u in (users_result.data or [])}
         
         # Formater les messages
         formatted_messages = []
-        for msg in messages_response.data or []:
-            sender = msg.get('sender', {})
+        for msg in messages:
+            sender_id = msg.get('sender_id')
+            sender = users_by_id.get(sender_id, {})
             formatted_messages.append({
                 'id': msg.get('id'),
                 'content': msg.get('content'),
-                'sender_id': msg.get('sender_id'),
-                'sender_name': sender.get('company_name') or sender.get('username') or 'Utilisateur',
+                'sender_id': sender_id,
+                'sender_name': sender.get('company_name') or sender.get('full_name') or 'Utilisateur',
                 'sender_role': sender.get('role'),
+                'sender_avatar': sender.get('avatar_url'),
                 'is_read': msg.get('is_read'),
                 'created_at': msg.get('created_at'),
-                'is_mine': msg.get('sender_id') == user_id
+                'is_mine': sender_id == user_id
             })
         
         # Marquer comme lu les messages reçus (sauf pour admin)
-        if user["role"] != "admin":
+        if user_role != "admin":
+            from datetime import datetime as dt
             supabase.from_('messages').update({
-                'is_read': True
+                'is_read': True,
+                'read_at': dt.utcnow().isoformat()
             }).eq('conversation_id', conversation_id).neq('sender_id', user_id).eq('is_read', False).execute()
         
         return {
-            "conversation": conversation,
+            "conversation": {
+                "id": conversation.get('id'),
+                "participant_ids": participant_ids,
+                "last_message": conversation.get('last_message'),
+                "last_message_at": conversation.get('last_message_at'),
+                "created_at": conversation.get('created_at')
+            },
             "messages": formatted_messages
         }
         
@@ -3091,15 +3242,17 @@ async def get_messages(conversation_id: str, payload: dict = Depends(verify_toke
         raise
     except Exception as e:
         logger.error(f"Error fetching messages: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error fetching messages: {str(e)}")
 
 @app.get("/api/notifications")
-async def get_notifications(limit: int = 20, payload: dict = Depends(verify_token)):
+async def get_notifications(limit: int = 20, current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Récupère les notifications de l'utilisateur
     """
     try:
-        user_id = payload.get("user_id")
+        user_id = current_user.get("id")
         
         query = supabase.table('notifications').select('*').eq('user_id', user_id).order('created_at', desc=True).limit(limit)
         response = query.execute()
@@ -3119,10 +3272,10 @@ async def get_notifications(limit: int = 20, payload: dict = Depends(verify_toke
         return {"notifications": [], "unread_count": 0}
 
 @app.put("/api/notifications/{notification_id}/read")
-async def mark_notification_read(notification_id: str, payload: dict = Depends(verify_token)):
+async def mark_notification_read(notification_id: str, current_user: dict = Depends(get_current_user_from_cookie)):
     """Marquer une notification comme lue"""
     try:
-        user_id = payload.get("user_id")
+        user_id = current_user.get("id")
         
         update = supabase.table('notifications').update({
             'is_read': True,
@@ -3170,13 +3323,13 @@ async def get_subscription_plans():
 # ============================================
 
 @app.get("/api/advertisers")
-async def get_advertisers(payload: dict = Depends(verify_token)):
+async def get_advertisers(current_user: dict = Depends(get_current_user_from_cookie)):
     """Liste des advertisers (alias pour merchants)"""
     merchants = get_all_merchants()
     return {"data": merchants, "total": len(merchants)}
 
 @app.get("/api/affiliates")
-async def get_affiliates(payload: dict = Depends(verify_token)):
+async def get_affiliates(current_user: dict = Depends(get_current_user_from_cookie)):
     """Liste des affiliés (alias pour influencers)"""
     influencers = get_all_influencers()
     return {"data": influencers, "total": len(influencers)}
@@ -3186,17 +3339,17 @@ async def get_affiliates(payload: dict = Depends(verify_token)):
 # ============================================
 
 @app.get("/api/logs/postback")
-async def get_postback_logs(payload: dict = Depends(verify_token)):
+async def get_postback_logs(current_user: dict = Depends(get_current_user_from_cookie)):
     """Logs des postbacks"""
     return {"data": [], "total": 0}
 
 @app.get("/api/logs/audit")
-async def get_audit_logs(payload: dict = Depends(verify_token)):
+async def get_audit_logs(current_user: dict = Depends(get_current_user_from_cookie)):
     """Logs d'audit"""
     return {"data": [], "total": 0}
 
 @app.get("/api/logs/webhooks")
-async def get_webhook_logs(payload: dict = Depends(verify_token)):
+async def get_webhook_logs(current_user: dict = Depends(get_current_user_from_cookie)):
     """Logs des webhooks"""
     return {"data": [], "total": 0}
 
@@ -3205,7 +3358,7 @@ async def get_webhook_logs(payload: dict = Depends(verify_token)):
 # ============================================
 
 @app.get("/api/coupons")
-async def get_coupons(payload: dict = Depends(verify_token)):
+async def get_coupons(current_user: dict = Depends(get_current_user_from_cookie)):
     """Liste des coupons"""
     return {"data": [], "total": 0}
 
@@ -3217,10 +3370,10 @@ async def get_coupons(payload: dict = Depends(verify_token)):
 # ============================================
 
 @app.get("/api/analytics/merchant/performance")
-async def get_merchant_performance(payload: dict = Depends(verify_token)):
+async def get_merchant_performance(current_user: dict = Depends(get_current_user_from_cookie)):
     """Métriques de performance réelles pour merchants"""
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         if user["role"] != "merchant":
             raise HTTPException(status_code=403, detail="Accès refusé")
         
@@ -3261,10 +3414,10 @@ async def get_merchant_performance(payload: dict = Depends(verify_token)):
         }
 
 @app.get("/api/analytics/influencer/performance")
-async def get_influencer_performance(payload: dict = Depends(verify_token)):
+async def get_influencer_performance(current_user: dict = Depends(get_current_user_from_cookie)):
     """Métriques de performance réelles pour influencers"""
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         if user["role"] != "influencer":
             raise HTTPException(status_code=403, detail="Accès refusé")
         
@@ -3307,10 +3460,10 @@ async def get_influencer_performance(payload: dict = Depends(verify_token)):
         }
 
 @app.get("/api/analytics/admin/platform-metrics")
-async def get_platform_metrics(payload: dict = Depends(verify_token)):
+async def get_platform_metrics(current_user: dict = Depends(get_current_user_from_cookie)):
     """Métriques plateforme réelles pour admin"""
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         if user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Accès refusé")
         
@@ -3368,7 +3521,7 @@ async def get_platform_metrics(payload: dict = Depends(verify_token)):
 async def get_platform_revenue(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     📊 Revenus de la plateforme (commission 5%)
@@ -3379,7 +3532,7 @@ async def get_platform_revenue(
     - Statistiques détaillées
     """
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         if user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Admin uniquement")
         
@@ -3542,9 +3695,9 @@ async def shutdown_event():
 # ============================================
 
 @app.post("/api/admin/validate-sales")
-async def manual_validate_sales(payload: dict = Depends(verify_token)):
+async def manual_validate_sales(current_user: dict = Depends(get_current_user_from_cookie)):
     """Déclenche manuellement la validation des ventes (admin only)"""
-    user = get_user_by_id(payload["sub"])
+    user = get_user_by_id(current_user["id"])
     
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin uniquement")
@@ -3553,9 +3706,9 @@ async def manual_validate_sales(payload: dict = Depends(verify_token)):
     return result
 
 @app.post("/api/admin/process-payouts")
-async def manual_process_payouts(payload: dict = Depends(verify_token)):
+async def manual_process_payouts(current_user: dict = Depends(get_current_user_from_cookie)):
     """Déclenche manuellement les paiements automatiques (admin only)"""
-    user = get_user_by_id(payload["sub"])
+    user = get_user_by_id(current_user["id"])
     
     if user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Admin uniquement")
@@ -3564,9 +3717,9 @@ async def manual_process_payouts(payload: dict = Depends(verify_token)):
     return result
 
 @app.post("/api/sales/{sale_id}/refund")
-async def refund_sale(sale_id: str, reason: str = "customer_return", payload: dict = Depends(verify_token)):
+async def refund_sale(sale_id: str, reason: str = "customer_return", current_user: dict = Depends(get_current_user_from_cookie)):
     """Traite un remboursement de vente"""
-    user = get_user_by_id(payload["sub"])
+    user = get_user_by_id(current_user["id"])
     
     if user["role"] not in ["admin", "merchant"]:
         raise HTTPException(status_code=403, detail="Accès refusé")
@@ -3581,10 +3734,10 @@ async def refund_sale(sale_id: str, reason: str = "customer_return", payload: di
 @app.put("/api/influencer/payment-method")
 async def update_payment_method(
     payment_data: dict,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Met à jour la méthode de paiement de l'influenceur"""
-    user = get_user_by_id(payload["sub"])
+    user = get_user_by_id(current_user["id"])
     
     if user["role"] != "influencer":
         raise HTTPException(status_code=403, detail="Influenceurs uniquement")
@@ -3623,9 +3776,9 @@ async def update_payment_method(
     }
 
 @app.get("/api/influencer/payment-status")
-async def get_payment_status(payload: dict = Depends(verify_token)):
+async def get_payment_status(current_user: dict = Depends(get_current_user_from_cookie)):
     """Récupère le statut de paiement de l'influenceur"""
-    user = get_user_by_id(payload["sub"])
+    user = get_user_by_id(current_user["id"])
     
     if user["role"] != "influencer":
         raise HTTPException(status_code=403, detail="Influenceurs uniquement")
@@ -3708,7 +3861,7 @@ async def redirect_tracking_link(short_code: str, request: Request, response: Re
 
 
 @app.post("/api/tracking-links/generate")
-async def generate_tracking_link(data: AffiliateLinkGenerate, payload: dict = Depends(verify_token)):
+async def generate_tracking_link(data: AffiliateLinkGenerate, current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Génère un lien tracké pour un influenceur
     
@@ -3726,7 +3879,7 @@ async def generate_tracking_link(data: AffiliateLinkGenerate, payload: dict = De
     }
     """
     try:
-        user_id = payload.get("user_id")
+        user_id = current_user.get("id")
         
         # Récupérer l'influenceur
         influencer = supabase.table('influencers').select('id').eq('user_id', user_id).execute()
@@ -3769,7 +3922,7 @@ async def generate_tracking_link(data: AffiliateLinkGenerate, payload: dict = De
 
 
 @app.get("/api/tracking-links/{link_id}/stats")
-async def get_tracking_link_stats(link_id: str, payload: dict = Depends(verify_token)):
+async def get_tracking_link_stats(link_id: str, current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Récupère les statistiques d'un lien tracké
     
@@ -3995,7 +4148,7 @@ from payment_gateways import payment_gateway_service
 @app.post("/api/payment/create")
 async def create_payment(
     request: Request,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Crée un paiement via le gateway configuré du merchant
@@ -4054,7 +4207,7 @@ async def create_payment(
 @app.get("/api/payment/status/{transaction_id}")
 async def get_payment_status(
     transaction_id: str,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Récupère le statut d'une transaction
@@ -4259,7 +4412,7 @@ async def sg_maroc_webhook(merchant_id: str, request: Request):
 
 
 @app.get("/api/admin/gateways/stats")
-async def get_gateway_statistics(payload: dict = Depends(verify_token)):
+async def get_gateway_statistics(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Statistiques des gateways de paiement (Admin uniquement)
     
@@ -4279,19 +4432,25 @@ async def get_gateway_statistics(payload: dict = Depends(verify_token)):
     """
     try:
         # Vérifier admin
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         if user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Admin uniquement")
         
         # Rafraîchir vue matérialisée
-        supabase.rpc('refresh_materialized_view', {'view_name': 'gateway_statistics'}).execute()
+        try:
+            supabase.rpc('refresh_materialized_view', {'view_name': 'gateway_statistics'}).execute()
+        except Exception:
+            pass
         
         # Récupérer stats
-        result = supabase.table('gateway_statistics')\
-            .select('*')\
-            .execute()
-        
-        return result.data
+        try:
+            result = supabase.table('gateway_statistics')\
+                .select('*')\
+                .execute()
+            return result.data
+        except Exception as e:
+            logger.warning(f"⚠️ Gateway statistics table missing or error: {e}")
+            return []
         
     except HTTPException:
         raise
@@ -4301,7 +4460,7 @@ async def get_gateway_statistics(payload: dict = Depends(verify_token)):
 
 
 @app.get("/api/merchant/payment-config")
-async def get_merchant_payment_config(payload: dict = Depends(verify_token)):
+async def get_merchant_payment_config(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Récupère la configuration de paiement du merchant connecté
     
@@ -4318,7 +4477,7 @@ async def get_merchant_payment_config(payload: dict = Depends(verify_token)):
     }
     """
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         
         if user["role"] != "merchant":
             raise HTTPException(status_code=403, detail="Merchants uniquement")
@@ -4359,7 +4518,7 @@ async def get_merchant_payment_config(payload: dict = Depends(verify_token)):
 @app.put("/api/merchant/payment-config")
 async def update_merchant_payment_config(
     request: Request,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Met à jour la configuration de paiement du merchant
@@ -4377,7 +4536,7 @@ async def update_merchant_payment_config(
     }
     """
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         
         if user["role"] != "merchant":
             raise HTTPException(status_code=403, detail="Merchants uniquement")
@@ -4425,7 +4584,7 @@ from invoicing_service import invoicing_service
 @app.post("/api/admin/invoices/generate")
 async def generate_monthly_invoices(
     request: Request,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Génère toutes les factures pour un mois donné (Admin uniquement)
@@ -4445,7 +4604,7 @@ async def generate_monthly_invoices(
     """
     try:
         # Vérifier admin
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         if user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Admin uniquement")
         
@@ -4467,7 +4626,7 @@ async def generate_monthly_invoices(
 @app.get("/api/admin/invoices")
 async def get_all_invoices(
     status: Optional[str] = None,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Récupère toutes les factures (Admin uniquement)
@@ -4489,19 +4648,34 @@ async def get_all_invoices(
     """
     try:
         # Vérifier admin
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         if user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Admin uniquement")
         
-        query = supabase.table('platform_invoices')\
-            .select('*, merchants(id, company_name, email, payment_gateway)')
+        query = supabase.table('platform_invoices').select('*')
         
         if status:
             query = query.eq('status', status)
         
-        result = query.order('invoice_date', desc=True).execute()
+        try:
+            result = query.order('created_at', desc=True).execute()
+            invoices = result.data if result.data else []
+        except Exception as e:
+            logger.warning(f"⚠️ Platform invoices table missing or error: {e}")
+            invoices = []
         
-        return result.data if result.data else []
+        # Enrichir avec les données merchant manuellement
+        if invoices:
+            merchant_ids = list(set(inv['merchant_id'] for inv in invoices if inv.get('merchant_id')))
+            if merchant_ids:
+                merchants_result = supabase.table('merchants').select('id, company_name, email, payment_gateway').in_('id', merchant_ids).execute()
+                merchants_map = {m['id']: m for m in merchants_result.data} if merchants_result.data else {}
+                
+                for inv in invoices:
+                    if inv.get('merchant_id') in merchants_map:
+                        inv['merchants'] = merchants_map[inv['merchant_id']]
+        
+        return invoices
         
     except HTTPException:
         raise
@@ -4513,12 +4687,12 @@ async def get_all_invoices(
 @app.get("/api/admin/invoices/{invoice_id}")
 async def get_invoice_details_admin(
     invoice_id: str,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Récupère les détails complets d'une facture (Admin)"""
     
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         if user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Admin uniquement")
         
@@ -4540,7 +4714,7 @@ async def get_invoice_details_admin(
 async def mark_invoice_paid_admin(
     invoice_id: str,
     request: Request,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Marque une facture comme payée manuellement (Admin)
@@ -4552,7 +4726,7 @@ async def mark_invoice_paid_admin(
     }
     """
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         if user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Admin uniquement")
         
@@ -4574,7 +4748,7 @@ async def mark_invoice_paid_admin(
 
 
 @app.get("/api/merchant/invoices")
-async def get_merchant_invoices(payload: dict = Depends(verify_token)):
+async def get_merchant_invoices(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Récupère toutes les factures du merchant connecté
     
@@ -4591,7 +4765,7 @@ async def get_merchant_invoices(payload: dict = Depends(verify_token)):
     ]
     """
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         
         if user["role"] != "merchant":
             raise HTTPException(status_code=403, detail="Merchants uniquement")
@@ -4610,12 +4784,12 @@ async def get_merchant_invoices(payload: dict = Depends(verify_token)):
 @app.get("/api/merchant/invoices/{invoice_id}")
 async def get_invoice_details_merchant(
     invoice_id: str,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Récupère les détails d'une facture (Merchant)"""
     
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         
         if user["role"] != "merchant":
             raise HTTPException(status_code=403, detail="Merchants uniquement")
@@ -4642,7 +4816,7 @@ async def get_invoice_details_merchant(
 async def pay_invoice_merchant(
     invoice_id: str,
     request: Request,
-    payload: dict = Depends(verify_token)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Initie le paiement d'une facture via le gateway configuré
@@ -4655,7 +4829,7 @@ async def pay_invoice_merchant(
     }
     """
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         
         if user["role"] != "merchant":
             raise HTTPException(status_code=403, detail="Merchants uniquement")
@@ -4690,11 +4864,11 @@ async def pay_invoice_merchant(
 
 
 @app.post("/api/admin/invoices/send-reminders")
-async def send_payment_reminders(payload: dict = Depends(verify_token)):
+async def send_payment_reminders(current_user: dict = Depends(get_current_user_from_cookie)):
     """Envoie des rappels pour toutes les factures en retard (Admin)"""
     
     try:
-        user = get_user_by_id(payload["sub"])
+        user = get_user_by_id(current_user["id"])
         if user["role"] != "admin":
             raise HTTPException(status_code=403, detail="Admin uniquement")
         
@@ -4853,13 +5027,13 @@ async def get_subscription_plans():
 
 
 @app.get("/api/subscriptions/my-subscription")
-async def get_my_subscription(payload: dict = Depends(verify_token)):
+async def get_my_subscription(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Récupère l'abonnement actuel de l'utilisateur connecté
     """
     try:
-        user_id = payload["sub"]
-        user = get_user_by_id(user_id)
+        user_id = current_user.get("id")
+        user = current_user
         
         if not user:
             raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
@@ -5004,12 +5178,12 @@ async def get_my_subscription(payload: dict = Depends(verify_token)):
 
 
 @app.get("/api/subscriptions/usage")
-async def get_subscription_usage(payload: dict = Depends(verify_token)):
+async def get_subscription_usage(current_user: dict = Depends(get_current_user_from_cookie)):
     """
     Récupère l'utilisation actuelle du plan d'abonnement de l'utilisateur
     """
     try:
-        user = get_user_by_id(payload["sub"])
+        user = current_user
         if not user:
             raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
         
@@ -5975,60 +6149,12 @@ async def create_affiliation_request_alt(
     return await request_affiliation(request_data, credentials)
 
 
-@app.get("/api/affiliation-requests/merchant/pending")
-async def get_pending_affiliation_requests(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Récupérer les demandes d'affiliation en attente (marchand)"""
-    try:
-        user = verify_token(credentials.credentials)
-        
-        if user['role'] != 'merchant':
-            raise HTTPException(status_code=403, detail="Merchants only")
-        
-        result = supabase.table("affiliation_requests").select(
-            "*, users!affiliation_requests_influencer_id_fkey(*), products(*)"
-        ).eq("merchant_id", user["id"]).eq("status", "pending_approval").order("created_at", desc=True).execute()
-        
-        return {
-            "requests": result.data or [],
-            "total": len(result.data) if result.data else 0
-        }
-    
-    except Exception as e:
-        logger.error(f"Error fetching pending requests: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# Endpoints moved to affiliation_requests_endpoints.py
+# @app.get("/api/affiliation-requests/merchant/pending")
+# async def get_pending_affiliation_requests(...): ...
 
-
-@app.get("/api/influencer/affiliation-requests")
-async def get_influencer_affiliation_requests(
-    status: str = Query("pending_approval"),
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Récupérer les demandes d'affiliation de l'influenceur"""
-    try:
-        user = verify_token(credentials.credentials)
-        
-        if user['role'] != 'influencer':
-            raise HTTPException(status_code=403, detail="Influencers only")
-        
-        query = supabase.table("affiliation_requests").select(
-            "*, users!affiliation_requests_merchant_id_fkey(*), products(*)"
-        ).eq("influencer_id", user["id"])
-        
-        if status:
-            query = query.eq("status", status)
-        
-        result = query.order("created_at", desc=True).execute()
-        
-        return {
-            "requests": result.data or [],
-            "total": len(result.data) if result.data else 0
-        }
-    
-    except Exception as e:
-        logger.error(f"Error fetching influencer requests: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.get("/api/influencer/affiliation-requests")
+# async def get_influencer_affiliation_requests(...): ...
 
 
 @app.get("/api/merchant/affiliation-requests/stats")
@@ -6545,82 +6671,15 @@ async def get_my_products(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/company/links/my-company-links")
-async def get_my_company_links(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Récupérer les liens de l'entreprise"""
-    try:
-        user = verify_token(credentials.credentials)
-        
-        result = supabase.table("tracking_links").select("*, products(*), users!tracking_links_influencer_id_fkey(*)").eq("merchant_id", user["id"]).order("created_at", desc=True).execute()
-        
-        return {
-            "links": result.data or [],
-            "total": len(result.data) if result.data else 0
-        }
-    
-    except Exception as e:
-        logger.error(f"Error fetching company links: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# Endpoints moved to company_links_management.py
+# @app.get("/api/company/links/my-company-links")
+# async def get_my_company_links(...): ...
 
+# @app.post("/api/company/links/generate")
+# async def generate_company_link(...): ...
 
-@app.post("/api/company/links/generate")
-async def generate_company_link(
-    link_data: dict,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Générer un lien pour l'entreprise"""
-    try:
-        user = verify_token(credentials.credentials)
-        
-        import uuid
-        link_code = str(uuid.uuid4())[:8].upper()
-        
-        new_link = {
-            "merchant_id": user["id"],
-            "product_id": link_data.get("product_id"),
-            "link_code": link_code,
-            "commission_rate": link_data.get("commission_rate", 10),
-            "created_at": "now()"
-        }
-        
-        result = supabase.table("tracking_links").insert(new_link).execute()
-        
-        return {
-            "success": True,
-            "link": result.data[0] if result.data else None
-        }
-    
-    except Exception as e:
-        logger.error(f"Error generating link: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/api/company/links/assign")
-async def assign_company_link(
-    assign_data: dict,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
-):
-    """Assigner un lien à un membre de l'équipe"""
-    try:
-        user = verify_token(credentials.credentials)
-        
-        link_id = assign_data.get("link_id")
-        team_member_id = assign_data.get("team_member_id")
-        
-        result = supabase.table("tracking_links").update({
-            "influencer_id": team_member_id
-        }).eq("id", link_id).eq("merchant_id", user["id"]).execute()
-        
-        return {
-            "success": True,
-            "link": result.data[0] if result.data else None
-        }
-    
-    except Exception as e:
-        logger.error(f"Error assigning link: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/api/company/links/assign")
+# async def assign_company_link(...): ...
 
 
 # Analytics Pro - Marchands
@@ -6717,25 +6776,94 @@ async def get_merchant_time_series(
 @app.get("/api/gamification/{user_id}")
 async def get_gamification_status(
     user_id: str,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    request: Request,
+    payload: dict = Depends(get_current_user_from_cookie)
 ):
     """Gamification status: points, niveau, badges, missions"""
     try:
-        user = verify_token(credentials.credentials)
-        
         # Récupérer infos utilisateur
         user_data = get_user_by_id(user_id)
         if not user_data:
             raise HTTPException(status_code=404, detail="User not found")
         
-        gamif_data = await gamification_service.get_user_gamification(
-            user_id=user_id,
-            user_type=user_data['role']
-        )
-        return gamif_data
+        # Vérifier que l'utilisateur demande ses propres données
+        if payload["id"] != user_id and payload.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Unauthorized")
+        
+        # Calculer les points basés sur les conversions et clics
+        conversions_result = supabase.table("conversions").select("commission_amount", count="exact").eq("influencer_id", user_id).eq("status", "completed").execute()
+        total_conversions = conversions_result.count or 0
+        total_commission = sum([float(c.get("commission_amount", 0)) for c in (conversions_result.data or [])])
+        
+        # Points: 10 points par conversion + 1 point par 10 MAD de commission
+        points = (total_conversions * 10) + int(total_commission / 10)
+        
+        # Niveau basé sur les points
+        if points < 100:
+            level = 1
+            level_name = "Débutant"
+            next_level_points = 100
+        elif points < 500:
+            level = 2
+            level_name = "Intermédiaire"
+            next_level_points = 500
+        elif points < 1000:
+            level = 3
+            level_name = "Avancé"
+            next_level_points = 1000
+        elif points < 2500:
+            level = 4
+            level_name = "Expert"
+            next_level_points = 2500
+        else:
+            level = 5
+            level_name = "Master"
+            next_level_points = 5000
+        
+        # Badges
+        badges = []
+        if total_conversions >= 1:
+            badges.append({"id": "first_sale", "name": "Première Vente", "icon": "🎯"})
+        if total_conversions >= 10:
+            badges.append({"id": "10_sales", "name": "10 Ventes", "icon": "🔥"})
+        if total_conversions >= 50:
+            badges.append({"id": "50_sales", "name": "50 Ventes", "icon": "💎"})
+        if total_commission >= 1000:
+            badges.append({"id": "1k_commission", "name": "1000 MAD Commission", "icon": "💰"})
+        
+        return {
+            "user_id": user_id,
+            "points": points,
+            "level": level,
+            "level_name": level_name,
+            "next_level_points": next_level_points,
+            "progress_to_next_level": round((points / next_level_points) * 100, 2) if next_level_points > 0 else 100,
+            "badges": badges,
+            "total_badges": len(badges),
+            "stats": {
+                "total_conversions": total_conversions,
+                "total_commission": round(total_commission, 2)
+            }
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching gamification: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Retourner des données par défaut en cas d'erreur
+        return {
+            "user_id": user_id,
+            "points": 0,
+            "level": 1,
+            "level_name": "Débutant",
+            "next_level_points": 100,
+            "progress_to_next_level": 0,
+            "badges": [],
+            "total_badges": 0,
+            "stats": {
+                "total_conversions": 0,
+                "total_commission": 0
+            }
+        }
 
 
 # Influencer Matching API
@@ -7291,10 +7419,10 @@ if __name__ == "__main__":
     logger.info("   ├─ 📧 Alertes multi-niveau: 50%, 80%, 90%, 100%")
     logger.info("   ├─ 🧹 Nettoyage leads: 23:00 quotidien")
     logger.info("   └─ 📊 Rapports: 09:00 quotidien")
-    logger.info("🌐 API disponible sur: http://localhost:8000")
-    logger.info("📖 Documentation: http://localhost:8000/docs")
+    logger.info("🌐 API disponible sur: http://localhost:5000")
+    logger.info("📖 Documentation: http://localhost:5000/docs")
     logger.info("="*60 + "\n")
     
     # Lancement sans reload (plus stable)
-    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False)
+    uvicorn.run("server:app", host="0.0.0.0", port=5000, reload=False)
 

@@ -491,5 +491,4 @@ def send_verification_email(to_email: str, token: str) -> str:
     Wrapper autour de email_service.send_verification_email
     """
     from email_service import send_verification_email as send_email_verification
-from utils.logger import logger
     return send_email_verification(to_email, token)

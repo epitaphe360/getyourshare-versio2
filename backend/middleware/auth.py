@@ -52,10 +52,13 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Security(security))
         
         # Vérifier que le payload contient les champs requis
         if "user_id" not in payload:
-            raise HTTPException(
-                status_code=401,
-                detail="Token invalide: user_id manquant"
-            )
+            if "sub" in payload:
+                payload["user_id"] = payload["sub"]
+            else:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Token invalide: user_id manquant"
+                )
         
         return payload
         

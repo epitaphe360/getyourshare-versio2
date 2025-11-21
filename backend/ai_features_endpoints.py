@@ -9,7 +9,7 @@ from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 import os
 from utils.logger import logger
-from supabase_client import supabase
+from supabase_client import supabase, get_supabase_client
 
 router = APIRouter(prefix="/api/ai", tags=["AI Features"])
 
@@ -109,7 +109,7 @@ async def get_product_recommendations(influencer_id: str, limit: int = 10):
                 category,
                 image_url,
                 commission_rate,
-                users:merchant_id(username)
+                users:merchant_id(full_name)
             )
         ''').eq('influencer_id', influencer_id)\
             .eq('is_active', True)\
@@ -129,7 +129,7 @@ async def get_product_recommendations(influencer_id: str, limit: int = 10):
             results.append({
                 "product_id": rec['product_id'],
                 "product_name": product.get('name', 'N/A'),
-                "merchant_name": merchant.get('username', 'N/A'),
+                "merchant_name": merchant.get('full_name', 'N/A'),
                 "price": float(product.get('price', 0)),
                 "category": product.get('category', 'N/A'),
                 "image_url": product.get('image_url'),
@@ -476,7 +476,7 @@ async def get_upcoming_live_sessions(limit: int = 10):
 
         sessions = supabase.table('live_shopping_sessions').select('''
             *,
-            users:host_id(username, role)
+            users:host_id(full_name, role)
         ''').eq('status', 'scheduled')\
             .gte('scheduled_at', datetime.utcnow().isoformat())\
             .order('scheduled_at')\
@@ -489,7 +489,7 @@ async def get_upcoming_live_sessions(limit: int = 10):
             results.append({
                 "session_id": session['id'],
                 "title": session['title'],
-                "host_username": host.get('username', 'N/A'),
+                "host_username": host.get('full_name', 'N/A'),
                 "platform": session['platform'],
                 "scheduled_at": session['scheduled_at'],
                 "featured_products_count": len(session.get('featured_products', [])),

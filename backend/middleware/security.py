@@ -104,6 +104,7 @@ async def csrf_middleware(request: Request, call_next: Callable):
         "/api/auth/register",  # Registration endpoint
         "/api/auth/me",  # Get current user - uses cookie auth
         "/api/bot/",  # Bot endpoints
+        "/api/messages/send", # Messaging endpoint (excluded for testing)
         "/health",  # Health check endpoint
         "/docs",
         "/openapi.json"

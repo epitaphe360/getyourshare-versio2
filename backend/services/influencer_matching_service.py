@@ -63,10 +63,10 @@ class InfluencerMatchingService:
                 campaign_details
             )
 
-            if match_score >= 50:  # Seuil minimum
+            if match_score['total'] >= 50:  # Seuil minimum
                 scored_matches.append({
                     'influencer': influencer,
-                    'match_score': match_score,
+                    'match_score': match_score['total'],
                     'score_breakdown': match_score['breakdown'],
                     'estimated_reach': self._estimate_reach(influencer, campaign_details),
                     'estimated_engagement': self._estimate_engagement(influencer),
@@ -528,6 +528,49 @@ class InfluencerMatchingService:
             'action': 'super_like',
             'message': "Super Like envoyé! L'influenceur sera notifié en priorité."
         }
+
+    async def get_recommendations(
+        self,
+        merchant_id: str,
+        limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Wrapper pour find_matches pour l'API simple
+        Utilise des critères par défaut basés sur le profil marchand
+        """
+        # Récupérer profil marchand pour déduire les critères
+        merchant = await self._get_merchant_profile(merchant_id)
+        
+        # Construire des détails de campagne par défaut
+        default_campaign = {
+            'product_category': merchant.get('industry', 'General'),
+            'target_audience': {
+                'locations': [merchant.get('country', 'MA')],
+                'age_range': ['18-24', '25-34'],
+                'gender': 'all'
+            },
+            'budget': 1000,  # Valeur par défaut
+            'campaign_goals': ['awareness'],
+            'duration_days': 30
+        }
+        
+        return await self.find_matches(merchant_id, default_campaign, limit)
+
+    async def record_swipe(
+        self,
+        merchant_id: str,
+        influencer_id: str,
+        action: str
+    ) -> Dict[str, Any]:
+        """Enregistrer un swipe (like/pass)"""
+        if action == 'like':
+            return await self.swipe_right(merchant_id, influencer_id, 'default_campaign')
+        elif action == 'pass':
+            return await self.swipe_left(merchant_id, influencer_id, 'default_campaign')
+        elif action == 'super_like':
+            return await self.super_like(merchant_id, influencer_id, 'default_campaign', {})
+        else:
+            return {'error': 'Invalid action'}
 
     # ========================================
     # HELPER FUNCTIONS

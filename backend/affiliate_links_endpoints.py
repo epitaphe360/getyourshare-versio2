@@ -162,7 +162,8 @@ async def generate_affiliate_link(
 
     try:
         # Vérifier que l'utilisateur est approuvé pour ce produit
-        affiliate_result = supabase.table('affiliate_requests').select('*').eq('influencer_id', user_id).eq('product_id', product_id).eq('status', 'approved').execute()
+        # Table is 'affiliation_requests', status is 'active'
+        affiliate_result = supabase.table('affiliation_requests').select('*').eq('influencer_id', user_id).eq('product_id', product_id).eq('status', 'active').execute()
 
         if not affiliate_result.data:
             raise HTTPException(
@@ -175,25 +176,29 @@ async def generate_affiliate_link(
         commission_rate = affiliate_request.get('commission_rate', 5.0)
 
         # Vérifier si lien déjà existe
-        existing_link = supabase.table('affiliate_links').select('*').eq('influencer_id', user_id).eq('product_id', product_id).eq('is_active', True).execute()
+        # Removed .eq('is_active', True) as column doesn't exist
+        existing_link = supabase.table('affiliate_links').select('*').eq('influencer_id', user_id).eq('product_id', product_id).execute()
 
         if existing_link.data:
             # Retourner lien existant
             link = existing_link.data[0]
+            # Map unique_code to short_code
+            code = link.get('unique_code')
             return {
                 "success": True,
                 "message": "Lien existant retourné",
                 "link": {
                     **link,
-                    "full_url": f"https://shareyoursales.ma/r/{link['short_code']}",
-                    "qr_code_url": f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://shareyoursales.ma/r/{link['short_code']}"
+                    "short_code": code,
+                    "full_url": f"https://shareyoursales.ma/r/{code}",
+                    "qr_code_url": f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://shareyoursales.ma/r/{code}"
                 }
             }
 
         # Générer short code unique
         if request_data.custom_slug:
             # Vérifier disponibilité
-            check_slug = supabase.table('affiliate_links').select('id').eq('short_code', request_data.custom_slug).execute()
+            check_slug = supabase.table('affiliate_links').select('id').eq('unique_code', request_data.custom_slug).execute()
             if check_slug.data:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -204,18 +209,19 @@ async def generate_affiliate_link(
             # Générer code aléatoire (8 caractères)
             while True:
                 short_code = secrets.token_urlsafe(6)[:8]
-                check = supabase.table('affiliate_links').select('id').eq('short_code', short_code).execute()
+                check = supabase.table('affiliate_links').select('id').eq('unique_code', short_code).execute()
                 if not check.data:
                     break
 
         # Créer lien
         affiliate_link = {
             'influencer_id': user_id,
-            'merchant_id': merchant_id,
+            # 'merchant_id': merchant_id, # Removed
             'product_id': product_id,
-            'short_code': short_code,
-            'commission_rate': commission_rate,
-            'is_active': True,
+            'unique_code': short_code, # Changed from short_code
+            'url': f"https://shareyoursales.ma/r/{short_code}", # Added url
+            # 'commission_rate': commission_rate, # Removed
+            # 'is_active': True, # Removed
             'created_at': datetime.utcnow().isoformat()
         }
 

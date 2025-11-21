@@ -572,11 +572,12 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
             # Stats influencer - CORRIGÉ pour utiliser les vraies tables
             try:
                 # Récupérer l'influencer_id depuis la table users (colonne influencer_id)
-                user_result = supabase.table("users").select("influencer_id, id").eq("id", user_id).single().execute()
-                if not user_result.data:
-                    return {}
+                # user_result = supabase.table("users").select("influencer_id, id").eq("id", user_id).single().execute()
+                # if not user_result.data:
+                #     return {}
                 
-                influencer_id = user_result.data.get("influencer_id") or user_result.data.get("id")
+                # influencer_id = user_result.data.get("influencer_id") or user_result.data.get("id")
+                influencer_id = user_id
                 
                 # Stats depuis la table conversions (remplace click_tracking)
                 conversions_result = supabase.table("conversions").select("*").eq("influencer_id", influencer_id).execute()
@@ -598,14 +599,42 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
                 balance = total_earnings - total_paid
                 
                 # Calculer les croissances (comparaison 30 derniers jours vs 30 jours précédents)
-                from datetime import datetime, timedelta
-                now = datetime.now()
+                from datetime import datetime, timedelta, timezone
+                now = datetime.now(timezone.utc)
                 thirty_days_ago = now - timedelta(days=30)
                 sixty_days_ago = now - timedelta(days=60)
                 
                 # Conversions des 30 derniers jours
-                recent_conversions = [c for c in conversions if datetime.fromisoformat(c.get("created_at", "1970-01-01").replace("Z", "+00:00")) >= thirty_days_ago]
-                previous_conversions = [c for c in conversions if sixty_days_ago <= datetime.fromisoformat(c.get("created_at", "1970-01-01").replace("Z", "+00:00")) < thirty_days_ago]
+                recent_conversions = []
+                previous_conversions = []
+                
+                for c in conversions:
+                    created_at_str = c.get("created_at")
+                    if not created_at_str:
+                        continue
+                        
+                    try:
+                        # Gérer le format Z ou +00:00
+                        if isinstance(created_at_str, str):
+                            created_at_str = created_at_str.replace("Z", "+00:00")
+                            created_at = datetime.fromisoformat(created_at_str)
+                        elif isinstance(created_at_str, datetime):
+                            created_at = created_at_str
+                        else:
+                            continue
+
+                        # S'assurer que c'est timezone-aware
+                        if created_at.tzinfo is None:
+                            created_at = created_at.replace(tzinfo=timezone.utc)
+                        
+                        # Comparaison sécurisée (tout est aware maintenant)
+                        if created_at >= thirty_days_ago:
+                            recent_conversions.append(c)
+                        elif sixty_days_ago <= created_at < thirty_days_ago:
+                            previous_conversions.append(c)
+                    except Exception as e:
+                        logger.warning(f"Date parsing error for stats: {e}")
+                        continue
                 
                 # Calcul des croissances
                 earnings_growth = 0
@@ -636,6 +665,8 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
                 }
             except Exception as e:
                 logger.error(f"Error getting influencer stats: {e}")
+                import traceback
+                logger.error(f"DEBUG STATS ERROR: {traceback.format_exc()}")
                 return {
                     "total_earnings": 0,
                     "total_clicks": 0,

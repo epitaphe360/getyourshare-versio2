@@ -207,7 +207,31 @@ class ContentStudioService:
 
         Retourne une liste de templates pré-conçus filtrables
         """
-        # Bibliothèque de templates
+        # Essayer de récupérer depuis la DB
+        try:
+            query = self.supabase.table("content_templates").select("*")
+            
+            if category:
+                query = query.eq("category", category.value)
+            
+            if content_type:
+                query = query.eq("content_type", content_type.value)
+                
+            result = query.execute()
+            db_templates = result.data if result.data else []
+            
+            # Filtrer par plateforme (JSONB array)
+            if platform:
+                db_templates = [t for t in db_templates if platform.value in t.get("platforms", [])]
+                
+            if db_templates:
+                return db_templates
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Impossible de récupérer les templates depuis la DB: {e}")
+            # Fallback sur les données hardcodées
+
+        # Bibliothèque de templates (Fallback)
         all_templates = [
             # Posts Instagram - Product Showcase
             {
@@ -555,7 +579,13 @@ class ContentStudioService:
             "created_at": datetime.utcnow().isoformat()
         }
 
-        # TODO: Sauvegarder en DB
+        # Sauvegarder en DB
+        try:
+            self.supabase.table("scheduled_posts").insert(scheduled_post).execute()
+            logger.info(f"✅ Post sauvegardé en DB: {scheduled_id}")
+        except Exception as e:
+            logger.error(f"❌ Erreur sauvegarde post en DB: {e}")
+
         # TODO: Créer un job cron pour publier à l'heure
 
         logger.info(f"📅 Post planifié: {scheduled_id} pour {scheduled_time}")

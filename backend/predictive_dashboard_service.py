@@ -9,6 +9,10 @@ from datetime import datetime, timedelta
 from enum import Enum
 import statistics
 import random
+from supabase_client import supabase
+import logging
+
+logger = logging.getLogger(__name__)
 
 # ============================================
 # MODELS
@@ -383,14 +387,20 @@ class PredictiveDashboardService:
     ) -> Dict[str, Any]:
         """Compare les stats de l'utilisateur avec la moyenne"""
 
-        # À implémenter avec de vraies données de la DB
-        # Pour l'instant, on utilise des moyennes fictives
-
+        # Récupérer les benchmarks depuis la DB
         platform_averages = {
             "avg_conversion_rate": 2.5,
             "avg_monthly_revenue": 1500,
             "avg_campaigns_per_month": 5
         }
+        
+        try:
+            result = supabase.table("platform_benchmarks").select("*").execute()
+            if result.data:
+                for bench in result.data:
+                    platform_averages[bench["metric"]] = float(bench["value"])
+        except Exception as e:
+            logger.warning(f"⚠️ Impossible de récupérer les benchmarks: {e}")
 
         user_conversion_rate = current_stats.get("avg_conversion_rate", 0)
         user_monthly_revenue = current_stats.get("monthly_revenue", 0)
@@ -432,49 +442,50 @@ class PredictiveDashboardService:
         total_revenue = sum(c.get("revenue", 0) for c in campaign_history)
         total_campaigns = len(campaign_history)
 
-        # Achievement: First Sale
-        achievements.append(Achievement(
-            id="first_sale",
-            title="🎉 Première Vente",
-            description="Réalisez votre première conversion",
-            icon="🎉",
-            rarity="common",
-            unlocked_at=datetime.now() if total_conversions >= 1 else None,
-            progress=min(total_conversions * 100, 100)
-        ))
+        # Récupérer les définitions depuis la DB
+        definitions = []
+        try:
+            result = supabase.table("achievement_definitions").select("*").execute()
+            definitions = result.data
+        except Exception as e:
+            logger.warning(f"⚠️ Impossible de récupérer les achievements: {e}")
 
-        # Achievement: Century Club
-        achievements.append(Achievement(
-            id="century_club",
-            title="💯 Century Club",
-            description="Atteignez 100 conversions",
-            icon="💯",
-            rarity="rare",
-            unlocked_at=datetime.now() if total_conversions >= 100 else None,
-            progress=min((total_conversions / 100) * 100, 100)
-        ))
+        # Fallback si DB vide ou erreur
+        if not definitions:
+            definitions = [
+                {"id": "first_sale", "title": "🎉 Première Vente", "description": "Réalisez votre première conversion", "icon": "🎉", "rarity": "common", "condition_type": "conversions", "condition_value": 1},
+                {"id": "century_club", "title": "💯 Century Club", "description": "Atteignez 100 conversions", "icon": "💯", "rarity": "rare", "condition_type": "conversions", "condition_value": 100},
+                {"id": "millionaire", "title": "💰 Millionnaire", "description": "Générez 1,000,000 MAD de revenus", "icon": "💰", "rarity": "legendary", "condition_type": "revenue", "condition_value": 1000000},
+                {"id": "campaign_master", "title": "🎯 Campaign Master", "description": "Complétez 50 campagnes", "icon": "🎯", "rarity": "epic", "condition_type": "campaigns", "condition_value": 50}
+            ]
 
-        # Achievement: Millionaire
-        achievements.append(Achievement(
-            id="millionaire",
-            title="💰 Millionnaire",
-            description="Générez 1,000,000 MAD de revenus",
-            icon="💰",
-            rarity="legendary",
-            unlocked_at=datetime.now() if total_revenue >= 1000000 else None,
-            progress=min((total_revenue / 1000000) * 100, 100)
-        ))
-
-        # Achievement: Campaign Master
-        achievements.append(Achievement(
-            id="campaign_master",
-            title="🎯 Campaign Master",
-            description="Complétez 50 campagnes",
-            icon="🎯",
-            rarity="epic",
-            unlocked_at=datetime.now() if total_campaigns >= 50 else None,
-            progress=min((total_campaigns / 50) * 100, 100)
-        ))
+        for definition in definitions:
+            # Check condition
+            progress = 0
+            unlocked = False
+            
+            cond_type = definition.get("condition_type")
+            cond_val = float(definition.get("condition_value", 100))
+            
+            if cond_type == "conversions":
+                progress = min((total_conversions / cond_val) * 100, 100) if cond_val > 0 else 0
+                unlocked = total_conversions >= cond_val
+            elif cond_type == "revenue":
+                progress = min((total_revenue / cond_val) * 100, 100) if cond_val > 0 else 0
+                unlocked = total_revenue >= cond_val
+            elif cond_type == "campaigns":
+                progress = min((total_campaigns / cond_val) * 100, 100) if cond_val > 0 else 0
+                unlocked = total_campaigns >= cond_val
+                
+            achievements.append(Achievement(
+                id=definition["id"],
+                title=definition["title"],
+                description=definition["description"],
+                icon=definition.get("icon", "🏆"),
+                rarity=definition.get("rarity", "common"),
+                unlocked_at=datetime.now() if unlocked else None,
+                progress=progress
+            ))
 
         return achievements
 

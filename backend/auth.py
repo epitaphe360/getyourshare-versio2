@@ -3,8 +3,9 @@ Authentication helpers for ShareYourSales API
 Provides authentication dependencies for endpoint routers
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Union
 import jwt
 import os
 from dotenv import load_dotenv
@@ -19,7 +20,55 @@ JWT_SECRET = os.getenv("JWT_SECRET", "fallback-secret-please-set-env-variable")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user_from_cookie(request: Request):
+    """
+    Get current user from httpOnly cookie (secure method)
+    Fallback to Authorization header for backward compatibility
+    """
+    # Try to get token from cookie first (secure)
+    token = request.cookies.get("access_token")
+
+    # Fallback to Authorization header (legacy)
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+
+        # Verify token type
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type"
+            )
+
+        # Return user data with 'id' key for consistency
+        return {
+            "id": payload.get("sub"),
+            "email": payload.get("email"),
+            "role": payload.get("role")
+        }
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials"
+        )
+
+
+def verify_token(credentials: Union[HTTPAuthorizationCredentials, str] = Depends(security)):
     """
     Verify JWT token and return payload
 
@@ -30,8 +79,17 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         dict: Token payload with user_id in 'sub' field
     """
     try:
-        token = credentials.credentials
+        if hasattr(credentials, "credentials"):
+            token = credentials.credentials
+        else:
+            token = str(credentials)
+            
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        
+        # Ensure id is present (map sub to id)
+        if "id" not in payload and "sub" in payload:
+            payload["id"] = payload["sub"]
+            
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(
