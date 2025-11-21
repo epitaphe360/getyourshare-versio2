@@ -540,6 +540,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
     score INTEGER,
     source TEXT,
     notes TEXT,
+    rejection_reason TEXT,
     metadata JSONB,
     validated_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
