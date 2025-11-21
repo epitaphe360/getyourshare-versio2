@@ -133,6 +133,7 @@ const SubscriptionCancelled = lazy(() => import('./pages/subscription/Subscripti
 const TrackingLinks = lazy(() => import('./pages/TrackingLinks'));
 const Integrations = lazy(() => import('./pages/Integrations'));
 const AIMarketing = lazy(() => import('./pages/AIMarketing'));
+const FeaturesHub = lazy(() => import('./pages/features/FeaturesHub'));
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -775,6 +776,16 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <MobileDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Features Hub - Influenceurs et Marchands */}
+                <Route
+                  path="/features"
+                  element={
+                    <ProtectedRoute>
+                      <FeaturesHub />
                     </ProtectedRoute>
                   }
                 />

@@ -58,9 +58,11 @@ const TrackingLinks = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('/api/products');
-      // S'assurer que response.data est un tableau
-      const productsData = Array.isArray(response.data) ? response.data : [];
+      const response = await api.get('/api/marketplace/products');
+      // Gérer les deux formats de réponse possibles
+      const productsData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data.products || []);
       setProducts(productsData);
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error);

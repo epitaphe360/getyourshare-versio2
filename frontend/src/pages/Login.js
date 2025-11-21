@@ -98,7 +98,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
       const response = await fetch(`${API_URL}/api/auth/verify-2fa`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -245,7 +245,7 @@ const Login = () => {
                   {/* Admin */}
                   <div className="mt-6">
                     <button
-                      onClick={() => quickLogin('admin@getyourshare.com', 'Test123!')}
+                      onClick={() => quickLogin('admin@getyourshare.com', 'Admin123!')}
                       disabled={loading}
                       className="w-full flex items-center justify-between px-4 py-3 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition disabled:opacity-50"
                     >
@@ -271,7 +271,7 @@ const Login = () => {
                     <div className="space-y-2">
                       {/* Influenceur STARTER */}
                       <button
-                        onClick={() => quickLogin('hassan.oudrhiri@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('influencer1@fashion.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition disabled:opacity-50"
                       >
@@ -280,8 +280,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-green-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">Hassan Oudrhiri</p>
-                            <p className="text-xs text-gray-500">67K followers • Food & Cuisine</p>
+                            <p className="text-sm font-semibold text-gray-900">Sarah El Fassi</p>
+                            <p className="text-xs text-gray-500">250K followers • Fashion & Beauty</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">STARTER</span>
@@ -289,7 +289,7 @@ const Login = () => {
 
                       {/* Influenceur PRO */}
                       <button
-                        onClick={() => quickLogin('sarah.benali@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('influencer2@tech.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-yellow-200 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition disabled:opacity-50"
                       >
@@ -298,8 +298,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-yellow-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">Sarah Benali</p>
-                            <p className="text-xs text-gray-500">125K followers • Lifestyle</p>
+                            <p className="text-sm font-semibold text-gray-900">Pierre Tech</p>
+                            <p className="text-xs text-gray-500">150K followers • Tech & Gaming</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">PRO</span>
@@ -307,7 +307,7 @@ const Login = () => {
 
                       {/* Influenceur ENTERPRISE */}
                       <button
-                        onClick={() => quickLogin('karim.benjelloun@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('influencer3@lifestyle.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition disabled:opacity-50"
                       >
@@ -316,8 +316,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-purple-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">Karim Benjelloun ⭐</p>
-                            <p className="text-xs text-gray-500">285K followers • Tech & Gaming</p>
+                            <p className="text-sm font-semibold text-gray-900">Laura Lifestyle ⭐</p>
+                            <p className="text-xs text-gray-500">180K followers • Lifestyle</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded">ENTERPRISE</span>
@@ -334,7 +334,7 @@ const Login = () => {
                     <div className="space-y-2">
                       {/* Marchand STARTER */}
                       <button
-                        onClick={() => quickLogin('boutique.maroc@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('merchant1@fashionstore.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition disabled:opacity-50"
                       >
@@ -343,8 +343,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-green-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">Boutique Maroc</p>
-                            <p className="text-xs text-gray-500">Artisanat traditionnel</p>
+                            <p className="text-sm font-semibold text-gray-900">Fashion Store</p>
+                            <p className="text-xs text-gray-500">Mode & Vêtements</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">STARTER</span>
@@ -352,7 +352,7 @@ const Login = () => {
 
                       {/* Marchand PRO */}
                       <button
-                        onClick={() => quickLogin('luxury.crafts@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('merchant2@techgadgets.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-yellow-200 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition disabled:opacity-50"
                       >
@@ -361,8 +361,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-yellow-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">Luxury Crafts</p>
-                            <p className="text-xs text-gray-500">Artisanat Premium</p>
+                            <p className="text-sm font-semibold text-gray-900">Tech Gadgets</p>
+                            <p className="text-xs text-gray-500">Technologie & Gadgets</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">PRO</span>
@@ -370,7 +370,7 @@ const Login = () => {
 
                       {/* Marchand ENTERPRISE */}
                       <button
-                        onClick={() => quickLogin('electromaroc@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('merchant3@beautyparis.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition disabled:opacity-50"
                       >
@@ -379,8 +379,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-purple-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">ElectroMaroc ⭐</p>
-                            <p className="text-xs text-gray-500">Électronique & High-Tech</p>
+                            <p className="text-sm font-semibold text-gray-900">Beauty Paris ⭐</p>
+                            <p className="text-xs text-gray-500">Beauté & Cosmétiques</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded">ENTERPRISE</span>
@@ -395,7 +395,7 @@ const Login = () => {
                       Commercial
                     </p>
                     <button
-                      onClick={() => quickLogin('sofia.chakir@getyourshare.com', 'Test123!')}
+                      onClick={() => quickLogin('commercial1@getyourshare.com', 'Test123!')}
                       disabled={loading}
                       className="w-full flex items-center justify-between px-4 py-3 border-2 border-indigo-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition disabled:opacity-50"
                     >
@@ -404,7 +404,7 @@ const Login = () => {
                           <Sparkles className="w-5 h-5 text-indigo-600" />
                         </div>
                         <div className="ml-3 text-left">
-                          <p className="text-sm font-semibold text-gray-900">Sofia Chakir</p>
+                          <p className="text-sm font-semibold text-gray-900">Lucas Commercial</p>
                           <p className="text-xs text-gray-500">Business Development</p>
                         </div>
                       </div>

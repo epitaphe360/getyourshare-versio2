@@ -40,7 +40,13 @@ const NotificationBell = () => {
       setNotifications(response.data.notifications || []);
       setUnreadCount(response.data.unread_count || 0);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // Silencieux si 403 (endpoint non disponible pour ce rôle)
+      if (error.response?.status !== 403) {
+        console.error('Error fetching notifications:', error);
+      }
+      // Réinitialiser avec des valeurs vides
+      setNotifications([]);
+      setUnreadCount(0);
     }
   };
 

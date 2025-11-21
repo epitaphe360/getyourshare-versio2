@@ -50,7 +50,7 @@ const MarketplaceGroupon = () => {
 
   const loadMerchantProducts = async () => {
     try {
-      const res = await api.get('/api/products');
+      const res = await api.get('/api/marketplace/products');
       setMerchantProducts(res.data.products || []);
     } catch (error) {
       console.error('Error loading merchant products:', error);
@@ -96,7 +96,7 @@ const MarketplaceGroupon = () => {
     setLoading(true);
     try {
       if (currentTab === 0) {
-        const res = await api.get('/api/products?limit=20');
+        const res = await api.get('/api/marketplace/products?limit=20');
         setProducts(res.data.products || []);
       } else if (currentTab === 1) {
         const res = await api.get('/api/services?limit=20');

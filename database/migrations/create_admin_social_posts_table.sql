@@ -3,6 +3,8 @@
 -- Publications sociales de l'admin (publicité plateforme)
 -- ============================================
 
+DROP TABLE IF EXISTS admin_social_posts CASCADE;
+
 CREATE TABLE IF NOT EXISTS admin_social_posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
@@ -74,6 +76,14 @@ CREATE INDEX idx_admin_social_posts_published_at ON admin_social_posts(published
 -- Trigger: Auto-update updated_at
 -- ============================================
 
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE TRIGGER trigger_admin_social_posts_updated_at
     BEFORE UPDATE ON admin_social_posts
     FOR EACH ROW
@@ -83,6 +93,8 @@ CREATE TRIGGER trigger_admin_social_posts_updated_at
 -- Table: admin_social_post_templates
 -- Templates de posts pour différentes campagnes
 -- ============================================
+
+DROP TABLE IF EXISTS admin_social_post_templates CASCADE;
 
 CREATE TABLE IF NOT EXISTS admin_social_post_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -120,8 +132,7 @@ CREATE OR REPLACE VIEW v_admin_social_posts_summary AS
 SELECT
     asp.*,
     u.email as creator_email,
-    u.first_name as creator_first_name,
-    u.last_name as creator_last_name,
+    u.full_name as creator_name,
     (total_views + total_likes + total_comments + total_shares) as total_engagement
 FROM admin_social_posts asp
 JOIN users u ON asp.created_by = u.id

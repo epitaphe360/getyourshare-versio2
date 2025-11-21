@@ -5,15 +5,23 @@ const StatCard = memo(({ title, value, icon, trend, isCurrency = false, suffix =
   // Handle different value types
   let displayValue;
   
-  if (typeof value === 'string') {
+  // Check if value is a React element (like CountUp component)
+  if (React.isValidElement(value)) {
+    displayValue = value;
+  } else if (typeof value === 'string') {
     // If value is already a string (e.g., "320%"), use it as-is
     displayValue = value;
-  } else if (isCurrency) {
-    displayValue = formatCurrency(value);
-  } else if (suffix) {
-    displayValue = `${formatNumber(value)}${suffix}`;
+  } else if (typeof value === 'number') {
+    if (isCurrency) {
+      displayValue = formatCurrency(value);
+    } else if (suffix) {
+      displayValue = `${formatNumber(value)}${suffix}`;
+    } else {
+      displayValue = formatNumber(value);
+    }
   } else {
-    displayValue = formatNumber(value);
+    // Fallback for undefined/null
+    displayValue = isCurrency ? '0,00 €' : '0';
   }
   
   return (

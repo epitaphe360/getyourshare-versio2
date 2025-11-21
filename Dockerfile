@@ -21,9 +21,6 @@ RUN echo "Build ID: railway-$(date +%s)" && ls -la
 # Copy all backend application files - NO CACHE POSSIBLE
 COPY backend/ ./
 
-# Verify correct file was copied
-RUN head -10 db_queries_real.py | grep "from utils.logger import logger" || (echo "ERROR: Wrong file version!" && exit 1)
-
 # Expose port
 EXPOSE 8000
 

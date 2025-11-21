@@ -5,7 +5,7 @@ import axios from 'axios';
 import SEOHead from '../components/SEO/SEOHead';
 import SEO_CONFIG from '../config/seo';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const Register = () => {
   const navigate = useNavigate();

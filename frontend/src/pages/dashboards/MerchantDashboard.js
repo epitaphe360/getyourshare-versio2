@@ -48,7 +48,7 @@ const MerchantDashboard = () => {
       // Utiliser Promise.allSettled au lieu de Promise.all
       const results = await Promise.allSettled([
         api.get('/api/analytics/overview'),
-        api.get('/api/products'),
+        api.get('/api/marketplace/products'),
         api.get('/api/analytics/merchant/sales-chart'),
         api.get('/api/analytics/merchant/performance'),
         api.get('/api/subscriptions/current'),

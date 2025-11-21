@@ -65,8 +65,11 @@ const SubscriptionDashboard = () => {
       setSubscription(subResponse.data);
       setUsage(usageResponse.data);
     } catch (err) {
-      console.error('Error fetching subscription:', err);
-      setError('Erreur lors du chargement de l\'abonnement');
+      // Silencieux si 403 (endpoint non disponible pour ce rôle)
+      if (err.response?.status !== 403) {
+        console.error('Error fetching subscription:', err);
+        setError('Erreur lors du chargement de l\'abonnement');
+      }
     } finally {
       setLoading(false);
     }

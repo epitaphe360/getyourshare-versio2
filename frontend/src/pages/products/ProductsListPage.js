@@ -35,7 +35,7 @@ const ProductsListPage = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/products');
+      const response = await api.get('/api/marketplace/products');
       const productsData = response.data.products || [];
       setProducts(productsData);
       

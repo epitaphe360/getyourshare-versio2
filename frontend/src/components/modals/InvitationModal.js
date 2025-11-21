@@ -81,7 +81,7 @@ const InvitationModal = ({ onClose, onSent }) => {
       setLoading(true);
       const [usersRes, productsRes] = await Promise.allSettled([
         api.get('/api/influencers?limit=50'),
-        api.get('/api/products')
+        api.get('/api/marketplace/products')
       ]);
 
       if (usersRes.status === 'fulfilled') {

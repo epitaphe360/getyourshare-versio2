@@ -848,7 +848,7 @@ const CreateLinkModal = ({ onClose, onSubmit }) => {
 
   useEffect(() => {
     // Charger les produits
-    api.get('/api/products?limit=50').then(res => {
+    api.get('/api/marketplace/products?limit=50').then(res => {
       setProducts(res.data.products || []);
     });
   }, []);

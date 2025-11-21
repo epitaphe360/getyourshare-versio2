@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useSearchParams } from 'react-router-dom';
 import {
   ReferralDashboard,
   ProductRecommendations,
@@ -11,7 +12,16 @@ import { Users, Sparkles, Wand2, Video } from 'lucide-react';
 
 const FeaturesHub = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('referral');
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'referral');
+
+  // Mettre à jour l'onglet actif si le paramètre URL change
+  useEffect(() => {
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
 
   const tabs = [
     {

@@ -59,7 +59,7 @@ const GlobalSearch = () => {
     try {
       const [campaignsRes, productsRes, influencersRes, merchantsRes] = await Promise.allSettled([
         api.get('/api/campaigns'),
-        api.get('/api/products'),
+        api.get('/api/marketplace/products'),
         api.get('/api/influencers'),
         api.get('/api/merchants')
       ]);

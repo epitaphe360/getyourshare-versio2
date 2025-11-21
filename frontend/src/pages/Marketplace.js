@@ -29,7 +29,7 @@ const MarketplaceNew = () => {
   const fetchProducts = async () => {
     try {
       const params = selectedCategory !== 'all' ? { category: selectedCategory } : {};
-      const response = await api.get('/api/products', { params });
+      const response = await api.get('/api/marketplace/products', { params });
       // Gestion des deux formats de réponse possibles
       const productsData = Array.isArray(response.data) ? response.data : response.data.products || [];
       setProducts(productsData);

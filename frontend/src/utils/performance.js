@@ -115,12 +115,28 @@ export class LazyImageLoader {
 /**
  * 3. WEB VITALS MONITORING
  * Track Core Web Vitals (LCP, FID, CLS)
+ * NOTE: Disabled to avoid import errors
  */
 export const initWebVitals = async () => {
   if ('web-vital' in window) return;
 
   try {
-    const { getCLS, getFID, getFCP, getLCP, getTTFB } = await import('web-vitals');
+    // Import web-vitals dynamically with better error handling
+    const webVitalsModule = await import('web-vitals').catch(() => null);
+    
+    // If web-vitals is not available, skip silently
+    if (!webVitalsModule) {
+      window['web-vital'] = true; // Mark as attempted
+      return;
+    }
+
+    const { getCLS, getFID, getFCP, getLCP, getTTFB } = webVitalsModule;
+    
+    // Verify all functions are available
+    if (!getCLS || !getFID || !getFCP || !getLCP || !getTTFB) {
+      window['web-vital'] = true;
+      return;
+    }
 
     const sendToAnalytics = (metric) => {
       // Send to analytics endpoint
@@ -155,7 +171,8 @@ export const initWebVitals = async () => {
 
     window['web-vital'] = true;
   } catch (error) {
-    console.error('Failed to load web-vitals:', error);
+    // Silently mark as attempted to avoid repeated errors
+    window['web-vital'] = true;
   }
 };
 

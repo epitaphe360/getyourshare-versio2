@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { Trophy, Star, Target, Award, TrendingUp, Zap, Gift, Crown } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
 const GamificationWidget = ({ userId, userType = 'merchant' }) => {
   const [gamifData, setGamifData] = useState(null);
@@ -15,10 +13,7 @@ const GamificationWidget = ({ userId, userType = 'merchant' }) => {
   const fetchGamification = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/gamification/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/api/gamification/${userId}`);
       setGamifData(response.data);
       setLoading(false);
     } catch (error) {

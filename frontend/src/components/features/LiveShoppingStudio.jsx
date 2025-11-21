@@ -34,13 +34,14 @@ const LiveShoppingStudio = ({ userId }) => {
       const [sessionsRes, upcomingRes, productsRes] = await Promise.all([
         api.get(`/api/ai/live-shopping/my-sessions/${userId}`),
         api.get('/api/ai/live-shopping/upcoming'),
-        api.get('/api/products?limit=50')
+        api.get('/api/marketplace/products?limit=50')
       ]);
 
       setMySessions(sessionsRes.data.sessions || []);
       setUpcomingSessions(upcomingRes.data.upcoming_lives || []);
-      setProducts(productsRes.data || []);
+      setProducts(productsRes.data.products || []);
     } catch (error) {
+      console.error('Erreur chargement lives:', error);
       toast?.error('Erreur chargement lives');
     } finally {
       setLoading(false);
