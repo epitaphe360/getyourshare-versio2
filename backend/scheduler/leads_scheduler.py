@@ -287,6 +287,7 @@ def generate_daily_report():
             .gte('updated_at', yesterday)\
             .eq('status', 'rejected')\
             .execute()
+        rejected_count = leads_rejected.count if hasattr(leads_rejected, 'count') else 0
         
         # Dépôts bas
         low_deposits = supabase.table('company_deposits')\
@@ -301,7 +302,7 @@ def generate_daily_report():
             'date': datetime.now().strftime('%Y-%m-%d'),
             'leads_created_24h': leads_created.count if hasattr(leads_created, 'count') else 0,
             'leads_validated_24h': leads_validated.count if hasattr(leads_validated, 'count') else 0,
-            'leads_rejected_24h': leads_rejected.count if hasattr(leads_rejected, 'count') else 0,
+            'leads_rejected_24h': rejected_count,
             'deposits_below_50_percent': deposits_below_50,
             'timestamp': datetime.now().isoformat()
         }

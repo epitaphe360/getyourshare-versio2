@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 from utils.logger import logger
-from supabase_client import supabase
+from supabase_client import supabase, get_supabase_client
 
 router = APIRouter(prefix="/api/referrals", tags=["Referrals"])
 

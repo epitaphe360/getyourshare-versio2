@@ -1,6 +1,57 @@
-INFO:     Will watch for changes in these directories: ['C:\\Users\\samye\\OneDrive\\Desktop\\getyoursharelivrable\\getyourshare-versio2\\backend']
-INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [35464] using WatchFiles
+INFO:__main__:✅ LEADS scheduler loaded successfully
+INFO:__main__:CORS allowed origins: ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'https://getyourshare.com', 'https://www.getyourshare.com', 'http://localhost:8000', 'http://127.0.0.1:8000']
+INFO:GetYourShare:✅ Endpoints d'upload intégrés
+INFO:GetYourShare:✅ Endpoints de recherche d'influenceurs intégrés
+INFO:GetYourShare:✅ Tous les endpoints avancés ont été intégrés
+INFO:__main__:✅ Endpoints avancés chargés avec succès
+INFO:__main__:✅ Système d'abonnement SaaS chargé avec succès
+INFO:__main__:   📦 Plans d'abonnement disponibles
+INFO:__main__:   💳 Paiements récurrents activés
+INFO:__main__:   📄 Facturation automatique configurée
+c:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\server.py:3668: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+c:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\server.py:3684: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("shutdown")
+INFO:GetYourShare:✅ Endpoints LEADS système intégrés
+c:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\server.py:6691: DeprecationWarning: `regex` has been deprecated, please use `pattern` instead
+  period: str = Query("month", regex="^(week|month|quarter|year)$"),
+c:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\server.py:6716: DeprecationWarning: `regex` has been deprecated, please use `pattern` instead
+  period: str = Query("month", regex="^(week|month|quarter|year)$"),
+c:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\server.py:6740: DeprecationWarning: `regex` has been deprecated, please use `pattern` instead
+  period: str = Query("month", regex="^(week|month|quarter|year)$"),
+c:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\server.py:6764: DeprecationWarning: `regex` has been deprecated, please use `pattern` instead
+  period: str = Query("month", regex="^(week|month|quarter|year)$"),
+INFO:__main__:
+============================================================
+INFO:__main__:🚀 Démarrage du serveur ShareYourSales API
+INFO:__main__:============================================================
+INFO:__main__:📊 Base de données: Supabase PostgreSQL
+INFO:__main__:🔐 Authentification: JWT + 2FA
+INFO:__main__:💰 Système d'abonnement SaaS: Activé
+INFO:__main__:💳 Paiements automatiques: ACTIVÉS
+INFO:__main__:🔗 Tracking: ACTIVÉ (endpoint /r/{short_code})
+INFO:__main__:📡 Webhooks: ACTIVÉS (Shopify, WooCommerce, TikTok Shop)
+INFO:__main__:💳 Gateways: CMI, PayZen, Société Générale Maroc
+INFO:__main__:📄 Facturation: AUTOMATIQUE (PDF + Emails)
+INFO:__main__:🎯 LEADS System: ACTIVÉ (Marketplace Services)
+INFO:__main__:   ├─ 🔄 Alertes automatiques: Toutes les heures
+INFO:__main__:   ├─ 📧 Alertes multi-niveau: 50%, 80%, 90%, 100%
+INFO:__main__:   ├─ 🧹 Nettoyage leads: 23:00 quotidien
+INFO:__main__:   └─ 📊 Rapports: 09:00 quotidien
+INFO:__main__:🌐 API disponible sur: http://localhost:5000
+INFO:__main__:📖 Documentation: http://localhost:5000/docs
+INFO:__main__:============================================================
+
 INFO:server:✅ LEADS scheduler loaded successfully
 INFO:server:CORS allowed origins: ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'https://getyourshare.com', 'https://www.getyourshare.com', 'http://localhost:8000', 'http://127.0.0.1:8000']
 INFO:GetYourShare:✅ Endpoints d'upload intégrés
@@ -12,7 +63,7 @@ INFO:server:   📦 Plans d'abonnement disponibles
 INFO:server:   💳 Paiements récurrents activés
 INFO:server:   📄 Facturation automatique configurée
 INFO:GetYourShare:✅ Endpoints LEADS système intégrés
-INFO:     Started server process [40608]
+INFO:     Started server process [41352]
 INFO:     Waiting for application startup.
 INFO:server:🚀 Démarrage du serveur...
 INFO:server:📊 Base de données: Supabase PostgreSQL
@@ -31,1007 +82,55 @@ INFO:GetYourShare:   🧹 Nettoyage leads expirés: 23:00 quotidien
 INFO:GetYourShare:   📊 Rapport quotidien: 09:00 quotidien
 INFO:server:✅ Serveur prêt
 INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'test_comprehensive_audit.py'. Reloading...
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:server:🛑 Arrêt du serveur...
-INFO:apscheduler.scheduler:Scheduler has been shut down
-INFO:GetYourShare:✅ Scheduler arrêté
-INFO:server:✅ Arrêt propre
-INFO:     Application shutdown complete.
-INFO:     Finished server process [40608]
-WARNING:  WatchFiles detected changes in 'test_comprehensive_audit.py'. Reloading...
-Process SpawnProcess-2:
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\multiprocessing\process.py", line 320, in _bootstrap
-    self.run()
-    ~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\multiprocessing\process.py", line 108, in run
-    self._target(*self._args, **self._kwargs)
-    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\_subprocess.py", line 73, in subprocess_started
-    config.configure_logging()
-    ~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\config.py", line 393, in configure_logging
-    logging.config.dictConfig(self.log_config)
-    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 946, in dictConfig
-    dictConfigClass(config).configure()
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 583, in configure
-    formatters[name] = self.configure_formatter(
-                       ~~~~~~~~~~~~~~~~~~~~~~~~^
-                                        formatters[name])
-                                        ^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 693, in configure_formatter
-    result = self.configure_custom(config)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 484, in configure_custom
-    c = self.resolve(c)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 405, in resolve
-    found = getattr(found, frag)
-KeyboardInterrupt
-INFO:server:✅ LEADS scheduler loaded successfully
-INFO:server:CORS allowed origins: ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'https://getyourshare.com', 'https://www.getyourshare.com', 'http://localhost:8000', 'http://127.0.0.1:8000']
-INFO:GetYourShare:✅ Endpoints d'upload intégrés
-INFO:GetYourShare:✅ Endpoints de recherche d'influenceurs intégrés
-INFO:GetYourShare:✅ Tous les endpoints avancés ont été intégrés
-INFO:server:✅ Endpoints avancés chargés avec succès
-INFO:server:✅ Système d'abonnement SaaS chargé avec succès
-INFO:server:   📦 Plans d'abonnement disponibles
-INFO:server:   💳 Paiements récurrents activés
-INFO:server:   📄 Facturation automatique configurée
-INFO:GetYourShare:✅ Endpoints LEADS système intégrés
-INFO:     Started server process [34980]
-INFO:     Waiting for application startup.
-INFO:server:🚀 Démarrage du serveur...
-INFO:server:📊 Base de données: Supabase PostgreSQL
-INFO:server:⏰ Démarrage du scheduler LEADS...
-INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
-INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
-INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
-INFO:apscheduler.scheduler:Added job "Vérification dépôts et alertes" to job store "default"
-INFO:apscheduler.scheduler:Added job "Nettoyage leads expirés" to job store "default"
-INFO:apscheduler.scheduler:Added job "Rapport quotidien" to job store "default"
-INFO:apscheduler.scheduler:Scheduler started
-INFO:GetYourShare:
-✅ Scheduler LEADS démarré avec succès!
-INFO:GetYourShare:   🔄 Vérification dépôts: Toutes les heures
-INFO:GetYourShare:   🧹 Nettoyage leads expirés: 23:00 quotidien
-INFO:GetYourShare:   📊 Rapport quotidien: 09:00 quotidien
-INFO:server:✅ Serveur prêt
-INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'test_comprehensive_audit.py'. Reloading...
-px:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222226 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222223 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/commissions?select=influencer_id%2Camount "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333337 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333333 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333334 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333335 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333336 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.66666666-6666-6666-6666-666666666661 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.77777777-7777-7777-7777-777777777771 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&role=eq.merchant "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&role=eq.influencer "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/v_admin_social_posts_summary?select=%2A&order=created_at.desc&offset=0&limit=20 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_post_templates?select=%2A&is_active=eq.True&order=usage_count.desc "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/v_admin_social_analytics?select=%2A "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.general&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.app_launch&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.new_feature&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.merchant_recruitment&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.influencer_recruitment&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.seasonal_promo&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.user_testimonial&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.milestone_celebration&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.contest&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/platform_invoices?select=%2A&order=created_at.desc "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/rpc/refresh_materialized_view "HTTP/2 204 No Content"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/gateway_statistics?select=%2A "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.test_merchant_1763723588%40example.com "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users "HTTP/2 201 Created"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/merchants "HTTP/2 201 Created"
+INFO:     Uvicorn running on http://0.0.0.0:5000 (Press CTRL+C to quit)
 ERROR:    Exception in ASGI application
 Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
     message = await recv_stream.receive()
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
     return self.receive_nowait()
            ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
     raise EndOfStream
 anyio.EndOfStream
 
 During handling of the above exception, another exception occurred:
 
 Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
     result = await app(  # type: ignore[func-returns-value]
              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         self.scope, self.receive, self.send
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     )
     ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
     return await self.app(scope, receive, send)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
     await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
     await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
     raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
     await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
     response = await self.dispatch_func(request, call_next)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
+  File "c:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 155, in security_headers_middleware
     response = await call_next(request)
                ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
     raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
     await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
+  File "c:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
     response = await self.dispatch_func(request, call_next)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
+  File "c:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 129, in csrf_middleware
     raise HTTPException(
     ...<2 lines>...
     )
 fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.test_influencer_1763723588%40example.com "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users "HTTP/2 201 Created"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/influencers "HTTP/2 400 Bad Request"
-WARNING:server:Warning: Could not create profile for influencer: {'message': "Could not find the 'category' column of 'influencers' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-WARNING:  WatchFiles detected changes in 'test_comprehensive_audit.py'. Reloading...
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.admin%40getyourshare.com "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.merchant "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.influencer "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/services?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount&status=eq.completed "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.merchant "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.influencer "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/services?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount&status=eq.completed "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.merchant "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.influencer "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.commercial "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/services?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/campaigns?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/commissions?select=amount "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/tracking_links?select=clicks "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/conversions?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/payouts?select=amount%2Cstatus "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/leads?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/tracking_links?select=clicks "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/conversions?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/conversions?select=id&created_at=gte.2025-10-22T06%3A14%3A36.305580 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount&created_at=lt.2025-10-22T06%3A14%3A36.305580&created_at=gte.2025-08-23T06%3A14%3A36.379219 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount&created_at=gte.2025-10-22T06%3A14%3A36.305580 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&last_login=gte.2025-11-14T06%3A14%3A36.544041 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount%2Ccreated_at "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=id%2Ccategory%2Cprice "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=merchant_id%2Camount "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222225 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222224 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222222 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222226 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222223 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/commissions?select=influencer_id%2Camount "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333337 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333333 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333334 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333335 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333336 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.66666666-6666-6666-6666-666666666661 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.77777777-7777-7777-7777-777777777771 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&role=eq.merchant "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&role=eq.influencer "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/v_admin_social_posts_summary?select=%2A&order=created_at.desc&offset=0&limit=20 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_post_templates?select=%2A&is_active=eq.True&order=usage_count.desc "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/v_admin_social_analytics?select=%2A "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.general&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.app_launch&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.new_feature&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.merchant_recruitment&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.influencer_recruitment&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.seasonal_promo&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.user_testimonial&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.milestone_celebration&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.contest&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/platform_invoices?select=%2A&order=created_at.desc "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/rpc/refresh_materialized_view "HTTP/2 204 No Content"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/gateway_statistics?select=%2A "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.test_merchant_1763723679%40example.com "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users "HTTP/2 201 Created"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/merchants "HTTP/2 201 Created"
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.test_influencer_1763723679%40example.com "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users "HTTP/2 201 Created"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/influencers "HTTP/2 400 Bad Request"
-WARNING:server:Warning: Could not create profile for influencer: {'message': "Could not find the 'category' column of 'influencers' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.admin%40getyourshare.com "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.merchant "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.influencer "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/services?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount&status=eq.completed "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.merchant "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.influencer "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/services?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount&status=eq.completed "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.merchant "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.influencer "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&role=eq.commercial "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/services?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/campaigns?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/commissions?select=amount "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/tracking_links?select=clicks "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/conversions?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/payouts?select=amount%2Cstatus "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/leads?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/tracking_links?select=clicks "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/conversions?select=id "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/conversions?select=id&created_at=gte.2025-10-22T06%3A15%3A42.570297 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount&created_at=lt.2025-10-22T06%3A15%3A42.570297&created_at=gte.2025-08-23T06%3A15%3A42.656646 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount&created_at=gte.2025-10-22T06%3A15%3A42.570297 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&last_login=gte.2025-11-14T06%3A15%3A42.801250 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=amount%2Ccreated_at "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=id%2Ccategory%2Cprice "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/sales?select=merchant_id%2Camount "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222225 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222224 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222222 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222226 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Ccompany_name%2Cemail&id=eq.22222222-2222-2222-2222-222222222223 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/commissions?select=influencer_id%2Camount "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333337 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333333 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333334 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333335 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.33333333-3333-3333-3333-333333333336 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.66666666-6666-6666-6666-666666666661 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cfull_name%2Cemail&id=eq.77777777-7777-7777-7777-777777777771 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&role=eq.merchant "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&role=eq.influencer "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/v_admin_social_posts_summary?select=%2A&order=created_at.desc&offset=0&limit=20 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_post_templates?select=%2A&is_active=eq.True&order=usage_count.desc "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/v_admin_social_analytics?select=%2A "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.general&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.app_launch&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.new_feature&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.merchant_recruitment&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.influencer_recruitment&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.seasonal_promo&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.user_testimonial&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.milestone_celebration&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/admin_social_posts?select=%2A&campaign_type=eq.contest&status=eq.published "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/platform_invoices?select=%2A&order=created_at.desc "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&id=eq.11111111-1111-1111-1111-111111111111 "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/rpc/refresh_materialized_view "HTTP/2 204 No Content"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/gateway_statistics?select=%2A "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.test_merchant_1763723746%40example.com "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users "HTTP/2 201 Created"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/merchants "HTTP/2 201 Created"
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.test_influencer_1763723746%40example.com "HTTP/2 200 OK"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users "HTTP/2 201 Created"
-INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/influencers "HTTP/2 400 Bad Request"
-WARNING:server:Warning: Could not create profile for influencer: {'message': "Could not find the 'category' column of 'influencers' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 159, in call_next
-    message = await recv_stream.receive()
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 98, in receive
-    return self.receive_nowait()
-           ~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\anyio\streams\memory.py", line 91, in receive_nowait
-    raise EndOfStream
-anyio.EndOfStream
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 426, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        self.scope, self.receive, self.send
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    )
-    ^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 84, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\applications.py", line 119, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 186, in __call__
-    raise exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 151, in security_headers_middleware
-    response = await call_next(request)
-               ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 165, in call_next
-    raise app_exc
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 151, in coro
-    await self.app(scope, receive_or_disconnect, send_no_error)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\middleware\base.py", line 191, in __call__
-    response = await self.dispatch_func(request, call_next)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\OneDrive\Desktop\getyoursharelivrable\getyourshare-versio2\backend\middleware\security.py", line 125, in csrf_middleware
-    raise HTTPException(
-    ...<2 lines>...
-    )
-fastapi.exceptions.HTTPException: 403: CSRF token validation failed
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:server:🛑 Arrêt du serveur...
-INFO:apscheduler.scheduler:Scheduler has been shut down
-INFO:GetYourShare:✅ Scheduler arrêté
-INFO:server:✅ Arrêt propre
-INFO:     Application shutdown complete.
-INFO:     Finished server process [40372]
-WARNING:  WatchFiles detected changes in 'test_comprehensive_audit.py'. Reloading...
-Process SpawnProcess-2:
-Traceback (most recent call last):
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\multiprocessing\process.py", line 320, in _bootstrap
-    self.run()
-    ~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\multiprocessing\process.py", line 108, in run
-    self._target(*self._args, **self._kwargs)
-    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\_subprocess.py", line 73, in subprocess_started
-    config.configure_logging()
-    ~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\config.py", line 393, in configure_logging
-    logging.config.dictConfig(self.log_config)
-    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 946, in dictConfig
-    dictConfigClass(config).configure()
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 658, in configure
-    self.configure_logger(name, loggers[name])
-    ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 931, in configure_logger
-    self.common_logger_config(logger, config, incremental)
-    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 914, in common_logger_config
-    level = config.get('level', None)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 346, in get
-    return self.convert_with_key(key, value)
-           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 308, in convert_with_key
-    result = self.configurator.convert(value)
-  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\logging\config.py", line 469, in convert
-    m = self.CONVERT_PATTERN.match(value)
-KeyboardInterrupt
-INFO:server:✅ LEADS scheduler loaded successfully
-INFO:server:CORS allowed origins: ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'https://getyourshare.com', 'https://www.getyourshare.com', 'http://localhost:8000', 'http://127.0.0.1:8000']
-INFO:GetYourShare:✅ Endpoints d'upload intégrés
-INFO:GetYourShare:✅ Endpoints de recherche d'influenceurs intégrés
-INFO:GetYourShare:✅ Tous les endpoints avancés ont été intégrés
-INFO:server:✅ Endpoints avancés chargés avec succès
-INFO:server:✅ Système d'abonnement SaaS chargé avec succès
-INFO:server:   📦 Plans d'abonnement disponibles
-INFO:server:   💳 Paiements récurrents activés
-INFO:server:   📄 Facturation automatique configurée
-INFO:GetYourShare:✅ Endpoints LEADS système intégrés
-INFO:     Started server process [9724]
-INFO:     Waiting for application startup.
-INFO:server:🚀 Démarrage du serveur...
-INFO:server:📊 Base de données: Supabase PostgreSQL
-INFO:server:⏰ Démarrage du scheduler LEADS...
-INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
-INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
-INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
-INFO:apscheduler.scheduler:Added job "Vérification dépôts et alertes" to job store "default"
-INFO:apscheduler.scheduler:Added job "Nettoyage leads expirés" to job store "default"
-INFO:apscheduler.scheduler:Added job "Rapport quotidien" to job store "default"
-INFO:apscheduler.scheduler:Scheduler started
-INFO:GetYourShare:
-✅ Scheduler LEADS démarré avec succès!
-INFO:GetYourShare:   🔄 Vérification dépôts: Toutes les heures
-INFO:GetYourShare:   🧹 Nettoyage leads expirés: 23:00 quotidien
-INFO:GetYourShare:   📊 Rapport quotidien: 09:00 quotidien
-INFO:server:✅ Serveur prêt
-INFO:     Application startup complete.
-WARNING:  WatchFiles detected changes in 'test_comprehensive_audit.py'. Reloading...

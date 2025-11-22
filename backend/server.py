@@ -346,6 +346,7 @@ from transaction_endpoints import router as transaction_router
 from webhook_endpoints import router as webhook_router
 from analytics_endpoints import router as analytics_router
 from commercial_endpoints import router as commercial_router
+from roi_endpoints import router as roi_router
 
 # ============================================
 # NOUVEAUX ROUTERS - 4 KILLER FEATURES
@@ -384,6 +385,7 @@ app.include_router(transaction_router, prefix="/api/transactions", tags=["Transa
 app.include_router(webhook_router, prefix="/api/webhooks", tags=["Webhooks"])
 app.include_router(analytics_router, prefix="/api/analytics", tags=["Webhooks"])
 app.include_router(commercial_router)  # Dashboard Commercial - 3 niveaux d'abonnement
+app.include_router(roi_router, prefix="/api/roi", tags=["ROI Calculator"])
 
 # 4 Killer Features - NEW
 app.include_router(referral_router)  # Programme Parrainage Viral
@@ -760,7 +762,7 @@ async def verify_2fa(data: TwoFAVerifyRequest):
 @app.get("/api/auth/me")
 async def get_current_user_endpoint(payload: dict = Depends(get_current_user_from_cookie)):
     """Récupère l'utilisateur connecté"""
-    user_id = payload.get("user_id") or payload.get("sub")
+    user_id = payload.get("id") or payload.get("user_id") or payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=401, detail="Invalid token")
     user = get_user_by_id(user_id)

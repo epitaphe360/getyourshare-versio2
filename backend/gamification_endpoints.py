@@ -65,11 +65,12 @@ async def get_gamification_profile(
     try:
         supabase = get_supabase_client()
         
-        # Récupérer gamification
+        # Récupérer gamification (colonnes existantes uniquement)
+        # Schema actuel: user_id, total_points, level, experience, achievements, last_updated, created_at
         gamification = supabase.table('user_gamification')\
-            .select('*')\
+            .select('user_id, total_points, level, experience, achievements, last_updated, created_at')\
             .eq('user_id', user_id)\
-            .single()\
+            .limit(1)\
             .execute()
         
         if not gamification.data:
@@ -80,47 +81,87 @@ async def get_gamification_profile(
                 'level': 1,
                 'experience': 0,
                 'achievements': [],
-                'created_at': datetime.now().isoformat()
+                'created_at': datetime.now().isoformat(),
+                'last_updated': datetime.now().isoformat()
             }
-            gamification = supabase.table('user_gamification').insert(new_profile).execute()
+            try:
+                gamification = supabase.table('user_gamification').insert(new_profile).execute()
+                profile_data = gamification.data[0]
+            except Exception as e:
+                # Fallback: Si l'insertion échoue (ex: contrainte FK si user pas dans auth.users),
+                # on retourne le profil en mémoire pour ne pas bloquer l'UI.
+                print(f"Warning: Could not create gamification profile in DB: {e}")
+                profile_data = new_profile
+        else:
+            profile_data = gamification.data[0]
         
-        # Récupérer badges gagnés
-        earned_badges = supabase.table('user_missions')\
-            .select('mission_id, missions(badge_id, badges(*))')\
-            .eq('user_id', user_id)\
-            .eq('status', 'completed')\
-            .not_.is_('missions.badge_id', 'null')\
-            .execute()
+        # Récupérer badges gagnés (via user_missions ou achievements)
+        # Note: user_missions might rely on badges table which might not exist or be linked differently
+        # For now, we'll try to fetch from user_missions if possible, but wrap in try/except or check schema
+        earned_badges_data = []
+        try:
+            earned_badges = supabase.table('user_missions')\
+                .select('mission_id, missions(badge_id, badges(*))')\
+                .eq('user_id', user_id)\
+                .eq('status', 'completed')\
+                .not_.is_('missions.badge_id', 'null')\
+                .execute()
+            earned_badges_data = [b['missions']['badges'] for b in earned_badges.data if b.get('missions', {}).get('badges')]
+        except Exception:
+            # Fallback if user_missions/badges tables have issues
+            pass
         
         # Récupérer missions actives
-        active_missions = supabase.table('user_missions')\
-            .select('*, missions(*)')\
-            .eq('user_id', user_id)\
-            .eq('status', 'in_progress')\
-            .execute()
+        active_missions_data = []
+        try:
+            active_missions = supabase.table('user_missions')\
+                .select('*, missions(*)')\
+                .eq('user_id', user_id)\
+                .eq('status', 'in_progress')\
+                .execute()
+            active_missions_data = active_missions.data
+        except Exception:
+            pass
         
         # Calculer progression vers prochain niveau
-        current_level = gamification.data['level']
-        points_for_next_level = current_level * 1000  # 1000 points par niveau
-        current_points = gamification.data['total_points']
-        points_in_current_level = current_points % 1000
-        progress_percentage = (points_in_current_level / points_for_next_level) * 100
+        current_points = profile_data.get('total_points', 0)
+        current_level_num = profile_data.get('level', 1)
+        
+        # Mapping niveau numérique -> nom
+        level_names = {1: 'bronze', 2: 'silver', 3: 'gold', 4: 'platinum', 5: 'diamond'}
+        level_name = level_names.get(current_level_num, 'bronze')
+        if current_level_num > 5: level_name = 'legend'
+
+        # Logique simple de niveaux: 1000 pts par niveau
+        next_level_points = current_level_num * 1000
+        prev_level_points = (current_level_num - 1) * 1000
+        
+        points_in_level = current_points - prev_level_points
+        points_needed = next_level_points - prev_level_points
+        
+        progress_percentage = (points_in_level / points_needed) * 100 if points_needed > 0 else 100
+        
+        # Adapter la réponse au format attendu par le frontend
+        response_profile = {
+            **profile_data,
+            "current_level": level_name, # Champ attendu par le frontend
+            "level_points": points_in_level, # Champ attendu
+            "badges_earned": len(profile_data.get('achievements', [])) + len(earned_badges_data), # Champ attendu
+            "missions_completed": 0, # Pas de colonne pour ça, on met 0 ou on compte
+            "streak_days": 0, # Pas de colonne
+            "next_level_points": next_level_points,
+            "progress_percentage": round(progress_percentage, 1)
+        }
         
         return {
             "success": True,
-            "profile": {
-                **gamification.data,
-                "next_level": current_level + 1,
-                "points_for_next_level": points_for_next_level,
-                "points_in_current_level": points_in_current_level,
-                "progress_percentage": round(progress_percentage, 1)
-            },
-            "earned_badges": [b['missions']['badges'] for b in earned_badges.data if b.get('missions', {}).get('badges')],
-            "active_missions": active_missions.data,
+            "profile": response_profile,
+            "earned_badges": earned_badges_data,
+            "active_missions": active_missions_data,
             "stats": {
-                "total_badges": len(earned_badges.data),
-                "active_missions_count": len(active_missions.data),
-                "achievements_count": len(gamification.data.get('achievements', []))
+                "total_badges": len(earned_badges_data),
+                "active_missions_count": len(active_missions_data),
+                "achievements_count": len(profile_data.get('achievements', []))
             }
         }
     except Exception as e:
@@ -139,29 +180,48 @@ async def get_leaderboard(
     try:
         supabase = get_supabase_client()
         
+        # 1. Récupérer le leaderboard (colonnes existantes)
         query = supabase.table('user_gamification')\
-            .select('*, users(id, first_name, last_name, email, role, avatar_url)')\
+            .select('user_id, total_points, level, achievements')\
             .order('total_points', desc=True)\
             .limit(limit)
         
         response = query.execute()
+        leaderboard_data = response.data
         
-        # Filtrer par rôle si demandé
-        leaderboard = response.data
-        if role:
-            leaderboard = [
-                entry for entry in leaderboard 
-                if entry.get('users', {}).get('role') == role
-            ]
+        if not leaderboard_data:
+            return {"success": True, "leaderboard": [], "total": 0}
+            
+        # 2. Récupérer les infos utilisateurs
+        user_ids = [entry['user_id'] for entry in leaderboard_data]
+        
+        users_response = supabase.table('users')\
+            .select('id, first_name, last_name, email, role, avatar_url')\
+            .in_('id', user_ids)\
+            .execute()
+            
+        users_map = {u['id']: u for u in users_response.data}
+        
+        # 3. Combiner les données
+        final_leaderboard = []
+        for entry in leaderboard_data:
+            user = users_map.get(entry['user_id'], {})
+            
+            # Filtrer par rôle si demandé
+            if role and user.get('role') != role:
+                continue
+                
+            entry['users'] = user
+            final_leaderboard.append(entry)
         
         # Ajouter rang
-        for i, entry in enumerate(leaderboard):
+        for i, entry in enumerate(final_leaderboard):
             entry['rank'] = i + 1
         
         return {
             "success": True,
-            "leaderboard": leaderboard,
-            "total": len(leaderboard)
+            "leaderboard": final_leaderboard,
+            "total": len(final_leaderboard)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")

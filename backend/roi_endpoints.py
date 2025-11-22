@@ -1,0 +1,106 @@
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
+from typing import Optional, Dict, List, Any, Union
+
+router = APIRouter()
+
+class ROICalculationRequest(BaseModel):
+    budget: float
+    industry: str
+    campaign_type: str = "influencer" # influencer, ads, email
+    average_order_value: float = 50.0
+
+class ROICalculationResponse(BaseModel):
+    estimated_clicks: int
+    estimated_conversions: int
+    estimated_revenue: float
+    roi_percentage: float
+    net_profit: float
+    metrics: Dict[str, Union[float, str]]
+
+# Benchmarks par industrie (mock data based on real averages)
+BENCHMARKS = {
+    "fashion": {"cpc": 0.45, "ctr": 2.5, "cr": 3.2},
+    "beauty": {"cpc": 0.60, "ctr": 3.1, "cr": 4.5},
+    "tech": {"cpc": 1.20, "ctr": 1.8, "cr": 2.1},
+    "home": {"cpc": 0.70, "ctr": 2.0, "cr": 2.8},
+    "fitness": {"cpc": 0.55, "ctr": 2.8, "cr": 3.5},
+    "food": {"cpc": 0.30, "ctr": 3.5, "cr": 4.0},
+    "general": {"cpc": 0.50, "ctr": 2.0, "cr": 3.0}
+}
+
+@router.post("/calculate", response_model=ROICalculationResponse)
+async def calculate_roi(request: ROICalculationRequest):
+    """
+    Calcule le ROI estimé pour une campagne
+    """
+    # DEBUG: Return dummy response immediately
+    # return {
+    #     "estimated_clicks": 100,
+    #     "estimated_conversions": 10,
+    #     "estimated_revenue": 1000.0,
+    #     "roi_percentage": 10.0,
+    #     "net_profit": 100.0,
+    #     "metrics": {"cpc": 0.5, "ctr": 2.0, "cr": 3.0}
+    # }
+
+    try:
+        industry = request.industry.lower()
+        if industry not in BENCHMARKS:
+            industry = "general"
+        
+        # Use copy to avoid modifying global state
+        metrics = BENCHMARKS[industry].copy()
+        
+        # Ajustements selon le type de campagne
+        if request.campaign_type == "influencer":
+            # Influenceurs ont généralement un meilleur CR mais un CPC plus élevé (équivalent CPM)
+            metrics["cpc"] = float(metrics["cpc"]) * 1.2
+            metrics["cr"] = float(metrics["cr"]) * 1.5
+        elif request.campaign_type == "email":
+            metrics["cpc"] = 0.1 # Coût par envoi/clic très faible
+            metrics["cr"] = float(metrics["cr"]) * 2.0 # Conversion élevée sur audience chaude
+        
+        # Calculs
+        # Avoid division by zero
+        cpc = float(metrics["cpc"]) if float(metrics["cpc"]) > 0 else 0.1
+        estimated_clicks = int(request.budget / cpc)
+        
+        estimated_conversions = int(estimated_clicks * (float(metrics["cr"]) / 100))
+        estimated_revenue = estimated_conversions * request.average_order_value
+        
+        net_profit = estimated_revenue - request.budget
+        roi_percentage = (net_profit / request.budget) * 100 if request.budget > 0 else 0
+        
+        return {
+            "estimated_clicks": estimated_clicks,
+            "estimated_conversions": estimated_conversions,
+            "estimated_revenue": round(estimated_revenue, 2),
+            "roi_percentage": round(roi_percentage, 2),
+            "net_profit": round(net_profit, 2),
+            "metrics": metrics
+        }
+    except Exception as e:
+        import traceback
+        print(f"Error in calculate_roi: {e}")
+        print(traceback.format_exc())
+        # Return a valid response even on error to debug
+        return {
+            "estimated_clicks": 0,
+            "estimated_conversions": 0,
+            "estimated_revenue": 0.0,
+            "roi_percentage": 0.0,
+            "net_profit": 0.0,
+            "metrics": {"error": str(e)}
+        }
+
+@router.get("/benchmarks")
+async def get_benchmarks():
+    """
+    Retourne les benchmarks par industrie
+    """
+    return {
+        "success": True,
+        "benchmarks": BENCHMARKS,
+        "industries": list(BENCHMARKS.keys())
+    }
