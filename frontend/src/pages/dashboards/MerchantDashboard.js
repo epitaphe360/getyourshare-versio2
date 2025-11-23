@@ -13,7 +13,7 @@ import CountUp from 'react-countup';
 import {
   DollarSign, ShoppingBag, Users, TrendingUp,
   Package, Eye, Target, Award, Plus, Search, FileText, Settings, RefreshCw,
-  UserCheck, Clock, CheckCircle, XCircle, TrendingDown, Gift, Video, UserPlus
+  UserCheck, Clock, CheckCircle, XCircle, TrendingDown, Gift, Video, UserPlus, Calculator, ShieldCheck
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar,
@@ -254,6 +254,14 @@ const MerchantDashboard = () => {
           >
             <Award size={18} />
             Analytics Pro
+          </button>
+          <button
+            onClick={() => navigate('/features?tab=roi')}
+            className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition flex items-center gap-2"
+            title="Calculateur ROI"
+          >
+            <Calculator size={18} />
+            Calculateur ROI
           </button>
           <button
             onClick={() => navigate('/matching')}
@@ -569,6 +577,13 @@ const MerchantDashboard = () => {
           icon={<UserCheck size={20} />}
           className="border-l-4 border-purple-600"
         >
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3">
+            <ShieldCheck className="text-blue-600" size={24} />
+            <div>
+              <h4 className="text-sm font-bold text-blue-800">Tiers de Confiance (Escrow)</h4>
+              <p className="text-xs text-blue-700">Vos fonds sont sécurisés et ne sont versés à l'influenceur qu'une fois le travail validé.</p>
+            </div>
+          </div>
           <div className="space-y-4">
             {sentRequests.map(request => (
               <div 

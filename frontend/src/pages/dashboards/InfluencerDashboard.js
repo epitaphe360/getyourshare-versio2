@@ -10,12 +10,13 @@ import EmptyState from '../../components/common/EmptyState';
 import Modal from '../../components/common/Modal';
 import MobilePaymentWidget from '../../components/payments/MobilePaymentWidget';
 import GamificationWidget from '../../components/GamificationWidget';
+import SwipeMatching from '../../components/features/SwipeMatching';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 import {
   DollarSign, MousePointer, ShoppingCart, TrendingUp,
   Eye, Target, Award, Link as LinkIcon, Sparkles, RefreshCw, X, Send, BarChart3, Wallet,
-  MessageSquare, Users, CheckCircle, Gift, Wand2, Video, UserPlus
+  MessageSquare, Users, CheckCircle, Gift, Wand2, Video, UserPlus, Flame, ShieldCheck
 } from 'lucide-react';
 import CollaborationResponseModal from '../../components/modals/CollaborationResponseModal';
 import {
@@ -28,6 +29,7 @@ const InfluencerDashboard = () => {
   const { user } = useAuth();
   const toast = useToast();
   const { t } = useI18n();
+  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' | 'matching'
   const [stats, setStats] = useState(null);
   const [links, setLinks] = useState([]);
   const [earningsData, setEarningsData] = useState([]);
@@ -301,6 +303,46 @@ const InfluencerDashboard = () => {
     }
   };
 
+  // Dummy data for Swipe Matching
+  const matchingCampaigns = [
+    {
+      id: 1,
+      title: 'Campagne Été 2025',
+      subtitle: 'Zara Fashion',
+      description: 'Nous recherchons des influenceurs mode pour notre nouvelle collection été. Style chic et décontracté.',
+      image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      budget: '500€',
+      audience: '10k-50k'
+    },
+    {
+      id: 2,
+      title: 'Tech Review',
+      subtitle: 'Samsung Electronics',
+      description: 'Testez le nouveau Galaxy S25 avant tout le monde. Unboxing et review complète demandée.',
+      image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      budget: '1200€',
+      audience: '50k+'
+    },
+    {
+      id: 3,
+      title: 'Skincare Routine',
+      subtitle: 'L\'Oréal Paris',
+      description: 'Partagez votre routine du soir avec nos produits Revitalift. Authenticité recherchée.',
+      image: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      budget: '300€ + Produits',
+      audience: '5k+'
+    }
+  ];
+
+  const handleMatch = (campaign) => {
+    toast.success(`Vous avez liké la campagne ${campaign.title} !`);
+    // API call to apply would go here
+  };
+
+  const handleReject = (campaign) => {
+    // API call to skip would go here
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -343,6 +385,21 @@ const InfluencerDashboard = () => {
         </div>
         <div className="flex space-x-3">
           <button
+            onClick={() => setViewMode(viewMode === 'dashboard' ? 'matching' : 'dashboard')}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 font-bold shadow-lg ${
+              viewMode === 'matching' 
+                ? 'bg-gray-800 text-white hover:bg-gray-700' 
+                : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600'
+            }`}
+            title="Mode Matching Tinder-style"
+          >
+            {viewMode === 'matching' ? (
+              <>📊 Retour Dashboard</>
+            ) : (
+              <><Flame size={18} /> Mode Matching</>
+            )}
+          </button>
+          <button
             onClick={() => fetchData()}
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center gap-2"
             title="Rafraîchir les données"
@@ -379,6 +436,31 @@ const InfluencerDashboard = () => {
         </div>
       </div>
 
+      {/* Matching Mode View */}
+      {viewMode === 'matching' ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="py-10 bg-gray-900 rounded-3xl min-h-[700px] relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/30 rounded-full blur-[100px]" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-pink-600/30 rounded-full blur-[100px]" />
+          </div>
+          
+          <div className="text-center mb-8 relative z-10">
+            <h2 className="text-3xl font-bold text-white mb-2">Trouve ta prochaine campagne 🔥</h2>
+            <p className="text-gray-400">Swipe à droite pour postuler, à gauche pour passer</p>
+          </div>
+
+          <SwipeMatching 
+            items={matchingCampaigns} 
+            onMatch={handleMatch} 
+            onReject={handleReject} 
+          />
+        </motion.div>
+      ) : (
+        <>
         {/* Invitations (pending) */}
         {invitations && invitations.length > 0 && (
           <Card title={`Invitations (${invitations.length})`} icon={<MessageSquare size={20} />}>
@@ -406,6 +488,13 @@ const InfluencerDashboard = () => {
             title={`Demandes de Collaboration (${collaborationRequests.filter(r => r.status === 'pending').length})`} 
             icon={<Users size={20} className="text-purple-600" />}
           >
+            <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3">
+              <ShieldCheck className="text-green-600" size={24} />
+              <div>
+                <h4 className="text-sm font-bold text-green-800">Paiements Sécurisés (Escrow)</h4>
+                <p className="text-xs text-green-700">L'argent est bloqué sur un compte séquestre dès l'acceptation. Vous êtes garanti d'être payé !</p>
+              </div>
+            </div>
             <div className="space-y-3">
               {collaborationRequests.map(request => (
                 <div 
@@ -1151,6 +1240,8 @@ const InfluencerDashboard = () => {
         request={selectedRequest}
         onRespond={handleCollaborationRespond}
       />
+      </>
+      )}
     </div>
   );
 };

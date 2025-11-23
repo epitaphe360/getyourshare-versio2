@@ -32,18 +32,34 @@ const Register = () => {
 
   // Check URL parameters for pre-selected role and plan
   useEffect(() => {
-    const urlRole = searchParams.get('role');
-    const urlPlan = searchParams.get('plan');
-    
-    if (urlRole && (urlRole === 'merchant' || urlRole === 'influencer')) {
-      setRole(urlRole);
-      setStep(2); // Skip role selection, go directly to form
-    }
-    
-    if (urlPlan) {
-      setSelectedPlan(urlPlan);
+    try {
+      if (!searchParams) return;
+
+      const urlRole = searchParams.get('role');
+      const urlPlan = searchParams.get('plan');
+      
+      if (urlRole && (urlRole === 'merchant' || urlRole === 'influencer')) {
+        setRole(urlRole);
+        setStep(2); // Skip role selection, go directly to form
+      }
+      
+      if (urlPlan) {
+        setSelectedPlan(urlPlan);
+      }
+    } catch (error) {
+      console.error("Error parsing URL parameters:", error);
     }
   }, [searchParams]);
+
+  const seoData = SEO_CONFIG?.register || {
+    title: 'Inscription - Rejoignez la Communauté GetYourShare',
+    description: 'Créez votre compte GetYourShare en quelques minutes.',
+    keywords: 'inscription, register, compte, affiliation',
+    image: 'https://getyourshare.com/og-register.jpg',
+    type: 'website',
+    url: 'https://getyourshare.com/register',
+    structuredData: null
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -125,7 +141,7 @@ const Register = () => {
 
   return (
     <>
-      <SEOHead {...SEO_CONFIG.register} />
+      <SEOHead {...seoData} />
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-4xl w-full">
         <div className="flex flex-col md:flex-row">

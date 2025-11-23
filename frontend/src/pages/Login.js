@@ -143,9 +143,19 @@ const Login = () => {
     }
   };
 
+  const seoData = SEO_CONFIG?.login || {
+    title: 'Connexion - Accédez à Votre Compte GetYourShare',
+    description: 'Connectez-vous à votre compte GetYourShare.',
+    keywords: 'connexion, login, compte, affiliation',
+    image: 'https://getyourshare.com/og-login.jpg',
+    type: 'website',
+    url: 'https://getyourshare.com/login',
+    structuredData: null
+  };
+
   return (
     <>
-      <SEOHead {...SEO_CONFIG.login} />
+      <SEOHead {...seoData} />
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12 px-4">
       <div className="max-w-md w-full">
         {/* Logo */}

@@ -32,10 +32,12 @@ const AdvertisersList = () => {
     }
   };
 
-  const filteredAdvertisers = (advertisers || []).filter(adv =>
-    adv?.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    adv?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAdvertisers = (advertisers || []).filter(adv => {
+    const companyName = adv?.company_name || '';
+    const email = adv?.email || '';
+    return companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           email.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const columns = [
     {

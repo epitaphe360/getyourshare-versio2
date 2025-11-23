@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import './SubscriptionPlans.css';
 
@@ -21,12 +21,7 @@ const SubscriptionPlans = () => {
   const fetchPlans = async () => {
     try {
       const userType = user?.role || 'merchant';
-      const response = await axios.get(
-        `http://localhost:8000/api/subscriptions/plans?user_type=${userType}`,
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        }
-      );
+      const response = await api.get(`/api/subscriptions/plans?user_type=${userType}`);
       setPlans(response.data.plans || []);
     } catch (error) {
       console.error('Erreur chargement plans:', error);
@@ -37,12 +32,7 @@ const SubscriptionPlans = () => {
 
   const fetchCurrentSubscription = async () => {
     try {
-      const response = await axios.get(
-        'http://localhost:8000/api/subscriptions/current',
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        }
-      );
+      const response = await api.get('/api/subscriptions/current');
       setCurrentSubscription(response.data);
     } catch (error) {
       console.error('Erreur abonnement actuel:', error);
@@ -59,16 +49,10 @@ const SubscriptionPlans = () => {
     setProcessingPlanId(plan.id);
 
     try {
-      const response = await axios.post(
-        'http://localhost:8000/api/stripe/create-checkout-session',
-        {
-          plan_id: plan.id,
-          billing_cycle: billingCycle
-        },
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        }
-      );
+      const response = await api.post('/api/stripe/create-checkout-session', {
+        plan_id: plan.id,
+        billing_cycle: billingCycle
+      });
 
       if (response.data.success && response.data.checkout_url) {
         // Rediriger vers Stripe Checkout

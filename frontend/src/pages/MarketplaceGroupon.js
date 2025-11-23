@@ -27,6 +27,32 @@ const MarketplaceGroupon = () => {
   const [selectedInfluencer, setSelectedInfluencer] = useState(null);
   const [merchantProducts, setMerchantProducts] = useState([]);
 
+  // Fonction pour calculer la commission d'affiliation selon la logique implémentée
+  const calculateAffiliateCommission = (price) => {
+    const THRESHOLD = 800; // Seuil de 800 DHS
+    const PERCENTAGE_RATE = 10; // 10% pour les prix < 800 DHS
+    const FIXED_COMMISSION = 80; // 80 DHS fixe pour les prix >= 800 DHS
+    
+    if (price < THRESHOLD) {
+      // Commission de 10% pour les services entre 50-799 DHS
+      const commission = (price * PERCENTAGE_RATE) / 100;
+      return {
+        amount: commission.toFixed(2),
+        type: 'percentage',
+        rate: PERCENTAGE_RATE,
+        display: `${PERCENTAGE_RATE}% (${commission.toFixed(2)} DH)`
+      };
+    } else {
+      // Commission fixe de 80 DHS pour les services >= 800 DHS
+      return {
+        amount: FIXED_COMMISSION.toFixed(2),
+        type: 'fixed',
+        rate: null,
+        display: `${FIXED_COMMISSION} DH`
+      };
+    }
+  };
+
   // Détecter si on vient du dashboard ou de la home
   const fromDashboard = location.state?.fromDashboard || false;
 
@@ -374,14 +400,19 @@ const MarketplaceGroupon = () => {
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-600">Prix public</span>
                           <span className="text-lg font-bold text-gray-900">
-                            {service.price} DH
+                            {service.price || service.price_per_lead} DH
                           </span>
                         </div>
                         <div className="flex items-center justify-between bg-blue-50 px-3 py-2 rounded-lg">
-                          <span className="text-sm font-semibold text-blue-700">Commission d'affiliation</span>
+                          <span className="text-sm font-semibold text-blue-700">Commission d'affiliation par lead</span>
                           <span className="text-xl font-bold text-blue-600">
-                            {service.commission_rate || 20}%
+                            {calculateAffiliateCommission(service.price || service.price_per_lead || 0).display}
                           </span>
+                        </div>
+                        <div className="text-xs text-gray-500 italic text-center mt-1">
+                          {(service.price || service.price_per_lead) < 800 
+                            ? '10% de commission pour les services < 800 DH' 
+                            : 'Commission fixe de 80 DH pour les services ≥ 800 DH'}
                         </div>
                       </div>
                       

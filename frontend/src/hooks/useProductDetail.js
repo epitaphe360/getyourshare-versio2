@@ -1,4 +1,4 @@
-import { useReducer, useEffect, useCallback } from 'react';
+import { useReducer, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -90,13 +90,16 @@ export const useProductDetail = () => {
   const { user } = useAuth();
   const toast = useToast();
   const [state, dispatch] = useReducer(productDetailReducer, initialState);
+  const hasFetchedRef = useRef(false);
+  const productIdRef = useRef(productId);
 
   // Fetch product and reviews in parallel (Promise.all)
-  const fetchAllData = useCallback(async () => {
-    if (!productId) return;
+  const fetchAllData = async () => {
+    if (!productId || hasFetchedRef.current) return;
 
     try {
       dispatch({ type: ACTIONS.SET_LOADING, payload: true });
+      hasFetchedRef.current = true;
 
       // Parallelize API calls with Promise.all
       const [productResponse, reviewsResponse] = await Promise.all([
@@ -113,14 +116,14 @@ export const useProductDetail = () => {
       }
     } catch (error) {
       console.error('Error fetching product data:', error);
-      toast.error('Erreur lors du chargement du produit');
+      toast?.error('Erreur lors du chargement du produit');
     } finally {
       dispatch({ type: ACTIONS.SET_LOADING, payload: false });
     }
-  }, [productId, toast]);
+  };
 
   // Fetch user profile
-  const fetchUserProfile = useCallback(async () => {
+  const fetchUserProfile = async () => {
     if (!user) return;
 
     try {
@@ -155,10 +158,10 @@ export const useProductDetail = () => {
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
-  }, [user]);
+  };
 
   // Validate stats with AI
-  const validateStatsWithAI = useCallback(async () => {
+  const validateStatsWithAI = async () => {
     if (!user || user.role !== 'influencer') return;
 
     dispatch({ type: ACTIONS.SET_VALIDATING, payload: true });
@@ -171,18 +174,18 @@ export const useProductDetail = () => {
         await fetchUserProfile();
 
         if (response.data.is_verified) {
-          toast.success(`✅ Profil vérifié ! Score: ${response.data.confidence_score}% - Bonus de note: +${response.data.bonus_rating}⭐`);
+          toast?.success(`✅ Profil vérifié ! Score: ${response.data.confidence_score}% - Bonus de note: +${response.data.bonus_rating}⭐`);
         } else {
-          toast.info('🔍 Validation en cours. Améliorez vos statistiques pour être vérifié.');
+          toast?.info('🔍 Validation en cours. Améliorez vos statistiques pour être vérifié.');
         }
       }
     } catch (error) {
       console.error('Error validating stats:', error);
-      toast.error('Erreur lors de la validation IA');
+      toast?.error('Erreur lors de la validation IA');
     } finally {
       dispatch({ type: ACTIONS.SET_VALIDATING, payload: false });
     }
-  }, [user, toast, fetchUserProfile]);
+  };
 
   // Handle affiliation request
   const handleRequestAffiliation = useCallback(async () => {
@@ -258,6 +261,17 @@ export const useProductDetail = () => {
     }
   }, [user, productId, state.reviewData, toast]);
 
+  // Fetch all data on mount and handle productId change
+  useEffect(() => {
+    // Reset if productId changes
+    if (productIdRef.current !== productId) {
+      hasFetchedRef.current = false;
+      productIdRef.current = productId;
+    }
+    
+    fetchAllData();
+  }, [productId]);
+
   // Check if user returned after login to open affiliate modal
   useEffect(() => {
     if (user && state.product) {
@@ -275,11 +289,6 @@ export const useProductDetail = () => {
       }
     }
   }, [user, state.product]);
-
-  // Fetch all data on mount
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
 
   return {
     state,

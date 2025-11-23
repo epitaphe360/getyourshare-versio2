@@ -261,9 +261,19 @@ const HomepageV2 = () => {
     }
   ];
 
+  const seoData = SEO_CONFIG?.homepage || {
+    title: 'GetYourShare - Plateforme d\'affiliation B2B',
+    description: 'Plateforme d\'affiliation B2B qui connecte entreprises, commerciaux et influenceurs.',
+    keywords: 'affiliation B2B, marketing digital',
+    image: '',
+    type: 'website',
+    url: 'https://getyourshare.com',
+    structuredData: null
+  };
+
   return (
     <>
-      <SEOHead {...SEO_CONFIG.homepage} />
+      <SEOHead {...seoData} />
       <div className="w-full">
       {/* Header Sticky avec Navigation Complète */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm">

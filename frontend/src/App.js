@@ -24,6 +24,7 @@ const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Pricing = lazy(() => import('./pages/Pricing'));
 const PricingV3 = lazy(() => import('./pages/PricingV3'));
 const Contact = lazy(() => import('./pages/Contact'));
+const ROICalculator = lazy(() => import('./pages/ROICalculator'));
 
 // ---------- Legal Pages ----------
 const Privacy = lazy(() => import('./pages/Privacy'));
@@ -64,6 +65,8 @@ const CreateProductPage = lazy(() => import('./pages/products/CreateProductPage'
 
 // ---------- Services ----------
 const ServicesListPage = lazy(() => import('./pages/services/ServicesListPage'));
+const CreateServicePage = lazy(() => import('./pages/services/CreateServicePage'));
+const ServiceDetailPage = lazy(() => import('./pages/services/ServiceDetailPage'));
 
 // ---------- Advertisers ----------
 const AdvertisersList = lazy(() => import('./pages/advertisers/AdvertisersList'));
@@ -73,6 +76,7 @@ const AdvertiserBilling = lazy(() => import('./pages/advertisers/AdvertiserBilli
 // ---------- Campaigns ----------
 const CampaignsList = lazy(() => import('./pages/campaigns/CampaignsList'));
 const CreateCampaignPage = lazy(() => import('./pages/campaigns/CreateCampaignPage'));
+const CampaignDetailPage = lazy(() => import('./pages/campaigns/CampaignDetailPage'));
 
 // ---------- Affiliates ----------
 const AffiliatesList = lazy(() => import('./pages/affiliates/AffiliatesList'));
@@ -242,6 +246,7 @@ function App() {
                 <Route path="/marketplace" element={<PublicLayout><MarketplaceGroupon /></PublicLayout>} />
                 <Route path="/marketplace/product/:productId" element={<PublicLayout><ProductDetail /></PublicLayout>} />
                 <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
+                <Route path="/roi-calculator" element={<ROICalculator />} />
 
                 {/* Legal Pages */}
                 <Route path="/privacy" element={<PublicLayout><Privacy /></PublicLayout>} />
@@ -388,6 +393,15 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                {/* Détail d'une campagne */}
+                <Route
+                  path="/campaigns/:id"
+                  element={
+                    <ProtectedRoute>
+                      <CampaignDetailPage />
+                    </ProtectedRoute>
+                  }
+                />
                 {/* Création - Merchants/Admin uniquement */}
                 <Route
                   path="/campaigns/create"
@@ -486,6 +500,30 @@ function App() {
               <ProtectedRoute>
                 <ServicesListPage />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/services/create"
+            element={
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
+                <CreateServicePage />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/services/:serviceId"
+            element={
+              <ProtectedRoute>
+                <ServiceDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/services/:serviceId/edit"
+            element={
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
+                <CreateServicePage />
+              </RoleProtectedRoute>
             }
           />
 

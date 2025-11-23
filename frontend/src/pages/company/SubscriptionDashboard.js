@@ -62,13 +62,26 @@ const SubscriptionDashboard = () => {
         api.get('/api/subscriptions/usage')
       ]);
 
-      setSubscription(subResponse.data);
+      const subData = subResponse.data;
+      // Map backend fields to frontend expectations
+      const mappedSubscription = {
+        ...subData,
+        current_period_end: subData.ends_at || subData.current_period_end || new Date().toISOString(),
+        plan_max_team_members: subData.plan_details?.max_team_members || 5,
+        current_team_members: subData.current_team_members || 0,
+        plan_max_domains: subData.plan_details?.max_domains || 1,
+        current_domains: subData.current_domains || 0,
+        can_add_team_member: true,
+        can_add_domain: true
+      };
+
+      setSubscription(mappedSubscription);
       setUsage(usageResponse.data);
     } catch (err) {
       // Silencieux si 403 (endpoint non disponible pour ce rôle)
       if (err.response?.status !== 403) {
         console.error('Error fetching subscription:', err);
-        setError('Erreur lors du chargement de l\'abonnement');
+        setError('Erreur lors du chargement de l\'abonnement: ' + (err.response?.data?.detail || err.message));
       }
     } finally {
       setLoading(false);

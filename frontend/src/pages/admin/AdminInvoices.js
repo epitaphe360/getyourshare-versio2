@@ -245,17 +245,27 @@ const AdminInvoices = () => {
             {
               key: 'invoice_date',
               label: 'Date Émission',
-              render: (row) => new Date(row.invoice_date).toLocaleDateString('fr-FR')
+              render: (row) => {
+                if (!row.invoice_date) return '-';
+                try {
+                  return new Date(row.invoice_date).toLocaleDateString('fr-FR');
+                } catch (e) { return '-'; }
+              }
             },
             {
               key: 'period',
               label: 'Période',
-              render: (row) => (
-                <span className="text-sm">
-                  {new Date(row.period_start).toLocaleDateString('fr-FR', { month: 'short' })} - 
-                  {new Date(row.period_end).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
-                </span>
-              )
+              render: (row) => {
+                if (!row.period_start || !row.period_end) return '-';
+                try {
+                  return (
+                    <span className="text-sm">
+                      {new Date(row.period_start).toLocaleDateString('fr-FR', { month: 'short' })} - 
+                      {new Date(row.period_end).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                    </span>
+                  );
+                } catch (e) { return '-'; }
+              }
             },
             {
               key: 'platform_commission',
@@ -279,15 +289,18 @@ const AdminInvoices = () => {
               key: 'due_date',
               label: 'Échéance',
               render: (row) => {
-                const dueDate = new Date(row.due_date);
-                const today = new Date();
-                const isOverdue = dueDate < today && row.status !== 'paid';
+                if (!row.due_date) return '-';
+                try {
+                  const dueDate = new Date(row.due_date);
+                  const today = new Date();
+                  const isOverdue = dueDate < today && row.status !== 'paid';
 
-                return (
-                  <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
-                    {dueDate.toLocaleDateString('fr-FR')}
-                  </span>
-                );
+                  return (
+                    <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
+                      {dueDate.toLocaleDateString('fr-FR')}
+                    </span>
+                  );
+                } catch (e) { return '-'; }
               }
             },
             {

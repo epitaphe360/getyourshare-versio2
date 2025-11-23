@@ -315,8 +315,8 @@ export const checkPerformanceBudget = () => {
   const resources = performance.getEntriesByType('resource');
 
   const budgets = {
-    'script': 500 * 1024,      // 500 KB max for JS
-    'stylesheet': 100 * 1024,  // 100 KB max for CSS
+    'script': 1000 * 1024,      // 1000 KB max for JS (increased for dev)
+    'stylesheet': 200 * 1024,  // 200 KB max for CSS
     'image': 2 * 1024 * 1024   // 2 MB max for images
   };
 

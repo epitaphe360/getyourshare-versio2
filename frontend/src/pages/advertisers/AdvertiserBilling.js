@@ -9,29 +9,9 @@ import api from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
 
 const AdvertiserBilling = () => {
-  const [invoices, setInvoices] = useState([
-    {
-      id: 'inv_1',
-      advertiser: 'TechCorp',
-      invoice_number: 'INV-2024-001',
-      amount: 5000.00,
-      status: 'paid',
-      created_at: '2024-02-01T10:00:00Z',
-      due_date: '2024-02-15T23:59:59Z',
-    },
-    {
-      id: 'inv_2',
-      advertiser: 'Sports Gear',
-      invoice_number: 'INV-2024-002',
-      amount: 3500.00,
-      status: 'pending',
-      created_at: '2024-03-01T10:00:00Z',
-      due_date: '2024-03-15T23:59:59Z',
-    },
-  ]);
-
+  const [invoices, setInvoices] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [merchants, setMerchants] = useState([]);
   const toast = useToast();
 
@@ -49,11 +29,22 @@ const AdvertiserBilling = () => {
 
   const fetchInvoices = async () => {
     try {
+      setLoading(true);
       const response = await api.get('/api/invoices');
-      setInvoices(response.data.invoices || []);
+      console.log('Invoices reçues:', response.data);
+      
+      if (response.data && Array.isArray(response.data.invoices)) {
+        setInvoices(response.data.invoices);
+      } else if (Array.isArray(response.data)) {
+        setInvoices(response.data);
+      } else {
+        console.warn('Format de réponse inattendu:', response.data);
+      }
     } catch (error) {
       console.error('Error fetching invoices:', error);
-      // Garder les données mock en cas d'erreur
+      toast?.error?.('Impossible de charger les factures');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -204,7 +195,13 @@ const AdvertiserBilling = () => {
       </div>
 
       <Card>
-        <Table columns={columns} data={invoices} />
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <Table columns={columns} data={invoices} />
+        )}
       </Card>
 
       {/* Modal de création de facture */}

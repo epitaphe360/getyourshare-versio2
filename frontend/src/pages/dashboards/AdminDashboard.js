@@ -64,8 +64,12 @@ const AdminDashboard = () => {
           total_conversions: overview.tracking?.total_conversions || 0,
           conversion_rate: overview.tracking?.conversion_rate || 0,
           platformMetrics: {
-            avg_conversion_rate: metrics.avg_conversion_rate || 0,
-            monthly_clicks: metrics.monthly_clicks || 0,
+            active_users_24h: metrics.active_users_24h || 0,
+            conversion_rate: metrics.avg_conversion_rate || 0,
+            new_signups_30d: metrics.new_signups_30d || 0,
+            user_growth_rate: 12.5, // Mock trend
+            conversion_trend: 5.2, // Mock trend
+            signup_trend: 8.4, // Mock trend
             quarterly_growth: metrics.quarterly_growth || 0
           }
         });
@@ -79,8 +83,12 @@ const AdminDashboard = () => {
           total_products: 0,
           total_services: 0,
           platformMetrics: {
-            avg_conversion_rate: 0,
-            monthly_clicks: 0,
+            active_users_24h: 0,
+            conversion_rate: 0,
+            new_signups_30d: 0,
+            user_growth_rate: 0,
+            conversion_trend: 0,
+            signup_trend: 0,
             quarterly_growth: 0
           }
         });

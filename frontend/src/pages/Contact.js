@@ -155,9 +155,19 @@ const Contact = () => {
     );
   }
 
+  const seoData = SEO_CONFIG?.contact || {
+    title: 'Contact - Parlons de Votre Stratégie d\'Affiliation',
+    description: 'Contactez notre équipe pour discuter de vos besoins.',
+    keywords: 'contact, support, aide',
+    image: '',
+    type: 'website',
+    url: 'https://getyourshare.com/contact',
+    structuredData: null
+  };
+
   return (
     <>
-      <SEOHead {...SEO_CONFIG.contact} />
+      <SEOHead {...seoData} />
       <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="text-center mb-12">

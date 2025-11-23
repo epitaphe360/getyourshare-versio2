@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import api from '../../utils/api';
@@ -11,7 +12,7 @@ import Badge from '../../components/common/Badge';
 import EmptyState from '../../components/common/EmptyState';
 import {
   Package, Plus, Edit, Trash2, Search, Eye, TrendingUp,
-  DollarSign, Archive
+  DollarSign, Archive, Star, Zap
 } from 'lucide-react';
 
 const ProductsListPage = () => {
@@ -165,7 +166,7 @@ const ProductsListPage = () => {
       render: (product) => (
         <div className="flex gap-2">
           <button
-            onClick={() => navigate(`/products/${product.id}/view`)}
+            onClick={() => navigate(`/marketplace/product/${product.id}`)}
             className="p-2 hover:bg-gray-100 rounded transition"
             title="Voir détails"
           >
@@ -199,90 +200,212 @@ const ProductsListPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-12">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex justify-between items-center"
+      >
         <div>
-          <h1 className="text-3xl font-bold">Produits</h1>
-          <p className="text-gray-600 mt-1">Gérez votre catalogue de produits</p>
+          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Produits</h1>
+          <p className="text-gray-600 mt-2 text-lg">Gérez votre catalogue de produits premium</p>
         </div>
-        <Button disabled={loading} onClick={() => navigate('/products/create')}>
-          <Plus size={20} className="mr-2" />
-          Ajouter un produit
-        </Button>
-      </div>
+        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <Button disabled={loading} onClick={() => navigate('/products/create')}>
+            <Plus size={20} className="mr-2" />
+            Ajouter un produit
+          </Button>
+        </motion.div>
+      </motion.div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Total Produits</p>
-              <p className="text-3xl font-bold mt-2">{stats.total}</p>
-            </div>
-            <div className="bg-indigo-100 p-4 rounded-lg">
-              <Package size={32} className="text-indigo-600" />
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Produits Actifs</p>
-              <p className="text-3xl font-bold mt-2">{stats.active}</p>
-            </div>
-            <div className="bg-green-100 p-4 rounded-lg">
-              <TrendingUp size={32} className="text-green-600" />
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Valeur Catalogue</p>
-              <p className="text-3xl font-bold mt-2">{stats.totalValue.toFixed(2)} €</p>
-            </div>
-            <div className="bg-blue-100 p-4 rounded-lg">
-              <DollarSign size={32} className="text-blue-600" />
-            </div>
-          </div>
-        </Card>
+        {[
+          { icon: Package, label: "Total Produits", value: stats.total, color: "indigo", gradient: "from-indigo-500 to-purple-600" },
+          { icon: TrendingUp, label: "Produits Actifs", value: stats.active, color: "green", gradient: "from-green-500 to-emerald-600" },
+          { icon: DollarSign, label: "Valeur Catalogue", value: `${stats.totalValue.toFixed(2)} €`, color: "blue", gradient: "from-blue-500 to-cyan-600" }
+        ].map((stat, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            whileHover={{ y: -5, shadow: "2xl" }}
+          >
+            <Card className="relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br opacity-10 rounded-full -mr-8 -mt-8" style={{ background: `linear-gradient(135deg, var(--tw-gradient-stops))` }}></div>
+              <div className="flex items-center justify-between relative z-10">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+                  <p className="text-4xl font-black text-gray-900 mt-2">{stat.value}</p>
+                </div>
+                <div className={`bg-gradient-to-br ${stat.gradient} p-4 rounded-xl shadow-lg`}>
+                  <stat.icon size={32} className="text-white" />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
       {/* Search and Filters */}
-      <Card>
-        <div className="flex gap-4 items-center">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Rechercher par nom, description, catégorie..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+        <Card className="bg-white/80 backdrop-blur-sm">
+          <div className="flex gap-4 items-center">
+            <div className="flex-1 relative group">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+              <input
+                type="text"
+                placeholder="Rechercher par nom, description, catégorie..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
+              />
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </motion.div>
 
-      {/* Products Table */}
-      <Card>
+      {/* Products Grid */}
+      <AnimatePresence mode="wait">
         {filteredProducts.length === 0 ? (
-          <EmptyState
-            icon={Package}
-            title={searchTerm ? "Aucun produit trouvé" : "Aucun produit pour le moment"}
-            description={searchTerm 
-              ? "Essayez avec d'autres mots-clés ou filtres" 
-              : "Créez votre premier produit pour commencer à vendre et travailler avec des influenceurs"}
-            actionLabel={!searchTerm ? "Créer un produit" : null}
-            onAction={() => navigate('/products/create')}
-          />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <Card className="py-16">
+              <EmptyState
+                icon={Package}
+                title={searchTerm ? "Aucun produit trouvé" : "Aucun produit pour le moment"}
+                description={searchTerm 
+                  ? "Essayez avec d'autres mots-clés ou filtres" 
+                  : "Créez votre premier produit pour commencer à vendre et travailler avec des influenceurs"}
+                actionLabel={!searchTerm ? "Créer un produit" : null}
+                onAction={() => navigate('/products/create')}
+              />
+            </Card>
+          </motion.div>
         ) : (
-          <Table columns={columns} data={filteredProducts} />
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            {filteredProducts.map((product, index) => {
+              const imageUrl = getFirstImage(product);
+              return (
+                <motion.div
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  whileHover={{ y: -8 }}
+                  className="group"
+                >
+                  <Card className="overflow-hidden h-full hover:shadow-2xl transition-all duration-300 border border-gray-100">
+                    {/* Image */}
+                    <div className="relative h-56 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Package size={64} className="text-gray-300" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      
+                      {/* Badges */}
+                      <div className="absolute top-4 left-4 flex gap-2">
+                        <span className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-900 border border-gray-200">
+                          {product.category || 'Non catégorisé'}
+                        </span>
+                        {product.commission_rate >= 20 && (
+                          <span className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                            <Zap size={12} fill="currentColor" /> {product.commission_rate}%
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Status Badge */}
+                      <div className="absolute top-4 right-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${product.status === 'active' ? 'bg-green-500 text-white' : 'bg-gray-500 text-white'}`}>
+                          {product.status === 'active' ? 'Actif' : 'Inactif'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-6">
+                      <div className="mb-4">
+                        <h3 className="text-xl font-bold text-gray-900 mb-1 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                          {product.name}
+                        </h3>
+                        <p className="text-sm text-gray-500 line-clamp-2 h-10">
+                          {product.description}
+                        </p>
+                      </div>
+
+                      {/* Price & Commission */}
+                      <div className="flex items-center justify-between mb-6 bg-gray-50 rounded-xl p-4">
+                        <div>
+                          <div className="text-xs text-gray-500 mb-1">Prix</div>
+                          <div className="text-2xl font-black text-gray-900">
+                            {parseFloat(product.price).toFixed(2)} €
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-gray-500 mb-1">Commission</div>
+                          <div className="text-2xl font-black text-green-600">
+                            {product.commission_rate}%
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => navigate(`/marketplace/product/${product.id}`)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-semibold"
+                        >
+                          <Eye size={18} />
+                          Voir
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => navigate(`/products/${product.id}/edit`)}
+                          className="px-4 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-lg hover:border-indigo-600 hover:text-indigo-600 transition-all"
+                        >
+                          <Edit size={18} />
+                        </motion.button>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => setDeleteModal({ isOpen: true, product })}
+                          className="px-4 py-3 bg-white border-2 border-gray-200 text-red-600 rounded-lg hover:border-red-600 hover:bg-red-50 transition-all"
+                        >
+                          <Trash2 size={18} />
+                        </motion.button>
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
+              );
+            })}
+          </motion.div>
         )}
-      </Card>
+      </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
       <Modal

@@ -4,7 +4,7 @@ import CountUp from 'react-countup';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  AreaChart, Area, Funnel, FunnelChart
+  AreaChart, Area
 } from 'recharts';
 import {
   DollarSign, Users, Target, TrendingUp, Link as LinkIcon,
@@ -146,7 +146,7 @@ const SubscriptionBanner = ({ tier, stats }) => {
 // COMPOSANT PRINCIPAL
 // =====================================================
 
-export default function CommercialDashboard() {
+const CommercialDashboard = () => {
   // États
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -923,3 +923,5 @@ const CreateLinkModal = ({ onClose, onSubmit }) => {
     </div>
   );
 };
+
+export default CommercialDashboard;

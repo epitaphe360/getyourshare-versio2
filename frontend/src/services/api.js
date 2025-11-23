@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = (process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000').trim();
 
 const api = axios.create({
   baseURL: API_URL,
@@ -49,6 +49,7 @@ api.interceptors.response.use(
       console.error('💥 Erreur serveur', status, '-', url);
     } else {
       console.error('❌ Erreur API:', status, error.response?.data?.detail || error.message);
+      console.error('URL demandée:', `${error.config?.baseURL}${error.config?.url}`);
     }
 
     return Promise.reject(error);

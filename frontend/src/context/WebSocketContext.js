@@ -25,7 +25,14 @@ export const WebSocketProvider = ({ children }) => {
 
   // Construire l'URL WebSocket à partir de l'URL backend
   const getWebSocketUrl = () => {
-    const backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    let backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+    
+    // Fix common issue where REACT_APP_API_URL might be set to frontend port
+    if (backendUrl.includes('localhost:3000')) {
+      console.warn('⚠️ REACT_APP_API_URL points to port 3000. Redirecting WebSocket to port 5000.');
+      backendUrl = backendUrl.replace('3000', '5000');
+    }
+
     // Convertir http(s) en ws(s)
     const wsProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
     const wsBase = backendUrl.replace(/^https?:\/\//, '');

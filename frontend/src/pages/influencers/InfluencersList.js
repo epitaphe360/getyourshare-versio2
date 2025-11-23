@@ -31,8 +31,10 @@ const InfluencersList = () => {
   };
 
   const filteredInfluencers = influencers.filter(influencer => {
-    const matchesSearch = influencer.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         influencer.username?.toLowerCase().includes(searchTerm.toLowerCase());
+    const fullName = influencer.full_name || '';
+    const username = influencer.username || '';
+    const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         username.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || influencer.influencer_type === filterType;
     return matchesSearch && matchesType;
   });

@@ -324,7 +324,7 @@ const GatewayStats = () => {
             {
               key: 'created_at',
               label: 'Date',
-              render: (row) => new Date(row.created_at).toLocaleString('fr-FR')
+              render: (row) => row.created_at ? new Date(row.created_at).toLocaleString('fr-FR') : '-'
             }
           ]}
           data={filteredTransactions}

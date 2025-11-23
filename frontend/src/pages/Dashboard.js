@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import AdminDashboard from './dashboards/AdminDashboard';
 import MerchantDashboard from './dashboards/MerchantDashboard';
 import InfluencerDashboard from './dashboards/InfluencerDashboard';
+import CommercialDashboard from './dashboards/CommercialDashboard';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -23,6 +24,8 @@ const Dashboard = () => {
     return <MerchantDashboard />;
   } else if (user.role === 'influencer') {
     return <InfluencerDashboard />;
+  } else if (user.role === 'commercial' || user.role === 'sales_rep') {
+    return <CommercialDashboard />;
   }
 
   // Fallback

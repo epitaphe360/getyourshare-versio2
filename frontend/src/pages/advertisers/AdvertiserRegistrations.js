@@ -9,26 +9,8 @@ import api from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
 
 const AdvertiserRegistrations = () => {
-  const [registrations, setRegistrations] = useState([
-    {
-      id: 'reg_1',
-      company_name: 'Fashion Boutique',
-      email: 'hello@fashionboutique.com',
-      country: 'FR',
-      status: 'pending',
-      created_at: '2024-03-10T14:20:00Z',
-    },
-    {
-      id: 'reg_2',
-      company_name: 'Tech Solutions',
-      email: 'info@techsolutions.com',
-      country: 'US',
-      status: 'pending',
-      created_at: '2024-03-12T09:30:00Z',
-    },
-  ]);
-  
-  const [loading, setLoading] = useState(false);
+  const [registrations, setRegistrations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const toast = useToast();
 
   useEffect(() => {
@@ -39,10 +21,11 @@ const AdvertiserRegistrations = () => {
     try {
       setLoading(true);
       const response = await api.get('/api/advertiser-registrations');
+      console.log('Registrations reçues:', response.data);
       setRegistrations(response.data.registrations || []);
     } catch (error) {
       console.error('Error fetching registrations:', error);
-      // Garder les données mock en cas d'erreur
+      toast.error('Erreur lors du chargement des demandes');
     } finally {
       setLoading(false);
     }
@@ -54,22 +37,11 @@ const AdvertiserRegistrations = () => {
       await api.post(`/api/advertiser-registrations/${id}/approve`);
       toast.success('Demande approuvée avec succès');
       
-      // Mettre à jour l'état local
-      setRegistrations(prev => 
-        prev.map(reg => reg.id === id ? { ...reg, status: 'approved' } : reg)
-      );
-      
       // Rafraîchir la liste
       fetchRegistrations();
     } catch (error) {
       console.error('Error approving registration:', error);
       toast.error('Erreur lors de l\'approbation');
-      
-      // Mock success pour développement
-      setRegistrations(prev => 
-        prev.map(reg => reg.id === id ? { ...reg, status: 'approved' } : reg)
-      );
-      toast.success('Demande approuvée avec succès');
     } finally {
       setLoading(false);
     }
@@ -85,22 +57,11 @@ const AdvertiserRegistrations = () => {
       await api.post(`/api/advertiser-registrations/${id}/reject`);
       toast.success('Demande rejetée');
       
-      // Mettre à jour l'état local
-      setRegistrations(prev => 
-        prev.map(reg => reg.id === id ? { ...reg, status: 'rejected' } : reg)
-      );
-      
       // Rafraîchir la liste
       fetchRegistrations();
     } catch (error) {
       console.error('Error rejecting registration:', error);
       toast.error('Erreur lors du rejet');
-      
-      // Mock success pour développement
-      setRegistrations(prev => 
-        prev.map(reg => reg.id === id ? { ...reg, status: 'rejected' } : reg)
-      );
-      toast.success('Demande rejetée');
     } finally {
       setLoading(false);
     }
@@ -155,7 +116,13 @@ const AdvertiserRegistrations = () => {
       </div>
 
       <Card>
-        <Table columns={columns} data={registrations} />
+        {loading && registrations.length === 0 ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          <Table columns={columns} data={registrations} />
+        )}
       </Card>
     </div>
   );

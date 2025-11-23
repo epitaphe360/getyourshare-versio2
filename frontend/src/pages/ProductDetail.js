@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Sparkles, ChevronLeft, AlertCircle } from 'lucide-react';
@@ -26,8 +26,9 @@ import ProductDetailAffiliateModal from '../components/ProductDetail/ProductDeta
  * - 6 memoized child components for performance
  * - Extracted all business logic into custom hook
  * - Clean separation of concerns
+ * - Stable refs to prevent infinite re-renders
  */
-const ProductDetail = () => {
+const ProductDetail = memo(() => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { state, actions } = useProductDetail();
@@ -98,7 +99,7 @@ const ProductDetail = () => {
               <Sparkles className="text-cyan-600 animate-pulse" size={32} />
             </div>
           </div>
-          <p className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+          <p className="text-xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent animate-pulse">
             Chargement du produit...
           </p>
         </div>
@@ -144,17 +145,17 @@ const ProductDetail = () => {
       />
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-teal-50">
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Back Button */}
           <button
             onClick={() => navigate('/marketplace')}
-            className="group flex items-center gap-2 px-6 py-3 bg-white rounded-xl font-bold text-gray-700 hover:text-cyan-600 transition-all duration-300 shadow-md hover:shadow-xl transform hover:scale-105 mb-8"
+            className="group flex items-center gap-2 px-6 py-3 bg-white/80 backdrop-blur-sm rounded-xl font-bold text-gray-700 hover:text-cyan-600 transition-all duration-300 shadow-md hover:shadow-xl transform hover:scale-105 mb-8"
           >
             <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
             Retour au Marketplace
           </button>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
             {/* Left Column - Header & Info */}
             <div className="lg:col-span-2 space-y-6">
               {/* Header Component - Images, Title, Rating */}
@@ -186,12 +187,14 @@ const ProductDetail = () => {
             </div>
 
             {/* Right Column - Actions Component */}
-            <ProductDetailActions
-              product={state.product}
-              user={user}
-              onRequestAffiliation={actions.handleRequestAffiliation}
-              hasDiscount={hasDiscount}
-            />
+            <div className="lg:sticky lg:top-8 lg:self-start">
+              <ProductDetailActions
+                product={state.product}
+                user={user}
+                onRequestAffiliation={actions.handleRequestAffiliation}
+                hasDiscount={hasDiscount}
+              />
+            </div>
           </div>
 
           {/* Affiliate Modal Component */}
@@ -212,6 +215,8 @@ const ProductDetail = () => {
       </div>
     </>
   );
-};
+});
+
+ProductDetail.displayName = 'ProductDetail';
 
 export default ProductDetail;
