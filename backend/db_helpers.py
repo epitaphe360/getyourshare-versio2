@@ -265,8 +265,8 @@ def get_all_products(
 ) -> List[Dict]:
     """Récupère tous les produits avec filtres optionnels"""
     try:
-        # Simple query sans jointure complexe
-        query = supabase.table("products").select("*")
+        # Optimized query with join
+        query = supabase.table("products").select("*, merchants:merchant_id(company_name, email)")
 
         if category:
             query = query.eq("category", category)
@@ -274,22 +274,13 @@ def get_all_products(
             query = query.eq("merchant_id", merchant_id)
 
         result = query.execute()
-        
-        # Ajouter les infos merchant manuellement si besoin
         products = result.data if result.data else []
         
-        # Pour chaque produit, récupérer le nom du merchant
+        # Map 'merchants' to 'merchant' for compatibility
         for product in products:
-            if product.get("merchant_id"):
-                try:
-                    user_result = supabase.table("users").select("company_name, email").eq("id", product["merchant_id"]).single().execute()
-                    if user_result.data:
-                        product["merchant"] = {
-                            "company_name": user_result.data.get("company_name"),
-                            "email": user_result.data.get("email")
-                        }
-                except Exception:
-                    pass
+            if product.get("merchants"):
+                product["merchant"] = product["merchants"]
+                # del product["merchants"] # Keep it just in case
         
         return products
     except Exception as e:
@@ -329,7 +320,8 @@ def get_all_services(
 ) -> List[Dict]:
     """Récupère tous les services avec filtres optionnels"""
     try:
-        query = supabase.table("services").select("*")
+        # Optimized query with join
+        query = supabase.table("services").select("*, merchants:merchant_id(company_name, email)")
 
         if category:
             query = query.eq("category", category)
@@ -340,18 +332,24 @@ def get_all_services(
         
         services = result.data if result.data else []
         
-        # Pour chaque service, récupérer les infos du merchant
+        # Pour chaque service, mapper les champs pour le frontend
         for service in services:
-            if service.get("merchant_id"):
-                try:
-                    user_result = supabase.table("users").select("company_name, email").eq("id", service["merchant_id"]).single().execute()
-                    if user_result.data:
-                        service["merchant"] = {
-                            "company_name": user_result.data.get("company_name"),
-                            "email": user_result.data.get("email")
-                        }
-                except Exception:
-                    pass
+            # Mapping des champs pour compatibilité frontend
+            service["price_per_lead"] = service.get("price", 0)
+            service["is_available"] = service.get("is_active", True)
+            
+            # Gestion des images
+            if service.get("image_url"):
+                service["images"] = [service["image_url"]]
+            else:
+                service["images"] = []
+                
+            # Champs manquants dans la DB mais attendus par le frontend
+            service["capacity_per_month"] = service.get("capacity", 100) # Valeur par défaut
+            service["total_leads"] = 0 # À calculer via une jointure avec la table leads si elle existe
+            
+            if service.get("merchants"):
+                service["merchant"] = service["merchants"]
         
         return services
     except Exception as e:
@@ -369,11 +367,14 @@ def get_service_by_id(service_id: str) -> Optional[Dict]:
             # Ajouter les infos merchant
             if service.get("merchant_id"):
                 try:
-                    user_result = supabase.table("users").select("company_name, email").eq("id", service["merchant_id"]).single().execute()
+                    user_result = supabase.table("users").select("id, company_name, email, phone, username").eq("id", service["merchant_id"]).single().execute()
                     if user_result.data:
                         service["merchant"] = {
+                            "id": user_result.data.get("id"),
                             "company_name": user_result.data.get("company_name"),
-                            "email": user_result.data.get("email")
+                            "email": user_result.data.get("email"),
+                            "phone": user_result.data.get("phone"),
+                            "username": user_result.data.get("username")
                         }
                 except Exception:
                     pass
@@ -569,90 +570,77 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
             }
 
         elif role == "influencer":
-            # Stats influencer - CORRIGÉ pour utiliser les vraies tables
+            # Stats influencer - OPTIMIZED
             try:
-                # Récupérer l'influencer_id depuis la table users (colonne influencer_id)
-                # user_result = supabase.table("users").select("influencer_id, id").eq("id", user_id).single().execute()
-                # if not user_result.data:
-                #     return {}
-                
-                # influencer_id = user_result.data.get("influencer_id") or user_result.data.get("id")
                 influencer_id = user_id
                 
-                # Stats depuis la table conversions (remplace click_tracking)
-                conversions_result = supabase.table("conversions").select("*").eq("influencer_id", influencer_id).execute()
-                conversions = conversions_result.data if conversions_result.data else []
+                # 1. Total Clicks (Count only)
+                clicks_query = supabase.table("conversions").select("id", count="exact", head=True).eq("influencer_id", influencer_id).execute()
+                total_clicks = clicks_query.count or 0
                 
-                # Compter les clics (chaque conversion = 1 clic)
-                total_clicks = len(conversions)
+                # 2. Total Sales & Earnings (Fetch only necessary columns for completed sales)
+                sales_query = supabase.table("conversions").select("commission_amount").eq("influencer_id", influencer_id).eq("status", "completed").execute()
+                sales_data = sales_query.data if sales_query.data else []
+                total_sales = len(sales_data)
+                total_earnings = sum([float(s.get("commission_amount", 0)) for s in sales_data])
                 
-                # Compter les ventes (conversions avec status = 'completed')
-                total_sales = len([c for c in conversions if c.get("status") == "completed"])
-                
-                # Calculer les earnings depuis les conversions
-                total_earnings = sum([float(c.get("commission_amount", 0)) for c in conversions if c.get("status") == "completed"])
-                
-                # Calculer le balance: earnings - payouts payés
-                payouts_result = supabase.table("payouts").select("amount").eq("influencer_id", influencer_id).eq("status", "paid").execute()
-                payouts = payouts_result.data if payouts_result.data else []
-                total_paid = sum([float(p.get("amount", 0)) for p in payouts])
+                # 3. Balance (Earnings - Paid Payouts)
+                payouts_query = supabase.table("payouts").select("amount").eq("influencer_id", influencer_id).eq("status", "paid").execute()
+                total_paid = sum([float(p.get("amount", 0)) for p in payouts_query.data]) if payouts_query.data else 0
                 balance = total_earnings - total_paid
                 
-                # Calculer les croissances (comparaison 30 derniers jours vs 30 jours précédents)
+                # 4. Growth Stats (Fetch only last 60 days)
                 from datetime import datetime, timedelta, timezone
                 now = datetime.now(timezone.utc)
-                thirty_days_ago = now - timedelta(days=30)
-                sixty_days_ago = now - timedelta(days=60)
+                sixty_days_ago = (now - timedelta(days=60)).isoformat()
                 
-                # Conversions des 30 derniers jours
+                # Fetch recent conversions (last 60 days only)
+                recent_query = supabase.table("conversions").select("created_at, status, commission_amount").eq("influencer_id", influencer_id).gte("created_at", sixty_days_ago).execute()
+                recent_data = recent_query.data if recent_query.data else []
+                
+                # Process in Python (much smaller dataset)
+                thirty_days_ago_dt = now - timedelta(days=30)
+                
                 recent_conversions = []
                 previous_conversions = []
                 
-                for c in conversions:
-                    created_at_str = c.get("created_at")
-                    if not created_at_str:
-                        continue
-                        
+                for c in recent_data:
                     try:
-                        # Gérer le format Z ou +00:00
+                        created_at_str = c.get("created_at")
                         if isinstance(created_at_str, str):
                             created_at_str = created_at_str.replace("Z", "+00:00")
                             created_at = datetime.fromisoformat(created_at_str)
-                        elif isinstance(created_at_str, datetime):
-                            created_at = created_at_str
                         else:
-                            continue
-
-                        # S'assurer que c'est timezone-aware
+                            created_at = created_at_str
+                            
                         if created_at.tzinfo is None:
                             created_at = created_at.replace(tzinfo=timezone.utc)
-                        
-                        # Comparaison sécurisée (tout est aware maintenant)
-                        if created_at >= thirty_days_ago:
+                            
+                        if created_at >= thirty_days_ago_dt:
                             recent_conversions.append(c)
-                        elif sixty_days_ago <= created_at < thirty_days_ago:
+                        else:
                             previous_conversions.append(c)
-                    except Exception as e:
-                        logger.warning(f"Date parsing error for stats: {e}")
+                    except Exception:
                         continue
-                
-                # Calcul des croissances
+
+                # Calculate Growth %
                 earnings_growth = 0
-                if len(previous_conversions) > 0:
-                    recent_earnings = sum([float(c.get("commission_amount", 0)) for c in recent_conversions if c.get("status") == "completed"])
-                    previous_earnings = sum([float(c.get("commission_amount", 0)) for c in previous_conversions if c.get("status") == "completed"])
-                    if previous_earnings > 0:
-                        earnings_growth = ((recent_earnings - previous_earnings) / previous_earnings) * 100
+                recent_earnings_val = sum([float(c.get("commission_amount", 0)) for c in recent_conversions if c.get("status") == "completed"])
+                previous_earnings_val = sum([float(c.get("commission_amount", 0)) for c in previous_conversions if c.get("status") == "completed"])
+                
+                if previous_earnings_val > 0:
+                    earnings_growth = ((recent_earnings_val - previous_earnings_val) / previous_earnings_val) * 100
                 
                 clicks_growth = 0
                 if len(previous_conversions) > 0:
                     clicks_growth = ((len(recent_conversions) - len(previous_conversions)) / len(previous_conversions)) * 100
                 
                 sales_growth = 0
-                recent_sales = len([c for c in recent_conversions if c.get("status") == "completed"])
-                previous_sales = len([c for c in previous_conversions if c.get("status") == "completed"])
-                if previous_sales > 0:
-                    sales_growth = ((recent_sales - previous_sales) / previous_sales) * 100
+                recent_sales_count = len([c for c in recent_conversions if c.get("status") == "completed"])
+                previous_sales_count = len([c for c in previous_conversions if c.get("status") == "completed"])
+                
+                if previous_sales_count > 0:
+                    sales_growth = ((recent_sales_count - previous_sales_count) / previous_sales_count) * 100
                 
                 return {
                     "total_earnings": total_earnings,
@@ -665,8 +653,6 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
                 }
             except Exception as e:
                 logger.error(f"Error getting influencer stats: {e}")
-                import traceback
-                logger.error(f"DEBUG STATS ERROR: {traceback.format_exc()}")
                 return {
                     "total_earnings": 0,
                     "total_clicks": 0,

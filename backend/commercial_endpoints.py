@@ -218,18 +218,31 @@ async def get_commercial_stats(current_user: dict = Depends(get_current_user_fro
         # Valeur du pipeline (leads en négociation)
         pipeline_value = sum([l.get('estimated_value', 0) or 0 for l in leads_data if l['status'] == 'en_negociation'])
         
-        # Récupérer les stats agrégées du mois
-        stats_result = supabase.table('commercial_stats') \
-            .select('total_revenue, total_commission, total_clicks') \
-            .eq('user_id', user_id) \
-            .eq('period', 'daily') \
-            .gte('period_date', first_day_month.isoformat()) \
-            .execute()
+        # Calculer les stats totales (Lifetime)
+        # On utilise les tables sources plutôt que la table stats agrégée pour éviter les 0 si le cron ne tourne pas
         
-        stats_data = stats_result.data or []
-        total_revenue = sum([s.get('total_revenue', 0) or 0 for s in stats_data])
-        total_commission = sum([s.get('total_commission', 0) or 0 for s in stats_data])
-        total_clicks = sum([s.get('total_clicks', 0) or 0 for s in stats_data])
+        # 1. Stats des liens trackés
+        links_stats_result = supabase.table('commercial_tracking_links') \
+            .select('total_revenue, total_clicks') \
+            .eq('user_id', user_id) \
+            .execute()
+            
+        links_data = links_stats_result.data or []
+        links_revenue = sum([float(l.get('total_revenue', 0) or 0) for l in links_data])
+        total_clicks = sum([int(l.get('total_clicks', 0) or 0) for l in links_data])
+        
+        # 2. Stats des leads
+        # Valeur des leads conclus
+        leads_value_concluded = sum([float(l.get('estimated_value', 0) or 0) for l in leads_data if l['status'] == 'conclu'])
+        
+        # 3. Calcul des totaux
+        total_revenue = links_revenue + leads_value_concluded
+        
+        # Estimation de la commission (si pas stockée ailleurs)
+        # Hypothèse: 10% sur les liens, 5% sur les leads
+        commission_from_links = links_revenue * 0.10
+        commission_from_leads = leads_value_concluded * 0.05
+        total_commission = commission_from_links + commission_from_leads
         
         # Compter les liens actifs
         links_result = supabase.table('commercial_tracking_links') \

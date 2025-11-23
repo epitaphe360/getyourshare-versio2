@@ -2,7 +2,7 @@
 
 ## 🔑 Identifiants de Test
 
-**Mot de passe universel:** `password123`
+**Mot de passe universel:** `Test123!`
 
 ### 👤 Comptes Disponibles
 
@@ -49,7 +49,7 @@ En production:
 ### Frontend Vercel
 1. Va sur: https://getyourshare-version-final-6sc7t2oaj-getyourshares-projects.vercel.app
 2. Utilise n'importe quel email ci-dessus
-3. Mot de passe: `password123`
+3. Mot de passe: `Test123!`
 
 ### Backend Railway
 - URL API: https://getyourshare-backend-production.up.railway.app
@@ -60,19 +60,19 @@ En production:
 ### Admin
 ```
 Email: admin@getyourshare.com
-Password: password123
+Password: Test123!
 ```
 
 ### Influencer
 ```
 Email: hassan.oudrhiri@getyourshare.com
-Password: password123
+Password: Test123!
 ```
 
 ### Merchant
 ```
 Email: boutique.maroc@getyourshare.com
-Password: password123
+Password: Test123!
 ```
 
 ---

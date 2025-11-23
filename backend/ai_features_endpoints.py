@@ -11,6 +11,8 @@ import os
 from utils.logger import logger
 from supabase_client import supabase, get_supabase_client
 
+from auth import get_current_user_from_cookie
+
 router = APIRouter(prefix="/api/ai", tags=["AI Features"])
 
 # Configuration OpenAI (optionnel)
@@ -176,11 +178,15 @@ async def track_recommendation_click(recommendation_id: str):
 # ============================================
 
 @router.post("/generate-content")
-async def generate_content_template(request: ContentGenerationRequest, influencer_id: str):
+async def generate_content_template(
+    request: ContentGenerationRequest,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
     """
     Générer un template de contenu avec IA
     """
     try:
+        influencer_id = current_user["id"]
         supabase = get_supabase_client()
 
         # Récupérer info produit

@@ -305,12 +305,21 @@ async def get_platform_metrics():
         seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
         active_users = supabase.table('users').select('id', count='exact').gte('last_login', seven_days_ago).execute()
         
+        # Active users (dernières 24h)
+        one_day_ago = (datetime.now() - timedelta(days=1)).isoformat()
+        active_users_24h = supabase.table('users').select('id', count='exact').gte('last_login', one_day_ago).execute()
+
+        # Nouvelles inscriptions (30 jours)
+        new_signups = supabase.table('users').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
+
         return {
             "success": True,
             "avg_conversion_rate": round(conversion_rate, 2),
             "monthly_clicks": monthly_clicks,
             "quarterly_growth": round(quarterly_growth, 2),
             "active_users_7d": active_users.count or 0,
+            "active_users_24h": active_users_24h.count or 0,
+            "new_signups_30d": new_signups.count or 0,
             "total_tracking_links": len(tracking_links.data or [])
         }
     except Exception as e:
@@ -553,6 +562,28 @@ async def get_influencer_overview(influencer_id: Optional[str] = Query(None)):
         old_earnings = sum([float(c.get('amount', 0)) for c in old_comm])
         
         earnings_growth = ((recent_earnings - old_earnings) / old_earnings * 100) if old_earnings > 0 else 0
+
+        # Calculer growth pour clics et ventes
+        recent_links = [l for l in (links.data or []) if l.get('created_at', '') >= fifteen_days_ago] # Note: tracking_links might not have created_at for clicks, assuming created_at of link or we need a clicks history table. 
+        # Actually tracking_links table usually has created_at. But clicks are aggregated. 
+        # If we don't have click history, we can't calculate growth accurately without a clicks table.
+        # However, let's check if we can use 'conversions' table for sales growth.
+        
+        conversions_query = supabase.table('conversions').select('created_at')
+        if influencer_id:
+            conversions_query = conversions_query.eq('influencer_id', influencer_id)
+        conversions_data = conversions_query.execute()
+        
+        recent_conv = [c for c in (conversions_data.data or []) if c.get('created_at', '') >= fifteen_days_ago]
+        old_conv = [c for c in (conversions_data.data or []) if thirty_days_ago <= c.get('created_at', '') < fifteen_days_ago]
+        
+        sales_growth = ((len(recent_conv) - len(old_conv)) / len(old_conv) * 100) if len(old_conv) > 0 else 0
+        
+        # For clicks, since we only have total clicks in tracking_links, we can't easily calculate growth without a clicks history.
+        # We will keep the hardcoded value for clicks_growth or set it to 0 if we can't calculate it, 
+        # OR we can try to estimate it if we had a daily_stats table.
+        # For now, let's leave clicks_growth as is or set to 0 to avoid misleading "5.5".
+        clicks_growth = 0 
         
         return {
             "success": True,
@@ -561,8 +592,8 @@ async def get_influencer_overview(influencer_id: Optional[str] = Query(None)):
             "total_sales": total_conversions,
             "balance": round(balance, 2),
             "earnings_growth": round(earnings_growth, 2),
-            "clicks_growth": 5.5,  # Simulé
-            "sales_growth": 3.2,   # Simulé
+            "clicks_growth": round(clicks_growth, 2),
+            "sales_growth": round(sales_growth, 2),
             "pending_amount": round(balance * 0.25, 2),  # Simuler montant en attente
             "total_links": len(links.data or [])
         }

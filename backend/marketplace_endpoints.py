@@ -20,10 +20,11 @@ from typing import List, Optional
 from datetime import datetime
 import structlog
 
-from auth import get_current_user, optional_auth
+from auth import get_current_user_from_cookie, optional_auth
 from supabase_client import supabase
 from utils.db_safe import build_or_search
 from utils.db_optimized import DBOptimizer
+from db_helpers import get_all_services, get_service_by_id
 
 router = APIRouter(prefix="/api/marketplace", tags=["Marketplace"])
 logger = structlog.get_logger()
@@ -162,10 +163,20 @@ async def get_marketplace_products(
 
         # Exécuter
         result = query.execute()
+        
+        products = result.data or []
+        
+        # Enrichir avec info rémunération
+        for p in products:
+            p['remuneration_model'] = 'commission'
+            p['commission_type'] = 'percentage'
+            # Ensure commission_percentage is present or default to something
+            if 'commission_percentage' not in p:
+                p['commission_percentage'] = 0
 
         return {
             "success": True,
-            "products": result.data or [],
+            "products": products,
             "total": len(result.data) if result.data else 0, # result.count is not available without count='exact'
             "page": page,
             "limit": limit,
@@ -196,22 +207,79 @@ async def get_product_detail(product_id: str):
     - Stats (ventes, vues, rating)
     """
     try:
-        # Récupérer produit complet
-        result = supabase.table('v_products_full').select('*').eq('id', product_id).execute()
+        # Récupérer produit complet directement depuis la table products
+        result = supabase.table('products').select('*').eq('id', product_id).execute()
 
-        if not result.data:
+        if not result.data or len(result.data) == 0:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Produit non trouvé"
             )
 
         product = result.data[0]
+        
+        # Récupérer les infos du marchand séparément
+        if product.get('merchant_id'):
+            try:
+                merchant_result = supabase.table('users').select(
+                    'id, first_name, last_name, email, phone, company_name, username'
+                ).eq('id', product['merchant_id']).execute()
+                
+                if merchant_result.data and len(merchant_result.data) > 0:
+                    merchant_data = merchant_result.data[0]
+                    first = merchant_data.get('first_name', '')
+                    last = merchant_data.get('last_name', '')
+                    name = f"{first} {last}".strip()
+                    if not name:
+                        name = merchant_data.get('company_name') or merchant_data.get('username') or "Marchand"
+                    
+                    product['merchant'] = {
+                        'id': merchant_data.get('id'),
+                        'name': name,
+                        'email': merchant_data.get('email'),
+                        'phone': merchant_data.get('phone'),
+                        'company_name': merchant_data.get('company_name')
+                    }
+            except Exception as e:
+                logger.error(f'Error fetching merchant: {e}')
+                product['merchant'] = None
+        
+        # Ajouter info explicite sur la rémunération
+        product['remuneration_model'] = 'commission'
+        product['commission_type'] = 'percentage'
+        if 'commission_percentage' not in product:
+            product['commission_percentage'] = 0
+        
+        # Calculer deal_status (logique de la vue)
+        now = datetime.utcnow().isoformat()
+        expiry = product.get('expiry_date')
+        stock = product.get('stock_quantity')
+        is_active = product.get('is_active', True)
+        
+        deal_status = 'active'
+        if is_active is False:
+            deal_status = 'inactive'
+        elif stock is not None and stock <= 0:
+            deal_status = 'sold_out'
+        elif expiry and expiry < now:
+            deal_status = 'expired'
+            
+        product['deal_status'] = deal_status
+        
+        # Compter les affiliés actifs
+        try:
+            count_res = supabase.table('affiliate_requests').select(
+                'id', count='exact'
+            ).eq('product_id', product_id).eq('status', 'approved').execute()
+            product['active_affiliates_count'] = count_res.count or 0
+        except:
+            product['active_affiliates_count'] = 0
 
         # Incrémenter vues (async)
         try:
             supabase.rpc('increment_product_views', {'p_product_id': product_id}).execute()
         except Exception as e:
-            logger.error(f'Error in operation: {e}', exc_info=True)
+            logger.error(f'Error incrementing views: {e}')
             pass  # Non-bloquant
 
         return {
@@ -222,7 +290,7 @@ async def get_product_detail(product_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("get_product_detail_failed", product_id=product_id, error=str(e))
+        logger.error("get_product_detail_failed", product_id=product_id, error=str(e), exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erreur lors de la récupération du produit"
@@ -276,11 +344,43 @@ async def get_featured_products(limit: int = Query(10, ge=1, le=50)):
     Triés par nombre de ventes et rating
     """
     try:
-        result = supabase.table('v_featured_products').select('*').limit(limit).execute()
+        # Utiliser la table products directement
+        result = supabase.table('products').select(
+            '*, merchant:users(first_name, last_name)'
+        ).eq('is_featured', True).eq('is_active', True).order('sold_count', desc=True).limit(limit).execute()
+
+        products = result.data or []
+        
+        # Enrichir les données
+        for product in products:
+            # Merchant
+            if product.get('merchant'):
+                merchant_data = product['merchant']
+                if isinstance(merchant_data, list) and merchant_data:
+                    merchant_data = merchant_data[0]
+                
+                if isinstance(merchant_data, dict):
+                    first = merchant_data.get('first_name', '')
+                    last = merchant_data.get('last_name', '')
+                    product['merchant'] = {
+                        'name': f"{first} {last}".strip() or "Marchand"
+                    }
+            
+            # Deal status
+            now = datetime.utcnow().isoformat()
+            expiry = product.get('expiry_date')
+            stock = product.get('stock_quantity')
+            
+            deal_status = 'active'
+            if stock is not None and stock <= 0:
+                deal_status = 'sold_out'
+            elif expiry and expiry < now:
+                deal_status = 'expired'
+            product['deal_status'] = deal_status
 
         return {
             "success": True,
-            "products": result.data or []
+            "products": products
         }
 
     except Exception as e:
@@ -299,11 +399,45 @@ async def get_deals_of_day(limit: int = Query(10, ge=1, le=50)):
     Produits avec les meilleures réductions actives
     """
     try:
-        result = supabase.table('v_deals_of_day').select('*').limit(limit).execute()
+        # Utiliser la table products directement
+        now = datetime.utcnow().isoformat()
+        
+        # Note: Supabase filter for date > now might need specific syntax or we filter in python
+        # .gt('expiry_date', now)
+        
+        result = supabase.table('products').select(
+            '*, merchant:users(first_name, last_name)'
+        ).eq('is_deal_of_day', True).eq('is_active', True).order('discount_percentage', desc=True).limit(limit).execute()
+
+        products = result.data or []
+        
+        # Filter expired deals in python if needed (though we should filter in query if possible)
+        valid_products = []
+        
+        for product in products:
+            expiry = product.get('expiry_date')
+            if expiry and expiry < now:
+                continue
+                
+            # Merchant
+            if product.get('merchant'):
+                merchant_data = product['merchant']
+                if isinstance(merchant_data, list) and merchant_data:
+                    merchant_data = merchant_data[0]
+                
+                if isinstance(merchant_data, dict):
+                    first = merchant_data.get('first_name', '')
+                    last = merchant_data.get('last_name', '')
+                    product['merchant'] = {
+                        'name': f"{first} {last}".strip() or "Marchand"
+                    }
+            
+            product['deal_status'] = 'active'
+            valid_products.append(product)
 
         return {
             "success": True,
-            "deals": result.data or []
+            "deals": valid_products
         }
 
     except Exception as e:
@@ -319,7 +453,7 @@ async def get_product_reviews(
     product_id: str,
     page: int = Query(1, ge=1),
     limit: int = Query(10, ge=1, le=50),
-    sort_by: str = Query("created_at", regex="^(created_at|rating|helpful)$")
+    sort_by: str = Query("created_at")
 ):
     """
     Avis clients d'un produit
@@ -332,37 +466,67 @@ async def get_product_reviews(
     try:
         offset = (page - 1) * limit
 
-        # Récupérer reviews approuvés
-        query = supabase.table('product_reviews').select(
-            '*',
-            'users(first_name, last_name)'
-        ).eq('product_id', product_id).eq('is_approved', True)
+        # Récupérer reviews approuvés (ou tous si pas de colonne is_approved)
+        query = supabase.table('product_reviews').select('*').eq('product_id', product_id)
+        
+        # Essayer de filtrer par is_approved si la colonne existe
+        try:
+            query = query.eq('is_approved', True)
+        except:
+            pass
 
         # Tri
         if sort_by == "rating":
             query = query.order('rating', desc=True)
         elif sort_by == "helpful":
-            query = query.order('helpful_count', desc=True)
+            try:
+                query = query.order('helpful_count', desc=True)
+            except:
+                query = query.order('created_at', desc=True)
         else:
             query = query.order('created_at', desc=True)
 
         query = query.range(offset, offset + limit - 1)
 
         result = query.execute()
+        
+        reviews = result.data or []
+        
+        # Enrichir avec les infos utilisateurs
+        for review in reviews:
+            if review.get('user_id'):
+                try:
+                    user_result = supabase.table('users').select('first_name, last_name, username').eq('id', review['user_id']).execute()
+                    if user_result.data and len(user_result.data) > 0:
+                        user_data = user_result.data[0]
+                        first = user_data.get('first_name', '')
+                        last = user_data.get('last_name', '')
+                        name = f"{first} {last}".strip()
+                        if not name:
+                            name = user_data.get('username') or 'Utilisateur'
+                        review['user_name'] = name
+                    else:
+                        review['user_name'] = 'Utilisateur'
+                except Exception as e:
+                    logger.error(f'Error fetching user for review: {e}')
+                    review['user_name'] = 'Utilisateur'
 
         return {
             "success": True,
-            "reviews": result.data or [],
+            "reviews": reviews,
             "page": page,
             "limit": limit
         }
 
     except Exception as e:
-        logger.error("get_product_reviews_failed", product_id=product_id, error=str(e))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erreur lors de la récupération des avis"
-        )
+        logger.error("get_product_reviews_failed", product_id=product_id, error=str(e), exc_info=True)
+        # Retourner une liste vide plutôt qu'une erreur
+        return {
+            "success": True,
+            "reviews": [],
+            "page": page,
+            "limit": limit
+        }
 
 
 # ============================================
@@ -373,7 +537,7 @@ async def get_product_reviews(
 async def request_affiliate(
     product_id: str,
     request_data: AffiliateRequestCreate,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Demander affiliation pour un produit
@@ -470,7 +634,7 @@ async def request_affiliate(
 async def create_product_review(
     product_id: str,
     review_data: ProductReviewRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Ajouter un avis sur un produit
@@ -532,4 +696,107 @@ async def create_product_review(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Erreur lors de la création de l'avis"
+        )
+
+
+@router.get("/services", response_model=dict)
+async def get_marketplace_services(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    category: Optional[str] = None,
+    search: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None
+):
+    """
+    Liste des services marketplace (Remuneration par Deal/Lead)
+
+    **Filtres:**
+    - category: Catégorie
+    - search: Recherche texte
+    - min_price, max_price: Fourchette de prix par lead
+    """
+    try:
+        # Récupérer les services via le helper
+        services = get_all_services(category=category)
+        
+        # Filtrage additionnel en Python (car le helper est basique)
+        filtered_services = []
+        for service in services:
+            # Filtre recherche
+            if search:
+                search_lower = search.lower()
+                name = service.get('name', '').lower()
+                desc = service.get('description', '').lower()
+                if search_lower not in name and search_lower not in desc:
+                    continue
+            
+            # Filtre prix
+            price = float(service.get('price_per_lead', 0))
+            if min_price and price < min_price:
+                continue
+            if max_price and price > max_price:
+                continue
+                
+            # Ajouter info explicite sur la rémunération
+            service['remuneration_model'] = 'deal' # Fixed price per deal/lead
+            service['commission_type'] = 'fixed'
+            service['commission_amount'] = price
+            
+            filtered_services.append(service)
+            
+        # Pagination
+        total = len(filtered_services)
+        start = (page - 1) * limit
+        end = start + limit
+        paginated_services = filtered_services[start:end]
+
+        return {
+            "success": True,
+            "services": paginated_services,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": (total + limit - 1) // limit
+        }
+
+    except Exception as e:
+        logger.error("get_marketplace_services_failed", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la récupération des services"
+        )
+
+
+@router.get("/services/{service_id}", response_model=dict)
+async def get_service_detail(service_id: str):
+    """
+    Détails complets d'un service
+    """
+    try:
+        service = get_service_by_id(service_id)
+        
+        if not service:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Service non trouvé"
+            )
+            
+        # Ajouter info explicite sur la rémunération
+        service['remuneration_model'] = 'deal'
+        service['commission_type'] = 'fixed'
+        service['commission_amount'] = service.get('price_per_lead', 0)
+        
+        return {
+            "success": True,
+            "service": service
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("get_service_detail_failed", service_id=service_id, error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Erreur lors de la récupération du service"
         )

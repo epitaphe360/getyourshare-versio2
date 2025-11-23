@@ -55,13 +55,13 @@ VALUES
 -- ============================================
 -- 2. INSERTION DES SERVICES (5 services)
 -- ============================================
-INSERT INTO public.services (merchant_id, name, description, category, price, commission_rate, image_url, duration, is_active, created_at)
+INSERT INTO public.services (merchant_id, name, description, category, price, commission_rate, pricing_model, image_url, duration, is_active, created_at)
 VALUES 
-    ('22222222-2222-2222-2222-222222222222', 'Consultation stylist personnel', 'Séance de conseil en mode', 'Fashion', 150.00, 12.00, 'https://via.placeholder.com/300/FF6B9D/FFFFFF?text=Stylist', 60, true, NOW() - INTERVAL '2 months'),
-    ('22222222-2222-2222-2222-222222222223', 'Installation tech à domicile', 'Configuration de vos appareils', 'Tech', 80.00, 15.00, 'https://via.placeholder.com/300/4A90E2/FFFFFF?text=Install', 90, true, NOW() - INTERVAL '1 month'),
-    ('22222222-2222-2222-2222-222222222224', 'Soin visage personnalisé', 'Traitement beauté sur mesure', 'Beauty', 120.00, 10.00, 'https://via.placeholder.com/300/F5A623/FFFFFF?text=Facial', 75, true, NOW() - INTERVAL '3 weeks'),
-    ('22222222-2222-2222-2222-222222222225', 'Coaching sportif privé', 'Séance de sport personnalisée', 'Sports', 60.00, 8.00, 'https://via.placeholder.com/300/7ED321/FFFFFF?text=Coaching', 45, true, NOW() - INTERVAL '2 weeks'),
-    ('22222222-2222-2222-2222-222222222226', 'Cours de cuisine gastronomique', 'Atelier culinaire avec chef', 'Food', 180.00, 11.00, 'https://via.placeholder.com/300/D0021B/FFFFFF?text=Cooking', 120, true, NOW() - INTERVAL '1 week');
+    ('22222222-2222-2222-2222-222222222222', 'Consultation stylist personnel', 'Séance de conseil en mode', 'Fashion', 0.00, 12.00, 'per_lead', 'https://via.placeholder.com/300/FF6B9D/FFFFFF?text=Stylist', 60, true, NOW() - INTERVAL '2 months'),
+    ('22222222-2222-2222-2222-222222222223', 'Installation tech à domicile', 'Configuration de vos appareils', 'Tech', 80.00, 15.00, 'fixed_price', 'https://via.placeholder.com/300/4A90E2/FFFFFF?text=Install', 90, true, NOW() - INTERVAL '1 month'),
+    ('22222222-2222-2222-2222-222222222224', 'Soin visage personnalisé', 'Traitement beauté sur mesure', 'Beauty', 120.00, 10.00, 'fixed_price', 'https://via.placeholder.com/300/F5A623/FFFFFF?text=Facial', 75, true, NOW() - INTERVAL '3 weeks'),
+    ('22222222-2222-2222-2222-222222222225', 'Coaching sportif privé', 'Séance de sport personnalisée', 'Sports', 60.00, 8.00, 'fixed_price', 'https://via.placeholder.com/300/7ED321/FFFFFF?text=Coaching', 45, true, NOW() - INTERVAL '2 weeks'),
+    ('22222222-2222-2222-2222-222222222226', 'Cours de cuisine gastronomique', 'Atelier culinaire avec chef', 'Food', 180.00, 11.00, 'fixed_price', 'https://via.placeholder.com/300/D0021B/FFFFFF?text=Cooking', 120, true, NOW() - INTERVAL '1 week');
 
 -- ============================================
 -- 3. INSERTION DES CAMPAGNES (10 campagnes)

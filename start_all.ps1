@@ -7,7 +7,7 @@ Write-Host "   SHAREYOURSALES - DÉMARRAGE SYSTÈME COMPLET" -ForegroundColor Gr
 Write-Host "================================================================" -ForegroundColor Green
 Write-Host ""
 
-$rootPath = "c:\Users\Admin\Desktop\shareyoursales\Getyourshare1"
+$rootPath = $PSScriptRoot
 
 # Arrêter tous les anciens processus
 Write-Host "🧹 Nettoyage des anciens processus..." -ForegroundColor Yellow
@@ -27,8 +27,7 @@ Start-Sleep -Seconds 5
 
 # Lancer le FRONTEND dans un nouveau terminal PowerShell
 Write-Host "🚀 Lancement du FRONTEND (React)..." -ForegroundColor Cyan
-$frontendScript = Join-Path $rootPath "start_frontend.ps1"
-Start-Process powershell -ArgumentList "-NoExit", "-File", $frontendScript
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$rootPath\frontend'; npm start"
 
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Green
@@ -36,13 +35,13 @@ Write-Host "   ✅ SYSTÈME LANCÉ AVEC SUCCÈS !" -ForegroundColor Green
 Write-Host "================================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "📡 SERVEURS ACTIFS:" -ForegroundColor Yellow
-Write-Host "   Backend:  http://localhost:8001" -ForegroundColor Cyan
+Write-Host "   Backend:  http://localhost:5000" -ForegroundColor Cyan
 Write-Host "   Frontend: http://localhost:3000" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "👤 COMPTES DE TEST:" -ForegroundColor Yellow
-Write-Host "   Admin:      admin@shareyoursales.com / admin123" -ForegroundColor White
-Write-Host "   Merchant:   contact@techstyle.fr / merchant123" -ForegroundColor White
-Write-Host "   Influencer: emma.style@instagram.com / influencer123" -ForegroundColor White
+Write-Host "   Admin:      admin@getyourshare.com / admin123" -ForegroundColor White
+Write-Host "   Merchant:   merchant@test.com / merchant123" -ForegroundColor White
+Write-Host "   Influencer: influencer@test.com / influencer123" -ForegroundColor White
 Write-Host ""
 Write-Host "📝 NOTES:" -ForegroundColor Yellow
 Write-Host "   - Deux fenêtres PowerShell ont été ouvertes" -ForegroundColor Gray

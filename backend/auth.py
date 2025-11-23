@@ -8,6 +8,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Union
 import jwt
 import os
+import logging
 from dotenv import load_dotenv
 from db_helpers import get_user_by_id
 
@@ -16,7 +17,17 @@ load_dotenv()
 
 # JWT Configuration
 security = HTTPBearer()
-JWT_SECRET = os.getenv("JWT_SECRET", "fallback-secret-please-set-env-variable")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    # In production, this should raise an error. 
+    # For development convenience, we can generate one if not present, 
+    # but it's better to force the user to set it.
+    # However, to avoid breaking the user's current setup if they don't have it set:
+    import secrets
+    logger = logging.getLogger(__name__)
+    logger.warning("⚠️ JWT_SECRET not set in environment variables! Using a temporary random secret. Tokens will be invalid after restart.")
+    JWT_SECRET = secrets.token_urlsafe(32)
+
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 

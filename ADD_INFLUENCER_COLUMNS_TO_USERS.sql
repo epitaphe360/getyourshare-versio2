@@ -1,0 +1,9 @@
+-- Add missing columns to users table for influencer profiles
+ALTER TABLE users ADD COLUMN IF NOT EXISTS followers_count INTEGER DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS engagement_rate FLOAT DEFAULT 0.0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS total_earned FLOAT DEFAULT 0.0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'General';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS country TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_picture_url TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;

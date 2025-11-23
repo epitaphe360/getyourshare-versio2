@@ -179,6 +179,7 @@ CREATE TABLE public.services (
     category TEXT,
     price DECIMAL(12,2) NOT NULL,
     commission_rate DECIMAL(5,2) DEFAULT 10.00,
+    pricing_model TEXT CHECK (pricing_model IN ('fixed_price', 'per_lead', 'subscription', 'commission_only')) DEFAULT 'fixed_price',
     image_url TEXT,
     duration INTEGER,
     is_active BOOLEAN DEFAULT true,

@@ -2,27 +2,27 @@
 
 Write-Host ""
 Write-Host "================================================================" -ForegroundColor Cyan
-Write-Host "   DÉMARRAGE FRONTEND REACT" -ForegroundColor Green
+Write-Host "   DEMARRAGE FRONTEND REACT" -ForegroundColor Green
 Write-Host "================================================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Aller dans le dossier frontend
-Set-Location "c:\Users\Admin\Desktop\shareyoursales\Getyourshare1\frontend"
+Set-Location "$PSScriptRoot\frontend"
 
-Write-Host "📂 Dossier: $PWD" -ForegroundColor Cyan
+Write-Host " Dossier: $PWD" -ForegroundColor Cyan
 Write-Host ""
 
 # Vérifier que node_modules existe
 if (-not (Test-Path "node_modules")) {
-    Write-Host "⚠️  node_modules manquant - Installation des dépendances..." -ForegroundColor Yellow
+    Write-Host " [WARNING] node_modules manquant - Installation des dépendances..." -ForegroundColor Yellow
     npm install
     Write-Host ""
 }
 
-Write-Host "✅ Dépendances prêtes" -ForegroundColor Green
+Write-Host " [OK] Dépendances prêtes" -ForegroundColor Green
 Write-Host ""
 
-Write-Host "🚀 Lancement du serveur React..." -ForegroundColor Green
+Write-Host " [START] Lancement du serveur React..." -ForegroundColor Green
 Write-Host "   URL: http://localhost:3000" -ForegroundColor Cyan
 Write-Host "   Mode: Development (hot reload activé)" -ForegroundColor Cyan
 Write-Host ""
@@ -35,4 +35,4 @@ Write-Host ""
 npm start
 
 Write-Host ""
-Write-Host "🛑 Serveur arrêté" -ForegroundColor Red
+Write-Host " [STOP] Serveur arrêté" -ForegroundColor Red

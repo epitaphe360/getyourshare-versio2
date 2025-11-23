@@ -435,29 +435,40 @@ async def search_influencers(
     - sort_order: asc, desc
     """
     try:
-        # Récupérer les influenceurs depuis la table users
-        query = supabase.from_("users").select("*").eq("role", "influencer").eq("status", "active")
+        # Récupérer les influenceurs depuis la table influencer_profiles
+        # On joint avec users pour récupérer l'email si possible, mais Supabase join syntax is tricky via python client if FK not set up perfectly
+        # For now, let's query profiles directly.
+        query = supabase.from_("influencer_profiles").select("*").eq("is_public", True)
 
-        # Filtres basiques qui existent dans la table users
+        # Filtres
         if city:
             query = query.ilike("city", f"%{city}%")
 
         if min_followers is not None:
-            query = query.gte("followers_count", min_followers)
+            # Check instagram followers as primary metric
+            query = query.gte("instagram_followers", min_followers)
 
         if max_followers is not None:
-            query = query.lte("followers_count", max_followers)
+            query = query.lte("instagram_followers", max_followers)
 
         if min_engagement is not None:
-            query = query.gte("engagement_rate", min_engagement)
+            query = query.gte("instagram_engagement_rate", min_engagement)
+            
+        if niche:
+            # niches is an array, use contains
+            query = query.contains("niches", [niche])
 
-        # Tri - utiliser seulement les colonnes qui existent
-        valid_sort_fields = ["followers_count", "engagement_rate", "created_at", "total_earned"]
-        if sort_by not in valid_sort_fields:
-            sort_by = "followers_count"
+        # Tri
+        valid_sort_fields = {
+            "followers_count": "instagram_followers",
+            "engagement_rate": "instagram_engagement_rate",
+            "created_at": "created_at"
+        }
+        
+        db_sort_field = valid_sort_fields.get(sort_by, "instagram_followers")
             
         desc = (sort_order.lower() == "desc")
-        query = query.order(sort_by, desc=desc)
+        query = query.order(db_sort_field, desc=desc)
 
         # Pagination
         query = query.range(offset, offset + limit - 1)
@@ -466,19 +477,28 @@ async def search_influencers(
         
         # Formater les données
         influencers = []
-        for user in response.data:
+        for profile in response.data:
+            # Get category from niches
+            category = "General"
+            if profile.get("niches") and len(profile.get("niches")) > 0:
+                category = profile.get("niches")[0]
+                
             influencers.append({
-                "id": user.get("id"),
-                "email": user.get("email"),
-                "username": user.get("username") or user.get("company_name", ""),
-                "followers_count": user.get("followers_count", 0),
-                "engagement_rate": user.get("engagement_rate", 0.0),
-                "total_earned": user.get("total_earned", 0.0),
-                "category": user.get("category", "General"),
-                "city": user.get("city"),
-                "country": user.get("country"),
-                "profile_picture_url": user.get("profile_picture_url"),
-                "status": user.get("status")
+                "id": profile.get("user_id"), # Use user_id as ID for frontend consistency
+                "profile_id": profile.get("id"),
+                "email": profile.get("email"), # Email might be in profile if public
+                "username": profile.get("instagram_handle") or profile.get("display_name", ""),
+                "full_name": profile.get("display_name"),
+                "followers_count": profile.get("instagram_followers", 0),
+                "engagement_rate": profile.get("instagram_engagement_rate", 0.0),
+                "total_earned": 0.0, # Not in profile
+                "category": category,
+                "city": profile.get("city"),
+                "country": profile.get("region"), # Map region to country/location
+                "profile_picture_url": None, # Not in profile schema yet
+                "profile_image": None, # Frontend expects this key
+                "bio": profile.get("bio"),
+                "status": "active"
             })
 
         return {

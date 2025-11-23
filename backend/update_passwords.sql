@@ -1,16 +1,16 @@
 -- ============================================================================
 -- MISE À JOUR DES MOTS DE PASSE POUR LANCEMENT RAPIDE
 -- ============================================================================
--- Nouveau mot de passe: password123
--- Hash bcrypt généré pour "password123"
+-- Nouveau mot de passe: Test123!
+-- Hash bcrypt généré pour "Test123!"
 -- ============================================================================
 
--- IMPORTANT: Ce hash correspond au mot de passe "password123"
--- Généré avec bcrypt: bcrypt.hashpw(b"password123", bcrypt.gensalt())
+-- IMPORTANT: Ce hash correspond au mot de passe "Test123!"
+-- Généré avec bcrypt: bcrypt.hashpw(b"Test123!", bcrypt.gensalt())
 
 -- Mettre à jour TOUS les utilisateurs avec le nouveau mot de passe
 UPDATE users
-SET password_hash = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYfOj/9qX7q'
+SET password_hash = '$2b$12$.JnsORn742tocce/LsmglepdDWoPFNvylXL5RdQytGWO5ghriap5G'
 WHERE email IN (
     'admin@getyourshare.com',
     'hassan.oudrhiri@getyourshare.com',
@@ -36,7 +36,7 @@ ORDER BY role, email;
 -- ============================================================================
 -- RÉSUMÉ
 -- ============================================================================
--- Mot de passe universel: password123
+-- Mot de passe universel: Test123!
 --
 -- Comptes disponibles:
 -- - admin@getyourshare.com (ADMIN)

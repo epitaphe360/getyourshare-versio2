@@ -20,8 +20,8 @@ logger = structlog.get_logger()
 
 # Configuration
 CSRF_TOKEN_LENGTH = 32
-CSRF_COOKIE_NAME = "csrf_token"
-CSRF_HEADER_NAME = "X-CSRF-Token"
+CSRF_COOKIE_NAME = "XSRF-TOKEN"
+CSRF_HEADER_NAME = "X-XSRF-TOKEN"
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 
@@ -49,9 +49,9 @@ class CSRFProtection:
         response.set_cookie(
             key=self.cookie_name,
             value=token,
-            httponly=True,  # Pas accessible en JavaScript
+            httponly=False,  # Accessible en JavaScript pour Axios
             secure=ENVIRONMENT == "production",  # HTTPS only en prod
-            samesite="strict",  # Protection supplémentaire
+            samesite="lax",  # Lax est souvent mieux pour SPA que Strict
             max_age=3600 * 24  # 24 heures
         )
 

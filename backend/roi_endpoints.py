@@ -1,6 +1,9 @@
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional, Dict, List, Any, Union
+from datetime import datetime
+from supabase_client import supabase, get_supabase_client
+from utils.logger import logger
 
 router = APIRouter()
 
@@ -17,6 +20,16 @@ class ROICalculationResponse(BaseModel):
     roi_percentage: float
     net_profit: float
     metrics: Dict[str, Union[float, str]]
+
+class ROISaveRequest(BaseModel):
+    user_id: str
+    campaign_name: str
+    budget: float
+    industry: str
+    campaign_type: str
+    estimated_revenue: float
+    roi_percentage: float
+    metrics: Dict[str, Any]
 
 # Benchmarks par industrie (mock data based on real averages)
 BENCHMARKS = {
@@ -104,3 +117,45 @@ async def get_benchmarks():
         "benchmarks": BENCHMARKS,
         "industries": list(BENCHMARKS.keys())
     }
+
+@router.post("/save")
+async def save_roi_calculation(request: ROISaveRequest):
+    """
+    Sauvegarder un calcul de ROI
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        data = {
+            "user_id": request.user_id,
+            "campaign_name": request.campaign_name,
+            "budget": request.budget,
+            "industry": request.industry,
+            "campaign_type": request.campaign_type,
+            "estimated_revenue": request.estimated_revenue,
+            "roi_percentage": request.roi_percentage,
+            "metrics": request.metrics,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        result = supabase.table("roi_calculations").insert(data).execute()
+        
+        return {"success": True, "message": "Calcul sauvegardé", "id": result.data[0]['id']}
+    except Exception as e:
+        logger.error(f"Erreur sauvegarde ROI: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/history/{user_id}")
+async def get_roi_history(user_id: str):
+    """
+    Récupérer l'historique des calculs ROI
+    """
+    try:
+        supabase = get_supabase_client()
+        
+        result = supabase.table("roi_calculations").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+        
+        return {"history": result.data}
+    except Exception as e:
+        logger.error(f"Erreur historique ROI: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
