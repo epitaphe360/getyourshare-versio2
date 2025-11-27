@@ -76,7 +76,7 @@ async def create_affiliation_request(
         influencer_id = influencer['id']
 
         # 3. Vérifier qu'il n'y a pas déjà une demande pending pour ce produit
-        existing_request = supabase.table('affiliation_requests').select('*').eq('influencer_id', influencer_id).eq('product_id', request_data.product_id).eq('status', 'pending').execute()
+        existing_request = supabase.table('affiliate_requests').select('*').eq('influencer_id', influencer_id).eq('product_id', request_data.product_id).eq('status', 'pending').execute()
 
         if existing_request.data:
             raise HTTPException(status_code=400, detail="Vous avez déjà une demande en attente pour ce produit")
@@ -94,7 +94,7 @@ async def create_affiliation_request(
             'created_at': datetime.now().isoformat()
         }
 
-        result = supabase.table('affiliation_requests').insert(affiliation_request).execute()
+        result = supabase.table('affiliate_requests').insert(affiliation_request).execute()
 
         if not result.data:
             raise HTTPException(status_code=500, detail="Erreur lors de la création de la demande")
@@ -140,7 +140,7 @@ async def get_my_requests(
         influencer_id = influencer_result.data[0]['id']
 
         # Récupérer les demandes
-        requests_result = supabase.table('affiliation_requests').select('*').eq('influencer_id', influencer_id).order('created_at', desc=True).execute()
+        requests_result = supabase.table('affiliate_requests').select('*').eq('influencer_id', influencer_id).order('created_at', desc=True).execute()
         requests = requests_result.data or []
 
         # Manual joins
@@ -192,7 +192,7 @@ async def get_merchant_pending_requests(
         merchant_id = merchant_result.data[0]['id']
 
         # Récupérer les demandes pending
-        requests_result = supabase.table('affiliation_requests').select('*').eq('merchant_id', merchant_id).eq('status', 'pending').order('created_at', desc=True).execute()
+        requests_result = supabase.table('affiliate_requests').select('*').eq('merchant_id', merchant_id).eq('status', 'pending').order('created_at', desc=True).execute()
         requests = requests_result.data or []
 
         # Manual joins
@@ -270,7 +270,7 @@ async def respond_to_request(
     """
     try:
         # 1. Récupérer la demande
-        request_result = supabase.table('affiliation_requests').select('*').eq('id', request_id).execute()
+        request_result = supabase.table('affiliate_requests').select('*').eq('id', request_id).execute()
 
         if not request_result.data:
             raise HTTPException(status_code=404, detail="Demande introuvable")
@@ -318,7 +318,7 @@ async def respond_to_request(
                 'responded_at': datetime.now().isoformat()
             }
 
-            supabase.table('affiliation_requests').update(update_data).eq('id', request_id).execute()
+            supabase.table('affiliate_requests').update(update_data).eq('id', request_id).execute()
 
             # Envoyer notification à l'influenceur
             await send_influencer_approval_notification(
@@ -352,7 +352,7 @@ async def respond_to_request(
                 'responded_at': datetime.now().isoformat()
             }
 
-            supabase.table('affiliation_requests').update(update_data).eq('id', request_id).execute()
+            supabase.table('affiliate_requests').update(update_data).eq('id', request_id).execute()
 
             # Envoyer notification à l'influenceur
             await send_influencer_rejection_notification(

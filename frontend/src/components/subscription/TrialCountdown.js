@@ -9,6 +9,8 @@ function TrialCountdown() {
   const [daysLeft, setDaysLeft] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
   useEffect(() => {
     fetchSubscription();
   }, []);
@@ -16,7 +18,7 @@ function TrialCountdown() {
   const fetchSubscription = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8000/api/subscriptions/current', {
+      const response = await axios.get(`${API_URL}/subscriptions/current`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

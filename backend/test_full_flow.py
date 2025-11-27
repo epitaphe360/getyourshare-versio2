@@ -6,7 +6,6 @@ Simule ce que ferait le frontend
 
 import requests
 import json
-from pprint import pprint
 
 BASE_URL = "http://localhost:5000"
 TEST_EMAIL = "admin@getyourshare.com"

@@ -535,6 +535,52 @@ async def recommend_influencers(request: InfluencerRecommendationRequest):
         raise HTTPException(status_code=500, detail=f"Erreur recommandation influenceurs: {str(e)}")
 
 
+@router.get("/product-recommendations/{user_id}")
+async def get_product_recommendations(user_id: str):
+    """
+    🎯 Recommandations de Produits (GET Simple)
+    Wrapper pour le frontend qui attend un GET
+    """
+    try:
+        # Mock profile for now since we don't have user profile service injected here easily
+        user_profile = {"id": user_id, "preferences": "general"} 
+        
+        suggestions = await ai_assistant_service.suggest_products(
+            user_id=user_id,
+            user_profile=user_profile,
+            browsing_history=[],
+            purchase_history=[],
+            max_suggestions=3
+        )
+
+        # Transform backend suggestions to match frontend expectation if needed
+        # Frontend expects: product_id, product_name, merchant_name, match_score, reason, estimated_commission, price, image_url
+        # Backend returns: id, name, category, price, currency, relevance_score, reason
+        
+        formatted_suggestions = []
+        for s in suggestions:
+            formatted_suggestions.append({
+                "product_id": s.get("id"),
+                "product_name": s.get("name"),
+                "merchant_name": "Partenaire Certifié", # Default
+                "match_score": int(s.get("relevance_score", 0) * 100),
+                "reason": s.get("reason"),
+                "estimated_commission": round(s.get("price", 0) * 0.15, 2), # 15% commission
+                "price": s.get("price"),
+                "image_url": None, # Backend doesn't provide image yet
+                "product_url": f"/marketplace/product/{s.get('id')}"
+            })
+
+        return {
+            "recommendations": formatted_suggestions
+        }
+
+    except Exception as e:
+        print(f"Error in product recommendations: {e}")
+        # Return empty list or error to let frontend use fallback
+        raise HTTPException(status_code=500, detail=f"Erreur suggestions: {str(e)}")
+
+
 # ============================================
 # ENDPOINT DE SANTÉ
 # ============================================

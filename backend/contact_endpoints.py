@@ -73,6 +73,15 @@ class UpdateContactMessageRequest(BaseModel):
 # PUBLIC ENDPOINTS
 # ============================================
 
+import hashlib
+
+def anonymize_ip(ip_address: str) -> str:
+    """Anonymise une adresse IP avec SHA-256 (GDPR compliance)"""
+    if not ip_address or ip_address == "unknown":
+        return "unknown"
+    salt = "sys_gdpr_salt_2025" 
+    return hashlib.sha256(f"{ip_address}{salt}".encode()).hexdigest()
+
 @router.post("/submit", response_model=dict, status_code=201)
 async def submit_contact_message(
     request_data: SubmitContactRequest,
@@ -99,7 +108,8 @@ async def submit_contact_message(
     """
     try:
         # Récupérer IP et user agent
-        ip_address = req.client.host if req.client else None
+        raw_ip = req.client.host if req.client else None
+        ip_address = anonymize_ip(raw_ip)
         user_agent = req.headers.get("user-agent")
 
         # Vérifier si email existe dans users (pour lier automatiquement)

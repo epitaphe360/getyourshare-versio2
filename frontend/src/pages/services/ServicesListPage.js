@@ -52,7 +52,13 @@ const ServicesListPage = () => {
       setStats({ total, active, avgPricePerLead, totalCapacity });
     } catch (error) {
       console.error('Error fetching services:', error);
-      toast.error('Erreur lors du chargement des services');
+      if (error.response && error.response.status === 401) {
+        toast.error('Session expirée. Veuillez vous reconnecter.');
+        // Optional: Redirect to login if not handled by interceptor
+        // navigate('/login'); 
+      } else {
+        toast.error('Erreur lors du chargement des services');
+      }
     } finally {
       setLoading(false);
     }

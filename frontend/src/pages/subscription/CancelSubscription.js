@@ -13,6 +13,8 @@ function CancelSubscription() {
   const [cancelFeedback, setCancelFeedback] = useState('');
   const [cancelType, setCancelType] = useState('end_of_period'); // 'immediate' or 'end_of_period'
   const [error, setError] = useState(null);
+  
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
   const cancelReasons = [
     { value: 'too_expensive', label: 'Trop cher' },
@@ -32,7 +34,7 @@ function CancelSubscription() {
   const fetchCurrentSubscription = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8000/api/subscriptions/current', {
+      const response = await axios.get(`${API_URL}/subscriptions/current`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -62,7 +64,7 @@ function CancelSubscription() {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        'http://localhost:8000/api/subscriptions/cancel',
+        `${API_URL}/subscriptions/cancel`,
         {
           reason: cancelReason,
           feedback: cancelFeedback,

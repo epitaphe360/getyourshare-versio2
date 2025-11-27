@@ -94,9 +94,9 @@ async def csrf_middleware(request: Request, call_next: Callable):
 
         return response
 
-    # Exclure certains endpoints (webhooks externes et auth endpoints)
+    # Exclude certain endpoints from CSRF protection
     excluded_paths = [
-        "/api/stripe/webhook",
+        "/api/webhooks",
         "/api/social-media/webhooks",
         "/api/auth/login",  # Login endpoint
         "/api/auth/logout",  # Logout endpoint - uses cookie auth
@@ -114,7 +114,13 @@ async def csrf_middleware(request: Request, call_next: Callable):
     if any(request.url.path.startswith(path) for path in excluded_paths):
         return await call_next(request)
 
-    # Valider CSRF token
+    # Exemption CSRF pour les requêtes avec Authorization Bearer (JWT)
+    # Les JWTs sont déjà sécurisés et ne nécessitent pas de CSRF
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        return await call_next(request)
+
+    # Valider CSRF token pour les autres requêtes
     if not csrf_protection.validate_csrf_token(request):
         logger.warning(
             "csrf_validation_failed",

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from typing import List, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from supabase_client import supabase
 from auth import get_current_user_from_cookie
@@ -18,9 +18,12 @@ class NotificationRead(BaseModel):
     title: Optional[str] = None
     message: str
     type: Optional[str] = "info"
-    read: bool
+    read: bool = Field(alias="is_read")
     created_at: str
     link: Optional[str] = None
+
+    class Config:
+        allow_population_by_field_name = True
 
 class WebPushSubscription(BaseModel):
     endpoint: str
@@ -43,7 +46,7 @@ async def get_notifications(
         query = supabase.table("notifications").select("*", count="exact").eq("user_id", user_id)
         
         if unread_only:
-            query = query.eq("read", False)
+            query = query.eq("is_read", False)
             
         query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
         
@@ -53,7 +56,7 @@ async def get_notifications(
         total = result.count or 0
         
         # Count unread
-        unread_query = supabase.table("notifications").select("id", count="exact").eq("user_id", user_id).eq("read", False).execute()
+        unread_query = supabase.table("notifications").select("id", count="exact").eq("user_id", user_id).eq("is_read", False).execute()
         unread_count = unread_query.count or 0
         
         return {
@@ -80,7 +83,7 @@ async def mark_notification_read(
         if not check.data:
             raise HTTPException(status_code=404, detail="Notification not found")
             
-        result = supabase.table("notifications").update({"read": True}).eq("id", notification_id).execute()
+        result = supabase.table("notifications").update({"is_read": True}).eq("id", notification_id).execute()
         
         return {"success": True, "message": "Notification marked as read"}
         
@@ -98,7 +101,7 @@ async def mark_all_notifications_read(
     try:
         user_id = current_user["id"]
         
-        result = supabase.table("notifications").update({"read": True}).eq("user_id", user_id).eq("read", False).execute()
+        result = supabase.table("notifications").update({"is_read": True}).eq("user_id", user_id).eq("is_read", False).execute()
         
         return {"success": True, "message": "All notifications marked as read"}
         

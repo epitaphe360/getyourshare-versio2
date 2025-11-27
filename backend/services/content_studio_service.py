@@ -565,7 +565,7 @@ class ContentStudioService:
             ID de la tâche de scheduling
         """
         # Créer une entrée dans la table scheduled_posts
-        scheduled_id = hashlib.md5(
+        scheduled_id = hashlib.sha256(
             f"{user_id}{scheduled_time.isoformat()}".encode()
         ).hexdigest()[:16]
 

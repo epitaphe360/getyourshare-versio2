@@ -581,3 +581,8 @@ L'application est prête pour une utilisation production avec :
 - ✅ AI Features (Bot, Recommendations)
 - ✅ Advanced Collaboration (Affiliation Requests)
 - ✅ Messaging System
+
+### Performance & Stability
+- ✅ **Load Test**: 50 concurrent users, 100% success rate (0 failures).
+- ✅ **Concurrency**: Optimized with `run_in_threadpool` for non-blocking DB calls.
+- ✅ **Login Stability**: Fixed 500 error for legacy accounts (bcrypt hash correction).

@@ -23,7 +23,6 @@ import structlog
 from auth import get_current_user_from_cookie, optional_auth
 from supabase_client import supabase
 from utils.db_safe import build_or_search
-from utils.db_optimized import DBOptimizer
 from db_helpers import get_all_services, get_service_by_id
 
 router = APIRouter(prefix="/api/marketplace", tags=["Marketplace"])
@@ -133,11 +132,11 @@ async def get_marketplace_products(
         if search:
             query = build_or_search(query, ['name', 'description'], search)
 
-        # Filtre: prix (using current_price from products table)
+        # Filtre: prix (using price from products table)
         if min_price:
-            query = query.gte('current_price', min_price)
+            query = query.gte('price', min_price)
         if max_price:
-            query = query.lte('current_price', max_price)
+            query = query.lte('price', max_price)
 
         # Filtre: réduction (using discount field if exists)
         if min_discount:
@@ -306,7 +305,7 @@ async def get_categories():
     """
     try:
         # Récupérer toutes les catégories actives
-        result = supabase.table('product_categories').select('*').eq('is_active', True).order('display_order').execute()
+        result = supabase.table('product_categories').select('*').eq('is_active', True).order('order_index').execute()
 
         categories = result.data or []
 
@@ -345,9 +344,10 @@ async def get_featured_products(limit: int = Query(10, ge=1, le=50)):
     """
     try:
         # Utiliser la table products directement
+        # Note: is_featured and sold_count columns are missing in DB, so we just return latest products
         result = supabase.table('products').select(
             '*, merchant:users(first_name, last_name)'
-        ).eq('is_featured', True).eq('is_active', True).order('sold_count', desc=True).limit(limit).execute()
+        ).eq('is_active', True).order('created_at', desc=True).limit(limit).execute()
 
         products = result.data or []
         
@@ -402,12 +402,12 @@ async def get_deals_of_day(limit: int = Query(10, ge=1, le=50)):
         # Utiliser la table products directement
         now = datetime.utcnow().isoformat()
         
-        # Note: Supabase filter for date > now might need specific syntax or we filter in python
-        # .gt('expiry_date', now)
+        # Note: is_deal_of_day and discount_percentage columns are missing in DB
+        # We just return random or latest products as deals
         
         result = supabase.table('products').select(
             '*, merchant:users(first_name, last_name)'
-        ).eq('is_deal_of_day', True).eq('is_active', True).order('discount_percentage', desc=True).limit(limit).execute()
+        ).eq('is_active', True).limit(limit).execute()
 
         products = result.data or []
         
@@ -609,7 +609,7 @@ async def request_affiliate(
 
         # Envoyer email au marchand (async)
         # TODO: Implémenter notification email
-        from celery_tasks import send_new_affiliate_request_email
+        # from celery_tasks import send_new_affiliate_request_email
         # send_new_affiliate_request_email.delay(merchant_email, product_name, influencer_name)
 
         logger.info("affiliate_request_created", user_id=user_id, product_id=product_id, request_id=request_id)
@@ -671,9 +671,7 @@ async def create_product_review(
             'product_id': product_id,
             'user_id': user_id,
             'rating': review_data.rating,
-            'title': review_data.title,
-            'comment': review_data.comment,
-            'is_approved': False,  # En attente modération
+            'review': review_data.comment,
             'created_at': datetime.utcnow().isoformat()
         }
 

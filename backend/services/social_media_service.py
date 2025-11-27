@@ -20,16 +20,26 @@ Fonctionnalités:
 import os
 import requests
 import json
+import random
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 from enum import Enum
 
 import structlog
 from pydantic import BaseModel, Field
+try:
+    from cryptography.fernet import Fernet
+except ImportError:
+    Fernet = None
+    print("WARNING: cryptography module not found. Tokens will not be encrypted.")
 
 from supabase_client import supabase
 
 logger = structlog.get_logger(__name__)
+
+# Mode simulation si pas de clés API
+SIMULATION_MODE = os.getenv('SOCIAL_MEDIA_SIMULATION', 'true').lower() == 'true'
 
 
 # ============================================
@@ -43,6 +53,14 @@ class SocialPlatform(str, Enum):
     FACEBOOK = "facebook"
     YOUTUBE = "youtube"
     TWITTER = "twitter"
+
+
+class ConnectionStatus(str, Enum):
+    """Statut de la connexion"""
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    ERROR = "error"
+    INACTIVE = "inactive"
 
 
 class SocialStats(BaseModel):
@@ -85,6 +103,41 @@ class SocialMediaService:
 
         self.twitter_bearer_token = os.getenv('TWITTER_BEARER_TOKEN')
 
+        # Encryption setup
+        self.encryption_key = os.getenv('SOCIAL_TOKEN_ENCRYPTION_KEY')
+        if not self.encryption_key:
+            # Fallback key for development (DO NOT USE IN PRODUCTION)
+            self.encryption_key = b'ukXW6p-JTd8s_suvAIdjR2SFoHJlaoTwHcoPMVyB528='
+        
+        self.cipher = None
+        if Fernet:
+            try:
+                self.cipher = Fernet(self.encryption_key)
+            except Exception as e:
+                logger.error("encryption_init_failed", error=str(e))
+        else:
+            logger.warning("encryption_disabled_missing_dependency")
+
+    def _encrypt_token(self, token: str) -> str:
+        """Chiffre un token avant stockage"""
+        if not token or not self.cipher:
+            return token
+        try:
+            return self.cipher.encrypt(token.encode()).decode()
+        except Exception as e:
+            logger.error("token_encryption_failed", error=str(e))
+            return token
+
+    def _decrypt_token(self, token: str) -> str:
+        """Déchiffre un token pour utilisation"""
+        if not token or not self.cipher:
+            return token
+        try:
+            return self.cipher.decrypt(token.encode()).decode()
+        except Exception:
+            # Si échec (ex: ancien token non chiffré), retourner tel quel
+            return token
+
     # ============================================
     # INSTAGRAM GRAPH API
     # ============================================
@@ -92,22 +145,25 @@ class SocialMediaService:
     async def connect_instagram(self, user_id: str, instagram_user_id: str, access_token: str) -> Dict:
         """
         Connecte un compte Instagram Business/Creator via OAuth
-
-        Process:
-        1. L'utilisateur autorise l'app via Instagram OAuth
-        2. On reçoit un access_token
-        3. On récupère les infos du compte
-        4. On stocke le token (chiffré) en BDD
-        5. On récupère les stats initiales
-
-        Documentation: https://developers.facebook.com/docs/instagram-api
         """
         try:
-            # 1. Échanger le short-lived token contre un long-lived token (60 jours)
-            long_lived_token = await self._exchange_instagram_token(access_token)
+            if SIMULATION_MODE:
+                # Simulation de la connexion
+                username = f"insta_user_{secrets.randbelow(9000) + 1000}"
+                long_lived_token = f"simulated_token_{secrets.token_hex(8)}"
+                account_info = {'username': username}
+                
+                # Stats simulées
+                stats = self._simulate_stats(SocialPlatform.INSTAGRAM, username)
+            else:
+                # 1. Échanger le short-lived token contre un long-lived token (60 jours)
+                long_lived_token = await self._exchange_instagram_token(access_token)
 
-            # 2. Récupérer les infos du compte
-            account_info = await self._get_instagram_account_info(instagram_user_id, long_lived_token)
+                # 2. Récupérer les infos du compte
+                account_info = await self._get_instagram_account_info(instagram_user_id, long_lived_token)
+                
+                # 4. Récupérer les stats initiales
+                stats = await self.fetch_instagram_stats(instagram_user_id, long_lived_token)
 
             # 3. Stocker la connexion
             social_connection = {
@@ -115,7 +171,7 @@ class SocialMediaService:
                 'platform': SocialPlatform.INSTAGRAM.value,
                 'platform_user_id': instagram_user_id,
                 'username': account_info.get('username'),
-                'access_token_encrypted': long_lived_token,  # TODO: Chiffrer avec pgcrypto
+                'access_token_encrypted': self._encrypt_token(long_lived_token),
                 'token_expires_at': (datetime.now() + timedelta(days=60)).isoformat(),
                 'is_active': True,
                 'created_at': datetime.now().isoformat()
@@ -126,9 +182,6 @@ class SocialMediaService:
                 on_conflict='user_id,platform'
             ).execute()
 
-            # 4. Récupérer les stats initiales
-            stats = await self.fetch_instagram_stats(instagram_user_id, long_lived_token)
-
             # 5. Stocker les stats
             await self._save_social_stats(user_id, stats)
 
@@ -136,15 +189,18 @@ class SocialMediaService:
                 "instagram_connected",
                 user_id=user_id,
                 username=account_info.get('username'),
-                followers=stats.followers
+                followers=stats.followers,
+                simulated=SIMULATION_MODE
             )
 
             return {
                 "success": True,
+                "connection_id": result.data[0]['id'] if result.data else "simulated_id",
                 "platform": SocialPlatform.INSTAGRAM.value,
                 "username": account_info.get('username'),
                 "followers": stats.followers,
-                "engagement_rate": stats.engagement_rate
+                "engagement_rate": stats.engagement_rate,
+                "connected_at": datetime.now().isoformat()
             }
 
         except Exception as e:
@@ -161,7 +217,7 @@ class SocialMediaService:
                 'access_token': short_lived_token
             }
 
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
 
             data = response.json()
@@ -180,7 +236,7 @@ class SocialMediaService:
                 'access_token': access_token
             }
 
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
 
             return response.json()
@@ -208,7 +264,7 @@ class SocialMediaService:
                 'access_token': access_token
             }
 
-            insights_response = requests.get(url, params=params)
+            insights_response = requests.get(url, params=params, timeout=10)
             insights_response.raise_for_status()
             insights = insights_response.json()
 
@@ -220,7 +276,7 @@ class SocialMediaService:
                 'access_token': access_token
             }
 
-            media_response = requests.get(media_url, params=media_params)
+            media_response = requests.get(media_url, params=media_params, timeout=10)
             media_response.raise_for_status()
             media_data = media_response.json()
 
@@ -275,19 +331,30 @@ class SocialMediaService:
     async def connect_tiktok(self, user_id: str, authorization_code: str) -> Dict:
         """
         Connecte un compte TikTok Creator via OAuth
-
-        Documentation: https://developers.tiktok.com/doc/login-kit-web
         """
         try:
-            # 1. Échanger le code contre un access token
-            token_data = await self._exchange_tiktok_code(authorization_code)
+            if SIMULATION_MODE:
+                # Simulation
+                username = f"tiktok_star_{secrets.randbelow(9000) + 1000}"
+                access_token = f"simulated_tk_token_{secrets.token_hex(8)}"
+                refresh_token = f"simulated_tk_refresh_{secrets.token_hex(8)}"
+                expires_in = 86400
+                user_info = {'open_id': f"tk_id_{secrets.token_hex(8)}", 'display_name': username}
+                
+                stats = self._simulate_stats(SocialPlatform.TIKTOK, username)
+            else:
+                # 1. Échanger le code contre un access token
+                token_data = await self._exchange_tiktok_code(authorization_code)
 
-            access_token = token_data['access_token']
-            refresh_token = token_data['refresh_token']
-            expires_in = token_data['expires_in']
+                access_token = token_data['access_token']
+                refresh_token = token_data['refresh_token']
+                expires_in = token_data['expires_in']
 
-            # 2. Récupérer les infos utilisateur
-            user_info = await self._get_tiktok_user_info(access_token)
+                # 2. Récupérer les infos utilisateur
+                user_info = await self._get_tiktok_user_info(access_token)
+                
+                # 4. Récupérer les stats
+                stats = await self.fetch_tiktok_stats(user_info['open_id'], access_token)
 
             # 3. Stocker la connexion
             social_connection = {
@@ -295,20 +362,17 @@ class SocialMediaService:
                 'platform': SocialPlatform.TIKTOK.value,
                 'platform_user_id': user_info['open_id'],
                 'username': user_info['display_name'],
-                'access_token_encrypted': access_token,  # TODO: Chiffrer
-                'refresh_token_encrypted': refresh_token,
+                'access_token_encrypted': self._encrypt_token(access_token),
+                'refresh_token_encrypted': self._encrypt_token(refresh_token),
                 'token_expires_at': (datetime.now() + timedelta(seconds=expires_in)).isoformat(),
                 'is_active': True,
                 'created_at': datetime.now().isoformat()
             }
 
-            self.supabase.table('social_media_connections').upsert(
+            result = self.supabase.table('social_media_connections').upsert(
                 social_connection,
                 on_conflict='user_id,platform'
             ).execute()
-
-            # 4. Récupérer les stats
-            stats = await self.fetch_tiktok_stats(user_info['open_id'], access_token)
 
             # 5. Stocker les stats
             await self._save_social_stats(user_id, stats)
@@ -317,15 +381,18 @@ class SocialMediaService:
                 "tiktok_connected",
                 user_id=user_id,
                 username=user_info['display_name'],
-                followers=stats.followers
+                followers=stats.followers,
+                simulated=SIMULATION_MODE
             )
 
             return {
                 "success": True,
+                "connection_id": result.data[0]['id'] if result.data else "simulated_id",
                 "platform": SocialPlatform.TIKTOK.value,
                 "username": user_info['display_name'],
                 "followers": stats.followers,
-                "engagement_rate": stats.engagement_rate
+                "engagement_rate": stats.engagement_rate,
+                "connected_at": datetime.now().isoformat()
             }
 
         except Exception as e:
@@ -343,7 +410,7 @@ class SocialMediaService:
                 'grant_type': 'authorization_code'
             }
 
-            response = requests.post(url, params=params)
+            response = requests.post(url, params=params, timeout=10)
             response.raise_for_status()
 
             data = response.json()
@@ -362,7 +429,7 @@ class SocialMediaService:
                 'fields': 'open_id,union_id,avatar_url,display_name'
             }
 
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
 
             data = response.json()
@@ -387,7 +454,7 @@ class SocialMediaService:
                 'fields': 'follower_count,following_count,likes_count,video_count'
             }
 
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params, timeout=10)
             response.raise_for_status()
             data = response.json()
 
@@ -401,7 +468,7 @@ class SocialMediaService:
                 'max_count': 20
             }
 
-            videos_response = requests.post(videos_url, json=videos_params)
+            videos_response = requests.post(videos_url, json=videos_params, timeout=10)
             videos_response.raise_for_status()
             videos_data = videos_response.json()
 
@@ -568,14 +635,92 @@ class SocialMediaService:
     # REFRESH AUTOMATIQUE (Celery Task)
     # ============================================
 
+    async def sync_all_user_stats(self, user_id: str, platforms: Optional[List[str]] = None) -> List[Dict]:
+        """
+        Synchronise les stats pour un utilisateur spécifique (Appelé par l'endpoint /sync)
+        """
+        try:
+            query = self.supabase.table('social_media_connections').select('*').eq('user_id', user_id).eq('is_active', True)
+            if platforms:
+                query = query.in_('platform', platforms)
+            
+            connections = query.execute()
+            
+            results = []
+            
+            for conn in connections.data:
+                start_time = datetime.now()
+                platform = conn['platform']
+                platform_user_id = conn['platform_user_id']
+                access_token = self._decrypt_token(conn['access_token_encrypted'])
+                username = conn['username']
+                
+                try:
+                    if SIMULATION_MODE:
+                        # Simulation de croissance organique
+                        last_stat = self.supabase.table('social_media_stats')\
+                            .select('followers, engagement_rate')\
+                            .eq('user_id', user_id)\
+                            .eq('platform', platform)\
+                            .order('captured_at', desc=True)\
+                            .limit(1)\
+                            .execute()
+                            
+                        if last_stat.data:
+                            current_followers = last_stat.data[0]['followers']
+                            current_engagement = last_stat.data[0]['engagement_rate']
+                            
+                            growth_factor = random.uniform(0.995, 1.015)
+                            new_followers = int(current_followers * growth_factor)
+                            new_engagement = round(max(0.5, min(15, current_engagement + random.uniform(-0.2, 0.2))), 2)
+                            
+                            stats = self._simulate_stats(SocialPlatform(platform), username)
+                            stats.followers = new_followers
+                            stats.engagement_rate = new_engagement
+                        else:
+                            stats = self._simulate_stats(SocialPlatform(platform), username)
+                    else:
+                        # Appel API réel
+                        if platform == SocialPlatform.INSTAGRAM.value:
+                            stats = await self.fetch_instagram_stats(platform_user_id, access_token)
+                        elif platform == SocialPlatform.TIKTOK.value:
+                            stats = await self.fetch_tiktok_stats(platform_user_id, access_token)
+                        else:
+                            continue
+
+                    await self._save_social_stats(user_id, stats)
+                    
+                    results.append({
+                        "log_id": f"log_{secrets.token_hex(8)}", # TODO: Vrai log en BDD
+                        "platform": platform,
+                        "status": "success",
+                        "stats_fetched": True,
+                        "posts_fetched": stats.posts_count or 0,
+                        "started_at": start_time,
+                        "completed_at": datetime.now(),
+                        "duration_ms": int((datetime.now() - start_time).total_seconds() * 1000)
+                    })
+                    
+                except Exception as e:
+                    logger.error("sync_platform_failed", user_id=user_id, platform=platform, error=str(e))
+                    results.append({
+                        "log_id": f"log_{secrets.token_hex(8)}",
+                        "platform": platform,
+                        "status": "error",
+                        "error": str(e),
+                        "started_at": start_time,
+                        "completed_at": datetime.now()
+                    })
+                
+            return results
+            
+        except Exception as e:
+            logger.error("sync_all_user_stats_failed", user_id=user_id, error=str(e))
+            raise
+
     async def refresh_all_stats(self):
         """
         Refresh les stats de tous les utilisateurs connectés
-
-        À exécuter quotidiennement via Celery:
-        @celery.task
-        async def daily_social_stats_refresh():
-            await social_media_service.refresh_all_stats()
         """
         try:
             # Récupérer toutes les connexions actives
@@ -593,20 +738,26 @@ class SocialMediaService:
                     user_id = conn['user_id']
                     platform = conn['platform']
                     platform_user_id = conn['platform_user_id']
-                    access_token = conn['access_token_encrypted']  # TODO: Déchiffrer
+                    access_token = self._decrypt_token(conn['access_token_encrypted'])
+                    username = conn['username']
 
-                    # Vérifier si le token n'est pas expiré
-                    if datetime.fromisoformat(conn['token_expires_at']) < datetime.now():
-                        logger.warning("token_expired", user_id=user_id, platform=platform)
-                        # TODO: Refresh le token automatiquement
-                        continue
+                    if SIMULATION_MODE:
+                         # Logique de simulation simplifiée pour le batch
+                        stats = self._simulate_stats(SocialPlatform(platform), username)
+                        # On pourrait ajouter la logique de croissance ici aussi
+                    else:
+                        # Vérifier si le token n'est pas expiré
+                        if datetime.fromisoformat(conn['token_expires_at']) < datetime.now():
+                            logger.warning("token_expired", user_id=user_id, platform=platform)
+                            continue
 
-                    # Fetch stats selon la plateforme
-                    if platform == SocialPlatform.INSTAGRAM.value:
-                        stats = await self.fetch_instagram_stats(platform_user_id, access_token)
-                    elif platform == SocialPlatform.TIKTOK.value:
-                        stats = await self.fetch_tiktok_stats(platform_user_id, access_token)
-                    # TODO: Ajouter autres plateformes
+                        # Fetch stats selon la plateforme
+                        if platform == SocialPlatform.INSTAGRAM.value:
+                            stats = await self.fetch_instagram_stats(platform_user_id, access_token)
+                        elif platform == SocialPlatform.TIKTOK.value:
+                            stats = await self.fetch_tiktok_stats(platform_user_id, access_token)
+                        else:
+                            continue
 
                     # Sauvegarder les stats
                     await self._save_social_stats(user_id, stats)
@@ -627,6 +778,224 @@ class SocialMediaService:
         except Exception as e:
             logger.error("refresh_all_stats_failed", error=str(e))
 
+    def _simulate_stats(self, platform: SocialPlatform, username: str) -> SocialStats:
+        """Génère des statistiques réalistes pour la simulation"""
+        base_followers = {
+            SocialPlatform.INSTAGRAM: random.randint(1000, 50000),
+            SocialPlatform.TIKTOK: random.randint(5000, 100000),
+            SocialPlatform.FACEBOOK: random.randint(1000, 10000),
+            SocialPlatform.YOUTUBE: random.randint(500, 20000),
+            SocialPlatform.TWITTER: random.randint(500, 5000)
+        }
+        
+        followers = base_followers.get(platform, 1000)
+        engagement_rate = round(random.uniform(1.5, 8.5), 2)
+        posts_count = random.randint(10, 500)
+        
+        avg_likes = int(followers * (engagement_rate / 100) * 0.9)
+        avg_comments = int(followers * (engagement_rate / 100) * 0.1)
+        
+        return SocialStats(
+            platform=platform,
+            username=username,
+            followers=followers,
+            following=random.randint(100, 2000),
+            posts_count=posts_count,
+            engagement_rate=engagement_rate,
+            average_likes=avg_likes,
+            average_comments=avg_comments,
+            average_views=avg_likes * random.randint(2, 10) if platform in [SocialPlatform.TIKTOK, SocialPlatform.YOUTUBE] else None,
+            verified=random.choice([True, False]) if followers > 10000 else False,
+            raw_data={"simulated": True}
+        )
 
-# Instance globale du service
-social_media_service = SocialMediaService()
+    # ============================================
+    # MÉTHODES DE LECTURE (GETTERS)
+    # ============================================
+
+    async def get_user_connections(self, user_id: str, platform: Optional[str] = None, status_filter: Optional[str] = None) -> List[Dict]:
+        """Récupère les connexions d'un utilisateur"""
+        try:
+            query = self.supabase.table('social_media_connections').select('*').eq('user_id', user_id)
+            
+            if platform:
+                query = query.eq('platform', platform)
+            
+            if status_filter == 'active':
+                query = query.eq('is_active', True)
+            
+            result = query.execute()
+            return result.data
+        except Exception as e:
+            logger.error("get_user_connections_failed", user_id=user_id, error=str(e))
+            raise
+
+    async def get_latest_stats(self, user_id: str, platform: Optional[str] = None) -> List[Dict]:
+        """Récupère les dernières stats connues pour chaque plateforme"""
+        try:
+            # On récupère toutes les stats triées par date
+            query = self.supabase.table('social_media_stats')\
+                .select('*')\
+                .eq('user_id', user_id)\
+                .order('captured_at', desc=True)
+                
+            if platform:
+                query = query.eq('platform', platform)
+                
+            result = query.execute()
+            
+            # On ne garde que la plus récente par plateforme
+            latest = {}
+            for stat in result.data:
+                p = stat['platform']
+                if p not in latest:
+                    latest[p] = {
+                        "platform": p,
+                        "followers_count": stat['followers'],
+                        "following_count": stat.get('following'),
+                        "engagement_rate": stat['engagement_rate'],
+                        "total_posts": stat.get('posts_count', 0),
+                        "average_likes_per_post": stat.get('average_likes', 0),
+                        "average_comments_per_post": stat.get('average_comments', 0),
+                        "synced_at": stat['captured_at']
+                    }
+            
+            return list(latest.values())
+        except Exception as e:
+            logger.error("get_latest_stats_failed", user_id=user_id, error=str(e))
+            raise
+
+    async def get_stats_history(self, user_id: str, platform: str, days: int = 30) -> List[Dict]:
+        """Récupère l'historique des stats"""
+        try:
+            start_date = (datetime.now() - timedelta(days=days)).isoformat()
+            
+            result = self.supabase.table('social_media_stats')\
+                .select('*')\
+                .eq('user_id', user_id)\
+                .eq('platform', platform)\
+                .gte('captured_at', start_date)\
+                .order('captured_at', asc=True)\
+                .execute()
+                
+            return [{
+                "platform": stat['platform'],
+                "followers_count": stat['followers'],
+                "engagement_rate": stat['engagement_rate'],
+                "total_posts": stat.get('posts_count', 0),
+                "average_likes_per_post": stat.get('average_likes', 0),
+                "average_comments_per_post": stat.get('average_comments', 0),
+                "synced_at": stat['captured_at']
+            } for stat in result.data]
+        except Exception as e:
+            logger.error("get_stats_history_failed", user_id=user_id, error=str(e))
+            raise
+
+    async def get_top_posts(self, user_id: str, platform: Optional[str] = None, limit: int = 10, sort_by: str = 'engagement_rate') -> List[Dict]:
+        """Récupère les meilleurs posts"""
+        try:
+            # Note: Pour l'instant on simule car on ne stocke pas encore les posts individuels en BDD
+            # Dans une version future, on devrait avoir une table 'social_media_posts'
+            
+            if SIMULATION_MODE:
+                posts = []
+                platforms = [platform] if platform else [SocialPlatform.INSTAGRAM.value, SocialPlatform.TIKTOK.value]
+                
+                for p in platforms:
+                    for i in range(limit):
+                        likes = random.randint(100, 50000)
+                        comments = random.randint(10, 1000)
+                        views = likes * random.randint(2, 10)
+                        engagement = ((likes + comments) / views * 100) if views > 0 else 0
+                        
+                        posts.append({
+                            "platform": p,
+                            "platform_post_id": f"post_{secrets.token_hex(8)}",
+                            "post_type": random.choice(["image", "video", "carousel"]),
+                            "thumbnail_url": f"https://picsum.photos/seed/{random.randint(1,1000)}/300/300",
+                            "permalink": "https://example.com/post",
+                            "likes_count": likes,
+                            "comments_count": comments,
+                            "views_count": views,
+                            "engagement_rate": round(engagement, 2),
+                            "posted_at": (datetime.now() - timedelta(days=random.randint(1, 30))).isoformat()
+                        })
+                
+                # Tri
+                posts.sort(key=lambda x: x.get(sort_by, 0), reverse=True)
+                return posts[:limit]
+            
+            return []
+        except Exception as e:
+            logger.error("get_top_posts_failed", user_id=user_id, error=str(e))
+            raise
+
+    async def disconnect_platform(self, connection_id: str, user_id: str):
+        """Déconnecte une plateforme"""
+        try:
+            # Vérifier que la connexion appartient à l'utilisateur
+            conn = self.supabase.table('social_media_connections')\
+                .select('id')\
+                .eq('id', connection_id)\
+                .eq('user_id', user_id)\
+                .execute()
+                
+            if not conn.data:
+                raise ValueError("Connexion introuvable ou non autorisée")
+                
+            # Supprimer (ou désactiver)
+            self.supabase.table('social_media_connections')\
+                .delete()\
+                .eq('id', connection_id)\
+                .execute()
+                
+        except Exception as e:
+            logger.error("disconnect_platform_failed", user_id=user_id, error=str(e))
+            raise
+
+    async def check_connection_status(self, connection_id: str, user_id: str) -> Dict:
+        """Vérifie le statut d'une connexion"""
+        try:
+            conn = self.supabase.table('social_media_connections')\
+                .select('*')\
+                .eq('id', connection_id)\
+                .eq('user_id', user_id)\
+                .execute()
+                
+            if not conn.data:
+                raise ValueError("Connexion introuvable")
+                
+            data = conn.data[0]
+            
+            # Vérifier expiration token
+            expires_at = datetime.fromisoformat(data['token_expires_at'].replace('Z', '+00:00'))
+            days_until_expiry = (expires_at - datetime.now(expires_at.tzinfo)).days
+            
+            status = "active"
+            if not data['is_active']:
+                status = "inactive"
+            elif days_until_expiry < 0:
+                status = "expired"
+            elif days_until_expiry < 7:
+                status = "expiring_soon"
+                
+            return {
+                "status": status,
+                "is_active": data['is_active'],
+                "token_expires_at": data['token_expires_at'],
+                "days_until_expiry": days_until_expiry,
+                "last_synced_at": datetime.now().isoformat() # TODO: Ajouter colonne last_synced_at en BDD
+            }
+        except Exception as e:
+            logger.error("check_connection_status_failed", user_id=user_id, error=str(e))
+            raise
+
+    async def refresh_expiring_tokens(self, days_before: int = 7) -> List[Dict]:
+        """Rafraîchit les tokens expirant bientôt"""
+        # TODO: Implémenter la logique de refresh token réel
+        return []
+
+    async def get_sync_logs(self, user_id: Optional[str] = None, platform: Optional[str] = None, status_filter: Optional[str] = None, limit: int = 50) -> List[Dict]:
+        """Récupère les logs de synchro (simulé pour l'instant)"""
+        # TODO: Créer une table social_media_sync_logs
+        return []

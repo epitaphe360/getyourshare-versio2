@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Sparkles, TrendingUp, Tag, ExternalLink, RefreshCw } from 'lucide-react';
@@ -18,50 +19,14 @@ const ProductRecommendations = () => {
 
   const fetchRecommendations = async () => {
     setLoading(true);
+    setError(null); // Clear previous errors
     try {
-      const response = await api.get(`/ai/product-recommendations/${user.id}`);
+      const response = await api.get(`/api/ai/product-recommendations/${user.id}`);
       setRecommendations(response.data.recommendations || []);
+      setError(null); // Ensure error is cleared on success
     } catch (err) {
       console.error('Error fetching recommendations:', err);
-      // Mock data for demo if API fails or returns empty
-      // In a real scenario, we might show an error or empty state
-      if (err.response?.status === 404 || err.response?.status === 500) {
-         // Fallback mock data
-         setRecommendations([
-            {
-              product_id: '1',
-              product_name: 'Montre Connectée Pro',
-              merchant_name: 'TechStore',
-              match_score: 98,
-              reason: 'Correspond à votre audience tech et sport',
-              estimated_commission: 45.50,
-              price: 299.99,
-              image_url: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=300&q=80'
-            },
-            {
-              product_id: '2',
-              product_name: 'Kit Yoga Premium',
-              merchant_name: 'ZenLife',
-              match_score: 92,
-              reason: 'Tendance forte chez vos followers féminins',
-              estimated_commission: 25.00,
-              price: 89.99,
-              image_url: 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?auto=format&fit=crop&w=300&q=80'
-            },
-            {
-              product_id: '3',
-              product_name: 'Écouteurs Sans Fil',
-              merchant_name: 'AudioWorld',
-              match_score: 88,
-              reason: 'Produit complémentaire à vos dernières ventes',
-              estimated_commission: 15.00,
-              price: 59.99,
-              image_url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=300&q=80'
-            }
-         ]);
-      } else {
-        setError('Impossible de charger les recommandations.');
-      }
+      setError('Impossible de charger les recommandations.');
     } finally {
       setLoading(false);
     }
@@ -144,11 +109,11 @@ const ProductRecommendations = () => {
                 <div className="flex justify-between items-end mb-4">
                   <div>
                     <div className="text-xs text-gray-500">Prix</div>
-                    <div className="font-semibold text-gray-900">{product.price} €</div>
+                    <div className="font-semibold text-gray-900">{Number(product.price).toFixed(2)} €</div>
                   </div>
                   <div className="text-right">
                     <div className="text-xs text-gray-500">Commission Est.</div>
-                    <div className="font-bold text-green-600">~{product.estimated_commission} €</div>
+                    <div className="font-bold text-green-600">~{Number(product.estimated_commission).toFixed(2)} €</div>
                   </div>
                 </div>
 
@@ -161,9 +126,23 @@ const ProductRecommendations = () => {
                   </div>
                 </div>
 
-                <button className="w-full py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-2 text-sm font-medium">
-                  Voir l'offre <ExternalLink size={16} />
-                </button>
+                {product.product_url && product.product_url.startsWith('/') ? (
+                  <Link 
+                    to={product.product_url}
+                    className="w-full py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-2 text-sm font-medium"
+                  >
+                    Voir l'offre <ExternalLink size={16} />
+                  </Link>
+                ) : (
+                  <a 
+                    href={product.product_url || '#'}
+                    className="w-full py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition flex items-center justify-center gap-2 text-sm font-medium"
+                    target={product.product_url && !product.product_url.startsWith('#') ? "_blank" : "_self"}
+                    rel="noopener noreferrer"
+                  >
+                    Voir l'offre <ExternalLink size={16} />
+                  </a>
+                )}
               </div>
             </motion.div>
           ))}

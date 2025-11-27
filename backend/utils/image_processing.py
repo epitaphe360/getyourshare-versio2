@@ -8,7 +8,6 @@ import colorsys
 from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path
 from PIL import Image, ImageFilter, ImageStat, ExifTags
-import numpy as np
 
 from utils.logger import logger
 

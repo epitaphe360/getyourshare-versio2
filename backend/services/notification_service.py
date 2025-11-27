@@ -6,8 +6,29 @@ Alertes solde bas, dépôt épuisé, arrêt campagne, leads en attente
 from typing import Optional, Dict, List, Any
 from datetime import datetime, timedelta
 from decimal import Decimal
+import os
 from supabase import Client
 from utils.logger import logger
+from services.email_service import email_service
+
+# Integrations
+try:
+    from twilio.rest import Client as TwilioClient
+except ImportError:
+    TwilioClient = None
+
+try:
+    from slack_sdk import WebClient as SlackClient
+except ImportError:
+    SlackClient = None
+
+try:
+    import firebase_admin
+    from firebase_admin import credentials, messaging
+except ImportError:
+    firebase_admin = None
+    credentials = None
+    messaging = None
 
 
 class NotificationService:
@@ -15,6 +36,45 @@ class NotificationService:
     
     def __init__(self, supabase: Client):
         self.supabase = supabase
+        
+        # Twilio Setup
+        self.twilio_sid = os.getenv('TWILIO_ACCOUNT_SID')
+        self.twilio_token = os.getenv('TWILIO_AUTH_TOKEN')
+        self.twilio_from = os.getenv('TWILIO_PHONE_NUMBER')
+        self.twilio_client = None
+        if TwilioClient and self.twilio_sid and self.twilio_token:
+            try:
+                self.twilio_client = TwilioClient(self.twilio_sid, self.twilio_token)
+            except Exception as e:
+                logger.error(f"Twilio init error: {e}")
+
+        # Slack Setup
+        self.slack_token = os.getenv('SLACK_BOT_TOKEN')
+        self.slack_client = None
+        if SlackClient and self.slack_token:
+            try:
+                self.slack_client = SlackClient(token=self.slack_token)
+            except Exception as e:
+                logger.error(f"Slack init error: {e}")
+
+        # Firebase Setup
+        self._init_firebase()
+    
+    def _init_firebase(self):
+        """Initialiser Firebase Admin SDK"""
+        if not firebase_admin or not credentials:
+            return
+
+        try:
+            if not firebase_admin._apps:
+                cred_path = os.getenv('FIREBASE_CREDENTIALS_PATH', 'firebase-key.json')
+                if os.path.exists(cred_path):
+                    cred = credentials.Certificate(cred_path)
+                    firebase_admin.initialize_app(cred)
+                else:
+                    logger.warning(f"Firebase credentials not found at {cred_path}")
+        except Exception as e:
+            logger.error(f"Firebase init error: {e}")
     
     
     def send_low_balance_alert(
@@ -389,6 +449,80 @@ class NotificationService:
             logger.info(f"Erreur send_agreement_notification: {e}")
     
     
+    def send_push_notification(
+        self,
+        user_id: str,
+        title: str,
+        body: str,
+        data: Optional[Dict] = None
+    ):
+        """Envoyer notification push mobile (Firebase)"""
+        if not firebase_admin:
+            return
+
+        try:
+            # Récupérer token FCM de l'utilisateur
+            user_settings = self.supabase.table('user_settings').select('fcm_token').eq('user_id', user_id).single().execute()
+            
+            if not user_settings.data or not user_settings.data.get('fcm_token'):
+                return
+
+            fcm_token = user_settings.data['fcm_token']
+            
+            message = messaging.Message(
+                notification=messaging.Notification(
+                    title=title,
+                    body=body,
+                ),
+                data=data or {},
+                token=fcm_token,
+            )
+            
+            response = messaging.send(message)
+            logger.info(f"📱 Push notification envoyée à {user_id}: {response}")
+            
+        except Exception as e:
+            logger.error(f"Erreur send_push_notification: {e}")
+
+    def send_sms(
+        self,
+        phone_number: str,
+        message: str
+    ):
+        """Envoyer SMS (Twilio)"""
+        if not self.twilio_client:
+            return
+
+        try:
+            message = self.twilio_client.messages.create(
+                body=message,
+                from_=self.twilio_from,
+                to=phone_number
+            )
+            logger.info(f"💬 SMS envoyé à {phone_number}: {message.sid}")
+            
+        except Exception as e:
+            logger.error(f"Erreur send_sms: {e}")
+
+    def send_slack_alert(
+        self,
+        channel: str,
+        message: str
+    ):
+        """Envoyer alerte Slack"""
+        if not self.slack_client:
+            return
+
+        try:
+            response = self.slack_client.chat_postMessage(
+                channel=channel,
+                text=message
+            )
+            logger.info(f"📢 Slack alert envoyée: {channel}")
+            
+        except Exception as e:
+            logger.error(f"Erreur send_slack_alert: {e}")
+
     def get_user_notifications(
         self,
         user_id: str,
@@ -504,6 +638,54 @@ class NotificationService:
         message: str,
         company_name: str
     ):
-        """Envoyer email d'alerte (à implémenter avec service email)"""
-        # TODO: Intégrer avec service d'envoi d'emails (SendGrid, Mailgun, etc.)
-        logger.info(f"📧 Email envoyé à {company_name}: {subject}")
+        """Envoyer email d'alerte"""
+        try:
+            # Récupérer email
+            user = self.supabase.table('users').select('email').eq('id', user_id).single().execute()
+            if not user.data:
+                logger.info(f"Email introuvable pour user_id: {user_id}")
+                return
+            
+            to_email = user.data['email']
+            
+            # Envoyer email
+            email_service.send_email(
+                to_email=to_email,
+                subject=subject,
+                html_content=email_service._fallback_template({'content': f"<h2>Bonjour {company_name},</h2><p>{message}</p>"})
+            )
+            
+            logger.info(f"📧 Email envoyé à {company_name} ({to_email}): {subject}")
+            
+        except Exception as e:
+            logger.info(f"Erreur _send_email_alert: {e}")
+    
+    def send_notification(
+        self,
+        user_id: str,
+        title: str,
+        message: str,
+        type: str = 'info',
+        level: str = 'info',
+        action_url: Optional[str] = None,
+        metadata: Optional[Dict] = None
+    ):
+        """Envoyer une notification générique"""
+        try:
+            notification_data = {
+                'user_id': user_id,
+                'type': type,
+                'level': level,
+                'title': title,
+                'message': message,
+                'metadata': metadata or {},
+                'action_url': action_url,
+                'is_read': False,
+                'created_at': datetime.utcnow().isoformat()
+            }
+            
+            self.supabase.table('notifications').insert(notification_data).execute()
+            logger.info(f"🔔 Notification envoyée à {user_id}: {title}")
+            
+        except Exception as e:
+            logger.error(f"Erreur send_notification: {e}")

@@ -93,7 +93,7 @@ export const useProductDetail = () => {
   const hasFetchedRef = useRef(false);
   const productIdRef = useRef(productId);
 
-  // Fetch product and reviews in parallel (Promise.all)
+  // Fetch product and reviews
   const fetchAllData = async () => {
     if (!productId || hasFetchedRef.current) return;
 
@@ -101,22 +101,61 @@ export const useProductDetail = () => {
       dispatch({ type: ACTIONS.SET_LOADING, payload: true });
       hasFetchedRef.current = true;
 
-      // Parallelize API calls with Promise.all
-      const [productResponse, reviewsResponse] = await Promise.all([
-        api.get(`/api/marketplace/products/${productId}`),
-        api.get(`/api/marketplace/products/${productId}/reviews`)
-      ]);
+      let productData = null;
 
-      if (productResponse.data.success) {
-        dispatch({ type: ACTIONS.SET_PRODUCT, payload: productResponse.data.product });
+      // 1. Try fetching as product
+      try {
+        const productResponse = await api.get(`/api/marketplace/products/${productId}`);
+        if (productResponse.data.success) {
+          productData = productResponse.data.product;
+        }
+      } catch (error) {
+        // If 404, try fetching as service
+        if (error.response && error.response.status === 404) {
+          try {
+            const serviceResponse = await api.get(`/api/services/${productId}`);
+            if (serviceResponse.data) {
+              const service = serviceResponse.data;
+              // Normalize service data to match product structure
+              productData = {
+                ...service,
+                type: 'service',
+                is_service: true,
+                images: service.images || (service.image ? [service.image] : []),
+                rating_average: service.rating || 0,
+                rating_count: service.rating_count || 0,
+                merchant: service.merchant || { name: "Service Provider" }
+              };
+            }
+          } catch (serviceError) {
+            console.error('Service fetch failed:', serviceError);
+          }
+        } else {
+          console.error('Product fetch error:', error);
+        }
       }
 
-      if (reviewsResponse.data.success) {
-        dispatch({ type: ACTIONS.SET_REVIEWS, payload: reviewsResponse.data.reviews || [] });
+      if (productData) {
+        dispatch({ type: ACTIONS.SET_PRODUCT, payload: productData });
+
+        // 2. Try fetching reviews (might fail for services if not implemented)
+        try {
+          const reviewsResponse = await api.get(`/api/marketplace/products/${productId}/reviews`);
+          if (reviewsResponse.data.success) {
+            dispatch({ type: ACTIONS.SET_REVIEWS, payload: reviewsResponse.data.reviews || [] });
+          }
+        } catch (reviewError) {
+          console.warn('Reviews fetch failed or not available:', reviewError);
+          dispatch({ type: ACTIONS.SET_REVIEWS, payload: [] });
+        }
+      } else {
+        // If neither product nor service found
+        toast?.error('Produit ou service introuvable');
       }
+
     } catch (error) {
-      console.error('Error fetching product data:', error);
-      toast?.error('Erreur lors du chargement du produit');
+      console.error('Error in fetchAllData:', error);
+      toast?.error('Erreur lors du chargement');
     } finally {
       dispatch({ type: ACTIONS.SET_LOADING, payload: false });
     }

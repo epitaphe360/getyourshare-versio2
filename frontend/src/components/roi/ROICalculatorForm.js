@@ -37,7 +37,7 @@ const ROICalculatorForm = () => {
     setError(null);
 
     try {
-      const response = await api.post('/roi/calculate', formData);
+      const response = await api.post('/api/roi/calculate', formData);
       setResults(response.data);
     } catch (err) {
       console.error('ROI Calculation Error:', err);

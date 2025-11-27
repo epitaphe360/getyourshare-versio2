@@ -1,6 +1,27 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000';
+const getApiUrl = () => {
+  const envUrl = process.env.REACT_APP_API_URL;
+  
+  // If env var is set and not localhost, use it (e.g. production URL)
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return envUrl;
+  }
+
+  // If we are in a browser environment, try to use the current hostname
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    // If hostname is a local IP (not localhost), use it for backend too
+    // This allows accessing the backend from other devices on the same network
+    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        return `http://${hostname}:5000`;
+    }
+  }
+  
+  return envUrl || 'http://127.0.0.1:5000';
+};
+
+const API_URL = getApiUrl();
 
 const api = axios.create({
   baseURL: API_URL,
@@ -25,6 +46,20 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+// Request interceptor to add token to headers
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
@@ -35,6 +70,11 @@ api.interceptors.response.use(
     // Gestion du refresh token sur erreur 401
     if (status === 401 && !originalRequest._retry && originalRequest.url !== '/api/auth/refresh' && originalRequest.url !== '/api/auth/login') {
       
+      // Si on est déjà sur la page de login, on ne fait rien
+      if (window.location.pathname === '/login' || window.location.pathname === '/register') {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise(function(resolve, reject) {
           failedQueue.push({resolve, reject});
@@ -60,6 +100,16 @@ api.interceptors.response.use(
         // Si le refresh échoue, rejeter toutes les requêtes en attente
         processQueue(refreshError, null);
         isRefreshing = false;
+        
+        // Nettoyer le localStorage et rediriger
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        
+        // Redirection unique vers le login
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+            window.location.href = '/login';
+        }
+        
         return Promise.reject(refreshError);
       }
     }

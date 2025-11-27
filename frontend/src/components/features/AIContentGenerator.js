@@ -47,7 +47,7 @@ const AIContentGenerator = () => {
     setGeneratedContent(null);
 
     try {
-      const response = await api.post('/ai/generate-content', formData);
+      const response = await api.post('/api/ai/generate-content', formData);
       setGeneratedContent(response.data);
     } catch (error) {
       console.error('Error generating content:', error);

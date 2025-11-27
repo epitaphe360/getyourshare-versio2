@@ -283,7 +283,7 @@ Généré par ShareYourSales
         >
           <StatCard
             title="Revenus Total"
-            value={<CountUp end={typeof stats?.total_revenue === 'number' ? stats.total_revenue : 0} duration={2.5} decimals={2} separator=" " suffix="€" />}
+            value={<CountUp end={typeof stats?.total_revenue === 'number' && !isNaN(stats.total_revenue) ? stats.total_revenue : 0} duration={2.5} decimals={2} separator=" " suffix="€" />}
             isCurrency={false}
             icon={<DollarSign className="text-green-600" size={24} />}
             trend={stats?.platformMetrics?.quarterly_growth || 12.5}
@@ -296,7 +296,7 @@ Généré par ShareYourSales
         >
           <StatCard
             title="Entreprises"
-            value={<CountUp end={typeof stats?.total_merchants === 'number' ? stats.total_merchants : (merchants.length || 0)} duration={2} />}
+            value={<CountUp end={typeof stats?.total_merchants === 'number' && !isNaN(stats.total_merchants) ? stats.total_merchants : (merchants.length || 0)} duration={2} />}
             icon={<ShoppingBag className="text-indigo-600" size={24} />}
             trend={8.2}
           />
@@ -308,7 +308,7 @@ Généré par ShareYourSales
         >
           <StatCard
             title="Influenceurs"
-            value={<CountUp end={typeof stats?.total_influencers === 'number' ? stats.total_influencers : (influencers.length || 0)} duration={2} />}
+            value={<CountUp end={typeof stats?.total_influencers === 'number' && !isNaN(stats.total_influencers) ? stats.total_influencers : (influencers.length || 0)} duration={2} />}
             icon={<Users className="text-purple-600" size={24} />}
             trend={15.3}
           />
@@ -320,7 +320,7 @@ Généré par ShareYourSales
         >
           <StatCard
             title="Produits"
-            value={<CountUp end={typeof stats?.total_products === 'number' ? stats.total_products : 0} duration={2} />}
+            value={<CountUp end={typeof stats?.total_products === 'number' && !isNaN(stats.total_products) ? stats.total_products : 0} duration={2} />}
             icon={<Sparkles className="text-orange-600" size={24} />}
             trend={5.7}
           />
@@ -336,7 +336,7 @@ Généré par ShareYourSales
         >
           <StatCard
             title="Services"
-            value={<CountUp end={typeof stats?.total_services === 'number' ? stats.total_services : 0} duration={2} />}
+            value={<CountUp end={typeof stats?.total_services === 'number' && !isNaN(stats.total_services) ? stats.total_services : 0} duration={2} />}
             icon={<Briefcase className="text-teal-600" size={24} />}
             trend={12.4}
           />
@@ -395,7 +395,7 @@ Généré par ShareYourSales
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name} ${(percent * 100 || 0).toFixed(0)}%`}
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"

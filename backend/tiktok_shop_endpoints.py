@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 
-from services.tiktok_shop_service import tiktok_shop_service, TikTokProductStatus, TikTokOrderStatus
+from services.tiktok_shop_service import tiktok_shop_service, TikTokOrderStatus
 
 router = APIRouter(prefix="/api/tiktok-shop", tags=["TikTok Shop"])
 

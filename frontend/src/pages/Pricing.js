@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Check, X, Zap, TrendingUp, Users, Shield, Sparkles, ArrowRight } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Check, X, Zap, TrendingUp, Users, Shield, Sparkles, ArrowRight, Globe } from 'lucide-react';
 import axios from 'axios';
 import Navigation from '../components/Navigation';
 import SEOHead from '../components/SEO/SEOHead';
 import SEO_CONFIG from '../config/seo';
+import { useCurrency } from '../context/CurrencyContext';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import api from '../utils/api';
 import '../pages/MarketplaceAnimations.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -16,6 +20,7 @@ const DEFAULT_PLANS = {
       id: 1,
       name: "Starter",
       price: 0,
+      prices: { EUR: 0, MAD: 0, USD: 0 },
       commission_rate: 20,
       features: {
         user_accounts: 1,
@@ -30,6 +35,7 @@ const DEFAULT_PLANS = {
       id: 2,
       name: "Pro",
       price: 49,
+      prices: { EUR: 49, MAD: 490, USD: 55 },
       commission_rate: 15,
       features: {
         user_accounts: 3,
@@ -44,6 +50,7 @@ const DEFAULT_PLANS = {
       id: 3,
       name: "Business",
       price: 149,
+      prices: { EUR: 149, MAD: 1490, USD: 165 },
       commission_rate: 10,
       features: {
         user_accounts: 10,
@@ -58,6 +65,7 @@ const DEFAULT_PLANS = {
       id: 4,
       name: "Enterprise",
       price: null,
+      prices: { EUR: null, MAD: null, USD: null },
       commission_rate: 5,
       features: {
         user_accounts: "Illimité",
@@ -74,6 +82,7 @@ const DEFAULT_PLANS = {
       id: 5,
       name: "Free",
       price: 0,
+      prices: { EUR: 0, MAD: 0, USD: 0 },
       platform_fee_rate: 25,
       features: {
         ai_tools: "limités",
@@ -87,6 +96,7 @@ const DEFAULT_PLANS = {
       id: 6,
       name: "Creator Pro",
       price: 29,
+      prices: { EUR: 29, MAD: 290, USD: 32 },
       platform_fee_rate: 15,
       features: {
         ai_tools: "complets",
@@ -103,10 +113,55 @@ const Pricing = () => {
   const [subscriptionPlans, setSubscriptionPlans] = useState(DEFAULT_PLANS);
   const [selectedPlan, setSelectedPlan] = useState('merchants');
   const [loading, setLoading] = useState(true);
+  const { currency, changeCurrency, formatPrice, CURRENCIES } = useCurrency();
+  const location = useLocation();
+  const { user } = useAuth();
+  const toast = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchSubscriptionPlans();
-  }, []);
+    
+    const params = new URLSearchParams(location.search);
+    const role = params.get('role');
+    if (role === 'influencer') {
+      setSelectedPlan('influencers');
+    } else if (role === 'merchant') {
+      setSelectedPlan('merchants');
+    }
+  }, [location]);
+
+  const handlePlanSelect = async (plan) => {
+    if (!user) {
+      const role = selectedPlan === 'merchants' ? 'merchant' : 'influencer';
+      navigate(`/register?role=${role}&plan=${plan.name.toLowerCase().replace(/\s+/g, '-')}`);
+      return;
+    }
+
+    try {
+      // Appel à l'API pour mettre à jour l'abonnement
+      // On utilise /upgrade qui gère maintenant la création si inexistant
+      await api.post('/api/subscriptions/upgrade', {
+        new_plan_id: plan.id,
+        immediate: true
+      });
+
+      toast.success(`Plan ${plan.name} activé avec succès ! Redirection...`);
+      
+      // Petit délai pour l'UX
+      setTimeout(() => {
+        if (user.role === 'influencer') {
+          navigate('/dashboard/influencer');
+        } else {
+          navigate('/dashboard/merchant');
+        }
+      }, 1500);
+      
+    } catch (error) {
+      console.error("Error selecting plan:", error);
+      toast.error("Erreur lors de la mise à jour du plan. Veuillez réessayer.");
+    }
+  };
 
   const fetchSubscriptionPlans = async () => {
     try {
@@ -171,6 +226,25 @@ const Pricing = () => {
               Choisissez le plan qui correspond à vos ambitions 💰
             </p>
             
+            {/* Currency Selector */}
+            <div className="flex justify-center mb-8">
+              <div className="bg-white/20 backdrop-blur-lg rounded-xl p-1 flex items-center space-x-1 border border-white/30">
+                {Object.values(CURRENCIES).map((curr) => (
+                  <button
+                    key={curr.code}
+                    onClick={() => changeCurrency(curr.code)}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                      currency === curr.code
+                        ? 'bg-white text-cyan-600 shadow-lg'
+                        : 'text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {curr.symbol} {curr.code}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
             {/* Plan Toggle - Ultra Moderne */}
             <div className="inline-flex bg-white/20 backdrop-blur-lg rounded-2xl shadow-2xl p-2 mb-12 border border-white/30">
               <button
@@ -193,7 +267,7 @@ const Pricing = () => {
                 }`}
               >
                 <Zap className="inline-block w-5 h-5 mr-2" />
-                Pour les Influenceurs
+                Pour les Influenceurs & Commerciaux
               </button>
             </div>
           </div>
@@ -226,7 +300,7 @@ const Pricing = () => {
                     {plan.price !== null ? (
                       <>
                         <span className="text-5xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                          {plan.price}€
+                          {plan.prices ? formatPrice(plan.prices[currency], currency) : formatPrice(plan.price, currency)}
                         </span>
                         <span className="text-gray-600 font-semibold">/mois</span>
                       </>
@@ -245,58 +319,63 @@ const Pricing = () => {
                   </div>
 
                   <div className="space-y-3 mb-8">
-                    <div className="flex items-start">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">{plan.features.user_accounts} compte(s) utilisateur</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">{plan.features.trackable_links_per_month} liens traçables/mois</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">Rapports {plan.features.reports}</span>
-                    </div>
-                    {plan.features.ai_tools && (
-                      <div className="flex items-start">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0 animate-pulse">
-                          <Sparkles className="w-4 h-4 text-white" />
+                    {/* Dynamic Features Rendering */}
+                    {Object.entries(plan.features).map(([key, value]) => {
+                       if (value === false) return null;
+                       let label = "";
+                       let icon = <Check className="w-4 h-4 text-white" />;
+                       let bg = "bg-gradient-to-br from-green-400 to-emerald-500";
+
+                       switch(key) {
+                           case 'user_accounts': label = `${value} compte(s) utilisateur`; break;
+                           case 'trackable_links_per_month': label = `${value} liens traçables/mois`; break;
+                           case 'reports': label = `Rapports ${value}`; break;
+                           case 'products': label = `${value === 'unlimited' ? 'Illimité' : value} produits`; break;
+                           case 'campaigns': label = `${value === 'unlimited' ? 'Illimité' : value} campagnes`; break;
+                           case 'analytics': label = `Analytics ${value}`; break;
+                           case 'ai_tools': 
+                               label = "Outils IA Marketing"; 
+                               icon = <Sparkles className="w-4 h-4 text-white" />;
+                               bg = "bg-gradient-to-br from-purple-400 to-pink-500 animate-pulse";
+                               break;
+                           case 'dedicated_manager':
+                               label = "Manager dédié";
+                               icon = <Users className="w-4 h-4 text-white" />;
+                               bg = "bg-gradient-to-br from-orange-400 to-red-500";
+                               break;
+                           case 'support':
+                               label = `Support ${value}`;
+                               icon = <Shield className="w-4 h-4 text-white" />;
+                               bg = "bg-gradient-to-br from-blue-400 to-cyan-500";
+                               break;
+                           case 'api_access':
+                               label = "Accès API";
+                               break;
+                           default:
+                               return null; 
+                       }
+                       
+                       return (
+                        <div key={key} className="flex items-start">
+                          <div className={`w-6 h-6 rounded-full ${bg} flex items-center justify-center mr-3 mt-0.5 flex-shrink-0`}>
+                            {icon}
+                          </div>
+                          <span className="text-sm font-medium text-gray-700">{label}</span>
                         </div>
-                        <span className="text-sm font-medium text-gray-700">Outils IA Marketing</span>
-                      </div>
-                    )}
-                    {plan.features.dedicated_manager && (
-                      <div className="flex items-start">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                          <Users className="w-4 h-4 text-white" />
-                        </div>
-                        <span className="text-sm font-medium text-gray-700">Manager dédié</span>
-                      </div>
-                    )}
-                    <div className="flex items-start">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                        <Shield className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">Support {plan.features.support}</span>
-                    </div>
+                       );
+                    })}
                   </div>
 
-                  <Link
-                    to={`/register?role=merchant&plan=${plan.name.toLowerCase()}`}
+                  <button
+                    onClick={() => handlePlanSelect(plan)}
                     className={`block w-full text-center py-4 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 ${
                       index === 2
                         ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-700 hover:to-blue-700 animate-gradient'
                         : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-900 hover:from-gray-200 hover:to-gray-300'
                     }`}
                   >
-                    {plan.price === 0 ? '🎉 Commencer gratuitement' : '🚀 Choisir ce plan'}
-                  </Link>
+                    {plan.price === 0 ? '🎉 Commencer gratuitement' : (user && user.role === 'merchant' ? '🚀 Choisir ce plan' : '🚀 Choisir ce plan')}
+                  </button>
                 </div>
               </div>
             ))
@@ -334,7 +413,7 @@ const Pricing = () => {
                   </h3>
                   <div className="mb-6">
                     <span className="text-5xl font-black bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">
-                      {plan.price}€
+                      {plan.prices ? formatPrice(plan.prices[currency], currency) : formatPrice(plan.price, currency)}
                     </span>
                     <span className="text-gray-600 font-semibold">/mois</span>
                   </div>
@@ -347,50 +426,56 @@ const Pricing = () => {
                   </div>
 
                   <div className="space-y-3 mb-8">
-                    <div className="flex items-start">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0 animate-pulse">
-                        <Sparkles className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">Outils IA: {plan.features.ai_tools}</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                        <TrendingUp className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">Campagnes: {plan.features.campaigns_per_month}</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">Paiements: {plan.features.payments}</span>
-                    </div>
-                    <div className="flex items-start">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                        <TrendingUp className="w-4 h-4 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">Analytics: {plan.features.analytics}</span>
-                    </div>
-                    {plan.features.priority_support && (
-                      <div className="flex items-start">
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mr-3 mt-0.5 flex-shrink-0">
-                          <Shield className="w-4 h-4 text-white" />
+                    {Object.entries(plan.features).map(([key, value]) => {
+                       if (value === false) return null;
+                       let label = "";
+                       let icon = <Check className="w-4 h-4 text-white" />;
+                       let bg = "bg-gradient-to-br from-green-400 to-emerald-500";
+
+                       switch(key) {
+                           case 'ai_tools': 
+                               label = `Outils IA: ${value}`; 
+                               icon = <Sparkles className="w-4 h-4 text-white" />;
+                               bg = "bg-gradient-to-br from-purple-400 to-pink-500 animate-pulse";
+                               break;
+                           case 'campaigns_per_month': label = `Campagnes: ${value}`; break;
+                           case 'payments': label = `Paiements: ${value}`; break;
+                           case 'analytics': label = `Analytics: ${value}`; break;
+                           case 'priority_support': 
+                               label = "Support prioritaire 24/7";
+                               icon = <Shield className="w-4 h-4 text-white" />;
+                               bg = "bg-gradient-to-br from-cyan-400 to-blue-500";
+                               break;
+                           case 'marketplace_access':
+                               label = "Accès Marketplace";
+                               break;
+                           case 'support':
+                               label = `Support ${value}`;
+                               break;
+                           default: return null;
+                       }
+
+                       return (
+                        <div key={key} className="flex items-start">
+                          <div className={`w-6 h-6 rounded-full ${bg} flex items-center justify-center mr-3 mt-0.5 flex-shrink-0`}>
+                            {icon}
+                          </div>
+                          <span className="text-sm font-medium text-gray-700">{label}</span>
                         </div>
-                        <span className="text-sm font-medium text-gray-700">Support prioritaire 24/7</span>
-                      </div>
-                    )}
+                       );
+                    })}
                   </div>
 
-                  <Link
-                    to={`/register?role=influencer&plan=${plan.name.toLowerCase().replace(/\s+/g, '-')}`}
+                  <button
+                    onClick={() => handlePlanSelect(plan)}
                     className={`block w-full text-center py-4 rounded-xl font-bold transition-all duration-300 shadow-lg hover:shadow-2xl transform hover:scale-105 ${
                       index === 1
                         ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white hover:from-cyan-700 hover:to-teal-700 animate-gradient'
                         : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-900 hover:from-gray-200 hover:to-gray-300'
                     }`}
                   >
-                    {plan.price === 0 ? '🎉 Commencer gratuitement' : '🚀 Choisir ce plan'}
-                  </Link>
+                    {plan.price === 0 ? '🎉 Commencer gratuitement' : (user && user.role === 'influencer' ? '🚀 Passer à ce plan' : '🚀 Choisir ce plan')}
+                  </button>
                 </div>
               </div>
             ))

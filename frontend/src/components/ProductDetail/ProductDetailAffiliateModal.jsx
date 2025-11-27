@@ -109,9 +109,10 @@ const ProductDetailAffiliateModal = memo(({
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="bg-white/80 backdrop-blur-sm p-4 rounded-xl text-center">
                     <div className="text-2xl font-black bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent">
-                      {userProfile.followers_count
-                        ? (userProfile.followers_count / 1000).toFixed(1)
-                        : 0}
+                      {(() => {
+                        const count = Number(userProfile.followers_count);
+                        return isNaN(count) ? '0' : (count / 1000).toFixed(1);
+                      })()}
                       K
                     </div>
                     <div className="text-xs text-gray-600 font-semibold mt-1 flex items-center justify-center gap-1">
@@ -123,7 +124,10 @@ const ProductDetailAffiliateModal = memo(({
                   </div>
                   <div className="bg-white/80 backdrop-blur-sm p-4 rounded-xl text-center">
                     <div className="text-2xl font-black bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                      {userProfile.engagement_rate || 0}%
+                      {(() => {
+                        const rate = Number(userProfile.engagement_rate);
+                        return isNaN(rate) ? '0' : rate;
+                      })()}%
                     </div>
                     <div className="text-xs text-gray-600 font-semibold mt-1">Engagement</div>
                   </div>

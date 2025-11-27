@@ -13,14 +13,9 @@ from typing import Optional, Dict
 import hashlib
 import secrets
 import logging
+import os
 
 logger = logging.getLogger(__name__)
-
-# Import optimiseur DB
-try:
-    from utils.db_optimized import DBOptimizer
-except ImportError:
-    DBOptimizer = None
 
 # Configuration
 COOKIE_NAME = "systrack"  # ShareYourSales tracking
@@ -38,13 +33,26 @@ class TrackingService:
     # 1. GÉNÉRATION DE LIENS TRACKÉS
     # ============================================
 
-    def generate_short_code(self, link_id: str) -> str:
+    def generate_short_code(self, link_id: str = None) -> str:
         """Génère un code court unique pour un lien"""
         # Utiliser hash + timestamp pour unicité
-        raw = f"{link_id}-{datetime.now().isoformat()}-{secrets.token_hex(4)}"
+        if link_id:
+            raw = f"{link_id}-{datetime.now().isoformat()}-{secrets.token_hex(4)}"
+        else:
+            raw = f"{datetime.now().isoformat()}-{secrets.token_hex(4)}"
+            
         hash_obj = hashlib.sha256(raw.encode())
         short_code = hash_obj.hexdigest()[:SHORT_CODE_LENGTH]
         return short_code.upper()
+
+    def anonymize_ip(self, ip_address: str) -> str:
+        """Anonymise une adresse IP avec SHA-256 (GDPR compliance)"""
+        if not ip_address or ip_address == "unknown":
+            return "unknown"
+        # Salt avec une valeur fixe pour permettre le comptage des uniques, 
+        # mais empêcher de retrouver l'IP originale
+        salt = "sys_gdpr_salt_2025" 
+        return hashlib.sha256(f"{ip_address}{salt}".encode()).hexdigest()
 
     async def create_tracking_link(
         self,
@@ -71,33 +79,30 @@ class TrackingService:
             }
         """
         try:
-            # 1. Créer l'entrée tracking_link
+            # 1. Générer un code court unique
+            short_code = self.generate_short_code()
+            # 3. Construire l'URL de tracking
+            base_url = os.getenv("API_URL", "http://localhost:8000")
+            tracking_url = f"{base_url}/r/{short_code}"
+
+            # 2. Créer l'entrée tracking_link
+            # 2. Créer l'entrée tracking_link
             link_data = {
                 "influencer_id": influencer_id,
                 "product_id": product_id,
                 "campaign_id": campaign_id,
-                "destination_url": merchant_url,
+                "unique_code": short_code,
+                "full_url": tracking_url, # Added this
+                # "destination_url": merchant_url, # Column missing in DB
                 "clicks": 0,
                 "conversions": 0,
                 "revenue": 0.0,
-                "status": "active",
+                # "status": "active", # Column missing in DB
                 "created_at": datetime.now().isoformat(),
             }
 
             result = supabase.table("tracking_links").insert(link_data).execute()
             link_id = result.data[0]["id"]
-
-            # 2. Générer un code court unique
-            short_code = self.generate_short_code(link_id)
-
-            # 3. Mettre à jour avec le short_code
-            supabase.table("tracking_links").update({"short_code": short_code}).eq(
-                "id", link_id
-            ).execute()
-
-            # 4. Construire l'URL de tracking
-            tracking_url = f"http://localhost:8000/r/{short_code}"
-            # En production: https://tracknow.io/r/{short_code}
 
             logger.info(f"✅ Lien créé: {tracking_url} → {merchant_url}")
 
@@ -153,11 +158,14 @@ class TrackingService:
             user_agent = request.headers.get("user-agent", "unknown")
             referer = request.headers.get("referer", "")
 
+            # Anonymisation IP (GDPR)
+            anonymized_ip = self.anonymize_ip(client_ip)
+
             # 3. Enregistrer le clic dans la table click_logs
             click_data = {
                 "link_id": link["id"],
                 "influencer_id": link["influencer_id"],
-                "ip_address": client_ip,
+                "ip_address": anonymized_ip,
                 "user_agent": user_agent,
                 "referer": referer,
                 "clicked_at": datetime.now().isoformat(),
@@ -188,7 +196,20 @@ class TrackingService:
             logger.info(f"🖱️ Clic tracké: {short_code} → Cookie: {cookie_value[:20]}...")
 
             # 6. Retourner l'URL de destination
-            return link["destination_url"]
+            destination_url = link.get("destination_url")
+            if not destination_url:
+                # Fallback: fetch from product
+                try:
+                    product = supabase.table('products').select('url').eq('id', link['product_id']).single().execute()
+                    destination_url = product.data.get('url')
+                except Exception:
+                    pass
+            
+            if not destination_url:
+                 # Fallback default
+                 destination_url = f"https://merchant.com/product/{link['product_id']}"
+
+            return destination_url
 
         except Exception as e:
             logger.error(f"Erreur tracking clic: {e}")

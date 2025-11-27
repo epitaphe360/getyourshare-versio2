@@ -19,10 +19,10 @@ load_dotenv()
 security = HTTPBearer()
 JWT_SECRET = os.getenv("JWT_SECRET")
 if not JWT_SECRET:
-    # In production, this should raise an error. 
-    # For development convenience, we can generate one if not present, 
-    # but it's better to force the user to set it.
-    # However, to avoid breaking the user's current setup if they don't have it set:
+    if os.getenv("ENVIRONMENT") == "production":
+        raise ValueError("CRITICAL: JWT_SECRET is missing in production environment!")
+
+    # In development, we can generate one if not present
     import secrets
     logger = logging.getLogger(__name__)
     logger.warning("⚠️ JWT_SECRET not set in environment variables! Using a temporary random secret. Tokens will be invalid after restart.")
@@ -77,6 +77,40 @@ def get_current_user_from_cookie(request: Request):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials"
         )
+
+
+def get_optional_user_from_cookie(request: Request):
+    """
+    Get current user from httpOnly cookie (secure method) if available.
+    Returns None if not authenticated instead of raising 401.
+    """
+    # Try to get token from cookie first (secure)
+    token = request.cookies.get("access_token")
+
+    # Fallback to Authorization header (legacy)
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+
+    if not token:
+        return None
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+
+        # Verify token type
+        if payload.get("type") != "access":
+            return None
+
+        # Return user data with 'id' key for consistency
+        return {
+            "id": payload.get("sub"),
+            "email": payload.get("email"),
+            "role": payload.get("role")
+        }
+    except Exception:
+        return None
 
 
 def verify_token(credentials: Union[HTTPAuthorizationCredentials, str] = Depends(security)):

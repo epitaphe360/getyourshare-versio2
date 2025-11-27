@@ -697,7 +697,7 @@ async def get_my_agreements(
 # EXPORTER LE ROUTER
 # ============================================
 
-def add_leads_endpoints(app, verify_token_func):
+def add_leads_endpoints(app):
     """Ajouter tous les endpoints LEADS à l'application"""
     app.include_router(router)
     logger.info("✅ Endpoints LEADS système intégrés")

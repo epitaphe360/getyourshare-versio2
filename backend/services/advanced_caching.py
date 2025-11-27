@@ -250,7 +250,7 @@ class AdvancedCachingStrategy:
         if '{' in key:
             # Fallback: hash des arguments
             args_str = json.dumps({'args': args, 'kwargs': kwargs}, sort_keys=True)
-            args_hash = hashlib.md5(args_str.encode()).hexdigest()[:8]
+            args_hash = hashlib.sha256(args_str.encode()).hexdigest()[:16]
             key = f"{key}:{args_hash}"
 
         return key

@@ -19,8 +19,6 @@ from db_helpers import (
 
 # Imports depuis advanced_helpers
 from advanced_helpers import (
-    generate_verification_token,
-    send_verification_email,
     create_product,
     update_product,
     delete_product,
@@ -37,6 +35,9 @@ from advanced_helpers import (
     get_platform_settings,
     update_platform_setting,
 )
+
+from moderation_service import moderate_product
+from supabase_client import supabase
 
 # ============================================
 # NOUVEAUX MODÈLES PYDANTIC
@@ -142,7 +143,7 @@ def add_products_endpoints(app, verify_token):
             raise HTTPException(status_code=404, detail="Profil merchant non trouvé")
 
         product = create_product(
-            merchant_id=merchant["id"],
+            merchant_id=merchant["user_id"],
             name=product_data.name,
             price=product_data.price,
             commission_rate=product_data.commission_rate,
@@ -156,6 +157,33 @@ def add_products_endpoints(app, verify_token):
 
         if not product:
             raise HTTPException(status_code=500, detail="Erreur lors de la création du produit")
+
+        # --- MODERATION TRIGGER ---
+        try:
+            # Run AI Moderation
+            mod_result = await moderate_product(
+                product_name=product["name"],
+                description=product.get("description", ""),
+                category=product.get("category"),
+                price=float(product.get("price", 0)),
+                use_ai=True
+            )
+            
+            # Submit to queue via RPC
+            supabase.rpc("submit_product_for_moderation", {
+                "p_product_id": product["id"],
+                "p_merchant_id": merchant["id"],
+                "p_user_id": user["id"],
+                "p_product_name": product["name"],
+                "p_product_description": product.get("description", ""),
+                "p_product_category": product.get("category"),
+                "p_product_price": float(product.get("price", 0)),
+                "p_product_images": [product.get("image_url")] if product.get("image_url") else [],
+                "p_ai_result": mod_result
+            }).execute()
+            
+        except Exception as e:
+            logger.error(f"Error in moderation trigger: {e}")
 
         return {"message": "Produit créé avec succès", "product": product}
 

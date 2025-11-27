@@ -41,8 +41,10 @@ const HomePage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
   useEffect(() => {
-    fetch('http://localhost:8000/api/products')
+    fetch(`${API_URL}/products`)
       .then(res => res.json())
       .then(data => {
         setProducts(data.slice(0, 6));

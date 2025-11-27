@@ -8,6 +8,8 @@ function BillingHistory() {
   const [error, setError] = useState(null);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
   useEffect(() => {
     fetchInvoices();
   }, []);
@@ -18,7 +20,7 @@ function BillingHistory() {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:8000/api/invoices/history', {
+      const response = await axios.get(`${API_URL}/invoices/history`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

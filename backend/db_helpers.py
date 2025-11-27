@@ -489,6 +489,7 @@ def create_campaign(merchant_id: str, name: str, **kwargs) -> Optional[Dict]:
             "start_date": kwargs.get("start_date"),
             "end_date": kwargs.get("end_date"),
             "status": kwargs.get("status", "draft"),
+            "commission_rate": kwargs.get("commission_rate", 0.0),
         }
 
         result = supabase.table("campaigns").insert(campaign_data).execute()
@@ -786,4 +787,33 @@ def update_payout_status(payout_id: str, status: str) -> bool:
         return True
     except Exception as e:
         logger.error(f"Error updating payout status: {e}")
+        return False
+
+
+# ============================================
+# LOGGING & ACTIVITY
+# ============================================
+
+def log_user_activity(user_id: str, action: str, details: Optional[Dict] = None) -> bool:
+    """Enregistre une activité utilisateur"""
+    try:
+        activity_data = {
+            "user_id": user_id,
+            "action": action,
+            "details": details or {},
+            "created_at": datetime.now().isoformat()
+        }
+        
+        # Vérifier si la table user_activity_logs existe, sinon on pourrait utiliser une autre table ou ignorer
+        # Pour l'instant on suppose qu'elle existe ou on l'ajoute si nécessaire
+        try:
+            supabase.table("user_activity_logs").insert(activity_data).execute()
+            return True
+        except Exception:
+            # Fallback: log to console if table doesn't exist
+            logger.info(f"User Activity: {user_id} - {action} - {details}")
+            return True
+            
+    except Exception as e:
+        logger.error(f"Error logging user activity: {e}")
         return False

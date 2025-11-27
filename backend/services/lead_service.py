@@ -13,12 +13,6 @@ from supabase import Client
 import logging
 logger = logging.getLogger(__name__)
 
-# Import optimiseur DB
-try:
-    from utils.db_optimized import DBOptimizer
-except ImportError:
-    DBOptimizer = None
-
 class LeadService:
     """Service pour gérer les leads (génération, validation, commissions)"""
     

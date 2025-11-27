@@ -7,6 +7,9 @@ from supabase_client import supabase
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import secrets
+import logging
+
+logger = logging.getLogger(__name__)
 
 # ============================================
 # PRODUCTS - CRUD COMPLET
@@ -18,6 +21,10 @@ def create_product(
 ) -> Optional[Dict]:
     """Crée un nouveau produit"""
     try:
+        # Handle images mapping
+        images = kwargs.get("images", [])
+        image_url = images[0] if images and isinstance(images, list) else None
+
         product_data = {
             "merchant_id": merchant_id,
             "name": name,
@@ -25,14 +32,10 @@ def create_product(
             "category": kwargs.get("category", "Autre"),
             "price": price,
             "commission_rate": commission_rate,
-            "commission_type": kwargs.get("commission_type", "percentage"),
-            "images": kwargs.get("images", []),
-            "slug": kwargs.get("slug", name.lower().replace(" ", "-")),
-            "stock_quantity": kwargs.get("stock_quantity", 0),
-            "is_available": kwargs.get("is_available", True),
+            "image_url": image_url,
+            "stock": kwargs.get("stock_quantity", 0),
+            "is_active": kwargs.get("is_available", True),
             "sku": kwargs.get("sku"),
-            "weight": kwargs.get("weight"),
-            "dimensions": kwargs.get("dimensions"),
         }
 
         result = supabase.table("products").insert(product_data).execute()

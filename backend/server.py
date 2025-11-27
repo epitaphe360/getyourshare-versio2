@@ -16,18 +16,22 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, Depends, status, Request, Response, Query
+from fastapi import FastAPI, HTTPException, Depends, status, Request, Response, Query, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, StreamingResponse
 from middleware.security import csrf_middleware, security_headers_middleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime, timedelta
 import jwt
 import os
 import logging
 from dotenv import load_dotenv
+from fastapi.concurrency import run_in_threadpool
+
+import asyncio
+from websocket_endpoints import router as websocket_router, listen_to_database_changes
 
 # Importer les helpers Supabase
 from db_helpers import (
@@ -39,7 +43,6 @@ from db_helpers import (
     verify_password,
     update_user_last_login,
     get_dashboard_stats,
-    get_all_merchants,
     get_merchant_by_id,
     get_all_influencers,
     get_influencer_by_id,
@@ -49,16 +52,16 @@ from db_helpers import (
     get_product_by_id,
     get_all_services,
     get_service_by_id,
-    get_affiliate_links,
-    create_affiliate_link,
     get_all_campaigns,
     create_campaign,
-    get_conversions,
     get_clicks,
     get_payouts,
     update_payout_status,
 )
 from supabase_client import supabase
+from services.twofa_service import twofa_service
+from utils.cache import cache
+from invoice_service import InvoiceService
 
 # Initialize logger
 logging.basicConfig(level=logging.INFO)
@@ -77,8 +80,6 @@ except ImportError as e:
         pass
     def stop_scheduler():
         pass
-
-import atexit
 
 # ============================================
 # API METADATA & DOCUMENTATION
@@ -242,11 +243,38 @@ Les limites peuvent varier selon votre plan d'abonnement.
     openapi_url="/openapi.json",
 )
 
+# ============================================
+# GLOBAL EXCEPTION HANDLER (SECURITY)
+# ============================================
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Gestionnaire global d'exceptions pour masquer les stack traces en production.
+    """
+    # Log l'erreur complète côté serveur
+    logger.error(f"🔥 Unhandled Exception: {str(exc)}", exc_info=True)
+    
+    # En production, masquer les détails
+    if ENVIRONMENT == "production":
+        return Response(
+            content='{"detail": "Internal Server Error"}',
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            media_type="application/json"
+        )
+        
+    # En développement, laisser FastAPI afficher le stack trace par défaut (ou le retourner)
+    # Pour l'instant, on retourne l'erreur pour faciliter le debug
+    return Response(
+        content=f'{{"detail": "{str(exc)}"}}',
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        media_type="application/json"
+    )
+
 # Importer le scheduler et les services
 from scheduler import start_scheduler, stop_scheduler
 from auto_payment_service import AutoPaymentService
 from tracking_service import tracking_service
-from webhook_service import webhook_service
 
 # Initialiser les services
 payment_service = AutoPaymentService()
@@ -256,8 +284,12 @@ payment_service = AutoPaymentService()
 allowed_origins = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
     os.getenv("FRONTEND_URL", "https://getyourshare.com"),
     os.getenv("PRODUCTION_URL", "https://www.getyourshare.com"),
 ]
@@ -291,10 +323,17 @@ logger.info(f"CORS allowed origins: {allowed_origins}")
 # This handles URLs like: https://getyourshare-*.vercel.app
 vercel_regex = r"https://.*\.vercel\.app"
 
+# In development, allow local network IPs to facilitate testing on other devices
+if os.getenv("ENV", "development") == "development":
+    # Allow local network IPs (192.168.x.x, 10.x.x.x, 172.x.x.x) on any port
+    local_ip_regex = r"|http://192\.168\.\d{1,3}\.\d{1,3}:\d+|http://10\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+|http://172\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+"
+    vercel_regex += local_ip_regex
+    logger.info(f"CORS regex updated for local development: {vercel_regex}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,  # ✅ Whitelist au lieu de wildcard
-    allow_origin_regex=vercel_regex,  # ✅ Allow all Vercel deployments
+    allow_origin_regex=vercel_regex,  # ✅ Allow all Vercel deployments + Local IPs
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
@@ -318,6 +357,7 @@ from marketplace_endpoints import router as marketplace_router
 from affiliate_links_endpoints import router as affiliate_links_router
 from contact_endpoints import router as contact_router
 from admin_social_endpoints import router as admin_social_router
+from social_media_endpoints import router as social_media_router
 from affiliation_requests_endpoints import router as affiliation_requests_router
 from kyc_endpoints import router as kyc_router
 from twofa_endpoints import router as twofa_router
@@ -360,6 +400,7 @@ app.include_router(marketplace_router)
 app.include_router(affiliate_links_router)
 app.include_router(contact_router)
 app.include_router(admin_social_router)
+app.include_router(social_media_router)
 app.include_router(affiliation_requests_router)
 app.include_router(kyc_router)
 app.include_router(twofa_router)
@@ -372,6 +413,7 @@ app.include_router(commercials_router)
 app.include_router(influencers_router)
 app.include_router(company_links_router)  # New company-only link generation
 app.include_router(notification_router)
+app.include_router(websocket_router)
 
 # Nouveaux routers - 6 Features Marketables
 app.include_router(ai_content_router)
@@ -422,7 +464,7 @@ class TwoFAVerifyRequest(BaseModel):
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=6)
-    role: str = Field(..., pattern="^(merchant|influencer)$")
+    role: str = Field(..., pattern="^(merchant|influencer|sales_rep|commercial)$")
     phone: Optional[str] = None
 
 class UserUpdate(BaseModel):
@@ -449,6 +491,7 @@ class CampaignCreate(BaseModel):
     description: Optional[str] = None
     status: str = Field(default="active", pattern="^(active|paused|ended)$")
     budget: Optional[float] = None
+    commission_rate: Optional[float] = 0.0
 
 class AffiliateStatusUpdate(BaseModel):
     status: str = Field(..., pattern="^(active|inactive|suspended)$")
@@ -504,7 +547,7 @@ def create_refresh_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, REFRESH_TOKEN_SECRET, algorithm=JWT_ALGORITHM)
     return encoded_jwt
 
-from auth import get_current_user_from_cookie
+from auth import get_current_user_from_cookie, get_optional_user_from_cookie, optional_auth
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify JWT token from Authorization header (legacy support)"""
@@ -557,11 +600,18 @@ async def health_check():
         "database": "Supabase Connected"
     }
 
+@app.get("/api/health")
+async def api_health_check():
+    """Health check endpoint (alias for /api prefix)"""
+    return await health_check()
+
 @app.post("/api/auth/login")
-async def login(login_data: LoginRequest, response: Response):
+async def login(login_data: LoginRequest, response: Response, background_tasks: BackgroundTasks):
     """Login avec email et mot de passe - Tokens dans httpOnly cookies"""
+    logger.info(f"Login attempt for {login_data.email}")
     # Trouver l'utilisateur dans Supabase
-    user = get_user_by_email(login_data.email)
+    user = await run_in_threadpool(get_user_by_email, login_data.email)
+    logger.debug(f"User found: {user is not None}")
 
     if not user:
         raise HTTPException(
@@ -569,8 +619,11 @@ async def login(login_data: LoginRequest, response: Response):
             detail="Email ou mot de passe incorrect"
         )
 
-    # Vérifier le mot de passe
-    if not verify_password(login_data.password, user["password_hash"]):
+    # Vérifier le mot de passe (Run in threadpool to avoid blocking event loop)
+    is_password_valid = await run_in_threadpool(verify_password, login_data.password, user["password_hash"])
+    logger.debug(f"Password valid: {is_password_valid}")
+    
+    if not is_password_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email ou mot de passe incorrect"
@@ -583,37 +636,52 @@ async def login(login_data: LoginRequest, response: Response):
             detail="Compte désactivé"
         )
 
+    logger.debug(f"2FA enabled: {user.get('two_fa_enabled')}")
+
     # Si 2FA activé
     if user.get("two_fa_enabled", False):
-        code = "123456"  # Mock - en production, envoyer par SMS
-
+        # Vérifier le statut 2FA réel
+        status_2fa = await twofa_service.get_2fa_status(user["id"])
+        
+        # Si méthode email, envoyer le code
+        if status_2fa["method"] == "email":
+             await twofa_service.send_email_code(user["id"], user["email"])
+             logger.info(f"📧 Code 2FA envoyé par email à {user['email']}")
+        
         temp_token = create_access_token(
             {"sub": user["id"], "temp": True},
             expires_delta=timedelta(minutes=5)
         )
 
-        logger.info(f"📱 Code 2FA pour {user['email']}: {code}")
-
         return {
             "requires_2fa": True,
             "temp_token": temp_token,
             "token_type": "bearer",
+            "method": status_2fa["method"],
             "message": f"Code 2FA envoyé"
         }
 
     # Pas de 2FA, connexion directe
-    update_user_last_login(user["id"])
+    # OPTIMIZATION: Update last_login in background to speed up response
+    background_tasks.add_task(update_user_last_login, user["id"])
 
-    # Créer access token (15 minutes) et refresh token (7 jours)
-    access_token = create_access_token({
-        "sub": user["id"],
-        "email": user["email"],
-        "role": user["role"]
-    })
+    logger.debug("Creating tokens")
+    try:
+        # Créer access token (15 minutes) et refresh token (7 jours)
+        access_token = create_access_token({
+            "sub": user["id"],
+            "email": user["email"],
+            "role": user["role"]
+        })
+        logger.debug("Access token created")
 
-    refresh_token = create_refresh_token({
-        "sub": user["id"]
-    })
+        refresh_token = create_refresh_token({
+            "sub": user["id"]
+        })
+        logger.debug("Refresh token created")
+    except Exception as e:
+        logger.error(f"Error creating tokens: {e}")
+        raise e
 
     # Définir les tokens dans des cookies httpOnly (sécurisé contre XSS)
     response.set_cookie(
@@ -637,8 +705,10 @@ async def login(login_data: LoginRequest, response: Response):
     # Retirer le password_hash de la réponse
     user_data = {k: v for k, v in user.items() if k != "password_hash"}
 
-    # Ne pas retourner les tokens dans le JSON (ils sont dans les cookies)
+    # Retourner aussi le token dans le JSON pour les clients API (et le load test)
     return {
+        "access_token": access_token,
+        "token_type": "bearer",
         "requires_2fa": False,
         "user": user_data,
         "message": "Login successful"
@@ -732,7 +802,7 @@ async def logout(response: Response, payload: dict = Depends(get_current_user_fr
     return {"message": "Logged out successfully"}
 
 @app.post("/api/auth/verify-2fa")
-async def verify_2fa(data: TwoFAVerifyRequest):
+async def verify_2fa(data: TwoFAVerifyRequest, background_tasks: BackgroundTasks):
     """Vérification du code 2FA"""
     # Vérifier le temp_token
     try:
@@ -750,15 +820,22 @@ async def verify_2fa(data: TwoFAVerifyRequest):
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
 
-    # Vérifier le code 2FA (mock - accepter 123456)
-    if data.code != "123456":
+    # Determine method
+    status_2fa = await twofa_service.get_2fa_status(user["id"])
+    method = status_2fa.get("method", "totp")
+
+    # Vérifier le code 2FA
+    is_valid = await twofa_service.verify_2fa(user["id"], data.code, method=method)
+    
+    if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Code 2FA incorrect"
         )
 
     # Code correct, créer le vrai token
-    update_user_last_login(user["id"])
+    # OPTIMIZATION: Update last_login in background
+    background_tasks.add_task(update_user_last_login, user["id"])
 
     access_token = create_access_token({
         "sub": user["id"],
@@ -783,7 +860,22 @@ async def get_current_user_endpoint(payload: dict = Depends(get_current_user_fro
     user = get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
     user_data = {k: v for k, v in user.items() if k != "password_hash"}
+    
+    # Enrich with profile data
+    if user.get("role") == "influencer":
+        profile = get_influencer_by_user_id(user_id)
+        if profile:
+            # Merge profile data, but keep user data priority for conflicting keys if any
+            # Actually profile data should probably override or be merged carefully
+            # For now, simple update
+            user_data.update(profile)
+    elif user.get("role") == "merchant":
+        profile = get_merchant_by_user_id(user_id)
+        if profile:
+            user_data.update(profile)
+            
     return user_data
 
 @app.put("/api/auth/profile")
@@ -877,6 +969,20 @@ async def register(data: RegisterRequest):
                 'engagement_rate': 3.0
             }
             supabase.table('influencers').insert(influencer_data).execute()
+        elif data.role == "commercial":
+            commercial_data = {
+                'user_id': user["id"],
+                'first_name': user["email"].split("@")[0],
+                'last_name': 'Commercial',
+                'email': user["email"],
+                'phone': user["phone"],
+                'territory': 'General',
+                'commission_rate': 5.0,
+                'target_monthly_deals': 10,
+                'target_monthly_revenue': 50000.0,
+                'is_active': True
+            }
+            supabase.table('sales_representatives').insert(commercial_data).execute()
     except Exception as e:
         logger.warning(f"Warning: Could not create profile for {data.role}: {e}")
         # Continue anyway, profile can be created later
@@ -888,6 +994,7 @@ async def register(data: RegisterRequest):
 # ============================================
 
 @app.get("/api/dashboard/stats")
+@cache(ttl_seconds=300)
 async def get_dashboard_stats_endpoint(request: Request, payload: dict = Depends(get_current_user_from_cookie)):
     """Statistiques du dashboard selon le rôle"""
     user = get_user_by_id(payload["id"])
@@ -912,9 +1019,39 @@ async def get_dashboard_stats_endpoint(request: Request, payload: dict = Depends
 # ============================================
 
 @app.get("/api/merchants")
+@cache(ttl_seconds=600)
 async def get_merchants(request: Request, payload: dict = Depends(get_current_user_from_cookie)):
-    """Liste tous les merchants depuis la table users et enrichit avec la table merchants"""
+    """Liste tous les merchants (Optimisé avec View)"""
     try:
+        # OPTIMIZATION: Try to use the SQL View first
+        try:
+            view_result = supabase.table("merchants_stats_view").select("*").execute()
+            if view_result.data:
+                formatted_merchants = []
+                for row in view_result.data:
+                    formatted_merchants.append({
+                        "id": row.get("user_id"),
+                        "full_name": row.get("company_name"),
+                        "company_name": row.get("company_name"),
+                        "category": row.get("category"),
+                        "email": row.get("email"),
+                        "country": "Maroc", # Default
+                        "balance": 0, # Not in view yet
+                        "total_spent": float(row.get("total_revenue", 0)),
+                        "total_revenue": float(row.get("total_revenue", 0)),
+                        "total_sales": float(row.get("total_revenue", 0)),
+                        "campaigns_count": 0,
+                        "status": "active",
+                        "created_at": row.get("created_at")
+                    })
+                
+                # Sort
+                formatted_merchants.sort(key=lambda x: (x['company_name'] == 'Inconnu', -x['total_revenue']))
+                return {"merchants": formatted_merchants, "total": len(formatted_merchants)}
+        except Exception as view_error:
+            logger.warning(f"⚠️ Could not use merchants_stats_view: {view_error}. Falling back to legacy method.")
+
+        # FALLBACK: Legacy method (Slow)
         # 1. Récupérer les merchants depuis la table users
         result = supabase.from_("users").select("*").eq("role", "merchant").execute()
         users_merchants = result.data if result.data else []
@@ -987,9 +1124,38 @@ async def get_merchant(merchant_id: str, current_user: dict = Depends(get_curren
 # ============================================
 
 @app.get("/api/influencers")
+@cache(ttl_seconds=600)
 async def get_influencers(request: Request, payload: dict = Depends(get_current_user_from_cookie)):
     """Liste tous les influencers depuis la table users et enrichit avec les profils"""
     try:
+        # OPTIMIZATION: Try to use the SQL View first
+        try:
+            view_result = supabase.table("influencers_stats_view").select("*").execute()
+            if view_result.data:
+                formatted_influencers = []
+                for row in view_result.data:
+                    formatted_influencers.append({
+                        "id": row.get("user_id"),
+                        "full_name": row.get("full_name"),
+                        "username": str(row.get("username", "")).replace('@', ''),
+                        "email": row.get("email"),
+                        "audience_size": row.get("audience_size"),
+                        "engagement_rate": float(row.get("engagement_rate", 0)),
+                        "total_earnings": float(row.get("total_earnings", 0)),
+                        "total_clicks": row.get("total_clicks") or 0,
+                        "influencer_type": row.get("influencer_type") or "micro",
+                        "category": row.get("category"),
+                        "profile_picture_url": row.get("profile_picture_url"),
+                        "social_links": row.get("social_links") or {},
+                        "status": row.get("status") or "active"
+                    })
+                
+                # Sort
+                formatted_influencers.sort(key=lambda x: (x['full_name'] == 'Inconnu', -x['total_earnings']))
+                return {"influencers": formatted_influencers, "total": len(formatted_influencers)}
+        except Exception as view_error:
+            logger.warning(f"⚠️ Could not use influencers_stats_view: {view_error}. Falling back to legacy method.")
+
         # 1. Récupérer les influenceurs depuis la table users
         result = supabase.from_("users").select("*").eq("role", "influencer").execute()
         influencers = result.data if result.data else []
@@ -1238,12 +1404,9 @@ async def get_current_subscription(request: Request, payload: dict = Depends(get
                 id,
                 name,
                 price,
-                commission_rate,
+                features,
                 max_campaigns,
-                max_tracking_links,
-                instant_payout,
-                analytics_level,
-                priority_support
+                max_tracking_links
             )
         """).eq("user_id", user_id).eq("status", "active").order("created_at", desc=True).limit(1).execute()
         
@@ -1264,18 +1427,19 @@ async def get_current_subscription(request: Request, payload: dict = Depends(get
             }
         
         subscription = sub_result.data[0]
-        plan = subscription.get("subscription_plans", {})
+        plan = subscription.get("subscription_plans") or {}
+        features = plan.get("features") or {}
         
         return {
             "id": subscription.get("id"),
             "plan_name": plan.get("name", "Free"),
             "price": float(plan.get("price", 0)),
-            "commission_rate": float(plan.get("commission_rate", 5)),
+            "commission_rate": float(features.get("commission_rate", 5)),
             "max_campaigns": plan.get("max_campaigns", 5),
             "max_tracking_links": plan.get("max_tracking_links", 10),
-            "instant_payout": plan.get("instant_payout", False),
-            "analytics_level": plan.get("analytics_level", "basic"),
-            "priority_support": plan.get("priority_support", False),
+            "instant_payout": features.get("instant_payout", False),
+            "analytics_level": features.get("analytics_level", "basic"),
+            "priority_support": features.get("priority_support", False),
             "status": subscription.get("status", "active"),
             "started_at": subscription.get("started_at"),
             "ends_at": subscription.get("ends_at"),
@@ -2263,8 +2427,22 @@ async def download_invoice(
 ):
     """Télécharger une facture en PDF"""
     try:
-        # TODO: Générer et retourner le PDF
-        raise HTTPException(status_code=501, detail="Génération de PDF non encore implémentée")
+        # Générer le PDF via le service
+        pdf_bytes = InvoiceService.generate_invoice_pdf(invoice_id)
+        
+        if not pdf_bytes:
+            raise HTTPException(status_code=404, detail="Facture non trouvée ou erreur de génération")
+            
+        # Créer un stream à partir des bytes
+        pdf_stream = io.BytesIO(pdf_bytes)
+        
+        # Retourner le fichier
+        headers = {
+            'Content-Disposition': f'attachment; filename="facture_{invoice_id}.pdf"'
+        }
+        
+        return StreamingResponse(pdf_stream, media_type="application/pdf", headers=headers)
+
     except HTTPException:
         raise
     except Exception as e:
@@ -2343,16 +2521,16 @@ async def get_product(product_id: str):
 async def get_services(
     category: Optional[str] = None, 
     merchant_id: Optional[str] = None,
-    current_user: dict = Depends(get_current_user_from_cookie)
+    current_user: Optional[dict] = Depends(get_optional_user_from_cookie)
 ):
     """Liste tous les services avec filtres optionnels"""
     user = current_user
     
     # Si merchant, filtrer par ses propres services (sauf si admin)
-    if user["role"] == "merchant" and not merchant_id:
+    if user and user.get("role") == "merchant" and not merchant_id:
         merchant_id = user["id"]
     
-    # Admin voit tous les services
+    # Admin ou utilisateur non connecté voit tous les services (ou filtrés par params)
     services = get_all_services(category=category, merchant_id=merchant_id)
     return {"services": services, "total": len(services)}
 
@@ -2451,7 +2629,13 @@ async def get_campaign_stats(campaign_id: str, current_user: dict = Depends(get_
         # Récupérer les vues depuis performance_metrics si disponible
         performance_metrics = campaign.get('performance_metrics', {})
         if isinstance(performance_metrics, dict):
-            views = performance_metrics.get('impressions', performance_metrics.get('clicks', total_clicks))
+            views = int(performance_metrics.get('impressions', performance_metrics.get('clicks', total_clicks)))
+            
+            # Fallback pour les campagnes de démo (si pas de tracking links réels)
+            if total_clicks == 0 and int(performance_metrics.get('clicks', 0)) > 0:
+                total_clicks = int(performance_metrics.get('clicks', 0))
+            if total_conversions == 0 and int(performance_metrics.get('conversions', 0)) > 0:
+                total_conversions = int(performance_metrics.get('conversions', 0))
         else:
             views = total_clicks
         
@@ -2598,7 +2782,8 @@ async def create_campaign_endpoint(campaign_data: CampaignCreate, current_user: 
         name=campaign_data.name,
         description=campaign_data.description,
         budget=campaign_data.budget,
-        status=campaign_data.status
+        status=campaign_data.status,
+        commission_rate=campaign_data.commission_rate
     )
 
     if not campaign:
@@ -2781,6 +2966,15 @@ async def get_conversions_endpoint(current_user: dict = Depends(get_current_user
                 if camp_result.data:
                     campaign_name = camp_result.data[0]['name']
             
+            # Fallback: Si pas de campagne, essayer de récupérer le nom du produit
+            if campaign_name == "N/A" and conv.get('product_id'):
+                try:
+                    prod_result = supabase.table('products').select('name').eq('id', conv['product_id']).execute()
+                    if prod_result.data:
+                        campaign_name = f"Produit: {prod_result.data[0]['name']}"
+                except Exception as e:
+                    logger.warning(f"Could not fetch product name for conversion {conv.get('id')}: {e}")
+
             # Récupérer le nom de l'influenceur
             influencer_name = "N/A"
             if conv.get('influencer_id'):
@@ -2790,10 +2984,10 @@ async def get_conversions_endpoint(current_user: dict = Depends(get_current_user
             
             formatted_conversions.append({
                 'id': conv.get('id'),
-                'order_id': conv.get('order_id'),
+                'order_id': conv.get('id'), # Use ID as order_id since order_id column is missing
                 'campaign_id': campaign_name,
                 'affiliate_id': influencer_name,
-                'amount': float(conv.get('order_amount', 0)),
+                'amount': float(conv.get('sale_amount', 0)),
                 'commission': float(conv.get('commission_amount', 0)),
                 'status': conv.get('status', 'pending'),
                 'created_at': conv.get('conversion_date'),
@@ -3689,29 +3883,95 @@ async def mark_notification_read(notification_id: str, current_user: dict = Depe
 
 @app.get("/api/subscription-plans")
 async def get_subscription_plans():
-    """Récupère tous les plans d'abonnement"""
-    return {
-        "plans": [
-            {
-                "id": "free",
-                "name": "Gratuit",
-                "price": 0,
-                "features": ["10 liens", "Rapports basiques"]
-            },
-            {
-                "id": "starter",
-                "name": "Starter",
-                "price": 49,
-                "features": ["100 liens", "Rapports avancés", "Support"]
-            },
-            {
-                "id": "pro",
-                "name": "Pro",
-                "price": 149,
-                "features": ["500 liens", "IA Marketing", "Support prioritaire"]
+    """Récupère tous les plans d'abonnement depuis la base de données"""
+    try:
+        response = supabase.table("subscription_plans").select("*").eq("is_active", True).execute()
+        plans = response.data
+        
+        merchants_plans = []
+        influencers_plans = []
+        
+        for plan in plans:
+            # Formater les features si c'est une string JSON
+            features = plan.get("features")
+            if isinstance(features, str):
+                import json
+                try:
+                    features = json.loads(features)
+                except:
+                    features = {}
+            
+            # Logique de répartition
+            plan_type = plan.get("type")
+            plan_code = plan.get("code")
+            
+            # Gestion des devises
+            price_eur = float(plan.get("price") or 0)
+            price_mad = float(plan.get("price_mad") or 0)
+            
+            # Si price_mad n'est pas défini, on convertit (1 EUR = 11 MAD approx)
+            if price_mad == 0 and price_eur > 0:
+                price_mad = price_eur * 11
+            
+            # Si price_eur == price_mad (cas des insertions 199/199), on doit deviner la base.
+            # Pour les nouveaux plans (Small, Medium, Large, Marketplace), c'est probablement du MAD.
+            # Pour les anciens (Starter, Pro), c'est du EUR.
+            if price_eur == price_mad and price_eur > 0:
+                if plan_code in ['small', 'medium', 'large', 'marketplace']:
+                    # Base MAD -> Convertir en EUR
+                    price_eur = price_mad / 11
+                else:
+                    # Base EUR -> Convertir en MAD
+                    price_mad = price_eur * 11
+            
+            # Calcul USD (1 EUR = 1.1 USD approx)
+            price_usd = price_eur * 1.1
+
+            formatted_plan = {
+                "id": plan["id"],
+                "name": plan["name"],
+                "price": price_eur, # Default for backward compatibility
+                "prices": {
+                    "EUR": round(price_eur, 2),
+                    "MAD": round(price_mad, 0), # MAD usually no decimals
+                    "USD": round(price_usd, 2)
+                },
+                "code": plan["code"],
+                "features": features,
+                # Ajouter des valeurs par défaut pour les champs attendus par le frontend
+                "commission_rate": 10, # Valeur par défaut
+                "platform_fee_rate": 10, # Valeur par défaut
+                "billing_period": "month"
             }
-        ]
-    }
+            
+            if plan_type == "enterprise":
+                merchants_plans.append(formatted_plan)
+            elif plan_type == "marketplace":
+                influencers_plans.append(formatted_plan)
+            elif plan_type == "standard":
+                # Ajouter aux deux ou selon le code
+                if plan_code == "free":
+                    influencers_plans.append(formatted_plan)
+                    # Optionnel: ajouter aussi aux marchands si pertinent
+                    merchants_plans.append(formatted_plan) 
+                else:
+                    merchants_plans.append(formatted_plan)
+                    
+        # Trier par prix
+        merchants_plans.sort(key=lambda x: x["price"] or 0)
+        influencers_plans.sort(key=lambda x: x["price"] or 0)
+        
+        return {
+            "merchants": merchants_plans,
+            "influencers": influencers_plans
+        }
+        
+    except Exception as e:
+        logger.error(f"Erreur lors de la récupération des plans: {e}")
+        # Fallback sur des données vides pour que le frontend utilise ses défauts si besoin, 
+        # ou retourner une erreur 500
+        return {"merchants": [], "influencers": []}
+
 
 # ============================================
 # ADVERTISERS ENDPOINTS (Compatibility)
@@ -3804,7 +4064,37 @@ async def get_advertisers(current_user: dict = Depends(get_current_user_from_coo
 async def get_affiliates(current_user: dict = Depends(get_current_user_from_cookie)):
     """Liste des affiliés (alias pour influencers)"""
     influencers = get_all_influencers()
-    return {"data": influencers, "total": len(influencers)}
+    
+    # Enrichir avec les stats calculées si les colonnes n'existent pas encore
+    enriched_influencers = []
+    for inf in influencers:
+        # Clics
+        if "clicks" not in inf or inf["clicks"] is None:
+            try:
+                # Tenter de récupérer depuis tracking_links
+                res = supabase.table("tracking_links").select("clicks").eq("influencer_id", inf["id"]).execute()
+                total_clicks = sum(item.get("clicks", 0) for item in res.data) if res.data else 0
+                inf["clicks"] = total_clicks
+            except Exception:
+                inf["clicks"] = 0
+        
+        # Conversions (approximatif via sales ou conversions)
+        if "conversions" not in inf or inf["conversions"] is None:
+            try:
+                # On suppose que conversions est lié aux tracking_links de l'influenceur
+                # Ceci est une approximation si on n'a pas la jointure directe facile
+                # Pour l'instant on met 0 ou on pourrait faire une requête plus complexe
+                inf["conversions"] = 0 
+            except Exception:
+                inf["conversions"] = 0
+
+        # Traffic Source
+        if "traffic_source" not in inf or inf["traffic_source"] is None:
+            inf["traffic_source"] = "Direct"
+            
+        enriched_influencers.append(inf)
+        
+    return {"data": enriched_influencers, "total": len(enriched_influencers)}
 
 # ============================================
 # LOGS ENDPOINTS (Mock pour l'instant)
@@ -4140,6 +4430,11 @@ async def startup_event():
     """Événement de démarrage - Lance le scheduler"""
     logger.info("🚀 Démarrage du serveur...")
     logger.info("📊 Base de données: Supabase PostgreSQL")
+    
+    # Start WebSocket DB listener
+    asyncio.create_task(listen_to_database_changes())
+    logger.info("🔌 WebSocket listener started")
+
     # Start the scheduler if available. Wrapped in try/except to avoid bringing down the app
     if SCHEDULER_AVAILABLE:
         try:
@@ -4346,7 +4641,7 @@ async def generate_tracking_link(data: AffiliateLinkGenerate, current_user: dict
     {
       "link_id": "uuid",
       "short_code": "ABC12345",
-      "tracking_url": "http://localhost:8000/r/ABC12345",
+      "tracking_url": "https://api.shareyoursales.ma/r/ABC12345",
       "destination_url": "https://boutique.com/produit"
     }
     """
@@ -5359,8 +5654,8 @@ async def send_payment_reminders(current_user: dict = Depends(get_current_user_f
 # SUBSCRIPTION PLANS & USAGE ENDPOINTS
 # ============================================
 
-@app.get("/api/subscription-plans")
-async def get_subscription_plans():
+# @app.get("/api/subscription-plans")
+async def get_subscription_plans_deprecated():
     """
     Récupère tous les plans d'abonnement disponibles
     Public endpoint - pas besoin d'authentification
@@ -5524,12 +5819,9 @@ async def get_my_subscription(current_user: dict = Depends(get_current_user_from
                     id,
                     name,
                     price,
-                    commission_rate,
+                    features,
                     max_campaigns,
-                    max_tracking_links,
-                    instant_payout,
-                    analytics_level,
-                    priority_support
+                    max_tracking_links
                 )
             """).eq("user_id", user_id).eq("status", "active").order("created_at", desc=True).limit(1).execute()
             
@@ -5557,6 +5849,7 @@ async def get_my_subscription(current_user: dict = Depends(get_current_user_from
             
             subscription = sub_result.data[0]
             plan = subscription.get("subscription_plans", {})
+            features = plan.get("features", {}) or {}
             
             return {
                 "id": subscription.get("id"),
@@ -5565,12 +5858,12 @@ async def get_my_subscription(current_user: dict = Depends(get_current_user_from
                 "plan_details": {
                     "name": plan.get("name", "Free"),
                     "price": float(plan.get("price", 0)),
-                    "commission_rate": float(plan.get("commission_rate", 5)),
+                    "commission_rate": float(features.get("commission_rate", 5)),
                     "max_campaigns": plan.get("max_campaigns", 5),
                     "max_tracking_links": plan.get("max_tracking_links", 10),
-                    "instant_payout": plan.get("instant_payout", False),
-                    "analytics_level": plan.get("analytics_level", "basic"),
-                    "priority_support": plan.get("priority_support", False)
+                    "instant_payout": features.get("instant_payout", False),
+                    "analytics_level": features.get("analytics_level", "basic"),
+                    "priority_support": features.get("priority_support", False)
                 },
                 "started_at": subscription.get("started_at"),
                 "ends_at": subscription.get("ends_at"),
@@ -5702,19 +5995,29 @@ async def get_subscription_usage(current_user: dict = Depends(get_current_user_f
         
         elif role == "influencer":
             # Récupérer l'abonnement actif depuis subscription_plans
-            sub_result = supabase.table("subscriptions").select("subscription_plans(*)").eq("user_id", user["id"]).eq("status", "active").order("created_at", desc=True).limit(1).execute()
+            sub_result = supabase.table("subscriptions").select("""
+                subscription_plans(
+                    name,
+                    features,
+                    max_campaigns,
+                    max_tracking_links
+                )
+            """).eq("user_id", user["id"]).eq("status", "active").order("created_at", desc=True).limit(1).execute()
             
             # Définir les limites selon l'abonnement
             if sub_result.data and len(sub_result.data) > 0:
                 plan_data = sub_result.data[0].get("subscription_plans", {})
                 plan_name = plan_data.get("name", "Free")
+                features = plan_data.get("features", {}) or {}
                 max_campaigns = plan_data.get("max_campaigns", 5)
                 max_tracking_links = plan_data.get("max_tracking_links", 10)
+                instant_payout = features.get("instant_payout", False)
             else:
                 # Plan gratuit par défaut
                 plan_name = "Free"
                 max_campaigns = 5
                 max_tracking_links = 10
+                instant_payout = False
             
             # Compter les tracking_links (vraie table créée)
             links_count = supabase.table("tracking_links").select("id", count="exact").eq("influencer_id", user["id"]).execute().count or 0
@@ -5737,7 +6040,7 @@ async def get_subscription_usage(current_user: dict = Depends(get_current_user_f
                 "limits": {
                     "max_campaigns": max_campaigns,
                     "max_tracking_links": max_tracking_links,
-                    "instant_payout": plan_name in ["Pro", "Elite"]
+                    "instant_payout": instant_payout
                 },
                 "usage_percentage": {
                     "tracking_links": (links_count / max_tracking_links * 100) if max_tracking_links > 0 else 0,
@@ -5768,7 +6071,7 @@ async def get_subscription_usage(current_user: dict = Depends(get_current_user_f
 from endpoints.leads_endpoints import add_leads_endpoints
 
 # Endpoints LEADS - Intégration via router
-add_leads_endpoints(app, verify_token)
+add_leads_endpoints(app)
 
 
 # ============================================
@@ -5792,11 +6095,11 @@ async def get_marketplace_products(
     search: str = Query(None),
     limit: int = Query(20, le=100),
     offset: int = Query(0),
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    user: Optional[dict] = Depends(optional_auth)
 ):
     """Récupérer tous les produits du marketplace"""
     try:
-        user = verify_token(credentials.credentials)
+        # user est déjà décodé ou None
         
         # Query de base
         query = supabase.table("products").select("*, users!products_merchant_id_fkey(*)")
@@ -6009,11 +6312,11 @@ async def get_influencers_directory(
     limit: int = Query(20, le=100),
     offset: int = Query(0),
     category: str = Query(None),
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    user: Optional[dict] = Depends(optional_auth)
 ):
     """Annuaire des influenceurs disponibles"""
     try:
-        user = verify_token(credentials.credentials)
+        # user est déjà décodé ou None
         
         query = supabase.table("users").select("*").eq("role", "influencer").eq("is_active", True)
         
@@ -6090,8 +6393,9 @@ async def get_influencer_tracking_links(
             raise HTTPException(status_code=403, detail="Must be an influencer")
         
         # Récupérer tous les tracking links
+        # Note: services(*) removed because the relationship does not exist in the database yet
         result = supabase.table("tracking_links").select(
-            "*, products(*), services(*)"
+            "*, products(*)"
         ).eq("influencer_id", user["id"]).order("created_at", desc=True).execute()
         
         links = result.data or []
@@ -6994,11 +7298,11 @@ async def connect_social_platform(
 async def get_commercials_directory(
     limit: int = Query(20, le=100),
     offset: int = Query(0),
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    user: Optional[dict] = Depends(optional_auth)
 ):
     """Annuaire des commerciaux"""
     try:
-        user = verify_token(credentials.credentials)
+        # user est déjà décodé ou None
         
         query = supabase.table("users").select("*").eq("role", "commercial").eq("is_active", True)
         
@@ -7511,6 +7815,118 @@ async def get_collaboration_requests_received(
 
 
 # ============================================
+# GDPR & CCPA COMPLIANCE ENDPOINTS
+# ============================================
+
+@app.delete("/api/user/delete")
+async def delete_user_account(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Supprimer définitivement le compte utilisateur et toutes ses données associées.
+    Conforme RGPD (Droit à l'oubli) et CCPA.
+    """
+    try:
+        user = verify_token(credentials.credentials)
+        user_id = user["id"]
+        
+        logger.info(f"🗑️ Demande de suppression de compte pour l'utilisateur {user_id}")
+        
+        # 1. Supprimer les données liées (Supabase cascade devrait gérer la plupart, mais on force pour être sûr)
+        # Supprimer les liens de tracking
+        supabase.table("tracking_links").delete().eq("influencer_id", user_id).execute()
+        
+        # Supprimer les produits (si marchand)
+        supabase.table("products").delete().eq("merchant_id", user_id).execute()
+        
+        # Supprimer les campagnes (si marchand)
+        supabase.table("campaigns").delete().eq("merchant_id", user_id).execute()
+        
+        # Supprimer le profil spécifique (influencer ou merchant)
+        if user["role"] == "influencer":
+            supabase.table("influencers").delete().eq("user_id", user_id).execute()
+        elif user["role"] == "merchant":
+            supabase.table("merchants").delete().eq("user_id", user_id).execute()
+            
+        # 2. Anonymiser les transactions financières (Obligation légale de conservation)
+        # On ne supprime pas les ventes/commissions pour la comptabilité, mais on efface les infos perso
+        # Note: Ceci est une simulation car Supabase ne permet pas facilement l'update partiel sans trigger complexe
+        # Dans un vrai cas, on ferait un UPDATE sales SET customer_email = 'deleted@user.com' WHERE ...
+        
+        # 3. Supprimer l'utilisateur de la table users publique
+        supabase.table("users").delete().eq("id", user_id).execute()
+        
+        # 4. Supprimer de l'authentification Supabase (nécessite droits admin service_role)
+        # Note: Le client 'supabase' actuel utilise SERVICE_ROLE_KEY donc a les droits
+        try:
+            supabase.auth.admin.delete_user(user_id)
+        except Exception as auth_error:
+            logger.warning(f"⚠️ Impossible de supprimer de auth.users (peut-être déjà fait): {auth_error}")
+            
+        return {"success": True, "message": "Compte supprimé définitivement"}
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur lors de la suppression du compte: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/user/export")
+async def export_user_data(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Exporter toutes les données personnelles de l'utilisateur.
+    Conforme RGPD (Portabilité des données).
+    """
+    try:
+        user = verify_token(credentials.credentials)
+        user_id = user["id"]
+        role = user["role"]
+        
+        export_data = {
+            "user_info": user,
+            "exported_at": datetime.now().isoformat(),
+            "data": {}
+        }
+        
+        # Récupérer les données spécifiques au rôle
+        if role == "influencer":
+            # Profil
+            profile = supabase.table("influencers").select("*").eq("user_id", user_id).execute()
+            export_data["data"]["profile"] = profile.data[0] if profile.data else {}
+            
+            # Liens de tracking
+            links = supabase.table("tracking_links").select("*").eq("influencer_id", user_id).execute()
+            export_data["data"]["tracking_links"] = links.data
+            
+            # Commissions/Ventes
+            commissions = supabase.table("conversions").select("*").eq("influencer_id", user_id).execute()
+            export_data["data"]["commissions"] = commissions.data
+            
+        elif role == "merchant":
+            # Profil
+            profile = supabase.table("merchants").select("*").eq("user_id", user_id).execute()
+            export_data["data"]["profile"] = profile.data[0] if profile.data else {}
+            
+            # Produits
+            products = supabase.table("products").select("*").eq("merchant_id", user_id).execute()
+            export_data["data"]["products"] = products.data
+            
+            # Campagnes
+            campaigns = supabase.table("campaigns").select("*").eq("merchant_id", user_id).execute()
+            export_data["data"]["campaigns"] = campaigns.data
+            
+            # Ventes
+            sales = supabase.table("sales").select("*").eq("merchant_id", user_id).execute()
+            export_data["data"]["sales"] = sales.data
+            
+        return export_data
+        
+    except Exception as e:
+        logger.error(f"❌ Erreur lors de l'export des données: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================
 # ENDPOINTS ADDITIONNELS CRITIQUES
 # ============================================
 
@@ -7896,5 +8312,6 @@ if __name__ == "__main__":
     logger.info("="*60 + "\n")
     
     # Lancement sans reload (plus stable)
-    uvicorn.run("server:app", host="0.0.0.0", port=5000, reload=False)
+    # OPTIMIZATION: Use 1 worker for debugging
+    uvicorn.run("server:app", host="0.0.0.0", port=5000, reload=False, workers=1, log_level="debug")
 

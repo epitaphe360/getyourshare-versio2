@@ -115,11 +115,20 @@ const PricingV3 = () => {
   };
 
   const calculatePrice = (monthlyPrice) => {
+    const price = Number(monthlyPrice);
+    if (isNaN(price)) return '0.00';
+
     if (annualBilling) {
       // 2 mois gratuits si paiement annuel (10 mois au lieu de 12)
-      return (monthlyPrice * 10).toFixed(2);
+      return (price * 10).toFixed(2);
     }
-    return monthlyPrice.toFixed(2);
+    return price.toFixed(2);
+  };
+
+  const calculateMonthlyEquivalent = (monthlyPrice) => {
+    const price = Number(monthlyPrice);
+    if (isNaN(price)) return '0.00';
+    return (price * 10 / 12).toFixed(2);
   };
 
   const isCurrentPlan = (planId) => {
@@ -266,7 +275,7 @@ const PricingV3 = () => {
                         </Typography>
                         {annualBilling && (
                           <Typography variant="caption" color="success.main" fontWeight={600}>
-                            (soit {(plan.price_mad * 10 / 12).toFixed(2)} MAD/mois)
+                            (soit {calculateMonthlyEquivalent(plan.price_mad)} MAD/mois)
                           </Typography>
                         )}
                       </Box>
@@ -393,7 +402,7 @@ const PricingV3 = () => {
                         </Typography>
                         {annualBilling && (
                           <Typography variant="caption" color="success.main" fontWeight={600}>
-                            (soit {(plan.price_mad * 10 / 12).toFixed(2)} MAD/mois)
+                            (soit {calculateMonthlyEquivalent(plan.price_mad)} MAD/mois)
                           </Typography>
                         )}
                       </Box>

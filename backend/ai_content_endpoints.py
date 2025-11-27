@@ -244,7 +244,10 @@ async def batch_generate_content(
                 SocialPlatform.TIKTOK: ContentType.VIDEO_SCRIPT,
                 SocialPlatform.INSTAGRAM: ContentType.REEL_SCRIPT,
                 SocialPlatform.YOUTUBE_SHORTS: ContentType.VIDEO_SCRIPT,
-                SocialPlatform.FACEBOOK: ContentType.POST_CAPTION
+                SocialPlatform.FACEBOOK: ContentType.POST_CAPTION,
+                SocialPlatform.LINKEDIN: ContentType.POST_CAPTION,
+                SocialPlatform.EMAIL: ContentType.EMAIL_NEWSLETTER,
+                SocialPlatform.BLOG: ContentType.BLOG_ARTICLE
             }
 
             request = ContentRequest(

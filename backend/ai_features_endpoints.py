@@ -34,7 +34,9 @@ class ProductRecommendation(BaseModel):
     estimated_commission: float
 
 class ContentGenerationRequest(BaseModel):
-    product_id: str
+    product_id: Optional[str] = None
+    product_name: Optional[str] = None
+    features: Optional[str] = None
     platform: str  # instagram, tiktok, facebook
     content_type: str  # post, story, reel, caption
     language: str = "fr"
@@ -111,7 +113,7 @@ async def get_product_recommendations(influencer_id: str, limit: int = 10):
                 category,
                 image_url,
                 commission_rate,
-                users:merchant_id(full_name)
+                merchants:merchant_id(company_name)
             )
         ''').eq('influencer_id', influencer_id)\
             .eq('is_active', True)\
@@ -123,7 +125,7 @@ async def get_product_recommendations(influencer_id: str, limit: int = 10):
         results = []
         for rec in recommendations.data:
             product = rec.get('products', {})
-            merchant = product.get('users', {})
+            merchant = product.get('merchants', {})
 
             # Calculer commission estimée
             estimated_commission = float(product.get('price', 0)) * float(product.get('commission_rate', 0)) / 100
@@ -131,7 +133,7 @@ async def get_product_recommendations(influencer_id: str, limit: int = 10):
             results.append({
                 "product_id": rec['product_id'],
                 "product_name": product.get('name', 'N/A'),
-                "merchant_name": merchant.get('full_name', 'N/A'),
+                "merchant_name": merchant.get('company_name', 'N/A'),
                 "price": float(product.get('price', 0)),
                 "category": product.get('category', 'N/A'),
                 "image_url": product.get('image_url'),
@@ -139,7 +141,8 @@ async def get_product_recommendations(influencer_id: str, limit: int = 10):
                 "match_reasons": rec.get('match_reasons', []),
                 "estimated_commission": estimated_commission,
                 "commission_rate": float(product.get('commission_rate', 0)),
-                "expires_at": rec['expires_at']
+                "expires_at": rec['expires_at'],
+                "product_url": f"/marketplace/product/{rec['product_id']}"
             })
 
         return {
@@ -189,13 +192,24 @@ async def generate_content_template(
         influencer_id = current_user["id"]
         supabase = get_supabase_client()
 
-        # Récupérer info produit
-        product = supabase.table('products').select('*').eq('id', request.product_id).execute()
-
-        if not product.data:
-            raise HTTPException(status_code=404, detail="Produit non trouvé")
-
-        product_data = product.data[0]
+        product_data = {}
+        
+        if request.product_id:
+            # Récupérer info produit
+            product = supabase.table('products').select('*').eq('id', request.product_id).execute()
+            if not product.data:
+                raise HTTPException(status_code=404, detail="Produit non trouvé")
+            product_data = product.data[0]
+        else:
+            # Utiliser les données manuelles
+            if not request.product_name:
+                 raise HTTPException(status_code=400, detail="Product name required if product_id is missing")
+            product_data = {
+                'name': request.product_name,
+                'description': request.features,
+                'price': 'N/A',
+                'category': 'General'
+            }
 
         # Générer contenu selon plateforme et type
         content = await _generate_content_with_ai(
@@ -223,12 +237,17 @@ async def generate_content_template(
             'generated_by': 'gpt-4' if OPENAI_API_KEY else 'template'
         }
 
-        result = supabase.table('ai_content_templates').insert(template_data).execute()
+        try:
+            result = supabase.table('ai_content_templates').insert(template_data).execute()
+            template_id = result.data[0]['id']
+        except Exception as e:
+            logger.warning(f"Could not save template (likely missing product_id FK): {e}")
+            template_id = "temp_" + datetime.now().strftime("%Y%m%d%H%M%S")
 
         logger.info(f"✅ Contenu généré pour {influencer_id} - {request.platform}")
 
         return {
-            "template_id": result.data[0]['id'],
+            "template_id": template_id,
             "content": content,
             "message": "Contenu généré avec succès"
         }

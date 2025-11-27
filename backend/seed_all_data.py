@@ -7,6 +7,7 @@ import os
 import sys
 from dotenv import load_dotenv
 from supabase import create_client, Client
+from utils.logger import logger
 from datetime import datetime, timedelta
 import json
 import random
@@ -202,7 +203,6 @@ logger.info("-" * 80)
 if influencer_ids and product_ids:
     # Créer 10 liens d'affiliation
     import secrets
-from utils.logger import logger
 
     influencer_list = list(influencer_ids.values())
     product_list = list(product_ids.values())

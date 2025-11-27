@@ -105,9 +105,15 @@ class I18nService {
    * Charge les traductions pour une langue
    */
   async loadTranslations(lang) {
+    if (this.translations[lang]) {
+      return true;
+    }
+    
     try {
       const module = await import(`./translations/${lang}.js`);
       this.translations[lang] = module.default;
+      // Notifier que les traductions sont chargées
+      window.dispatchEvent(new CustomEvent('translationsLoaded', { detail: { language: lang } }));
       return true;
     } catch (error) {
       console.error(`Erreur chargement traductions ${lang}:`, error);
@@ -154,9 +160,10 @@ const I18nContext = createContext();
 export const I18nProvider = ({ children }) => {
   const [language, setLanguage] = useState(i18nService.getLanguage());
   const [isRTL, setIsRTL] = useState(i18nService.isRTL());
+  const [, setTick] = useState(0); // Force update state
 
   useEffect(() => {
-    // Charger les traductions au démarrage
+    // Charger les traductions quand la langue change
     i18nService.loadTranslations(language);
 
     // Appliquer la direction RTL
@@ -164,21 +171,28 @@ export const I18nProvider = ({ children }) => {
     document.documentElement.dir = rtl ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
     setIsRTL(rtl);
+  }, [language]);
 
+  useEffect(() => {
     // Écouter les changements de langue
     const handleLanguageChange = (e) => {
       const newLang = e.detail.language;
       setLanguage(newLang);
-      setIsRTL(i18nService.isRTL());
-      i18nService.loadTranslations(newLang);
+    };
+
+    // Écouter le chargement des traductions
+    const handleTranslationsLoaded = () => {
+      setTick(t => t + 1);
     };
 
     window.addEventListener('languageChanged', handleLanguageChange);
+    window.addEventListener('translationsLoaded', handleTranslationsLoaded);
 
     return () => {
       window.removeEventListener('languageChanged', handleLanguageChange);
+      window.removeEventListener('translationsLoaded', handleTranslationsLoaded);
     };
-  }, [language]);
+  }, []);
 
   const changeLanguage = (newLang) => {
     i18nService.setLanguage(newLang);

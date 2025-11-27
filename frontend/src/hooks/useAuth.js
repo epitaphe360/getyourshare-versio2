@@ -23,7 +23,7 @@ export const useAuth = () => {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('token');
         const storedUser = localStorage.getItem('user');
 
         if (token && storedUser) {
@@ -31,7 +31,7 @@ export const useAuth = () => {
         }
       } catch (err) {
         console.error('Auth initialization error:', err);
-        localStorage.removeItem('auth_token');
+        localStorage.removeItem('token');
         localStorage.removeItem('user');
       } finally {
         setLoading(false);
@@ -67,7 +67,7 @@ export const useAuth = () => {
       const { user: userData, token } = data;
 
       // Store auth data
-      localStorage.setItem('auth_token', token);
+      localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userData));
 
       setUser(userData);
@@ -105,7 +105,7 @@ export const useAuth = () => {
       const { user: newUser, token } = data;
 
       // Store auth data
-      localStorage.setItem('auth_token', token);
+      localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(newUser));
 
       setUser(newUser);
@@ -122,7 +122,7 @@ export const useAuth = () => {
    * Logout user
    */
   const logout = useCallback(() => {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
     navigate('/login');
@@ -138,7 +138,7 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/auth/profile', {
         method: 'PUT',
         headers: {
@@ -185,7 +185,7 @@ export const useAuth = () => {
    * @returns {boolean} Is authenticated
    */
   const isAuthenticated = useCallback(() => {
-    return !!user && !!localStorage.getItem('auth_token');
+    return !!user && !!localStorage.getItem('token');
   }, [user]);
 
   /**
@@ -193,7 +193,7 @@ export const useAuth = () => {
    * @returns {string|null} Token
    */
   const getToken = useCallback(() => {
-    return localStorage.getItem('auth_token');
+    return localStorage.getItem('token');
   }, []);
 
   return {

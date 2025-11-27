@@ -3,6 +3,7 @@ Script pour activer la 2FA pour tous les utilisateurs
 """
 
 from supabase_client import supabase
+from utils.logger import logger
 
 logger.info("\n" + "=" * 60)
 logger.info("ACTIVATION DE LA 2FA POUR TOUS LES UTILISATEURS")
@@ -64,7 +65,6 @@ try:
 except Exception as e:
     logger.info(f"\nERREUR CRITIQUE: {str(e)}")
     import traceback
-from utils.logger import logger
 
     traceback.print_exc()
     exit(1)

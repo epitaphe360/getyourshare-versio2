@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 import { Mail, Lock, Sparkles, AlertCircle, Shield } from 'lucide-react';
 import Button from '../components/common/Button';
 import SEOHead from '../components/SEO/SEOHead';
 import SEO_CONFIG from '../config/seo';
+import Navigation from '../components/Navigation';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -98,20 +100,15 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${API_URL}/api/auth/verify-2fa`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          code: twoFACode,
-          temp_token: tempToken
-        })
+      const response = await api.post('/api/auth/verify-2fa', {
+        email,
+        code: twoFACode,
+        temp_token: tempToken
       });
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (response.ok && data.access_token) {
+      if (data.access_token) {
         // Stocker le token et l'utilisateur
         localStorage.setItem('token', data.access_token);
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -133,11 +130,9 @@ const Login = () => {
         } else {
           navigate('/dashboard');
         }
-      } else {
-        setError(data.detail || 'Code 2FA incorrect');
       }
     } catch (err) {
-      setError('Erreur lors de la vérification du code');
+      setError(err.response?.data?.detail || 'Erreur lors de la vérification du code');
     } finally {
       setLoading(false);
     }
@@ -156,6 +151,7 @@ const Login = () => {
   return (
     <>
       <SEOHead {...seoData} />
+      <Navigation />
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12 px-4">
       <div className="max-w-md w-full">
         {/* Logo */}
@@ -432,7 +428,9 @@ const Login = () => {
                       <p><span className="px-2 py-0.5 bg-green-100 text-green-800 rounded font-medium">STARTER</span> - Fonctionnalités de base</p>
                       <p><span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded font-medium">PRO</span> - Accès complet + Analytics</p>
                       <p><span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded font-medium">ENTERPRISE</span> - Tout illimité + Support prioritaire</p>
-                      <p><strong>Influenceur 3:</strong> julie.beauty@tiktok.com / influencer123</p>
+                      <p className="mt-2"><strong>Mots de passe par défaut :</strong></p>
+                      <p>• Admin : <code>Admin123!</code></p>
+                      <p>• Autres comptes : <code>Test123!</code></p>
                       <p className="text-indigo-600 mt-2"><strong>Code 2FA:</strong> 123456</p>
                     </div>
                   </div>

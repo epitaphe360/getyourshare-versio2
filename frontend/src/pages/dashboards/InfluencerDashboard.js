@@ -54,6 +54,32 @@ const InfluencerDashboard = () => {
   const [topRecommendations, setTopRecommendations] = useState([]);
   const [upcomingLives, setUpcomingLives] = useState([]);
 
+  // Helper pour vérifier l'accès aux fonctionnalités selon le plan
+  const checkAccess = (feature) => {
+    if (!subscription) return false;
+    const plan = subscription.plan_name; // 'Free', 'Pro', 'Elite'
+    
+    switch(feature) {
+      case 'analytics_pro':
+        return ['Pro', 'Elite'].includes(plan);
+      case 'matching':
+        return ['Elite'].includes(plan);
+      case 'ia_marketing':
+        return ['Elite'].includes(plan);
+      case 'mobile':
+        return true; // Accessible à tous
+      case 'marketplace':
+        return true; // Accessible à tous
+      default:
+        return true;
+    }
+  };
+
+  const handleLockedFeature = (featureName) => {
+    toast.info(`La fonctionnalité ${featureName} nécessite un abonnement supérieur.`);
+    navigate('/pricing?role=influencer');
+  };
+
   useEffect(() => {
     fetchData();
     fetchMinPayoutAmount();
@@ -79,8 +105,8 @@ const InfluencerDashboard = () => {
         api.get('/api/affiliate-links'),
         api.get('/api/analytics/influencer/earnings-chart'),
         api.get('/api/subscriptions/current'),
-        api.get('/api/invitations/received'),
-        api.get('/api/collaborations/requests/received'),
+        api.get('/api/invitations'),
+        api.get('/api/affiliation-requests/my-requests'),
         // 4 Killer Features
         api.get(`/api/referrals/dashboard/${user?.id}`),
         api.get(`/api/ai/product-recommendations/${user?.id}?limit=3`),
@@ -375,6 +401,56 @@ const InfluencerDashboard = () => {
 
   return (
     <div className="space-y-8">
+      {/* Navigation Bar */}
+      <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+        <div className="flex flex-wrap gap-3 items-center">
+          <button
+            onClick={() => navigate('/')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Accueil
+          </button>
+          <button
+            onClick={() => navigate('/marketplace')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <ShoppingCart size={18} />
+            Marketplace
+          </button>
+          <button
+            onClick={() => navigate('/products')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Target size={18} />
+            Produits
+          </button>
+          <button
+            onClick={() => navigate('/campaigns')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <MessageSquare size={18} />
+            Campagnes
+          </button>
+          <button
+            onClick={() => navigate('/features')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Sparkles size={18} />
+            Features
+          </button>
+          <button
+            onClick={() => navigate('/profile')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Users size={18} />
+            Profil
+          </button>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
@@ -385,18 +461,20 @@ const InfluencerDashboard = () => {
         </div>
         <div className="flex space-x-3">
           <button
-            onClick={() => setViewMode(viewMode === 'dashboard' ? 'matching' : 'dashboard')}
+            onClick={() => checkAccess('matching') ? setViewMode(viewMode === 'dashboard' ? 'matching' : 'dashboard') : handleLockedFeature('Mode Matching')}
             className={`px-4 py-2 rounded-lg transition flex items-center gap-2 font-bold shadow-lg ${
-              viewMode === 'matching' 
-                ? 'bg-gray-800 text-white hover:bg-gray-700' 
-                : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600'
+              !checkAccess('matching') 
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : viewMode === 'matching' 
+                  ? 'bg-gray-800 text-white hover:bg-gray-700' 
+                  : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600'
             }`}
-            title="Mode Matching Tinder-style"
+            title={checkAccess('matching') ? "Mode Matching Tinder-style" : "Mode Matching (Elite uniquement)"}
           >
             {viewMode === 'matching' ? (
               <>📊 Retour Dashboard</>
             ) : (
-              <><Flame size={18} /> Mode Matching</>
+              <>{!checkAccess('matching') && <span className="mr-1">🔒</span>}<Flame size={18} /> Mode Matching</>
             )}
           </button>
           <button
@@ -407,10 +485,15 @@ const InfluencerDashboard = () => {
             <RefreshCw size={18} />
           </button>
           <button
-            onClick={() => navigate('/analytics-pro')}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition flex items-center gap-2"
-            title="Analytics Pro avec IA"
+            onClick={() => checkAccess('analytics_pro') ? navigate('/analytics-pro') : handleLockedFeature('Analytics Pro')}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+              checkAccess('analytics_pro')
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+            title={checkAccess('analytics_pro') ? "Analytics Pro avec IA" : "Analytics Pro (Pro & Elite)"}
           >
+            {!checkAccess('analytics_pro') && <span className="mr-1">🔒</span>}
             <BarChart3 size={18} />
             Analytics Pro
           </button>
@@ -428,9 +511,15 @@ const InfluencerDashboard = () => {
             🛍️ Marketplace
           </button>
           <button
-            onClick={() => navigate('/ai-marketing')}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition"
+            onClick={() => checkAccess('ia_marketing') ? navigate('/ai-marketing') : handleLockedFeature('IA Marketing')}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+              checkAccess('ia_marketing')
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+            title={checkAccess('ia_marketing') ? "IA Marketing" : "IA Marketing (Elite uniquement)"}
           >
+            {!checkAccess('ia_marketing') && <span className="mr-1">🔒</span>}
             ✨ IA Marketing
           </button>
         </div>
@@ -635,7 +724,7 @@ const InfluencerDashboard = () => {
                 </p>
               </div>
               <button
-                onClick={() => navigate('/pricing')}
+                onClick={() => navigate('/pricing?role=influencer')}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
               >
                 {subscription.plan_name === 'Free' ? 'Passer à Pro' : 'Améliorer mon Plan'}
@@ -740,9 +829,9 @@ const InfluencerDashboard = () => {
               )}
               <button
                 onClick={() => navigate('/features?tab=referral')}
-                className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+                className="w-full py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition text-sm font-medium shadow-md hover:shadow-lg"
               >
-                Voir Dashboard Complet →
+                🎯 Gérer mon Parrainage
               </button>
             </div>
           ) : (

@@ -11,7 +11,7 @@ from predictive_dashboard_service import (
     PredictionTimeframe
 )
 from auth import get_current_user
-# from db_helpers import log_user_activity  # TODO: Implémenter log_user_activity dans db_helpers
+from db_helpers import log_user_activity
 from supabase_client import supabase
 
 router = APIRouter(prefix="/api/dashboard", tags=["Predictive Dashboard"])

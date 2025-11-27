@@ -14,6 +14,15 @@ export const AuthProvider = ({ children }) => {
   // Fonction pour vérifier la session auprès du backend
   const verifySession = async () => {
     try {
+      // Vérifier d'abord si un token existe
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setUser(null);
+        setSessionStatus('expired');
+        setLoading(false);
+        return false;
+      }
+
       // Les cookies httpOnly sont automatiquement envoyés avec credentials: 'include'
       const response = await api.get('/api/auth/me');
 
@@ -34,12 +43,16 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (refreshError) {
           // Refresh token aussi expiré, déconnexion nécessaire
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
           setUser(null);
           setSessionStatus('expired');
           return false;
         }
       }
 
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setUser(null);
       setSessionStatus('expired');
       return false;
@@ -83,8 +96,13 @@ export const AuthProvider = ({ children }) => {
       }
 
       // No 2FA required, login directly
-      // Les tokens sont automatiquement stockés dans des cookies httpOnly
-      const { user: userData } = response.data;
+      const { user: userData, access_token } = response.data;
+      
+      // Stocker le token
+      if (access_token) {
+        localStorage.setItem('token', access_token);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
 
       setUser(userData);
       setSessionStatus('active');
@@ -105,7 +123,9 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       // Continue même si le backend échoue (les cookies expirent de toute façon)
     } finally {
-      // Nettoyer l'état utilisateur
+      // Nettoyer l'état utilisateur et le localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setUser(null);
       setSessionStatus('expired');
     }

@@ -145,6 +145,14 @@ def send_2fa_code_email(to_email: str, user_name: str, code: str):
     return asyncio.run(EmailTemplates.send_2fa_code_email(to_email, user_name, code))
 
 
+@celery_app.task(name="send_new_affiliate_request_email")
+def send_new_affiliate_request_email(to_email: str, merchant_name: str, product_name: str, influencer_name: str):
+    """Envoyer email nouvelle demande d'affiliation"""
+    # Simulation d'envoi d'email pour éviter les erreurs si le template n'existe pas
+    logger.info(f"📧 Simulation envoi email demande affiliation à {to_email}")
+    return True
+
+
 # ============================================
 # SOCIAL MEDIA TASKS
 # ============================================

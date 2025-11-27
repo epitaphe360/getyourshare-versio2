@@ -9,6 +9,7 @@ from typing import List, Optional
 from datetime import datetime
 from utils.logger import logger
 from supabase_client import supabase, get_supabase_client
+from auth import get_current_user_from_cookie
 
 router = APIRouter(prefix="/api/referrals", tags=["Referrals"])
 
@@ -27,6 +28,7 @@ class ReferralNetwork(BaseModel):
     referred_id: str
     referred_username: str
     referred_email: str
+    referred_role: Optional[str] = None
     level: int
     status: str
     total_sales: float
@@ -42,7 +44,7 @@ class ReferralEarnings(BaseModel):
     active_referrals: int
 
 class ReferralStats(BaseModel):
-    code: str
+    code: Optional[str]
     total_referrals: int
     active_referrals: int
     total_earnings: float
@@ -56,11 +58,12 @@ class ReferralStats(BaseModel):
 # ============================================
 
 @router.post("/generate-code")
-async def generate_referral_code(user_id: str):
+async def generate_referral_code(current_user: dict = Depends(get_current_user_from_cookie)):
     """
-    Générer un code de parrainage unique pour un utilisateur
+    Générer un code de parrainage unique pour l'utilisateur connecté
     """
     try:
+        user_id = current_user["id"]
         supabase = get_supabase_client()
 
         # Vérifier si l'utilisateur a déjà un code
@@ -75,12 +78,22 @@ async def generate_referral_code(user_id: str):
             }
 
         # Générer nouveau code via fonction SQL
-        result = supabase.rpc('generate_referral_code', {'p_user_id': user_id}).execute()
+        # Fallback si la fonction RPC n'existe pas ou échoue
+        try:
+            result = supabase.rpc('generate_referral_code', {'p_user_id': user_id}).execute()
+            new_code = result.data
+        except Exception as rpc_error:
+            logger.warning(f"RPC generate_referral_code failed: {rpc_error}. Using fallback generation.")
+            import random
+            import string
+            chars = string.ascii_uppercase + string.digits
+            new_code = ''.join(random.choice(chars) for _ in range(8))
 
-        if not result.data:
-            raise HTTPException(status_code=500, detail="Échec génération code")
-
-        new_code = result.data
+        if not new_code:
+             import random
+             import string
+             chars = string.ascii_uppercase + string.digits
+             new_code = ''.join(random.choice(chars) for _ in range(8))
 
         # Insérer dans la table
         insert_result = supabase.table('referral_codes').insert({
@@ -100,6 +113,44 @@ async def generate_referral_code(user_id: str):
     except Exception as e:
         logger.error(f"Erreur génération code parrainage: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/stats", response_model=ReferralStats)
+async def get_referral_stats(current_user: dict = Depends(get_current_user_from_cookie)):
+    """
+    Récupérer les statistiques complètes de parrainage pour l'utilisateur connecté
+    """
+    try:
+        user_id = current_user["id"]
+        
+        # 1. Récupérer le code
+        code_info = await get_my_referral_code(user_id)
+        code = code_info.get("code") if code_info.get("has_code") else None
+        
+        # 2. Récupérer le réseau
+        network_data = await get_referral_network(user_id)
+        network_list = network_data.get("network", [])
+        
+        # 3. Récupérer les gains
+        earnings_data = await get_referral_earnings(user_id)
+        
+        # Convertir en modèle ReferralStats
+        stats = ReferralStats(
+            code=code,
+            total_referrals=earnings_data.get("total_referrals", 0),
+            active_referrals=earnings_data.get("active_referrals", 0),
+            total_earnings=earnings_data.get("total_earnings", 0.0),
+            badge_level=earnings_data.get("badge_level", "bronze"),
+            tier=earnings_data.get("tier", 1),
+            network=[ReferralNetwork(**n) for n in network_list]
+        )
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Erreur récupération stats parrainage: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @router.get("/my-code/{user_id}")
@@ -208,18 +259,23 @@ async def get_referral_network(user_id: str):
             total_sales,
             referrer_earnings,
             referred_at,
-            users:referred_id(username, email, role)
+            users:referred_id(full_name, email, role)
         ''').eq('referrer_id', user_id).execute()
 
         network = []
 
         for referral in level1.data:
             user_info = referral.get('users', {})
+            # Use full_name or email part as display name
+            display_name = user_info.get('full_name')
+            if not display_name and user_info.get('email'):
+                display_name = user_info.get('email').split('@')[0]
+            
             network.append({
                 "id": referral['id'],
                 "referrer_id": user_id,
                 "referred_id": referral['referred_id'],
-                "referred_username": user_info.get('username', 'N/A'),
+                "referred_username": display_name or 'N/A',
                 "referred_email": user_info.get('email', 'N/A'),
                 "referred_role": user_info.get('role', 'N/A'),
                 "level": 1,
@@ -242,16 +298,21 @@ async def get_referral_network(user_id: str):
                 total_sales,
                 referrer_earnings,
                 referred_at,
-                users:referred_id(username, email, role)
+                users:referred_id(full_name, email, role)
             ''').in_('referrer_id', referred_ids).execute()
 
             for referral in level2.data:
                 user_info = referral.get('users', {})
+                # Use full_name or email part as display name
+                display_name = user_info.get('full_name')
+                if not display_name and user_info.get('email'):
+                    display_name = user_info.get('email').split('@')[0]
+
                 network.append({
                     "id": referral['id'],
                     "referrer_id": referral['referrer_id'],
                     "referred_id": referral['referred_id'],
-                    "referred_username": user_info.get('username', 'N/A'),
+                    "referred_username": display_name or 'N/A',
                     "referred_email": user_info.get('email', 'N/A'),
                     "referred_role": user_info.get('role', 'N/A'),
                     "level": 2,
@@ -354,16 +415,21 @@ async def get_referral_leaderboard(limit: int = 20):
             active_referrals,
             badge_level,
             tier,
-            users:user_id(username, role)
+            users:user_id(full_name, email, role)
         ''').order('total_earnings', desc=True).limit(limit).execute()
 
         results = []
         for idx, entry in enumerate(leaderboard.data, 1):
             user_info = entry.get('users', {})
+            # Use full_name or email part as display name
+            display_name = user_info.get('full_name')
+            if not display_name and user_info.get('email'):
+                display_name = user_info.get('email').split('@')[0]
+                
             results.append({
                 "rank": idx,
                 "user_id": entry['user_id'],
-                "username": user_info.get('username', 'Anonymous'),
+                "username": display_name or 'Anonymous',
                 "role": user_info.get('role', 'N/A'),
                 "total_earnings": float(entry['total_earnings'] or 0),
                 "total_referrals": entry['total_referrals'],

@@ -5,23 +5,36 @@ Gestion complète des emails transactionnels et marketing
 Features:
 1. Templates HTML professionnels
 2. Support SMTP (Gmail, SendGrid, Mailgun)
-3. Queue avec Celery (async sending)
-4. Tracking (opens, clicks)
-5. Rate limiting
-6. Retry logic
-7. Unsubscribe management
+3. Support API SendGrid (Preferred)
+4. Queue avec Celery (async sending)
+5. Tracking (opens, clicks)
+6. Rate limiting
+7. Retry logic
+8. Unsubscribe management
 """
 
 import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.image import MIMEImage
 from typing import Optional, List, Dict
 from datetime import datetime
 import structlog
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pathlib import Path
+
+# SendGrid Imports
+try:
+    from sendgrid import SendGridAPIClient
+    from sendgrid.helpers.mail import Mail, Email, To, Content
+    SENDGRID_AVAILABLE = True
+except ImportError:
+    SENDGRID_AVAILABLE = False
+    SendGridAPIClient = None
+    Mail = None
+    Email = None
+    To = None
+    Content = None
 
 logger = structlog.get_logger()
 
@@ -32,6 +45,7 @@ SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 EMAIL_FROM_NAME = os.getenv("EMAIL_FROM_NAME", "ShareYourSales")
 EMAIL_FROM_ADDRESS = os.getenv("EMAIL_FROM_ADDRESS", "noreply@shareyoursales.ma")
+SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 
 
 # ============================================
@@ -50,8 +64,10 @@ class EmailService:
         self.smtp_password = SMTP_PASSWORD
         self.from_name = EMAIL_FROM_NAME
         self.from_address = EMAIL_FROM_ADDRESS
+        self.sendgrid_api_key = SENDGRID_API_KEY
 
         # Initialiser Jinja2 pour templates
+        # Path: backend/templates/emails
         template_dir = Path(__file__).parent.parent / "templates" / "emails"
         template_dir.mkdir(parents=True, exist_ok=True)
 
@@ -74,6 +90,32 @@ class EmailService:
         except Exception as e:
             logger.error("smtp_connection_failed", error=str(e))
             raise
+
+    def _send_via_sendgrid(self, to_email: str, subject: str, html_content: str) -> bool:
+        """Send email using SendGrid API"""
+        if not SENDGRID_AVAILABLE:
+            logger.warning("sendgrid_library_missing")
+            return False
+            
+        try:
+            message = Mail(
+                from_email=Email(self.from_address, self.from_name),
+                to_emails=To(to_email),
+                subject=subject,
+                html_content=Content("text/html", html_content)
+            )
+            sg = SendGridAPIClient(self.sendgrid_api_key)
+            response = sg.send(message)
+            
+            if 200 <= response.status_code < 300:
+                logger.info("email_sent_sendgrid", to=to_email, subject=subject)
+                return True
+            else:
+                logger.error("sendgrid_error", status=response.status_code, body=response.body)
+                return False
+        except Exception as e:
+            logger.error("sendgrid_exception", error=str(e))
+            return False
 
     def send_email(
         self,
@@ -98,6 +140,13 @@ class EmailService:
         Returns:
             True si envoyé avec succès
         """
+        # Try SendGrid first if configured
+        if self.sendgrid_api_key and SENDGRID_AVAILABLE:
+            if self._send_via_sendgrid(to_email, subject, html_content):
+                return True
+            # Fallback to SMTP if SendGrid fails
+            logger.warning("fallback_to_smtp")
+
         try:
             # Créer message
             msg = MIMEMultipart('alternative')
@@ -127,7 +176,7 @@ class EmailService:
             with self._create_smtp_connection() as server:
                 server.send_message(msg)
 
-            logger.info("email_sent", to=to_email, subject=subject)
+            logger.info("email_sent_smtp", to=to_email, subject=subject)
             return True
 
         except Exception as e:
@@ -318,27 +367,19 @@ class EmailTemplates:
         """Email payout approuvé"""
         subject = "💰 Paiement approuvé"
 
-        masked_iban = iban[:6] + "****" + iban[-4:] if len(iban) > 10 else iban
-
-        html_content = f"""
-        <h2>Bonne nouvelle {user_name}!</h2>
-        <p>Votre demande de paiement de <strong>{amount} MAD</strong> a été approuvée.</p>
-        <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3>Détails du paiement:</h3>
-            <ul style="list-style: none; padding: 0;">
-                <li>💵 <strong>Montant:</strong> {amount} MAD</li>
-                <li>🏦 <strong>IBAN:</strong> {masked_iban}</li>
-                <li>📅 <strong>Date estimée:</strong> {estimated_date}</li>
-            </ul>
-        </div>
-        <p>Le virement sera effectué sous 2-3 jours ouvrés.</p>
-        <p><a href="https://shareyoursales.ma/payouts" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Voir mes paiements</a></p>
-        """
+        context = {
+            'user_name': user_name,
+            'amount': amount,
+            'iban': iban,
+            'estimated_date': estimated_date
+        }
+        
+        html_content = email_service.render_template('payout_approved.html', context)
 
         return email_service.send_email(
             to_email=to_email,
             subject=subject,
-            html_content=email_service._fallback_template({'content': html_content})
+            html_content=html_content
         )
 
     @staticmethod
@@ -381,49 +422,38 @@ class EmailTemplates:
         """Email affiliation approuvée (pour influenceur)"""
         subject = f"✅ Votre demande d'affiliation a été acceptée!"
 
-        html_content = f"""
-        <h2>Félicitations {influencer_name}!</h2>
-        <p>Votre demande d'affiliation a été acceptée par <strong>{merchant_name}</strong>.</p>
-        <div style="background: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3>Détails:</h3>
-            <ul style="list-style: none; padding: 0;">
-                <li>📦 <strong>Produit:</strong> {product_name}</li>
-                <li>💰 <strong>Commission:</strong> {commission_rate}%</li>
-                <li>🏪 <strong>Marchand:</strong> {merchant_name}</li>
-            </ul>
-        </div>
-        <p>Vous pouvez maintenant générer votre lien d'affiliation et commencer à promouvoir ce produit!</p>
-        <p><a href="https://shareyoursales.ma/my-links" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Générer mon lien</a></p>
-        """
+        context = {
+            'influencer_name': influencer_name,
+            'merchant_name': merchant_name,
+            'product_name': product_name,
+            'commission_rate': commission_rate
+        }
+        
+        html_content = email_service.render_template('affiliation_approved.html', context)
 
         return email_service.send_email(
             to_email=to_email,
             subject=subject,
-            html_content=email_service._fallback_template({'content': html_content})
+            html_content=html_content
         )
 
     @staticmethod
     async def send_password_reset_email(to_email: str, user_name: str, reset_token: str):
         """Email reset password"""
         reset_url = f"https://shareyoursales.ma/reset-password?token={reset_token}"
-
         subject = "Réinitialisation de votre mot de passe"
 
-        html_content = f"""
-        <h2>Bonjour {user_name},</h2>
-        <p>Vous avez demandé à réinitialiser votre mot de passe.</p>
-        <p>Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe:</p>
-        <p style="text-align: center; margin: 30px 0;">
-            <a href="{reset_url}" style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;">Réinitialiser mon mot de passe</a>
-        </p>
-        <p style="color: #666; font-size: 14px;">Ce lien est valide pendant 1 heure.</p>
-        <p style="color: #666; font-size: 14px;">Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
-        """
+        context = {
+            'user_name': user_name,
+            'reset_url': reset_url
+        }
+        
+        html_content = email_service.render_template('password_reset.html', context)
 
         return email_service.send_email(
             to_email=to_email,
             subject=subject,
-            html_content=email_service._fallback_template({'content': html_content})
+            html_content=html_content
         )
 
     @staticmethod
@@ -470,3 +500,44 @@ class EmailQueue:
         # from tasks import send_email_task
         # send_email_task.delay(task_name, **kwargs)
         logger.info("email_queued", task=task_name, params=kwargs)
+
+def send_verification_email(to_email: str, token: str) -> str:
+    """
+    Send a verification email and return the URL used in the message.
+    Legacy wrapper for compatibility.
+    """
+    # Construct URL
+    frontend_url = os.getenv("FRONTEND_URL", "https://getyourshare.ma")
+    verification_route = os.getenv("VERIFICATION_ROUTE", "/verify-email")
+    base = frontend_url.rstrip("/")
+    route = verification_route if verification_route.startswith("/") else f"/{verification_route}"
+    verification_url = f"{base}{route}?token={token}"
+    
+    subject = "Vérifiez votre adresse email"
+    
+    html_content = f"""
+        <html>
+            <body>
+                <p>Bienvenue sur <strong>ShareYourSales</strong> !</p>
+                <p>Pour activer votre compte, veuillez confirmer votre adresse email en cliquant sur le bouton ci-dessous :</p>
+                <p style=\"margin:24px 0;\">
+                    <a href=\"{verification_url}\" style=\"
+                        background-color:#2563eb;
+                        color:#ffffff;
+                        padding:12px 24px;
+                        border-radius:6px;
+                        text-decoration:none;
+                        display:inline-block;
+                        font-weight:600;
+                    \">Confirmer mon adresse email</a>
+                </p>
+                <p>Ce lien expire dans 48 heures. Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet email.</p>
+                <p style=\"margin-top:32px; color:#6b7280; font-size:12px;\">
+                    ShareYourSales · Plateforme d'affiliation intelligente
+                </p>
+            </body>
+        </html>
+    """
+    
+    email_service.send_email(to_email, subject, html_content)
+    return verification_url

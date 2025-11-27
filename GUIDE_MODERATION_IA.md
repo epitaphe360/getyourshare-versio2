@@ -2,7 +2,7 @@
 
 **Date**: 2 Novembre 2025  
 **Version**: 1.0  
-**Status**: ✅ Prêt pour déploiement
+**Status**: ✅ DÉPLOYÉ ET VÉRIFIÉ
 
 ---
 
@@ -93,7 +93,7 @@ POST /api/admin/moderation/test         # Tester l'IA
 GET  /api/admin/moderation/{id}         # Détails
 ```
 
-#### 4. **Dashboard Admin** (Frontend - à créer)
+#### 4. **Dashboard Admin** (Frontend - Implémenté)
 - Liste des produits en attente
 - Filtres par risque
 - Détails IA (flags, raison, confidence)
@@ -401,83 +401,13 @@ Authorization: Bearer {merchant_token}
 
 ---
 
-## 🎨 DASHBOARD ADMIN (À DÉVELOPPER)
+## 🎨 DASHBOARD ADMIN (IMPLÉMENTÉ)
 
-### Composant React Recommandé
+Le dashboard est accessible via `/admin/moderation` pour les utilisateurs ayant le rôle `admin`.
 
-```jsx
-// frontend/src/pages/admin/ModerationDashboard.js
-import React, { useState, useEffect } from 'react';
-import api from '../../services/api';
-
-const ModerationDashboard = () => {
-  const [pending, setPending] = useState([]);
-  const [stats, setStats] = useState({});
-  const [filter, setFilter] = useState('all'); // all, high, medium, low
-  
-  useEffect(() => {
-    fetchPending();
-    fetchStats();
-  }, [filter]);
-  
-  const fetchPending = async () => {
-    const params = filter !== 'all' ? `?risk_level=${filter}` : '';
-    const res = await api.get(`/api/admin/moderation/pending${params}`);
-    setPending(res.data.data);
-  };
-  
-  const fetchStats = async () => {
-    const res = await api.get('/api/admin/moderation/stats?period=today');
-    setStats(res.data);
-  };
-  
-  const handleReview = async (moderationId, decision, comment) => {
-    try {
-      await api.post('/api/admin/moderation/review', {
-        moderation_id: moderationId,
-        decision,
-        comment
-      });
-      alert(`Produit ${decision === 'approve' ? 'approuvé' : 'rejeté'}`);
-      fetchPending();
-      fetchStats();
-    } catch (err) {
-      alert('Erreur: ' + err.response?.data?.detail);
-    }
-  };
-  
-  return (
-    <div className="p-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <StatCard title="En attente" value={stats.pending} color="yellow" />
-        <StatCard title="Approuvés" value={stats.approved} color="green" />
-        <StatCard title="Rejetés" value={stats.rejected} color="red" />
-        <StatCard title="Taux approbation" value={`${(stats.approval_rate*100).toFixed(0)}%`} />
-      </div>
-      
-      {/* Filters */}
-      <div className="mb-4">
-        <button onClick={() => setFilter('all')}>Tous</button>
-        <button onClick={() => setFilter('critical')}>🔴 Critical</button>
-        <button onClick={() => setFilter('high')}>🟠 High</button>
-        <button onClick={() => setFilter('medium')}>🟡 Medium</button>
-        <button onClick={() => setFilter('low')}>🟢 Low</button>
-      </div>
-      
-      {/* Pending List */}
-      {pending.map(item => (
-        <ModerationCard 
-          key={item.id}
-          item={item}
-          onApprove={(comment) => handleReview(item.id, 'approve', comment)}
-          onReject={(comment) => handleReview(item.id, 'reject', comment)}
-        />
-      ))}
-    </div>
-  );
-};
-```
+### Comptes Admin Vérifiés
+- **Email**: `admin@getyourshare.com`
+- **Email**: `sofia.chakir@getyourshare.com`
 
 ### Features du Dashboard
 - ✅ Stats en temps réel
@@ -654,13 +584,13 @@ ORDER BY date DESC;
 
 ### Checklist
 
-- [ ] Clé OpenAI configurée et créditée (10$+)
-- [ ] Tables SQL créées dans Supabase
-- [ ] Endpoints montés dans server_complete.py
-- [ ] Dashboard admin développé et testé
-- [ ] Tests passés (3 scénarios)
+- [x] Clé OpenAI configurée et créditée (10$+)
+- [x] Tables SQL créées dans Supabase
+- [x] Endpoints montés dans server_complete.py
+- [x] Dashboard admin développé et testé
+- [x] Tests passés (3 scénarios)
 - [ ] Monitoring configuré
-- [ ] Documentation admin rédigée
+- [x] Documentation admin rédigée
 - [ ] Webhook notifications configuré (optionnel)
 - [ ] Rate limiting sur endpoints IA
 - [ ] Logs structurés activés

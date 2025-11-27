@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 from datetime import datetime, timedelta
 from supabase_config import get_supabase_client
+from auth import get_current_user_from_cookie
+from db_helpers import get_user_by_id
 
 router = APIRouter()
 
@@ -14,8 +16,13 @@ router = APIRouter()
 # Vue d'ensemble admin (dashboard)
 # ============================================
 @router.get("/overview")
-async def get_analytics_overview():
+async def get_analytics_overview(current_user: dict = Depends(get_current_user_from_cookie)):
     """Statistiques générales pour le dashboard admin"""
+    # Verify admin role
+    user = get_user_by_id(current_user["id"])
+    if not user or user.get("role") not in ["admin", "superadmin"]:
+         raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+
     try:
         supabase = get_supabase_client()
         
@@ -72,7 +79,7 @@ async def get_analytics_overview():
                 "total_commissions": round(total_commissions, 2),
                 "total_payouts": round(total_payouts, 2),
                 "pending_payouts": pending_payouts,
-                "net_revenue": round(total_revenue - total_commissions - total_payouts, 2)
+                "net_revenue": round(total_revenue - total_commissions, 2)
             },
             "tracking": {
                 "total_clicks": total_clicks,
@@ -291,15 +298,15 @@ async def get_platform_metrics():
         recent_conversions = supabase.table('conversions').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
         monthly_clicks = recent_conversions.count or 0
         
-        # Croissance trimestrielle (simulée - comparer avec 3 mois avant)
-        ninety_days_ago = (datetime.now() - timedelta(days=90)).isoformat()
-        old_sales = supabase.table('sales').select('amount').lt('created_at', thirty_days_ago).gte('created_at', ninety_days_ago).execute()
+        # Croissance mensuelle (comparer 30 derniers jours vs 30 jours précédents)
+        sixty_days_ago = (datetime.now() - timedelta(days=60)).isoformat()
+        old_sales = supabase.table('sales').select('amount').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
         recent_sales = supabase.table('sales').select('amount').gte('created_at', thirty_days_ago).execute()
         
         old_revenue = sum([float(s.get('amount', 0)) for s in (old_sales.data or [])])
         recent_revenue = sum([float(s.get('amount', 0)) for s in (recent_sales.data or [])])
         
-        quarterly_growth = ((recent_revenue - old_revenue) / old_revenue * 100) if old_revenue > 0 else 0
+        growth_rate = ((recent_revenue - old_revenue) / old_revenue * 100) if old_revenue > 0 else 0
         
         # Active users (derniers 7 jours)
         seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
@@ -316,7 +323,7 @@ async def get_platform_metrics():
             "success": True,
             "avg_conversion_rate": round(conversion_rate, 2),
             "monthly_clicks": monthly_clicks,
-            "quarterly_growth": round(quarterly_growth, 2),
+            "quarterly_growth": round(growth_rate, 2),
             "active_users_7d": active_users.count or 0,
             "active_users_24h": active_users_24h.count or 0,
             "new_signups_30d": new_signups.count or 0,
@@ -330,18 +337,40 @@ async def get_platform_metrics():
 # Graphique des ventes pour un marchand
 # ============================================
 @router.get("/merchant/sales-chart")
-async def get_merchant_sales_chart(merchant_id: Optional[str] = Query(None), days: int = Query(30)):
+async def get_merchant_sales_chart(
+    merchant_id: Optional[str] = Query(None), 
+    days: int = Query(30),
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
     """Graphique des ventes d'un marchand sur X jours"""
     try:
         supabase = get_supabase_client()
         
+        # Determine merchant_id from token if not provided or verify access
+        user_id = current_user["id"]
+        user = get_user_by_id(user_id)
+        
+        target_merchant_id = None
+        
+        if user["role"] == "merchant":
+            # If user is merchant, force their own ID
+            target_merchant_id = user_id
+        elif user["role"] == "admin":
+            # Admin can view any merchant
+            target_merchant_id = merchant_id
+        else:
+            raise HTTPException(status_code=403, detail="Accès non autorisé")
+            
+        if not target_merchant_id and user["role"] == "merchant":
+             target_merchant_id = user_id
+
         # Si merchant_id n'est pas fourni, prendre toutes les ventes
         start_date = (datetime.now() - timedelta(days=days)).date()
         
         # Récupérer les ventes
         query = supabase.table('sales').select('amount, created_at, merchant_id')
-        if merchant_id:
-            query = query.eq('merchant_id', merchant_id)
+        if target_merchant_id:
+            query = query.eq('merchant_id', target_merchant_id)
         sales = query.execute()
         
         # Grouper par jour
@@ -381,6 +410,8 @@ async def get_merchant_sales_chart(merchant_id: Optional[str] = Query(None), day
             "total_sales": round(sum([d['sales'] for d in data]), 2),
             "total_orders": sum([d['orders'] for d in data])
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
@@ -389,15 +420,36 @@ async def get_merchant_sales_chart(merchant_id: Optional[str] = Query(None), day
 # Performance d'un marchand
 # ============================================
 @router.get("/merchant/performance")
-async def get_merchant_performance(merchant_id: Optional[str] = Query(None)):
+async def get_merchant_performance(
+    merchant_id: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
     """Métriques de performance pour un marchand"""
     try:
         supabase = get_supabase_client()
         
+        # Determine merchant_id from token if not provided or verify access
+        user_id = current_user["id"]
+        user = get_user_by_id(user_id)
+        
+        target_merchant_id = None
+        
+        if user["role"] == "merchant":
+            # If user is merchant, force their own ID
+            target_merchant_id = user_id
+        elif user["role"] == "admin":
+            # Admin can view any merchant
+            target_merchant_id = merchant_id
+        else:
+            raise HTTPException(status_code=403, detail="Accès non autorisé")
+            
+        if not target_merchant_id and user["role"] == "merchant":
+             target_merchant_id = user_id
+        
         # Statistiques de base
         query = supabase.table('sales').select('amount, status')
-        if merchant_id:
-            query = query.eq('merchant_id', merchant_id)
+        if target_merchant_id:
+            query = query.eq('merchant_id', target_merchant_id)
         sales = query.execute()
         
         total_sales = len(sales.data or [])
@@ -406,34 +458,34 @@ async def get_merchant_performance(merchant_id: Optional[str] = Query(None)):
         
         # Produits
         prod_query = supabase.table('products').select('id', count='exact')
-        if merchant_id:
-            prod_query = prod_query.eq('merchant_id', merchant_id)
+        if target_merchant_id:
+            prod_query = prod_query.eq('merchant_id', target_merchant_id)
         products = prod_query.execute()
         
         # Tracking links et conversions
         links_query = supabase.table('tracking_links').select('clicks')
-        if merchant_id:
-            links_query = links_query.eq('merchant_id', merchant_id)
+        if target_merchant_id:
+            links_query = links_query.eq('merchant_id', target_merchant_id)
         links = links_query.execute()
         
         total_clicks = sum([int(l.get('clicks', 0)) for l in (links.data or [])])
         
         conv_query = supabase.table('conversions').select('id', count='exact')
-        if merchant_id:
-            conv_query = conv_query.eq('merchant_id', merchant_id)
+        if target_merchant_id:
+            conv_query = conv_query.eq('merchant_id', target_merchant_id)
         conversions = conv_query.execute()
         
         conversion_rate = (conversions.count / total_clicks * 100) if total_clicks > 0 else 0
         
         # Affiliés actifs (influencers avec liens vers ce merchant)
         affiliates_query = supabase.table('tracking_links').select('influencer_id')
-        if merchant_id:
-            affiliates_query = affiliates_query.eq('merchant_id', merchant_id)
+        if target_merchant_id:
+            affiliates_query = affiliates_query.eq('merchant_id', target_merchant_id)
         affiliates = affiliates_query.execute()
         unique_affiliates = len(set([a.get('influencer_id') for a in (affiliates.data or []) if a.get('influencer_id')]))
         
-        # Engagement rate (conversions / ventes)
-        engagement_rate = (conversions.count / total_sales * 100) if total_sales > 0 else 0
+        # Engagement rate (Sales / Conversions ratio - Approval Rate)
+        engagement_rate = (total_sales / conversions.count * 100) if conversions.count > 0 else 0
         
         # Satisfaction rate (ventes complétées / total ventes)
         satisfaction_rate = (completed_sales / total_sales * 100) if total_sales > 0 else 0
@@ -454,6 +506,8 @@ async def get_merchant_performance(merchant_id: Optional[str] = Query(None)):
             "affiliates_count": unique_affiliates,
             "total_clicks": total_clicks
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
@@ -462,17 +516,39 @@ async def get_merchant_performance(merchant_id: Optional[str] = Query(None)):
 # Graphique des gains pour un influenceur
 # ============================================
 @router.get("/influencer/earnings-chart")
-async def get_influencer_earnings_chart(influencer_id: Optional[str] = Query(None), days: int = Query(30)):
+async def get_influencer_earnings_chart(
+    influencer_id: Optional[str] = Query(None), 
+    days: int = Query(30),
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
     """Graphique des commissions d'un influenceur sur X jours"""
     try:
         supabase = get_supabase_client()
         
+        # Determine influencer_id from token if not provided or verify access
+        user_id = current_user["id"]
+        user = get_user_by_id(user_id)
+        
+        target_influencer_id = None
+        
+        if user["role"] == "influencer":
+            # If user is influencer, force their own ID
+            target_influencer_id = user_id
+        elif user["role"] == "admin":
+            # Admin can view any influencer
+            target_influencer_id = influencer_id
+        else:
+            raise HTTPException(status_code=403, detail="Accès non autorisé")
+            
+        if not target_influencer_id and user["role"] == "influencer":
+             target_influencer_id = user_id
+
         start_date = (datetime.now() - timedelta(days=days)).date()
         
         # Récupérer les commissions
         query = supabase.table('commissions').select('amount, created_at, influencer_id')
-        if influencer_id:
-            query = query.eq('influencer_id', influencer_id)
+        if target_influencer_id:
+            query = query.eq('influencer_id', target_influencer_id)
         commissions = query.execute()
         
         # Grouper par jour
@@ -512,6 +588,8 @@ async def get_influencer_earnings_chart(influencer_id: Optional[str] = Query(Non
             "total_earnings": round(sum([d['earnings'] for d in data]), 2),
             "total_commissions": sum([d['commissions'] for d in data])
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
@@ -520,23 +598,44 @@ async def get_influencer_earnings_chart(influencer_id: Optional[str] = Query(Non
 # Vue d'ensemble pour un influenceur
 # ============================================
 @router.get("/influencer/overview")
-async def get_influencer_overview(influencer_id: Optional[str] = Query(None)):
+async def get_influencer_overview(
+    influencer_id: Optional[str] = Query(None),
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
     """Statistiques complètes pour un influenceur"""
     try:
         supabase = get_supabase_client()
         
+        # Determine influencer_id from token if not provided or verify access
+        user_id = current_user["id"]
+        user = get_user_by_id(user_id)
+        
+        target_influencer_id = None
+        
+        if user["role"] == "influencer":
+            # If user is influencer, force their own ID
+            target_influencer_id = user_id
+        elif user["role"] == "admin":
+            # Admin can view any influencer
+            target_influencer_id = influencer_id
+        else:
+            raise HTTPException(status_code=403, detail="Accès non autorisé")
+            
+        if not target_influencer_id and user["role"] == "influencer":
+             target_influencer_id = user_id
+        
         # Commissions totales
         comm_query = supabase.table('commissions').select('amount, created_at')
-        if influencer_id:
-            comm_query = comm_query.eq('influencer_id', influencer_id)
+        if target_influencer_id:
+            comm_query = comm_query.eq('influencer_id', target_influencer_id)
         commissions = comm_query.execute()
         
         total_earnings = sum([float(c.get('amount', 0)) for c in (commissions.data or [])])
         
         # Tracking links et clics
         links_query = supabase.table('tracking_links').select('clicks, conversions')
-        if influencer_id:
-            links_query = links_query.eq('influencer_id', influencer_id)
+        if target_influencer_id:
+            links_query = links_query.eq('influencer_id', target_influencer_id)
         links = links_query.execute()
         
         total_clicks = sum([int(l.get('clicks', 0)) for l in (links.data or [])])
@@ -544,11 +643,12 @@ async def get_influencer_overview(influencer_id: Optional[str] = Query(None)):
         
         # Payouts pour calculer balance
         payout_query = supabase.table('payouts').select('amount, status')
-        if influencer_id:
-            payout_query = payout_query.eq('influencer_id', influencer_id)
+        if target_influencer_id:
+            payout_query = payout_query.eq('influencer_id', target_influencer_id)
         payouts = payout_query.execute()
         
         total_withdrawn = sum([float(p.get('amount', 0)) for p in (payouts.data or []) if p.get('status') == 'paid'])
+        pending_payouts_amount = sum([float(p.get('amount', 0)) for p in (payouts.data or []) if p.get('status') == 'pending'])
         balance = total_earnings - total_withdrawn
         
         # Calculer growth (comparer derniers 15 jours vs 15 jours précédents)
@@ -564,14 +664,14 @@ async def get_influencer_overview(influencer_id: Optional[str] = Query(None)):
         earnings_growth = ((recent_earnings - old_earnings) / old_earnings * 100) if old_earnings > 0 else 0
 
         # Calculer growth pour clics et ventes
-        recent_links = [l for l in (links.data or []) if l.get('created_at', '') >= fifteen_days_ago] # Note: tracking_links might not have created_at for clicks, assuming created_at of link or we need a clicks history table. 
+        # Note: tracking_links might not have created_at for clicks, assuming created_at of link or we need a clicks history table. 
         # Actually tracking_links table usually has created_at. But clicks are aggregated. 
         # If we don't have click history, we can't calculate growth accurately without a clicks table.
         # However, let's check if we can use 'conversions' table for sales growth.
         
         conversions_query = supabase.table('conversions').select('created_at')
-        if influencer_id:
-            conversions_query = conversions_query.eq('influencer_id', influencer_id)
+        if target_influencer_id:
+            conversions_query = conversions_query.eq('influencer_id', target_influencer_id)
         conversions_data = conversions_query.execute()
         
         recent_conv = [c for c in (conversions_data.data or []) if c.get('created_at', '') >= fifteen_days_ago]
@@ -594,8 +694,10 @@ async def get_influencer_overview(influencer_id: Optional[str] = Query(None)):
             "earnings_growth": round(earnings_growth, 2),
             "clicks_growth": round(clicks_growth, 2),
             "sales_growth": round(sales_growth, 2),
-            "pending_amount": round(balance * 0.25, 2),  # Simuler montant en attente
+            "pending_amount": round(pending_payouts_amount, 2),
             "total_links": len(links.data or [])
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")

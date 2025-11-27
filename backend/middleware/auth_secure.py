@@ -6,7 +6,7 @@ Middleware d'authentification sécurisé
 - Session management
 """
 from fastapi import Request, HTTPException, status, Response
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredential
+from fastapi.security import HTTPBearer
 from typing import Optional, Dict, Any
 import jwt
 from datetime import datetime, timedelta

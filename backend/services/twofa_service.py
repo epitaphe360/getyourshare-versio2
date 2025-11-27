@@ -22,6 +22,7 @@ from typing import Optional, List, Dict, Tuple
 from datetime import datetime, timedelta
 import structlog
 from pydantic import BaseModel
+from fastapi.concurrency import run_in_threadpool
 
 logger = structlog.get_logger()
 
@@ -326,7 +327,10 @@ class TwoFactorAuthService:
             from supabase_client import supabase
 
             # Récupérer config 2FA
-            result = supabase.table('user_2fa').select('*').eq('user_id', user_id).eq('enabled', True).execute()
+            def _get_config():
+                return supabase.table('user_2fa').select('*').eq('user_id', user_id).eq('enabled', True).execute()
+
+            result = await run_in_threadpool(_get_config)
 
             if not result.data:
                 logger.error("2fa_not_enabled", user_id=user_id)
@@ -349,10 +353,14 @@ class TwoFactorAuthService:
                 if is_valid:
                     # Retirer code utilisé
                     backup_codes.remove(hashed_code)
-                    supabase.table('user_2fa').update({
-                        'backup_codes': backup_codes,
-                        'updated_at': datetime.utcnow().isoformat()
-                    }).eq('user_id', user_id).execute()
+                    
+                    def _update_backup_codes():
+                        supabase.table('user_2fa').update({
+                            'backup_codes': backup_codes,
+                            'updated_at': datetime.utcnow().isoformat()
+                        }).eq('user_id', user_id).execute()
+                    
+                    await run_in_threadpool(_update_backup_codes)
 
             elif method == 'email':
                 # Vérifier code email stocké temporairement
@@ -448,7 +456,10 @@ class TwoFactorAuthService:
         try:
             from supabase_client import supabase
 
-            result = supabase.table('user_2fa').select('*').eq('user_id', user_id).execute()
+            def _fetch_status():
+                return supabase.table('user_2fa').select('*').eq('user_id', user_id).execute()
+
+            result = await run_in_threadpool(_fetch_status)
 
             if not result.data:
                 return {

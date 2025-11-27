@@ -23,7 +23,6 @@ import json
 import httpx
 import logging
 import re
-from collections import Counter
 import statistics
 from supabase_client import supabase
 

@@ -523,13 +523,19 @@ const MarketplaceFourTabs = () => {
                   {influencer.instagram_followers > 0 && (
                     <Chip
                       icon={<InstagramIcon />}
-                      label={`${(influencer.instagram_followers / 1000).toFixed(0)}K`}
+                      label={`${(() => {
+                        const count = Number(influencer.instagram_followers);
+                        return isNaN(count) ? '0' : (count / 1000).toFixed(0);
+                      })()}K`}
                       size="small"
                     />
                   )}
                   {influencer.tiktok_followers > 0 && (
                     <Chip
-                      label={`TT ${(influencer.tiktok_followers / 1000).toFixed(0)}K`}
+                      label={`TT ${(() => {
+                        const count = Number(influencer.tiktok_followers);
+                        return isNaN(count) ? '0' : (count / 1000).toFixed(0);
+                      })()}K`}
                       size="small"
                     />
                   )}

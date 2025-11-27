@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import {
   Box,
   Container,
@@ -45,6 +46,7 @@ import api from '../../services/api';
 const SubscriptionDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState(null);
   const [usage, setUsage] = useState(null);
@@ -89,7 +91,11 @@ const SubscriptionDashboard = () => {
   };
 
   const handleUpgrade = () => {
-    navigate('/pricing');
+    if (user?.role === 'influencer') {
+      navigate('/pricing?role=influencer');
+    } else {
+      navigate('/pricing');
+    }
   };
 
   const handleCancelSubscription = async () => {

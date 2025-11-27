@@ -10,6 +10,8 @@ const SubscriptionLimitAlert = () => {
   const [showBanner, setShowBanner] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
   useEffect(() => {
     fetchUsage();
   }, []);
@@ -17,7 +19,7 @@ const SubscriptionLimitAlert = () => {
   const fetchUsage = async () => {
     try {
       const response = await axios.get(
-        'http://localhost:8000/api/subscriptions/usage',
+        `${API_URL}/subscriptions/usage`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         }

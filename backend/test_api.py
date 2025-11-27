@@ -6,7 +6,6 @@ Vérifie que le backend peut récupérer les données de Supabase
 
 import requests
 import json
-from pprint import pprint
 
 BASE_URL = "http://localhost:5000"
 

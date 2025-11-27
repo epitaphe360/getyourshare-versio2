@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 import {
@@ -10,7 +11,7 @@ import {
   DollarSign, Users, Target, TrendingUp, Link as LinkIcon,
   Mail, Phone, Calendar, FileText, Lock, Crown, Zap,
   Copy, ExternalLink, Download, Eye, Edit, Trash2,
-  Plus, Filter, Search, MessageCircle, Sparkles
+  Plus, Filter, Search, MessageCircle, Sparkles, ShoppingCart
 } from 'lucide-react';
 import api from '../../services/api';
 import { toast } from 'react-toastify';
@@ -147,6 +148,7 @@ const SubscriptionBanner = ({ tier, stats }) => {
 // =====================================================
 
 const CommercialDashboard = () => {
+  const navigate = useNavigate();
   // États
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -280,6 +282,49 @@ const CommercialDashboard = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Navigation Bar */}
+      <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+        <div className="flex flex-wrap gap-3 items-center">
+          <button
+            onClick={() => navigate('/')}
+            className="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Accueil
+          </button>
+          <button
+            onClick={() => setShowCreateLead(true)}
+            className="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Plus size={18} />
+            Nouveau Lead
+          </button>
+          <button
+            onClick={() => navigate('/marketplace')}
+            className="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <ShoppingCart size={18} />
+            Marketplace
+          </button>
+          <button
+            onClick={() => navigate('/features')}
+            className="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Sparkles size={18} />
+            Features
+          </button>
+          <button
+            onClick={() => navigate('/profile')}
+            className="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Users size={18} />
+            Profil
+          </button>
+        </div>
+      </div>
+
       {/* Bandeau Abonnement */}
       <SubscriptionBanner tier={subscriptionTier} stats={stats} />
 

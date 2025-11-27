@@ -17,8 +17,19 @@ const ReferralDashboard = () => {
     try {
       // Try to get stats, which might include the code if it exists
       // If the backend requires a code to exist for stats, we might need to handle 404
-      const response = await api.get('/referrals/stats');
-      setReferralData(response.data);
+      const response = await api.get('/api/referrals/stats');
+      
+      // Map backend response to frontend expected structure
+      const data = response.data;
+      const formattedData = {
+        ...data,
+        referral_code: data.code,
+        referral_url: data.code ? `https://getyourshare.com/register?ref=${data.code}` : null,
+        total_earned: data.total_earnings,
+        conversion_rate: data.total_referrals > 0 ? ((data.active_referrals / data.total_referrals) * 100).toFixed(1) : 0
+      };
+      
+      setReferralData(formattedData);
     } catch (err) {
       // If 404, it might mean no code exists yet. 
       // But usually stats endpoint should return empty stats if no referrals.
@@ -39,13 +50,13 @@ const ReferralDashboard = () => {
     setGenerating(true);
     setError(null);
     try {
-      const response = await api.post('/referrals/generate-code');
+      const response = await api.post('/api/referrals/generate-code');
       // After generating, fetch stats again or use response if it returns the code
-      // The backend returns { "referral_code": ..., "referral_url": ... }
+      // The backend returns { "code": ..., "share_link": ... }
       setReferralData({
         ...referralData,
-        referral_code: response.data.referral_code,
-        referral_url: response.data.referral_url,
+        referral_code: response.data.code,
+        referral_url: response.data.share_link,
         total_referrals: 0,
         total_earned: 0,
         conversion_rate: 0

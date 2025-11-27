@@ -1,5 +1,6 @@
 // Format currency
 export const formatCurrency = (amount, currency = 'EUR') => {
+  if (isNaN(amount) || amount === null || amount === undefined) return '0,00 €';
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: currency,
@@ -32,6 +33,7 @@ export const formatDateShort = (dateString) => {
 
 // Format number
 export const formatNumber = (num) => {
+  if (isNaN(num) || num === null || num === undefined) return '0';
   return new Intl.NumberFormat('fr-FR').format(num);
 };
 

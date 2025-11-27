@@ -17,13 +17,13 @@ const ProductDetailActions = memo(({ product, user, onRequestAffiliation, hasDis
             <>
               <div className="flex items-baseline space-x-3 mb-3">
                 <span className="text-5xl font-black bg-gradient-to-r from-red-500 to-pink-600 bg-clip-text text-transparent">
-                  {product.discounted_price?.toLocaleString()}
+                  {(product.discounted_price || product.price)?.toLocaleString()}
                 </span>
                 <span className="text-2xl font-bold text-gray-900">DH</span>
               </div>
               <div className="flex items-baseline space-x-2 mb-4">
                 <span className="text-xl text-gray-400 line-through">
-                  {product.original_price?.toLocaleString()} DH
+                  {(product.original_price || product.price)?.toLocaleString()} DH
                 </span>
               </div>
               <div className="inline-block bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2 rounded-xl text-sm font-black shadow-lg animate-pulse mb-3">
@@ -31,14 +31,13 @@ const ProductDetailActions = memo(({ product, user, onRequestAffiliation, hasDis
               </div>
               <div className="text-base font-bold bg-gradient-to-r from-green-500 to-emerald-600 bg-clip-text text-transparent">
                 💰 Économisez{' '}
-                {(product.original_price - product.discounted_price).toLocaleString()} DH
+                {((product.original_price || product.price) - (product.discounted_price || product.price)).toLocaleString()} DH
               </div>
             </>
           ) : (
             <div className="flex items-baseline space-x-3">
               <span className="text-5xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                {product.discounted_price?.toLocaleString() ||
-                  product.original_price?.toLocaleString()}
+                {(product.price || product.discounted_price || product.original_price || 0)?.toLocaleString()}
               </span>
               <span className="text-2xl font-bold text-gray-900">DH</span>
             </div>
@@ -61,21 +60,14 @@ const ProductDetailActions = memo(({ product, user, onRequestAffiliation, hasDis
         )}
 
         {/* Stock */}
-        {product.stock_quantity !== null && (
+        {product.stock_quantity !== null && product.stock_quantity > 0 && (
           <div className="mb-6">
-            {product.stock_quantity > 0 ? (
-              <div className="flex items-center gap-2 bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3 rounded-xl border-2 border-green-200">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-green-700 font-bold text-sm">
-                  ✓ En stock ({product.stock_quantity} disponibles)
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 bg-gradient-to-r from-red-50 to-pink-50 px-4 py-3 rounded-xl border-2 border-red-200">
-                <X className="w-5 h-5 text-red-500" />
-                <span className="text-red-700 font-bold text-sm">Rupture de stock</span>
-              </div>
-            )}
+            <div className="flex items-center gap-2 bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-3 rounded-xl border-2 border-green-200">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-green-700 font-bold text-sm">
+                ✓ En stock ({product.stock_quantity} disponibles)
+              </span>
+            </div>
           </div>
         )}
 
@@ -118,22 +110,29 @@ const ProductDetailActions = memo(({ product, user, onRequestAffiliation, hasDis
 
         {/* Merchant Info - Ultra-moderne */}
         {product.merchant && (
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <h3 className="font-semibold text-gray-900 mb-3">Vendu par</h3>
-            <div className="space-y-2">
-              <p className="font-medium text-gray-900">{product.merchant.name}</p>
-              {product.merchant.phone && (
-                <div className="flex items-center text-sm text-gray-600">
-                  <Phone className="w-4 h-4 mr-2" />
-                  {product.merchant.phone}
-                </div>
-              )}
-              {product.merchant.email && (
-                <div className="flex items-center text-sm text-gray-600">
-                  <Mail className="w-4 h-4 mr-2" />
-                  {product.merchant.email}
-                </div>
-              )}
+          <div className="mt-6 pt-6 border-t-2 border-gray-100">
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-5 hover:shadow-lg transition-all duration-300">
+              <h3 className="font-black text-gray-800 mb-4 text-sm uppercase tracking-wider flex items-center gap-2">
+                <div className="w-2 h-2 bg-cyan-500 rounded-full"></div>
+                Vendu par
+              </h3>
+              <div className="space-y-3">
+                <p className="font-bold text-gray-900 text-lg">
+                  {product.merchant.company_name || product.merchant.name || product.merchant_name || 'Marchand Vérifié'}
+                </p>
+                {product.merchant.phone && product.merchant.phone !== 'None' && (
+                  <div className="flex items-center text-sm text-gray-700 bg-white rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors">
+                    <Phone className="w-4 h-4 mr-2 text-cyan-600" />
+                    <span className="font-medium">{product.merchant.phone}</span>
+                  </div>
+                )}
+                {product.merchant.email && product.merchant.email !== 'None' && (
+                  <div className="flex items-center text-sm text-gray-700 bg-white rounded-lg px-3 py-2 hover:bg-gray-50 transition-colors">
+                    <Mail className="w-4 h-4 mr-2 text-cyan-600" />
+                    <span className="font-medium">{product.merchant.email}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

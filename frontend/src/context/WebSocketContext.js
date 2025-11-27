@@ -25,18 +25,36 @@ export const WebSocketProvider = ({ children }) => {
 
   // Construire l'URL WebSocket à partir de l'URL backend
   const getWebSocketUrl = () => {
-    let backendUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
-    
-    // Fix common issue where REACT_APP_API_URL might be set to frontend port
-    if (backendUrl.includes('localhost:3000')) {
-      console.warn('⚠️ REACT_APP_API_URL points to port 3000. Redirecting WebSocket to port 5000.');
-      backendUrl = backendUrl.replace('3000', '5000');
+    let backendUrl = process.env.REACT_APP_API_URL;
+
+    // Si l'URL n'est pas définie, utiliser localhost:8000 par défaut
+    if (!backendUrl) {
+      backendUrl = 'http://localhost:8000';
+    }
+
+    // Si l'URL pointe vers le port frontend (3000, 3001, etc.), rediriger vers 8000
+    // Cela arrive souvent quand l'API URL est relative ou mal configurée
+    const currentPort = window.location.port;
+    if (backendUrl.includes(`:${currentPort}`) || backendUrl.includes(':3000') || backendUrl.includes(':3001')) {
+      console.warn(`⚠️ REACT_APP_API_URL points to frontend port. Redirecting WebSocket to port 8000.`);
+      // Remplacer le port par 8000
+      backendUrl = backendUrl.replace(/:\d+/, ':8000');
+    }
+
+    // Si on est sur une IP réseau (ex: 192.168.x.x ou 10.x.x.x) et que backendUrl est localhost
+    // On essaie d'utiliser l'IP courante pour le backend aussi (suppose que backend tourne sur la même machine)
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && backendUrl.includes('localhost')) {
+       backendUrl = backendUrl.replace('localhost', window.location.hostname);
+       backendUrl = backendUrl.replace('127.0.0.1', window.location.hostname);
     }
 
     // Convertir http(s) en ws(s)
     const wsProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
     const wsBase = backendUrl.replace(/^https?:\/\//, '');
-    return `${wsProtocol}://${wsBase}/ws`;
+    
+    const url = `${wsProtocol}://${wsBase}/ws`;
+    console.log('🔌 WebSocket URL:', url);
+    return url;
   };
 
   const wsUrl = getWebSocketUrl();
