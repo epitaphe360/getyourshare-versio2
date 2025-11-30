@@ -7,6 +7,11 @@
 import { logger } from '../utils/logger';
 import { createContext, useContext, useState, useEffect } from 'react';
 
+import fr from './translations/fr';
+import ar from './translations/ar';
+import en from './translations/en';
+import darija from './translations/darija';
+
 // ============================================
 // LANGUES SUPPORTÉES
 // ============================================
@@ -42,7 +47,12 @@ export const RTL_LANGUAGES = [LANGUAGES.AR, LANGUAGES.DARIJA];
 class I18nService {
   constructor() {
     this.currentLanguage = this.getDefaultLanguage();
-    this.translations = {};
+    this.translations = {
+      [LANGUAGES.FR]: fr,
+      [LANGUAGES.AR]: ar,
+      [LANGUAGES.EN]: en,
+      [LANGUAGES.DARIJA]: darija,
+    };
     this.fallbackLanguage = LANGUAGES.FR;
   }
 
@@ -106,19 +116,12 @@ class I18nService {
    */
   async loadTranslations(lang) {
     if (this.translations[lang]) {
+      window.dispatchEvent(new CustomEvent('translationsLoaded', { detail: { language: lang } }));
       return true;
     }
     
-    try {
-      const module = await import(`./translations/${lang}.js`);
-      this.translations[lang] = module.default;
-      // Notifier que les traductions sont chargées
-      window.dispatchEvent(new CustomEvent('translationsLoaded', { detail: { language: lang } }));
-      return true;
-    } catch (error) {
-      console.error(`Erreur chargement traductions ${lang}:`, error);
-      return false;
-    }
+    console.error(`Traductions manquantes pour: ${lang}`);
+    return false;
   }
 
   /**

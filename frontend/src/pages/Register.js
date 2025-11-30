@@ -418,9 +418,9 @@ const Register = () => {
                     />
                     <label htmlFor="terms" className="ml-2 text-sm text-gray-600">
                       J'accepte les{' '}
-                      <a href="#" className="text-indigo-600 hover:text-indigo-700">
+                      <Link to="/terms" className="text-indigo-600 hover:text-indigo-700">
                         conditions générales d'utilisation
-                      </a>
+                      </Link>
                     </label>
                   </div>
 

@@ -55,39 +55,8 @@ const UserManagement = () => {
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Erreur lors du chargement des utilisateurs');
-      // Mock data pour développement
-      setUsers([
-        {
-          id: 1,
-          username: 'admin',
-          email: 'admin@shareyoursales.ma',
-          phone: '+212 6 12 34 56 78',
-          role: 'admin',
-          status: 'active',
-          created_at: '2024-01-15',
-          last_login: '2024-11-02 10:30'
-        },
-        {
-          id: 2,
-          username: 'admin2',
-          email: 'admin2@shareyoursales.ma',
-          phone: '+212 6 23 45 67 89',
-          role: 'admin',
-          status: 'active',
-          created_at: '2024-02-20',
-          last_login: '2024-11-01 15:45'
-        },
-        {
-          id: 3,
-          username: 'moderator1',
-          email: 'moderator@shareyoursales.ma',
-          phone: '+212 6 34 56 78 90',
-          role: 'moderator',
-          status: 'active',
-          created_at: '2024-03-10',
-          last_login: '2024-10-30 09:15'
-        }
-      ]);
+      // Pas de données mock - afficher liste vide en cas d'erreur
+      setUsers([]);
     } finally {
       setLoading(false);
     }

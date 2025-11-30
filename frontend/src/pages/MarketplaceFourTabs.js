@@ -33,7 +33,7 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api from '../utils/api';
 
 /**
  * Marketplace 4 Tabs - Conforme aux spécifications

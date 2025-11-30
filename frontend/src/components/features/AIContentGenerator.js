@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../../services/api';
+import api from '../../utils/api';
 import { Wand2, Copy, Check, RefreshCw } from 'lucide-react';
 
 const AIContentGenerator = () => {

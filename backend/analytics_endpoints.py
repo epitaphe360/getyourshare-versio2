@@ -293,13 +293,15 @@ async def get_platform_metrics():
         conversions = supabase.table('conversions').select('id', count='exact').execute()
         conversion_rate = (conversions.count / total_clicks * 100) if total_clicks > 0 else 0
         
-        # Clics mensuels (30 derniers jours)
+        # Dates de référence
         thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
+        sixty_days_ago = (datetime.now() - timedelta(days=60)).isoformat()
+        
+        # Clics mensuels (30 derniers jours)
         recent_conversions = supabase.table('conversions').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
         monthly_clicks = recent_conversions.count or 0
         
-        # Croissance mensuelle (comparer 30 derniers jours vs 30 jours précédents)
-        sixty_days_ago = (datetime.now() - timedelta(days=60)).isoformat()
+        # Croissance mensuelle revenue (comparer 30 derniers jours vs 30 jours précédents)
         old_sales = supabase.table('sales').select('amount').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
         recent_sales = supabase.table('sales').select('amount').gte('created_at', thirty_days_ago).execute()
         
@@ -318,6 +320,41 @@ async def get_platform_metrics():
 
         # Nouvelles inscriptions (30 jours)
         new_signups = supabase.table('users').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
+        old_signups = supabase.table('users').select('id', count='exact').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        signup_trend = ((new_signups.count - (old_signups.count or 0)) / (old_signups.count or 1) * 100) if old_signups.count else 0
+        
+        # ============================================
+        # NOUVELLES MÉTRIQUES DE CROISSANCE PAR CATÉGORIE
+        # ============================================
+        
+        # Croissance marchands (30j vs 30j précédents)
+        recent_merchants = supabase.table('users').select('id', count='exact').eq('role', 'merchant').gte('created_at', thirty_days_ago).execute()
+        old_merchants = supabase.table('users').select('id', count='exact').eq('role', 'merchant').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        merchant_growth = ((recent_merchants.count - (old_merchants.count or 0)) / (old_merchants.count or 1) * 100) if old_merchants.count else 0
+        
+        # Croissance influenceurs
+        recent_influencers = supabase.table('users').select('id', count='exact').eq('role', 'influencer').gte('created_at', thirty_days_ago).execute()
+        old_influencers = supabase.table('users').select('id', count='exact').eq('role', 'influencer').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        influencer_growth = ((recent_influencers.count - (old_influencers.count or 0)) / (old_influencers.count or 1) * 100) if old_influencers.count else 0
+        
+        # Croissance produits
+        recent_products = supabase.table('products').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
+        old_products = supabase.table('products').select('id', count='exact').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        product_growth = ((recent_products.count - (old_products.count or 0)) / (old_products.count or 1) * 100) if old_products.count else 0
+        
+        # Croissance services
+        recent_services = supabase.table('services').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
+        old_services = supabase.table('services').select('id', count='exact').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        service_growth = ((recent_services.count - (old_services.count or 0)) / (old_services.count or 1) * 100) if old_services.count else 0
+        
+        # Croissance taux de conversion
+        old_conversions = supabase.table('conversions').select('id', count='exact').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        conversion_trend = ((recent_conversions.count - (old_conversions.count or 0)) / (old_conversions.count or 1) * 100) if old_conversions.count else 0
+        
+        # User growth rate (total)
+        total_recent_users = supabase.table('users').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
+        total_old_users = supabase.table('users').select('id', count='exact').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        user_growth_rate = ((total_recent_users.count - (total_old_users.count or 0)) / (total_old_users.count or 1) * 100) if total_old_users.count else 0
 
         return {
             "success": True,
@@ -327,7 +364,15 @@ async def get_platform_metrics():
             "active_users_7d": active_users.count or 0,
             "active_users_24h": active_users_24h.count or 0,
             "new_signups_30d": new_signups.count or 0,
-            "total_tracking_links": len(tracking_links.data or [])
+            "total_tracking_links": len(tracking_links.data or []),
+            # Nouvelles métriques de croissance
+            "user_growth_rate": round(user_growth_rate, 2),
+            "signup_trend": round(signup_trend, 2),
+            "conversion_trend": round(conversion_trend, 2),
+            "merchant_growth": round(merchant_growth, 2),
+            "influencer_growth": round(influencer_growth, 2),
+            "product_growth": round(product_growth, 2),
+            "service_growth": round(service_growth, 2)
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
@@ -494,6 +539,18 @@ async def get_merchant_performance(
         monthly_goal = 10000
         monthly_goal_progress = (total_revenue / monthly_goal * 100) if monthly_goal > 0 else 0
         
+        # ROI Marketing réel: (Revenue - Coûts) / Coûts * 100
+        # Coûts = commissions versées aux affiliés
+        commissions_query = supabase.table('commissions').select('amount')
+        if target_merchant_id:
+            commissions_query = commissions_query.eq('merchant_id', target_merchant_id)
+        commissions_result = commissions_query.execute()
+        total_commissions_paid = sum([float(c.get('amount', 0)) for c in (commissions_result.data or [])])
+        
+        # ROI = (Revenue net / Investissement marketing) * 100
+        # Investissement = commissions payées
+        roi = ((total_revenue - total_commissions_paid) / total_commissions_paid * 100) if total_commissions_paid > 0 else 0
+        
         return {
             "success": True,
             "conversion_rate": round(conversion_rate, 2),
@@ -504,7 +561,9 @@ async def get_merchant_performance(
             "total_sales": total_sales,
             "products_count": products.count or 0,
             "affiliates_count": unique_affiliates,
-            "total_clicks": total_clicks
+            "total_clicks": total_clicks,
+            "roi": round(roi, 2),
+            "total_commissions_paid": round(total_commissions_paid, 2)
         }
     except HTTPException:
         raise
@@ -544,6 +603,7 @@ async def get_influencer_earnings_chart(
              target_influencer_id = user_id
 
         start_date = (datetime.now() - timedelta(days=days)).date()
+        start_date_iso = start_date.isoformat()
         
         # Récupérer les commissions
         query = supabase.table('commissions').select('amount, created_at, influencer_id')
@@ -551,7 +611,21 @@ async def get_influencer_earnings_chart(
             query = query.eq('influencer_id', target_influencer_id)
         commissions = query.execute()
         
-        # Grouper par jour
+        # Récupérer les conversions par jour (pour avoir les clics/ventes réels)
+        conv_query = supabase.table('conversions').select('created_at, tracking_link_id')
+        if target_influencer_id:
+            conv_query = conv_query.eq('influencer_id', target_influencer_id)
+        conversions = conv_query.gte('created_at', start_date_iso).execute()
+        
+        # Grouper les conversions par jour
+        conversions_by_day = {}
+        for conv in (conversions.data or []):
+            created_at = conv.get('created_at', '')
+            if created_at:
+                date_str = created_at[:10]
+                conversions_by_day[date_str] = conversions_by_day.get(date_str, 0) + 1
+        
+        # Grouper les gains par jour
         earnings_by_day = {}
         for commission in (commissions.data or []):
             created_at = commission.get('created_at', '')
@@ -573,10 +647,12 @@ async def get_influencer_earnings_chart(
         while current_date <= end_date:
             date_str = current_date.strftime('%Y-%m-%d')
             day_data = earnings_by_day.get(date_str, {'amount': 0, 'count': 0})
+            day_conversions = conversions_by_day.get(date_str, 0)
             data.append({
                 "date": date_str,
                 "earnings": round(day_data['amount'], 2),
                 "commissions": day_data['count'],
+                "conversions": day_conversions,
                 "formatted_date": current_date.strftime('%d/%m')
             })
             current_date += timedelta(days=1)
@@ -586,7 +662,8 @@ async def get_influencer_earnings_chart(
             "data": data,
             "total_days": len(data),
             "total_earnings": round(sum([d['earnings'] for d in data]), 2),
-            "total_commissions": sum([d['commissions'] for d in data])
+            "total_commissions": sum([d['commissions'] for d in data]),
+            "total_conversions": sum([d['conversions'] for d in data])
         }
     except HTTPException:
         raise
@@ -685,6 +762,11 @@ async def get_influencer_overview(
         # For now, let's leave clicks_growth as is or set to 0 to avoid misleading "5.5".
         clicks_growth = 0 
         
+        # Calculer les gains du mois en cours
+        start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        monthly_comm = [c for c in (commissions.data or []) if c.get('created_at', '') >= start_of_month]
+        monthly_earnings = sum([float(c.get('amount', 0)) for c in monthly_comm])
+        
         return {
             "success": True,
             "total_earnings": round(total_earnings, 2),
@@ -695,7 +777,8 @@ async def get_influencer_overview(
             "clicks_growth": round(clicks_growth, 2),
             "sales_growth": round(sales_growth, 2),
             "pending_amount": round(pending_payouts_amount, 2),
-            "total_links": len(links.data or [])
+            "total_links": len(links.data or []),
+            "monthly_earnings": round(monthly_earnings, 2)
         }
     except HTTPException:
         raise

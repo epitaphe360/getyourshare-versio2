@@ -14,6 +14,7 @@ const LandingPageNew = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSpace, setActiveSpace] = useState('entreprises');
   const [stats, setStats] = useState({ affiliates: 0, companies: 0, commissions: 0 });
+  const [loading] = useState(false);
 
   // Animation stats
   useEffect(() => {
@@ -758,15 +759,15 @@ const LandingPageNew = () => {
             <div>
               <h4 className="font-bold text-white mb-4">Entreprise</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">À propos</a></li>
-                <li><a href="#" className="hover:text-white transition">Blog</a></li>
+                <li><button disabled={loading} onClick={() => navigate('/about')} className="hover:text-white transition">À propos</button></li>
+                <li><button disabled={loading} onClick={() => navigate('/blog')} className="hover:text-white transition">Blog</button></li>
               </ul>
             </div>
 
             <div>
               <h4 className="font-bold text-white mb-4">Support</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">Centre d'aide</a></li>
+                <li><button disabled={loading} onClick={() => navigate('/support')} className="hover:text-white transition">Centre d'aide</button></li>
                 <li><button disabled={loading} onClick={() => navigate('/contact')} className="hover:text-white transition">Contact</button></li>
               </ul>
             </div>
@@ -777,8 +778,8 @@ const LandingPageNew = () => {
               © 2024 ShareYourSales. Tous droits réservés. Fait avec ❤️ au Maroc 🇲🇦
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-white transition">Confidentialité</a>
-              <a href="#" className="text-gray-400 hover:text-white transition">CGU</a>
+              <button disabled={loading} onClick={() => navigate('/privacy')} className="text-gray-400 hover:text-white transition">Confidentialité</button>
+              <button disabled={loading} onClick={() => navigate('/terms')} className="text-gray-400 hover:text-white transition">CGU</button>
             </div>
           </div>
         </div>

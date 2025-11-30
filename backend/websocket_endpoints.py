@@ -99,9 +99,10 @@ async def listen_to_database_changes():
 
             # Payments
             try:
+                # Fallback to created_at since updated_at might be missing in some environments
                 response = supabase.table("payouts")\
                     .select("*")\
-                    .gt("updated_at", last_check.isoformat())\
+                    .gt("created_at", last_check.isoformat())\
                     .execute()
                 
                 if response.data:

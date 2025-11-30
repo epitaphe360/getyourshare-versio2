@@ -13,9 +13,13 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER
 import io
 import os
+import logging
 
 from subscription_helpers import get_invoice_by_id
 from db_helpers import get_user_by_id
+
+# Logger configuration
+logger = logging.getLogger(__name__)
 
 
 class InvoiceService:

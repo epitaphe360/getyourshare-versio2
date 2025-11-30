@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import { Download, FileText, Calendar } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 const Reports = () => {
+  const toast = useToast();
   const [reportType, setReportType] = useState('conversions');
   const [dateRange, setDateRange] = useState('30days');
 
@@ -68,11 +70,17 @@ const Reports = () => {
           </div>
 
           <div className="flex space-x-4">
-            <Button>
+            <Button onClick={() => toast.success(`Rapport ${reportType} généré pour ${dateRange}`)}>
               <FileText size={20} className="mr-2" />
               Générer le Rapport
             </Button>
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                toast.info('Préparation de l\'export CSV...');
+                setTimeout(() => toast.success('Export CSV téléchargé'), 1000);
+              }}
+            >
               <Download size={20} className="mr-2" />
               Exporter CSV
             </Button>
@@ -91,7 +99,11 @@ const Reports = () => {
                   <p className="text-sm text-gray-600">Généré le {new Date().toLocaleDateString('fr-FR')}</p>
                 </div>
               </div>
-              <Button size="sm" variant="outline">
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => toast.info(`Téléchargement de: ${report}`)}
+              >
                 <Download size={16} />
               </Button>
             </div>

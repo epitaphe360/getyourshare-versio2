@@ -22,7 +22,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 const SocialMediaHistory = () => {
   const navigate = useNavigate();

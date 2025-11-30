@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../utils/api';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
+import { useToast } from '../../context/ToastContext';
 import { 
   ArrowLeft, Target, DollarSign, Calendar, Users, TrendingUp, 
   Eye, Heart, Share2, ShoppingCart, Zap, Clock, CheckCircle,
@@ -14,6 +15,7 @@ import {
 const CampaignDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -654,11 +656,22 @@ const CampaignDetailPage = () => {
                     Partager
                   </h3>
                   <div className="space-y-3">
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href);
+                        toast.success('Lien copié dans le presse-papiers !');
+                      }}
+                    >
                       <LinkIcon size={18} className="mr-2" />
                       Copier le lien
                     </Button>
-                    <Button variant="outline" className="w-full justify-start">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => toast.info('Téléchargement des visuels en cours...')}
+                    >
                       <Image size={18} className="mr-2" />
                       Télécharger visuels
                     </Button>

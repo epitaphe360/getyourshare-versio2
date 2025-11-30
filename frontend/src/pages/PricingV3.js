@@ -24,7 +24,7 @@ import BusinessIcon from '@mui/icons-material/Business';
 import PersonIcon from '@mui/icons-material/Person';
 import StarIcon from '@mui/icons-material/Star';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api from '../utils/api';
 import paymentService from '../services/paymentService';
 import { useToast } from '../context/ToastContext';
 

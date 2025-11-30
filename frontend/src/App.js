@@ -23,6 +23,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const HomepageV2 = lazy(() => import('./pages/HomepageV2'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
+const LandingPageNew = lazy(() => import('./pages/LandingPageNew'));
 const Pricing = lazy(() => import('./pages/Pricing'));
 const PricingV3 = lazy(() => import('./pages/PricingV3'));
 const Contact = lazy(() => import('./pages/Contact'));
@@ -69,6 +70,10 @@ const CreateProductPage = lazy(() => import('./pages/products/CreateProductPage'
 const ServicesListPage = lazy(() => import('./pages/services/ServicesListPage'));
 const CreateServicePage = lazy(() => import('./pages/services/CreateServicePage'));
 const ServiceDetailPage = lazy(() => import('./pages/services/ServiceDetailPage'));
+
+// ---------- Services & Leads (Lead Generation System) ----------
+const PublicServices = lazy(() => import('./pages/PublicServices'));
+const ServiceRequest = lazy(() => import('./pages/ServiceRequest'));
 
 // ---------- Advertisers ----------
 const AdvertisersList = lazy(() => import('./pages/advertisers/AdvertisersList'));
@@ -118,16 +123,43 @@ const PlatformSettings = lazy(() => import('./pages/settings/PlatformSettings'))
 // ---------- Admin ----------
 const AdminSocialDashboard = lazy(() => import('./pages/admin/AdminSocialDashboard'));
 const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const AnalyticsDashboard = lazy(() => import('./pages/admin/AnalyticsDashboard'));
+const LeadManagement = lazy(() => import('./pages/admin/LeadManagement'));
 const ModerationDashboard = lazy(() => import('./pages/admin/ModerationDashboard'));
+const AdminProductsManager = lazy(() => import('./pages/admin/AdminProductsManager'));
+const ServiceManagement = lazy(() => import('./pages/admin/ServiceManagement'));
 
 // ---------- TOP 5 FEATURES ----------
 const AdvancedAnalyticsDashboard = lazy(() => import('./pages/AdvancedAnalyticsDashboard'));
 const InfluencerMatchingPage = lazy(() => import('./pages/InfluencerMatchingPage'));
 const MobileDashboard = lazy(() => import('./components/mobile/MobileDashboard'));
 
+// ---------- Commercial & Influencer Dashboards ----------
+const CommercialDashboard = lazy(() => import('./pages/commercial/CommercialDashboard'));
+const InfluencerDashboard = lazy(() => import('./pages/influencer/InfluencerDashboard'));
+const LeadsPage = lazy(() => import('./pages/commercial/LeadsPage'));
+const LeadDetailPage = lazy(() => import('./pages/commercial/LeadDetailPage'));
+const CommercialTrackingPage = lazy(() => import('./pages/commercial/TrackingPage'));
+
+// ---------- Billing & Invoices ----------
+const InvoiceManagement = lazy(() => import('./pages/billing/InvoiceManagement'));
+
+// ---------- Advanced Marketplace ----------
+const AdvancedMarketplace = lazy(() => import('./pages/marketplace/AdvancedMarketplace'));
+
+// ---------- Phase 3 - Advanced Features ----------
+const ReportsAdvanced = lazy(() => import('./pages/reports/ReportsAdvanced'));
+const IntegrationsHub = lazy(() => import('./pages/integrations/IntegrationsHub'));
+const AdvancedPlatformSettings = lazy(() => import('./pages/settings/AdvancedPlatformSettings'));
+const EmailCampaigns = lazy(() => import('./pages/email/EmailCampaigns'));
+const APIDocs = lazy(() => import('./pages/api/APIDocs'));
+
 // ---------- Company & Subscription ----------
 const SubscriptionDashboard = lazy(() => import('./pages/company/SubscriptionDashboard'));
 const SubscriptionManagement = lazy(() => import('./pages/subscription/SubscriptionManagement'));
+const AdminSubscriptionsManager = lazy(() => import('./pages/admin/AdminSubscriptionsManager'));
+const AdminSubscriptionsAnalytics = lazy(() => import('./pages/admin/AdminSubscriptionsAnalytics'));
+const AdminCoupons = lazy(() => import('./pages/admin/AdminCoupons'));
 const TeamManagement = lazy(() => import('./pages/company/TeamManagement'));
 const CompanyLinksDashboard = lazy(() => import('./pages/company/CompanyLinksDashboard'));
 const SubscriptionPlans = lazy(() => import('./pages/subscription/SubscriptionPlans'));
@@ -140,6 +172,27 @@ const TrackingLinks = lazy(() => import('./pages/TrackingLinks'));
 const Integrations = lazy(() => import('./pages/Integrations'));
 const AIMarketing = lazy(() => import('./pages/AIMarketing'));
 const FeaturesHub = lazy(() => import('./pages/features/FeaturesHub'));
+
+// ---------- Fiscal Module (MA/FR/US) - COMPLETE SYSTEM ----------
+const TaxDashboard = lazy(() => import('./pages/fiscal/TaxDashboard'));
+const InvoiceGenerator = lazy(() => import('./pages/fiscal/InvoiceGenerator'));
+const TaxSettings = lazy(() => import('./pages/fiscal/TaxSettings'));
+
+// Fiscal Dashboards (Role-specific)
+const FiscalDashboardAdmin = lazy(() => import('./components/fiscal/FiscalDashboardAdmin'));
+const FiscalDashboardMerchant = lazy(() => import('./components/fiscal/FiscalDashboardMerchant'));
+const FiscalDashboardInfluencer = lazy(() => import('./components/fiscal/FiscalDashboardInfluencer'));
+const FiscalDashboardCommercial = lazy(() => import('./components/fiscal/FiscalDashboardCommercial'));
+
+// Fiscal Utilities
+const InvoiceGeneratorNew = lazy(() => import('./components/fiscal/InvoiceGenerator'));
+const VATCalculator = lazy(() => import('./components/fiscal/VATCalculator'));
+const TaxDeclarationForm = lazy(() => import('./components/fiscal/TaxDeclarationForm'));
+const AccountingExport = lazy(() => import('./components/fiscal/AccountingExport'));
+
+// ---------- Invoices - Influencer & Commercial Invoices for Tax ----------
+const InfluencerInvoicesPage = lazy(() => import('./pages/invoices/InfluencerInvoicesPage'));
+const CommercialInvoicesPage = lazy(() => import('./pages/invoices/CommercialInvoicesPage'));
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -241,6 +294,7 @@ function App() {
                 <Route path="/" element={<HomepageV2 />} />
                 <Route path="/home" element={<HomepageV2 />} />
                 <Route path="/landing-old" element={<LandingPage />} />
+                <Route path="/landing-new" element={<LandingPageNew />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/pricing" element={<Pricing />} />
@@ -250,6 +304,10 @@ function App() {
                 <Route path="/marketplace/product/:productId" element={<PublicLayout><ProductDetail /></PublicLayout>} />
                 <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
                 <Route path="/roi-calculator" element={<ROICalculator />} />
+
+                {/* Services & Lead Generation (Public Access) */}
+                <Route path="/services" element={<PublicLayout><PublicServices /></PublicLayout>} />
+                <Route path="/services/:id" element={<PublicLayout><ServiceRequest /></PublicLayout>} />
 
                 {/* Legal Pages */}
                 <Route path="/privacy" element={<PublicLayout><Privacy /></PublicLayout>} />
@@ -347,41 +405,70 @@ function App() {
                     </RoleProtectedRoute>
                   }
                 />
+
+                {/* ========================================
+                    COMMERCIAL - CRM LEADS
+                ======================================== */}
+                <Route
+                  path="/commercial/leads"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['commercial', 'admin']}>
+                      <LeadsPage />
+                    </RoleProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/commercial/leads/:leadId"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['commercial', 'admin']}>
+                      <LeadDetailPage />
+                    </RoleProtectedRoute>
+                  }
+                />
+                
+                <Route
+                  path="/commercial/tracking"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['commercial', 'admin']}>
+                      <CommercialTrackingPage />
+                    </RoleProtectedRoute>
+                  }
+                />
                 
                 <Route
                   path="/news"
                   element={
-                    <ProtectedRoute>
+                    <RoleProtectedRoute allowedRoles={['admin']}>
                       <News />
-                    </ProtectedRoute>
+                    </RoleProtectedRoute>
                   }
                 />
 
                 {/* ========================================
-                    ADVERTISERS
+                    ADVERTISERS (Admin uniquement)
                 ======================================== */}
           <Route
             path="/advertisers"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <AdvertisersList />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/advertisers/registrations"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <AdvertiserRegistrations />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/advertisers/billing"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <AdvertiserBilling />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
 
@@ -421,35 +508,35 @@ function App() {
           <Route
             path="/merchants"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <MerchantsList />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
 
-          {/* Influencers Routes */}
+          {/* Influencers Routes (Merchant et Admin) */}
           <Route
             path="/influencers"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <InfluencersList />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/influencers/search"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <InfluencerSearchPage />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/influencers/:influencerId"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <InfluencerProfilePage />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
 
@@ -474,14 +561,14 @@ function App() {
                 />
 
                 {/* ========================================
-                    PRODUCTS
+                    PRODUCTS (Merchant et Admin uniquement)
                 ======================================== */}
           <Route
             path="/products"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <ProductsListPage />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
                 {/* Création/Édition - Merchants/Admin uniquement */}
@@ -495,14 +582,14 @@ function App() {
                 />
 
                 {/* ========================================
-                    SERVICES
+                    SERVICES (Merchant et Admin uniquement)
                 ======================================== */}
           <Route
             path="/services"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <ServicesListPage />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
@@ -516,9 +603,9 @@ function App() {
           <Route
             path="/services/:serviceId"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <ServiceDetailPage />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
@@ -540,54 +627,54 @@ function App() {
                 />
 
                 {/* ========================================
-                    AFFILIATES
+                    AFFILIATES (Merchant et Admin uniquement)
                 ======================================== */}
           <Route
             path="/affiliates"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <AffiliatesList />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/affiliates/applications"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <AffiliateApplications />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/affiliates/payouts"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <AffiliatePayouts />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/affiliates/coupons"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <AffiliateCoupons />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/affiliates/lost-orders"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <LostOrders />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/affiliates/balance-report"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <BalanceReport />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
 
@@ -605,17 +692,17 @@ function App() {
                 <Route
                   path="/performance/mlm-commissions"
                   element={
-                    <ProtectedRoute>
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                       <MLMCommissions />
-                    </ProtectedRoute>
+                    </RoleProtectedRoute>
                   }
                 />
                 <Route
                   path="/performance/leads"
                   element={
-                    <ProtectedRoute>
+                    <RoleProtectedRoute allowedRoles={['admin']}>
                       <Leads />
-                    </ProtectedRoute>
+                    </RoleProtectedRoute>
                   }
                 />
                 <Route
@@ -633,33 +720,33 @@ function App() {
           <Route
             path="/logs/clicks"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <Clicks />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/logs/postback"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <Postback />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/logs/audit"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <Audit />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/logs/webhooks"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <Webhooks />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
 
@@ -697,36 +784,152 @@ function App() {
                 />
 
                 {/* ========================================
-                    ADMIN
+                    ADMIN (Admin uniquement)
                 ======================================== */}
           <Route
             path="/admin/social-dashboard"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <AdminSocialDashboard />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
-          />
           <Route
             path="/admin/users"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <UserManagement />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/analytics"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin']}>
+                <AnalyticsDashboard />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/leads"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin', 'merchant']}>
+                <LeadManagement />
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/admin/moderation"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <ModerationDashboard />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/billing/invoices"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin', 'merchant', 'commercial']}>
+                <InvoiceManagement />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/marketplace/advanced"
+            element={
+              <ProtectedRoute>
+                <AdvancedMarketplace />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/reports/advanced"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin', 'merchant', 'commercial']}>
+                <ReportsAdvanced />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/integrations"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin', 'merchant']}>
+                <IntegrationsHub />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings/advanced"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin']}>
+                <AdvancedPlatformSettings />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/email/campaigns"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin', 'merchant', 'commercial']}>
+                <EmailCampaigns />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/api/docs"
+            element={
+              <ProtectedRoute>
+                <APIDocs />
+              </ProtectedRoute>
+            }
+          />}
+          />
+          <Route
+            path="/admin/products"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin']}>
+                <AdminProductsManager />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/services"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin']}>
+                <ServiceManagement />
+              </RoleProtectedRoute>
             }
           />
 
                 {/* ========================================
-                    COMPANY & TEAM
+                    COMPANY & TEAM (Merchant et Admin uniquement)
                 ======================================== */}
+                {/* Admin: Gestion de TOUS les abonnements */}
+                <Route
+                  path="/admin/subscriptions"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['admin']}>
+                      <AdminSubscriptionsManager />
+                    </RoleProtectedRoute>
+                  }
+                />
+                {/* Admin: Analytics Avancés */}
+                <Route
+                  path="/admin/subscriptions/analytics"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['admin']}>
+                      <AdminSubscriptionsAnalytics />
+                    </RoleProtectedRoute>
+                  }
+                />
+                {/* Admin: Gestion Coupons */}
+                <Route
+                  path="/admin/coupons"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['admin']}>
+                      <AdminCoupons />
+                    </RoleProtectedRoute>
+                  }
+                />
+                {/* Users: Mon abonnement */}
                 <Route
                   path="/subscription"
                   element={
@@ -746,17 +949,37 @@ function App() {
                 <Route
                   path="/team"
                   element={
-                    <ProtectedRoute>
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                       <TeamManagement />
-                    </ProtectedRoute>
+                    </RoleProtectedRoute>
                   }
                 />
                 <Route
                   path="/company-links"
                   element={
-                    <ProtectedRoute>
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                       <CompanyLinksDashboard />
-                    </ProtectedRoute>
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                {/* ========================================
+                    COMMERCIAL & INFLUENCER DASHBOARDS
+                ======================================== */}
+                <Route
+                  path="/commercial/dashboard"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['commercial', 'admin']}>
+                      <CommercialDashboard />
+                    </RoleProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/influencer/dashboard"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['influencer', 'admin']}>
+                      <InfluencerDashboard />
+                    </RoleProtectedRoute>
                   }
                 />
 
@@ -766,9 +989,9 @@ function App() {
                 <Route
                   path="/ai-marketing"
                   element={
-                    <ProtectedRoute>
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                       <AIMarketing />
-                    </ProtectedRoute>
+                    </RoleProtectedRoute>
                   }
                 />
                 <Route
@@ -782,9 +1005,9 @@ function App() {
                 <Route
                   path="/integrations"
                   element={
-                    <ProtectedRoute>
+                    <RoleProtectedRoute allowedRoles={['admin']}>
                       <Integrations />
-                    </ProtectedRoute>
+                    </RoleProtectedRoute>
                   }
                 />
 
@@ -834,6 +1057,146 @@ function App() {
                 {/* ========================================
                     SETTINGS
                 ======================================== */}
+
+                {/* ========================================
+                    FISCAL MODULE - COMPLETE SYSTEM (Maroc, France, USA)
+                    Support multi-pays avec dashboards role-specific
+                ======================================== */}
+                
+                {/* Admin - Dashboard fiscal global */}
+                <Route
+                  path="/fiscal/admin"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['admin']}>
+                      <FiscalDashboardAdmin />
+                    </RoleProtectedRoute>
+                  }
+                />
+                
+                {/* Merchant - Dashboard fiscal marchand */}
+                <Route
+                  path="/fiscal/merchant"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
+                      <FiscalDashboardMerchant />
+                    </RoleProtectedRoute>
+                  }
+                />
+                
+                {/* Influencer - Dashboard fiscal influenceur (auto-entrepreneur) */}
+                <Route
+                  path="/fiscal/influencer"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['influencer', 'admin']}>
+                      <FiscalDashboardInfluencer />
+                    </RoleProtectedRoute>
+                  }
+                />
+                
+                {/* Commercial - Dashboard fiscal salarié */}
+                <Route
+                  path="/fiscal/commercial"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['commercial', 'admin']}>
+                      <FiscalDashboardCommercial />
+                    </RoleProtectedRoute>
+                  }
+                />
+                
+                {/* Outils fiscaux - Accessibles selon rôle */}
+                <Route
+                  path="/fiscal/invoice/new"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
+                      <InvoiceGeneratorNew />
+                    </RoleProtectedRoute>
+                  }
+                />
+                
+                <Route
+                  path="/fiscal/vat/calculator"
+                  element={
+                    <ProtectedRoute>
+                      <VATCalculator />
+                    </ProtectedRoute>
+                  }
+                />
+                
+                <Route
+                  path="/fiscal/vat/declare"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
+                      <TaxDeclarationForm />
+                    </RoleProtectedRoute>
+                  }
+                />
+                
+                <Route
+                  path="/fiscal/accounting/export"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
+                      <AccountingExport />
+                    </RoleProtectedRoute>
+                  }
+                />
+                
+                {/* Routes legacy - Redirection vers nouvelles routes */}
+                <Route
+                  path="/fiscal"
+                  element={
+                    <ProtectedRoute>
+                      <TaxDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/fiscal/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <TaxDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/fiscal/invoices"
+                  element={
+                    <ProtectedRoute>
+                      <InvoiceGenerator />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/fiscal/settings"
+                  element={
+                    <ProtectedRoute>
+                      <TaxSettings />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* ========================================
+                    INVOICES - Factures Influenceurs pour Impôts
+                ======================================== */}
+                <Route
+                  path="/invoices/influencers"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
+                      <InfluencerInvoicesPage />
+                    </RoleProtectedRoute>
+                  }
+                />
+                
+                {/* ========================================
+                    INVOICES - Factures Commerciaux pour Impôts
+                ======================================== */}
+                <Route
+                  path="/invoices/commercials"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['commercial', 'sales_rep', 'admin']}>
+                      <CommercialInvoicesPage />
+                    </RoleProtectedRoute>
+                  }
+                />
           <Route
             path="/settings/personal"
             element={
@@ -853,81 +1216,81 @@ function App() {
           <Route
             path="/settings/company"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <CompanySettings />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/settings/affiliates"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <AffiliateSettings />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/settings/registration"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <RegistrationSettings />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/settings/mlm"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <MLMSettings />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/settings/traffic-sources"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <TrafficSources />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/settings/permissions"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <Permissions />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/settings/users"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <Users />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/settings/smtp"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <SMTP />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/settings/emails"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                 <Emails />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
           <Route
             path="/settings/white-label"
             element={
-              <ProtectedRoute>
+              <RoleProtectedRoute allowedRoles={['admin']}>
                 <WhiteLabel />
-              </ProtectedRoute>
+              </RoleProtectedRoute>
             }
           />
                 {/* Paramètres Plateforme - Admin uniquement */}

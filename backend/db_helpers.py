@@ -459,20 +459,35 @@ def create_affiliate_link(product_id: str, influencer_id: str, unique_code: str)
 def get_all_campaigns(merchant_id: Optional[str] = None) -> List[Dict]:
     """Récupère toutes les campagnes"""
     try:
-        query = supabase.table("campaigns").select(
-            """
-            *,
-            merchants:merchant_id (
-                company_name
-            )
-        """
-        )
+        # Requête simple sans jointure problématique
+        query = supabase.table("campaigns").select("*")
 
         if merchant_id:
             query = query.eq("merchant_id", merchant_id)
 
         result = query.execute()
-        return result.data
+        campaigns = result.data or []
+        
+        # Enrichir avec les infos du merchant si disponibles
+        if campaigns:
+            # Récupérer les user_ids uniques des merchants
+            merchant_ids = list(set(c.get("merchant_id") for c in campaigns if c.get("merchant_id")))
+            
+            if merchant_ids:
+                # Récupérer les infos des users (qui sont les merchants)
+                users_result = supabase.table("users").select("id, email, username, company_name").in_("id", merchant_ids).execute()
+                users_map = {u["id"]: u for u in (users_result.data or [])}
+                
+                # Enrichir chaque campagne
+                for campaign in campaigns:
+                    mid = campaign.get("merchant_id")
+                    if mid and mid in users_map:
+                        user_info = users_map[mid]
+                        campaign["merchant_name"] = user_info.get("company_name") or user_info.get("username") or user_info.get("email", "").split("@")[0]
+                    else:
+                        campaign["merchant_name"] = "Inconnu"
+        
+        return campaigns
     except Exception as e:
         logger.error(f"Error getting campaigns: {e}")
         return []
@@ -788,6 +803,267 @@ def update_payout_status(payout_id: str, status: str) -> bool:
     except Exception as e:
         logger.error(f"Error updating payout status: {e}")
         return False
+
+
+# ============================================
+# SERVICES & LEADS (Génération de leads)
+# ============================================
+
+def create_service(marchand_id: str, service_data: Dict) -> Optional[Dict]:
+    """Crée un nouveau service"""
+    try:
+        data = {
+            "marchand_id": marchand_id,
+            "nom": service_data.get("nom"),
+            "description": service_data.get("description"),
+            "images": service_data.get("images", []),
+            "categorie_id": service_data.get("categorie_id"),
+            "localisation": service_data.get("localisation"),
+            "conditions": service_data.get("conditions"),
+            "depot_initial": service_data.get("depot_initial", 0),
+            "depot_actuel": service_data.get("depot_initial", 0),  # Même valeur au départ
+            "prix_par_lead": service_data.get("prix_par_lead"),
+            "commission_rate": service_data.get("commission_rate", 20.0),
+            "formulaire_champs": service_data.get("formulaire_champs", []),
+            "date_expiration": service_data.get("date_expiration"),
+            "statut": "actif"
+        }
+        
+        result = supabase.table("services").insert(data).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        logger.error(f"Error creating service: {e}")
+        return None
+
+
+def get_all_services(filters: Optional[Dict] = None) -> List[Dict]:
+    """Récupère tous les services avec filtres optionnels"""
+    try:
+        query = supabase.table("services").select("*, users!marchand_id(full_name, email, company_name), categories(name)")
+        
+        if filters:
+            if filters.get("marchand_id"):
+                query = query.eq("marchand_id", filters["marchand_id"])
+            if filters.get("statut"):
+                query = query.eq("statut", filters["statut"])
+            if filters.get("categorie_id"):
+                query = query.eq("categorie_id", filters["categorie_id"])
+        
+        result = query.order("created_at", desc=True).execute()
+        return result.data if result.data else []
+    except Exception as e:
+        logger.error(f"Error getting all services: {e}")
+        return []
+
+
+def get_service_by_id(service_id: str) -> Optional[Dict]:
+    """Récupère un service par ID avec infos complètes"""
+    try:
+        result = supabase.table("services").select(
+            "*, users!marchand_id(full_name, email, company_name, phone), categories(name)"
+        ).eq("id", service_id).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        logger.error(f"Error getting service by id: {e}")
+        return None
+
+
+def update_service(service_id: str, update_data: Dict) -> bool:
+    """Met à jour un service"""
+    try:
+        supabase.table("services").update(update_data).eq("id", service_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error updating service: {e}")
+        return False
+
+
+def delete_service(service_id: str) -> bool:
+    """Supprime un service"""
+    try:
+        supabase.table("services").delete().eq("id", service_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting service: {e}")
+        return False
+
+
+def create_lead(lead_data: Dict) -> Optional[Dict]:
+    """Crée un nouveau lead (demande client)"""
+    try:
+        data = {
+            "service_id": lead_data.get("service_id"),
+            "marchand_id": lead_data.get("marchand_id"),
+            "nom_client": lead_data.get("nom_client"),
+            "email_client": lead_data.get("email_client"),
+            "telephone_client": lead_data.get("telephone_client"),
+            "donnees_formulaire": lead_data.get("donnees_formulaire", {}),
+            "cout_lead": lead_data.get("cout_lead"),
+            "statut": "nouveau"
+        }
+        
+        result = supabase.table("leads").insert(data).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        logger.error(f"Error creating lead: {e}")
+        return None
+
+
+def get_leads_by_service(service_id: str) -> List[Dict]:
+    """Récupère tous les leads d'un service"""
+    try:
+        result = supabase.table("leads").select("*").eq("service_id", service_id).order("date_reception", desc=True).execute()
+        return result.data if result.data else []
+    except Exception as e:
+        logger.error(f"Error getting leads by service: {e}")
+        return []
+
+
+def get_leads_by_marchand(marchand_id: str) -> List[Dict]:
+    """Récupère tous les leads d'un marchand"""
+    try:
+        result = supabase.table("leads").select(
+            "*, services(nom, images)"
+        ).eq("marchand_id", marchand_id).order("date_reception", desc=True).execute()
+        return result.data if result.data else []
+    except Exception as e:
+        logger.error(f"Error getting leads by marchand: {e}")
+        return []
+
+
+def get_all_leads(filters: Optional[Dict] = None) -> List[Dict]:
+    """Récupère tous les leads avec filtres"""
+    try:
+        query = supabase.table("leads").select(
+            "*, services(nom, images), users!marchand_id(full_name, company_name)"
+        )
+        
+        if filters:
+            if filters.get("service_id"):
+                query = query.eq("service_id", filters["service_id"])
+            if filters.get("marchand_id"):
+                query = query.eq("marchand_id", filters["marchand_id"])
+            if filters.get("statut"):
+                query = query.eq("statut", filters["statut"])
+        
+        result = query.order("date_reception", desc=True).execute()
+        return result.data if result.data else []
+    except Exception as e:
+        logger.error(f"Error getting all leads: {e}")
+        return []
+
+
+def update_lead_status(lead_id: str, statut: str, notes: Optional[str] = None) -> bool:
+    """Met à jour le statut d'un lead"""
+    try:
+        update_data = {"statut": statut}
+        
+        if statut == "converti":
+            update_data["date_conversion"] = datetime.now().isoformat()
+        elif statut == "perdu":
+            update_data["date_perdu"] = datetime.now().isoformat()
+        
+        if notes:
+            update_data["notes_marchand"] = notes
+        
+        supabase.table("leads").update(update_data).eq("id", lead_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error updating lead status: {e}")
+        return False
+
+
+def create_service_recharge(recharge_data: Dict) -> Optional[Dict]:
+    """Crée une recharge de dépôt pour un service"""
+    try:
+        data = {
+            "service_id": recharge_data.get("service_id"),
+            "marchand_id": recharge_data.get("marchand_id"),
+            "montant": recharge_data.get("montant"),
+            "ancien_solde": recharge_data.get("ancien_solde"),
+            "nouveau_solde": recharge_data.get("nouveau_solde"),
+            "leads_ajoutes": recharge_data.get("leads_ajoutes"),
+            "methode_paiement": recharge_data.get("methode_paiement"),
+            "transaction_id": recharge_data.get("transaction_id"),
+            "statut_paiement": recharge_data.get("statut_paiement", "en_attente")
+        }
+        
+        result = supabase.table("service_recharges").insert(data).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        logger.error(f"Error creating service recharge: {e}")
+        return None
+
+
+def get_service_recharges(service_id: str) -> List[Dict]:
+    """Récupère l'historique des recharges d'un service"""
+    try:
+        result = supabase.table("service_recharges").select("*").eq("service_id", service_id).order("created_at", desc=True).execute()
+        return result.data if result.data else []
+    except Exception as e:
+        logger.error(f"Error getting service recharges: {e}")
+        return []
+
+
+def create_service_extra(extra_data: Dict) -> Optional[Dict]:
+    """Crée un extra/boost pour un service"""
+    try:
+        data = {
+            "service_id": extra_data.get("service_id"),
+            "marchand_id": extra_data.get("marchand_id"),
+            "type": extra_data.get("type"),
+            "nom": extra_data.get("nom"),
+            "description": extra_data.get("description"),
+            "prix": extra_data.get("prix"),
+            "date_debut": extra_data.get("date_debut", datetime.now().isoformat()),
+            "date_fin": extra_data.get("date_fin"),
+            "transaction_id": extra_data.get("transaction_id"),
+            "actif": True
+        }
+        
+        result = supabase.table("service_extras").insert(data).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        logger.error(f"Error creating service extra: {e}")
+        return None
+
+
+def get_service_extras(service_id: str) -> List[Dict]:
+    """Récupère les extras d'un service"""
+    try:
+        result = supabase.table("service_extras").select("*").eq("service_id", service_id).order("created_at", desc=True).execute()
+        return result.data if result.data else []
+    except Exception as e:
+        logger.error(f"Error getting service extras: {e}")
+        return []
+
+
+def get_services_stats() -> Dict:
+    """Récupère les statistiques globales des services"""
+    try:
+        # Services actifs
+        services = supabase.table("services").select("id, depot_initial, depot_actuel, statut").execute()
+        services_data = services.data if services.data else []
+        
+        # Leads
+        leads = supabase.table("leads").select("id, statut, cout_lead, date_reception").execute()
+        leads_data = leads.data if leads.data else []
+        
+        stats = {
+            "total_services": len(services_data),
+            "services_actifs": len([s for s in services_data if s.get("statut") == "actif"]),
+            "depot_total": sum([float(s.get("depot_actuel", 0)) for s in services_data]),
+            "total_leads": len(leads_data),
+            "leads_aujourd_hui": len([l for l in leads_data if l.get("date_reception", "").startswith(datetime.now().strftime("%Y-%m-%d"))]),
+            "leads_convertis": len([l for l in leads_data if l.get("statut") == "converti"]),
+            "revenus_leads": sum([float(l.get("cout_lead", 0)) for l in leads_data]),
+            "taux_conversion": round((len([l for l in leads_data if l.get("statut") == "converti"]) / len(leads_data) * 100) if leads_data else 0, 2)
+        }
+        
+        return stats
+    except Exception as e:
+        logger.error(f"Error getting services stats: {e}")
+        return {}
 
 
 # ============================================

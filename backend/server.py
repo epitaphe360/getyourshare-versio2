@@ -16,7 +16,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from fastapi import FastAPI, HTTPException, Depends, status, Request, Response, Query, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Depends, status, Request, Response, Query, BackgroundTasks, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, StreamingResponse
 from middleware.security import csrf_middleware, security_headers_middleware
@@ -32,6 +32,8 @@ from fastapi.concurrency import run_in_threadpool
 
 import asyncio
 from websocket_endpoints import router as websocket_router, listen_to_database_changes
+from fiscal_endpoints import router as fiscal_router
+from payment_webhooks import router as payment_webhooks_router
 
 # Importer les helpers Supabase
 from db_helpers import (
@@ -66,6 +68,128 @@ from invoice_service import InvoiceService
 # Initialize logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# ============================================
+# SUBSCRIPTION LIMITS HELPERS
+# ============================================
+
+async def check_subscription_limit(user_id: str, limit_type: str, user_role: str = None) -> dict:
+    """
+    Vérifie si l'utilisateur peut effectuer une action selon son abonnement.
+    
+    Args:
+        user_id: ID de l'utilisateur
+        limit_type: Type de limite ('products', 'campaigns', 'affiliates', 'leads', 'tracking_links')
+        user_role: Rôle de l'utilisateur (merchant, influencer, commercial)
+    
+    Returns:
+        dict avec 'allowed', 'current', 'limit', 'message'
+    """
+    try:
+        # Récupérer l'abonnement actif
+        sub_result = supabase.table("subscriptions").select("""
+            id,
+            status,
+            subscription_plans(
+                name,
+                max_products,
+                max_campaigns,
+                max_affiliates,
+                features
+            )
+        """).eq("user_id", user_id).eq("status", "active").limit(1).execute()
+        
+        # Plan par défaut si pas d'abonnement
+        if not sub_result.data:
+            plan_name = "Free"
+            limits = {
+                "products": 5,
+                "campaigns": 1,
+                "affiliates": 10,
+                "leads": 10,
+                "tracking_links": 3
+            }
+        else:
+            plan = sub_result.data[0].get("subscription_plans", {})
+            plan_name = plan.get("name", "Free")
+            features = plan.get("features", {}) or {}
+            
+            # Limites selon le plan
+            if plan_name.lower() in ["enterprise", "elite"]:
+                limits = {
+                    "products": None,  # Illimité
+                    "campaigns": None,
+                    "affiliates": None,
+                    "leads": None,
+                    "tracking_links": None
+                }
+            elif plan_name.lower() in ["premium", "pro"]:
+                limits = {
+                    "products": plan.get("max_products", 200),
+                    "campaigns": plan.get("max_campaigns", 20),
+                    "affiliates": plan.get("max_affiliates", 200),
+                    "leads": None,  # Illimité pour Pro
+                    "tracking_links": None
+                }
+            elif plan_name.lower() == "standard":
+                limits = {
+                    "products": plan.get("max_products", 50),
+                    "campaigns": plan.get("max_campaigns", 5),
+                    "affiliates": plan.get("max_affiliates", 50),
+                    "leads": 50,
+                    "tracking_links": 10
+                }
+            else:  # Free/Freemium/Starter
+                limits = {
+                    "products": plan.get("max_products", 5),
+                    "campaigns": plan.get("max_campaigns", 1),
+                    "affiliates": plan.get("max_affiliates", 10),
+                    "leads": 10,
+                    "tracking_links": 3
+                }
+        
+        max_limit = limits.get(limit_type)
+        
+        # Si illimité, autoriser
+        if max_limit is None:
+            return {"allowed": True, "current": 0, "limit": None, "plan": plan_name}
+        
+        # Compter l'usage actuel
+        current_count = 0
+        
+        if limit_type == "products":
+            result = supabase.table("products").select("id", count="exact").eq("merchant_id", user_id).execute()
+            current_count = result.count or 0
+        elif limit_type == "campaigns":
+            result = supabase.table("campaigns").select("id", count="exact").eq("merchant_id", user_id).execute()
+            current_count = result.count or 0
+        elif limit_type == "affiliates":
+            result = supabase.table("affiliate_links").select("user_id", count="exact").eq("product_id", user_id).execute()
+            current_count = result.count or 0
+        elif limit_type == "leads":
+            # Leads du mois en cours
+            from datetime import datetime
+            first_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0).isoformat()
+            result = supabase.table("leads").select("id", count="exact").eq("created_by", user_id).gte("created_at", first_of_month).execute()
+            current_count = result.count or 0
+        elif limit_type == "tracking_links":
+            result = supabase.table("affiliate_links").select("id", count="exact").eq("user_id", user_id).execute()
+            current_count = result.count or 0
+        
+        allowed = current_count < max_limit
+        
+        return {
+            "allowed": allowed,
+            "current": current_count,
+            "limit": max_limit,
+            "plan": plan_name,
+            "message": f"Limite atteinte ({current_count}/{max_limit}). Passez à un plan supérieur." if not allowed else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error checking subscription limit: {e}")
+        # En cas d'erreur, autoriser (fail-open)
+        return {"allowed": True, "current": 0, "limit": None, "error": str(e)}
 
 # Import scheduler LEADS (démarrage automatique)
 try:
@@ -234,6 +358,10 @@ Les limites peuvent varier selon votre plan d'abonnement.
             "description": "Webhooks entrants (Stripe, réseaux sociaux)",
         },
         {
+            "name": "Fiscal",
+            "description": "Gestion fiscale multi-pays (Maroc, France, USA) - TVA, déclarations, exports comptables FEC",
+        },
+        {
             "name": "Health",
             "description": "Health checks et monitoring",
         },
@@ -363,6 +491,7 @@ from kyc_endpoints import router as kyc_router
 from twofa_endpoints import router as twofa_router
 from ai_bot_endpoints import router as ai_bot_router
 from subscription_endpoints import router as subscription_router
+from coupon_endpoints import router as coupon_router
 from team_endpoints import router as team_router
 from domain_endpoints import router as domain_router
 from stripe_webhook_handler import router as stripe_webhook_router
@@ -394,6 +523,47 @@ from roi_endpoints import router as roi_router
 # ============================================
 from referral_endpoints import router as referral_router
 from ai_features_endpoints import router as ai_features_router
+from live_shopping_endpoints_enhanced import router as live_shopping_enhanced_router
+from whatsapp_endpoints import router as whatsapp_router
+from tiktok_shop_endpoints import router as tiktok_shop_router
+
+# ============================================
+# MODULE FISCAL - Maroc, France, USA
+# ============================================
+from fiscal_endpoints import router as fiscal_router
+
+# ============================================
+# SYSTÈME DE GESTION DES SERVICES & LEADS
+# ============================================
+from services_leads_endpoints import router as services_leads_router
+
+# ============================================
+# ADMIN USER MANAGEMENT
+# ============================================
+from admin_users_endpoints import router as admin_users_router
+
+# ============================================
+# ADMIN ANALYTICS
+# ============================================
+from admin_analytics_endpoints import router as admin_analytics_router
+
+# ============================================
+# COMMERCIAL & INFLUENCER DASHBOARDS
+# ============================================
+from commercial_influencer_endpoints import commercial_router, influencer_router
+
+# ============================================
+# ADVANCED MARKETPLACE
+# ============================================
+from advanced_marketplace_endpoints import router as advanced_marketplace_router
+
+# ============================================
+# PHASE 3 - ADVANCED FEATURES
+# ============================================
+from reports_endpoints import router as reports_router
+from notifications_endpoints import router as notifications_router
+from integrations_endpoints import router as integrations_router
+from advanced_features_endpoints import settings_router, email_router, api_router
 
 # Include all routers in the app
 app.include_router(marketplace_router)
@@ -405,12 +575,27 @@ app.include_router(affiliation_requests_router)
 app.include_router(kyc_router)
 app.include_router(twofa_router)
 app.include_router(ai_bot_router)
-app.include_router(subscription_router)
-app.include_router(team_router)
-app.include_router(domain_router)
-app.include_router(stripe_webhook_router)
-app.include_router(commercials_router)
-app.include_router(influencers_router)
+app.include_router(services_leads_router)  # Services & Leads Management
+app.include_router(admin_users_router)  # Admin User Management
+app.include_router(admin_analytics_router)  # Admin Analytics Dashboard
+app.include_router(commercial_router)  # Commercial Dashboard
+app.include_router(influencer_router)  # Influencer Dashboard
+app.include_router(advanced_marketplace_router)  # Advanced Marketplace with filters, reviews, cart
+
+# Phase 3 - Advanced Features
+app.include_router(reports_router)  # Advanced Reports with exports
+app.include_router(notifications_router)  # Real-time Notifications
+app.include_router(integrations_router)  # Shopify/WooCommerce integrations
+app.include_router(settings_router)  # Platform settings & SMTP
+app.include_router(email_router)  # Email marketing campaigns
+app.include_router(api_router)  # Public API & documentation
+
+# Nouveaux routers - 6 Features Marketables
+app.include_router(websocket_router)
+app.include_router(services_leads_router)  # Services & Leads Management
+app.include_router(admin_users_router)  # Admin User Management
+
+# Nouveaux routers - 6 Features Marketables
 app.include_router(company_links_router)  # New company-only link generation
 app.include_router(notification_router)
 app.include_router(websocket_router)
@@ -418,6 +603,10 @@ app.include_router(websocket_router)
 # Nouveaux routers - 6 Features Marketables
 app.include_router(ai_content_router)
 app.include_router(mobile_payment_router)
+
+# Phase 5G - Système Fiscal & Comptable (Multi-pays: Maroc, France, USA)
+app.include_router(fiscal_router, prefix="/api/fiscal", tags=["Fiscal"])
+app.include_router(payment_webhooks_router, prefix="/api", tags=["Payment Webhooks"])
 app.include_router(smart_match_router)
 app.include_router(trust_score_router)
 app.include_router(predictive_dashboard_router)
@@ -432,9 +621,39 @@ app.include_router(commercial_router)  # Dashboard Commercial - 3 niveaux d'abon
 app.include_router(roi_router, prefix="/api/roi", tags=["ROI Calculator"])
 
 # 4 Killer Features - NEW
-app.include_router(referral_router)  # Programme Parrainage Viral
-app.include_router(ai_features_router)  # Smart Matching + Content IA + Live Shopping
+app.include_router(live_shopping_enhanced_router)  # Live Shopping Enhanced (Instagram, TikTok, YouTube, Facebook)
+app.include_router(whatsapp_router)
+app.include_router(tiktok_shop_router)
 
+# Module Fiscal - Maroc, France, USA
+app.include_router(fiscal_router)
+
+# Module Factures Influenceurs - Pour récupérer les factures pour les impôts
+try:
+    from influencer_invoices_endpoints import router as influencer_invoices_router
+    app.include_router(influencer_invoices_router)
+    logger.info("✅ Influencer Invoices router loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ Influencer Invoices router not available: {e}")
+
+# Module Factures Commerciaux - Pour récupérer les factures pour les impôts
+try:
+    from commercial_invoices_endpoints import router as commercial_invoices_router
+    app.include_router(commercial_invoices_router)
+    logger.info("✅ Commercial Invoices router loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ Commercial Invoices router not available: {e}")
+
+# Module Balance Report - Rapport de solde des affiliés
+try:
+    from balance_report_endpoints import router as balance_report_router
+    app.include_router(balance_report_router)
+    logger.info("✅ Balance Report router loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ Balance Report router not available: {e}")
+
+# Security
+security = HTTPBearer()
 # Security
 security = HTTPBearer()
 JWT_SECRET = os.getenv("JWT_SECRET")
@@ -547,7 +766,14 @@ def create_refresh_token(data: dict):
     encoded_jwt = jwt.encode(to_encode, REFRESH_TOKEN_SECRET, algorithm=JWT_ALGORITHM)
     return encoded_jwt
 
-from auth import get_current_user_from_cookie, get_optional_user_from_cookie, optional_auth
+from auth import (
+    get_current_user_from_cookie, 
+    get_optional_user_from_cookie, 
+    optional_auth,
+    require_roles,
+    require_admin,
+    require_merchant_or_admin
+)
 
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Verify JWT token from Authorization header (legacy support)"""
@@ -1369,6 +1595,14 @@ async def generate_affiliate_link_endpoint(
         user = get_user_by_id(user_id)
         if not user or user.get("role") != "influencer":
             raise HTTPException(status_code=403, detail="Accès réservé aux influenceurs")
+        
+        # 🔒 VÉRIFICATION LIMITE ABONNEMENT
+        limit_check = await check_subscription_limit(user_id, "tracking_links", "influencer")
+        if not limit_check["allowed"]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Limite de liens d'affiliation atteinte ({limit_check['current']}/{limit_check['limit']}). Passez à un plan supérieur."
+            )
             
         # Créer le lien
         result = await create_affiliate_link(
@@ -1956,17 +2190,18 @@ async def get_sales_leaderboard(current_user: dict = Depends(get_current_user_fr
         return {"leaderboard": [], "total": 0}
 
 # ============================================
-# ADMIN USERS ENDPOINTS
+# ADMIN USERS ENDPOINTS (Admin Only)
 # ============================================
 
 @app.get("/api/admin/users")
 async def get_admin_users(
     role: Optional[str] = None,
-    current_user: dict = Depends(get_current_user_from_cookie)
+    current_user: dict = Depends(require_admin)
 ):
     """
     Liste tous les utilisateurs admin/moderator/support
     Filtrable par rôle (admin, moderator, support)
+    🔒 Admin uniquement
     """
     try:
         # Construire la requête
@@ -1999,6 +2234,8 @@ async def get_admin_users(
             })
         
         return {"users": formatted_users, "total": len(formatted_users)}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting admin users: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
@@ -2006,9 +2243,12 @@ async def get_admin_users(
 @app.post("/api/admin/users")
 async def create_admin_user(
     user_data: dict,
-    current_user: dict = Depends(get_current_user_from_cookie)
+    current_user: dict = Depends(require_admin)
 ):
-    """Créer un nouvel utilisateur admin/moderator/support"""
+    """
+    Créer un nouvel utilisateur admin/moderator/support
+    🔒 Admin uniquement
+    """
     try:
         # Vérifier que l'email n'existe pas déjà
         existing = supabase.from_("users").select("id").eq("email", user_data.get("email")).execute()
@@ -2047,9 +2287,12 @@ async def create_admin_user(
 async def update_admin_user(
     user_id: str,
     user_data: dict,
-    current_user: dict = Depends(get_current_user_from_cookie)
+    current_user: dict = Depends(require_admin)
 ):
-    """Mettre à jour un utilisateur admin"""
+    """
+    Mettre à jour un utilisateur admin
+    🔒 Admin uniquement
+    """
     try:
         # Préparer les données de mise à jour
         update_data = {
@@ -2084,9 +2327,12 @@ async def update_admin_user(
 @app.delete("/api/admin/users/{user_id}")
 async def delete_admin_user(
     user_id: str,
-    current_user: dict = Depends(get_current_user_from_cookie)
+    current_user: dict = Depends(require_admin)
 ):
-    """Supprimer un utilisateur admin"""
+    """
+    Supprimer un utilisateur admin
+    🔒 Admin uniquement
+    """
     try:
         result = supabase.from_("users").delete().eq("id", user_id).execute()
         
@@ -2105,9 +2351,12 @@ async def delete_admin_user(
 async def toggle_user_status(
     user_id: str,
     status_data: dict,
-    current_user: dict = Depends(get_current_user_from_cookie)
+    current_user: dict = Depends(require_admin)
 ):
-    """Activer/désactiver un utilisateur"""
+    """
+    Activer/désactiver un utilisateur
+    🔒 Admin uniquement
+    """
     try:
         new_status = status_data.get("status", "active")
         
@@ -2128,9 +2377,12 @@ async def toggle_user_status(
 async def update_user_permissions(
     user_id: str,
     permissions: dict,
-    current_user: dict = Depends(get_current_user_from_cookie)
+    current_user: dict = Depends(require_admin)
 ):
-    """Mettre à jour les permissions d'un utilisateur"""
+    """
+    Mettre à jour les permissions d'un utilisateur
+    🔒 Admin uniquement
+    """
     try:
         result = supabase.from_("users").update({"permissions": permissions}).eq("id", user_id).execute()
         
@@ -2146,15 +2398,17 @@ async def update_user_permissions(
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
 
 # ============================================
-# ADVERTISER REGISTRATIONS ENDPOINTS
+# ADVERTISER REGISTRATIONS ENDPOINTS (Admin Only)
 # ============================================
 
 @app.get("/api/advertiser-registrations")
 async def get_advertiser_registrations(
     status: Optional[str] = None,
-    current_user: dict = Depends(get_current_user_from_cookie)
+    current_user: dict = Depends(require_admin)
 ):
     """
+    Récupérer les inscriptions d'annonceurs
+    🔒 Admin uniquement
     Liste toutes les demandes d'inscription d'annonceurs
     Filtrable par statut (pending, approved, rejected)
     """
@@ -2210,10 +2464,10 @@ async def approve_advertiser_registration(
         if user.get("role") != "merchant":
             raise HTTPException(status_code=400, detail="Cette demande n'est pas un annonceur")
         
-        # Mettre à jour le statut à "active"
+        # Mettre à jour le statut à "active" (la colonne approved_at n'existe pas sur users)
         update_result = supabase.from_("users").update({
             "status": "active",
-            "approved_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.utcnow().isoformat()
         }).eq("id", registration_id).execute()
         
         if update_result.data:
@@ -2253,10 +2507,10 @@ async def reject_advertiser_registration(
         if user.get("role") != "merchant":
             raise HTTPException(status_code=400, detail="Cette demande n'est pas un annonceur")
         
-        # Mettre à jour le statut à "rejected"
+        # Mettre à jour le statut à "rejected" (la colonne rejected_at n'existe pas sur users)
         update_result = supabase.from_("users").update({
             "status": "rejected",
-            "rejected_at": datetime.utcnow().isoformat()
+            "updated_at": datetime.utcnow().isoformat()
         }).eq("id", registration_id).execute()
         
         if update_result.data:
@@ -2427,18 +2681,36 @@ async def download_invoice(
 ):
     """Télécharger une facture en PDF"""
     try:
-        # Générer le PDF via le service
-        pdf_bytes = InvoiceService.generate_invoice_pdf(invoice_id)
+        # D'abord vérifier si la facture existe en base
+        invoice_result = supabase.from_("invoices").select("*").eq("id", invoice_id).execute()
+        
+        if not invoice_result.data:
+            # La facture n'existe pas en base, retourner 404
+            raise HTTPException(status_code=404, detail="Facture non trouvée")
+        
+        invoice_data = invoice_result.data[0]
+        
+        # Essayer de générer le PDF via le service
+        try:
+            pdf_bytes = InvoiceService.generate_invoice_pdf(invoice_id)
+        except Exception as pdf_error:
+            logger.warning(f"PDF generation failed, using fallback: {pdf_error}")
+            pdf_bytes = None
         
         if not pdf_bytes:
-            raise HTTPException(status_code=404, detail="Facture non trouvée ou erreur de génération")
+            # Générer un PDF basique de secours
+            pdf_bytes = generate_simple_invoice_pdf(invoice_data)
+            
+        if not pdf_bytes:
+            raise HTTPException(status_code=500, detail="Erreur de génération du PDF")
             
         # Créer un stream à partir des bytes
         pdf_stream = io.BytesIO(pdf_bytes)
         
         # Retourner le fichier
+        invoice_number = invoice_data.get('invoice_number', invoice_id)
         headers = {
-            'Content-Disposition': f'attachment; filename="facture_{invoice_id}.pdf"'
+            'Content-Disposition': f'attachment; filename="facture_{invoice_number}.pdf"'
         }
         
         return StreamingResponse(pdf_stream, media_type="application/pdf", headers=headers)
@@ -2448,6 +2720,102 @@ async def download_invoice(
     except Exception as e:
         logger.error(f"Error downloading invoice: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur serveur: {str(e)}")
+
+
+def generate_simple_invoice_pdf(invoice_data: dict) -> bytes:
+    """Génère un PDF de facture simple (fallback)"""
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.units import cm
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.enums import TA_CENTER
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=2*cm, leftMargin=2*cm, topMargin=2*cm, bottomMargin=2*cm)
+        
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=24, textColor=colors.HexColor('#2563eb'), spaceAfter=30, alignment=TA_CENTER)
+        heading_style = ParagraphStyle('Heading', parent=styles['Heading2'], fontSize=14, textColor=colors.HexColor('#1f2937'), spaceAfter=12)
+        normal_style = styles['Normal']
+        
+        content = []
+        content.append(Paragraph("FACTURE", title_style))
+        content.append(Spacer(1, 0.5*cm))
+        
+        # Informations de la facture
+        invoice_number = invoice_data.get('invoice_number', 'N/A')
+        total_amount = invoice_data.get('total_amount', invoice_data.get('total', 0))
+        currency = invoice_data.get('currency', 'EUR')
+        status = invoice_data.get('status', 'pending')
+        created_at = invoice_data.get('created_at', '')
+        due_date = invoice_data.get('due_date', '')
+        
+        # Formater les dates
+        if created_at:
+            try:
+                created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00')).strftime('%d/%m/%Y')
+            except:
+                pass
+        if due_date:
+            try:
+                due_date = datetime.fromisoformat(due_date.replace('Z', '+00:00')).strftime('%d/%m/%Y')
+            except:
+                pass
+        
+        company_info = """
+        <b>ShareYourSales</b><br/>
+        Plateforme d'affiliation<br/>
+        Email: billing@shareyoursales.com
+        """
+        content.append(Paragraph(company_info, normal_style))
+        content.append(Spacer(1, 1*cm))
+        
+        # Détails facture
+        content.append(Paragraph(f"<b>Numéro de facture:</b> {invoice_number}", normal_style))
+        content.append(Paragraph(f"<b>Date:</b> {created_at or 'N/A'}", normal_style))
+        content.append(Paragraph(f"<b>Échéance:</b> {due_date or 'N/A'}", normal_style))
+        content.append(Paragraph(f"<b>Statut:</b> {status.upper()}", normal_style))
+        content.append(Spacer(1, 1*cm))
+        
+        # Montant
+        content.append(Paragraph("<b>MONTANT TOTAL</b>", heading_style))
+        
+        amount_data = [
+            ['Description', 'Montant'],
+            ['Services facturés', f'{float(total_amount):.2f} {currency}'],
+            ['', ''],
+            ['TOTAL', f'{float(total_amount):.2f} {currency}']
+        ]
+        
+        amount_table = Table(amount_data, colWidths=[12*cm, 5*cm])
+        amount_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563eb')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#e5e7eb')),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        
+        content.append(amount_table)
+        content.append(Spacer(1, 2*cm))
+        
+        footer = Paragraph("<para alignment='center' fontSize='9'>Merci pour votre confiance !<br/>ShareYourSales - Plateforme d'affiliation</para>", normal_style)
+        content.append(footer)
+        
+        doc.build(content)
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+        
+        return pdf_bytes
+        
+    except Exception as e:
+        logger.error(f"Error generating simple PDF: {e}")
+        return None
 
 @app.patch("/api/invoices/{invoice_id}/status")
 async def update_invoice_status(
@@ -2504,6 +2872,42 @@ async def get_products(
     products = get_all_products(category=category, merchant_id=merchant_id)
     return {"products": products, "total": len(products)}
 
+@app.get("/api/products/stats")
+async def get_products_stats(payload: dict = Depends(get_current_user_from_cookie)):
+    """Récupère les statistiques des produits pour l'admin"""
+    user = get_user_by_id(payload["id"])
+    
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    
+    try:
+        # Récupérer tous les produits
+        response = supabase.table("products").select("*").execute()
+        products = response.data if response.data else []
+        
+        total = len(products)
+        in_stock = sum(1 for p in products if (p.get("stock") or 0) > 0)
+        out_of_stock = sum(1 for p in products if (p.get("stock") or 0) == 0)
+        low_stock = sum(1 for p in products if 0 < (p.get("stock") or 0) < 10)
+        total_value = sum(float(p.get("price", 0)) * int(p.get("stock", 0)) for p in products)
+        
+        return {
+            "total": total,
+            "inStock": in_stock,
+            "outOfStock": out_of_stock,
+            "lowStock": low_stock,
+            "totalValue": round(total_value, 2)
+        }
+    except Exception as e:
+        logger.error(f"Error getting products stats: {e}")
+        return {
+            "total": 0,
+            "inStock": 0,
+            "outOfStock": 0,
+            "lowStock": 0,
+            "totalValue": 0
+        }
+
 @app.get("/api/products/{product_id}")
 async def get_product(product_id: str):
     """Récupère les détails d'un produit"""
@@ -2511,6 +2915,48 @@ async def get_product(product_id: str):
     if not product:
         raise HTTPException(status_code=404, detail="Produit non trouvé")
     return product
+
+@app.post("/api/products/upload-image")
+async def upload_product_image(
+    image: UploadFile = File(...),
+    payload: dict = Depends(get_current_user_from_cookie)
+):
+    """Upload une image pour un produit"""
+    user = get_user_by_id(payload["id"])
+    
+    if user["role"] not in ["merchant", "admin"]:
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    
+    # Vérifier le type de fichier
+    allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+    if image.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Type de fichier non autorisé")
+    
+    # Vérifier la taille (5MB max)
+    content = await image.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Fichier trop volumineux (max 5MB)")
+    
+    try:
+        # Générer un nom de fichier unique
+        import uuid
+        file_extension = image.filename.split(".")[-1]
+        file_name = f"products/{uuid.uuid4()}.{file_extension}"
+        
+        # Upload vers Supabase Storage
+        response = supabase.storage.from_("products").upload(
+            file_name,
+            content,
+            {"content-type": image.content_type}
+        )
+        
+        # Obtenir l'URL publique
+        url = supabase.storage.from_("products").get_public_url(file_name)
+        
+        return {"url": url}
+    except Exception as e:
+        logger.error(f"Error uploading image: {e}")
+        raise HTTPException(status_code=500, detail="Erreur lors de l'upload de l'image")
 
 
 # ============================================
@@ -2592,8 +3038,8 @@ async def get_campaigns_endpoint(current_user: dict = Depends(get_current_user_f
     user = get_user_by_id(current_user["id"])
 
     if user["role"] == "merchant":
-        merchant = get_merchant_by_user_id(user["id"])
-        campaigns = get_all_campaigns(merchant_id=merchant["id"]) if merchant else []
+        # Utiliser directement user_id car merchant_id dans campaigns référence user.id
+        campaigns = get_all_campaigns(merchant_id=user["id"])
     else:
         campaigns = get_all_campaigns()
 
@@ -2612,8 +3058,8 @@ async def get_campaign_stats(campaign_id: str, current_user: dict = Depends(get_
         campaign = campaign_response.data[0]
         user = get_user_by_id(current_user["id"])
         if user["role"] == "merchant":
-            merchant = get_merchant_by_user_id(user["id"])
-            if merchant and campaign.get('merchant_id') != merchant['id']:
+            # merchant_id dans campaigns référence directement user.id
+            if campaign.get('merchant_id') != user['id']:
                 raise HTTPException(status_code=403, detail="Accès refusé")
         
         # Récupérer les tracking links pour cette campagne
@@ -2671,8 +3117,8 @@ async def get_campaign_influencers(campaign_id: str, current_user: dict = Depend
         campaign = campaign_response.data[0]
         user = get_user_by_id(current_user["id"])
         if user["role"] == "merchant":
-            merchant = get_merchant_by_user_id(user["id"])
-            if merchant and campaign.get('merchant_id') != merchant['id']:
+            # merchant_id dans campaigns référence directement user.id
+            if campaign.get('merchant_id') != user['id']:
                 raise HTTPException(status_code=403, detail="Accès refusé")
         
         # Récupérer les influenceurs via tracking_links pour cette campagne
@@ -2744,8 +3190,8 @@ async def get_campaign_detail(campaign_id: str, current_user: dict = Depends(get
         # Vérifier les permissions
         user = get_user_by_id(current_user["id"])
         if user["role"] == "merchant":
-            merchant = get_merchant_by_user_id(user["id"])
-            if merchant and campaign.get('merchant_id') != merchant['id']:
+            # merchant_id dans campaigns référence directement user.id
+            if campaign.get('merchant_id') != user['id']:
                 raise HTTPException(status_code=403, detail="Accès refusé")
         
         # Récupérer le nombre d'influenceurs participants via influencer_agreements
@@ -2773,12 +3219,17 @@ async def create_campaign_endpoint(campaign_data: CampaignCreate, current_user: 
     if user["role"] != "merchant":
         raise HTTPException(status_code=403, detail="Seuls les merchants peuvent créer des campagnes")
 
-    merchant = get_merchant_by_user_id(user["id"])
-    if not merchant:
-        raise HTTPException(status_code=404, detail="Profil merchant non trouvé")
+    # 🔒 VÉRIFICATION LIMITE ABONNEMENT
+    limit_check = await check_subscription_limit(user["id"], "campaigns", "merchant")
+    if not limit_check["allowed"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Limite de campagnes atteinte ({limit_check['current']}/{limit_check['limit']}). Passez à un plan supérieur."
+        )
 
+    # Utiliser directement user["id"] comme merchant_id pour cohérence
     campaign = create_campaign(
-        merchant_id=merchant["id"],
+        merchant_id=user["id"],
         name=campaign_data.name,
         description=campaign_data.description,
         budget=campaign_data.budget,
@@ -2814,8 +3265,8 @@ async def update_campaign(
         # Vérifier les permissions (merchant propriétaire ou admin)
         user = get_user_by_id(user_id)
         if user["role"] == "merchant":
-            merchant = get_merchant_by_user_id(user["id"])
-            if merchant and campaign.get('merchant_id') != merchant['id']:
+            # merchant_id dans campaigns référence directement user.id
+            if campaign.get('merchant_id') != user['id']:
                 raise HTTPException(status_code=403, detail="Vous n'avez pas la permission de modifier cette campagne")
         elif role != 'admin':
             raise HTTPException(status_code=403, detail="Permission refusée")
@@ -6392,27 +6843,97 @@ async def get_influencer_tracking_links(
         if user['role'] != 'influencer':
             raise HTTPException(status_code=403, detail="Must be an influencer")
         
+        # D'abord, essayer de trouver l'influencer_id dans la table influencers
+        influencer_result = supabase.table('influencers').select('id').eq('user_id', user['id']).execute()
+        
+        # Utiliser l'influencer_id si trouvé, sinon utiliser l'user_id directement
+        influencer_id = influencer_result.data[0]['id'] if influencer_result.data else user['id']
+        
         # Récupérer tous les tracking links
-        # Note: services(*) removed because the relationship does not exist in the database yet
         result = supabase.table("tracking_links").select(
-            "*, products(*)"
-        ).eq("influencer_id", user["id"]).order("created_at", desc=True).execute()
+            "*, products(id, name, price, commission_rate, images)"
+        ).eq("influencer_id", influencer_id).order("created_at", desc=True).execute()
         
         links = result.data or []
         
         # Enrichir avec le nombre de conversions par link
         for link in links:
-            conversions = supabase.table("conversions").select("id", count="exact").eq("tracking_link_id", link["id"]).execute().count or 0
-            link["conversions_count"] = conversions
-            link["earnings"] = conversions * 10  # Simulation
+            try:
+                conversions_result = supabase.table("conversions").select("id", count="exact").eq("tracking_link_id", link["id"]).execute()
+                conversions = conversions_result.count if hasattr(conversions_result, 'count') else 0
+                link["conversions_count"] = conversions
+                link["earnings"] = conversions * 10  # Estimation
+            except:
+                link["conversions_count"] = 0
+                link["earnings"] = 0
         
         return {
             "links": links,
             "total": len(links)
         }
     
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching tracking links: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/influencer/affiliation-requests")
+async def get_influencer_affiliation_requests_alias(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    ALIAS pour /api/affiliation-requests/my-requests
+    Récupère les demandes d'affiliation de l'influenceur connecté
+    """
+    try:
+        user = verify_token(credentials.credentials)
+        
+        if user['role'] != 'influencer':
+            raise HTTPException(status_code=403, detail="Must be an influencer")
+        
+        # Récupérer l'ID influencer depuis la table influencers
+        influencer_result = supabase.table('influencers').select('id').eq('user_id', user['id']).execute()
+        
+        if not influencer_result.data:
+            # Si pas dans la table influencers, retourner liste vide
+            return {"success": True, "requests": []}
+        
+        influencer_id = influencer_result.data[0]['id']
+        
+        # Récupérer les demandes d'affiliation
+        requests_result = supabase.table('affiliate_requests').select('*').eq('influencer_id', influencer_id).order('created_at', desc=True).execute()
+        requests = requests_result.data or []
+        
+        # Enrichir avec produits et marchands
+        product_ids = list(set(r['product_id'] for r in requests if r.get('product_id')))
+        products_map = {}
+        if product_ids:
+            p_res = supabase.table('products').select('id, name, price, commission_rate, images').in_('id', product_ids).execute()
+            products_map = {p['id']: p for p in p_res.data} if p_res.data else {}
+        
+        merchant_ids = list(set(r['merchant_id'] for r in requests if r.get('merchant_id')))
+        merchants_map = {}
+        if merchant_ids:
+            m_res = supabase.table('merchants').select('id, company_name, logo_url').in_('id', merchant_ids).execute()
+            merchants_map = {m['id']: m for m in m_res.data} if m_res.data else {}
+        
+        # Enrichir les demandes
+        for req in requests:
+            req['products'] = products_map.get(req.get('product_id'))
+            req['merchants'] = merchants_map.get(req.get('merchant_id'))
+        
+        return {
+            "success": True,
+            "requests": requests
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching influencer affiliation requests: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -7692,6 +8213,111 @@ async def record_swipe(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/matching/campaigns-for-influencer")
+async def get_campaigns_for_influencer_matching(
+    limit: int = Query(10, le=50),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Récupère les campagnes/produits disponibles pour le matching influenceur
+    Utilisé par le SwipeMatching dans InfluencerDashboard (Elite plan)
+    """
+    try:
+        user = verify_token(credentials.credentials)
+        
+        if user['role'] not in ['influencer', 'admin']:
+            raise HTTPException(status_code=403, detail="Influencers only")
+        
+        # Récupérer les produits actifs avec infos merchant
+        result = supabase.table('products').select(
+            'id, name, description, price, commission_rate, images, category, merchant_id, merchants(company_name, logo_url)'
+        ).eq('is_active', True).limit(limit).execute()
+        
+        campaigns = []
+        for product in (result.data or []):
+            merchant = product.get('merchants', {}) or {}
+            images = product.get('images', [])
+            image_url = images[0] if images else 'https://images.unsplash.com/photo-1560472355-536de3962603?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+            
+            campaigns.append({
+                'id': product['id'],
+                'title': product['name'],
+                'subtitle': merchant.get('company_name', 'Marchand'),
+                'description': product.get('description', '')[:200] + '...' if product.get('description') and len(product.get('description', '')) > 200 else (product.get('description', '') or 'Découvrez ce produit !'),
+                'image': image_url,
+                'budget': f"{product.get('commission_rate', 10)}% commission",
+                'audience': '1k+',
+                'price': product.get('price', 0),
+                'merchant_id': product.get('merchant_id'),
+                'category': product.get('category')
+            })
+        
+        return {
+            "campaigns": campaigns,
+            "total": len(campaigns)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching campaigns for influencer matching: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/matching/influencer-swipe")
+async def record_influencer_swipe(
+    swipe_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """
+    Enregistre le swipe d'un influenceur sur un produit/campagne
+    action: 'like' | 'pass' | 'super_like'
+    """
+    try:
+        user = verify_token(credentials.credentials)
+        
+        if user['role'] not in ['influencer', 'admin']:
+            raise HTTPException(status_code=403, detail="Influencers only")
+        
+        product_id = swipe_data.get('product_id')
+        action = swipe_data.get('action', 'like')
+        
+        if not product_id:
+            raise HTTPException(status_code=400, detail="product_id is required")
+        
+        # Si like ou super_like, créer une demande d'affiliation automatique
+        if action in ['like', 'super_like']:
+            # Vérifier si demande existe déjà
+            existing = supabase.table('affiliate_requests').select('id').eq(
+                'influencer_id', user['id']
+            ).eq('product_id', product_id).execute()
+            
+            if not existing.data:
+                # Récupérer le produit pour avoir merchant_id
+                product = supabase.table('products').select('merchant_id').eq('id', product_id).execute()
+                if product.data:
+                    # Créer demande d'affiliation
+                    supabase.table('affiliate_requests').insert({
+                        'influencer_id': user['id'],
+                        'product_id': product_id,
+                        'merchant_id': product.data[0]['merchant_id'],
+                        'status': 'pending',
+                        'influencer_message': f"Demande via Swipe Matching ({action})",
+                        'created_at': datetime.now().isoformat()
+                    }).execute()
+        
+        return {
+            "success": True,
+            "action": action,
+            "product_id": product_id,
+            "message": "Match enregistré ! La demande sera traitée par le marchand." if action in ['like', 'super_like'] else "Produit passé"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error recording influencer swipe: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ========================================
 # MISSING ENDPOINTS FIX
 # ========================================
@@ -8286,6 +8912,361 @@ async def get_bot_suggestions(
     except Exception as e:
         logger.error(f"Error fetching suggestions: {e}")
         return {"suggestions": []}
+
+
+@app.post("/api/bot/feedback")
+async def submit_bot_feedback(
+    feedback_data: dict,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Soumettre un feedback sur une réponse du bot"""
+    try:
+        user = verify_token(credentials.credentials)
+        
+        # Enregistrer le feedback (simplifié - à stocker en BDD si nécessaire)
+        logger.info(f"Bot feedback from user {user['id']}: rating={feedback_data.get('rating')}")
+        
+        return {"success": True, "message": "Merci pour votre feedback!"}
+    
+    except Exception as e:
+        logger.error(f"Error submitting bot feedback: {e}")
+        return {"success": False}
+
+
+@app.get("/api/bot/conversations/{session_id}")
+async def get_bot_conversation(
+    session_id: str,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Récupérer les messages d'une conversation"""
+    try:
+        user = verify_token(credentials.credentials)
+        
+        # Retourner conversation vide (à implémenter avec stockage persistant)
+        return {
+            "session_id": session_id,
+            "messages": []
+        }
+    
+    except Exception as e:
+        logger.error(f"Error fetching conversation: {e}")
+        return {"messages": []}
+
+
+# =====================================================
+# COMMERCIAL DASHBOARD ENDPOINTS
+# =====================================================
+
+@app.get("/api/commercial/stats")
+async def get_commercial_stats(current_user: dict = Depends(get_current_user_from_cookie)):
+    """Statistiques du commercial connecté"""
+    try:
+        user_id = current_user["id"]
+        
+        # Compter les leads
+        leads_result = supabase.table("leads").select("id, estimated_value, lead_status").eq("created_by", user_id).execute()
+        leads = leads_result.data or []
+        
+        # Compter les deals gagnés
+        total_commission = sum([float(l.get("estimated_value", 0)) * 0.1 for l in leads if l.get("lead_status") == "won"])
+        pipeline_value = sum([float(l.get("estimated_value", 0)) for l in leads if l.get("lead_status") not in ["won", "lost"]])
+        
+        total_leads = len(leads)
+        won_leads = len([l for l in leads if l.get("lead_status") == "won"])
+        conversion_rate = (won_leads / total_leads * 100) if total_leads > 0 else 0
+        
+        return {
+            "total_leads": total_leads,
+            "total_commission": round(total_commission, 2),
+            "pipeline_value": round(pipeline_value, 2),
+            "conversion_rate": round(conversion_rate, 1),
+            "leads_generated_month": len([l for l in leads]),  # Simplified for now
+        }
+    except Exception as e:
+        logger.error(f"Error getting commercial stats: {e}")
+        return {
+            "total_leads": 0,
+            "total_commission": 0,
+            "pipeline_value": 0,
+            "conversion_rate": 0,
+            "leads_generated_month": 0
+        }
+
+@app.get("/api/commercial/leads")
+async def get_commercial_leads(
+    limit: int = 20,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
+    """Liste des leads du commercial"""
+    try:
+        user_id = current_user["id"]
+        
+        result = supabase.table("leads").select("*").eq("created_by", user_id).order("created_at", desc=True).limit(limit).execute()
+        
+        leads = []
+        for lead in (result.data or []):
+            leads.append({
+                "id": lead.get("id"),
+                "first_name": lead.get("contact_name", "").split()[0] if lead.get("contact_name") else "",
+                "last_name": " ".join(lead.get("contact_name", "").split()[1:]) if lead.get("contact_name") else "",
+                "email": lead.get("contact_email"),
+                "phone": lead.get("contact_phone"),
+                "company": lead.get("company_name"),
+                "status": lead.get("lead_status", "nouveau"),
+                "temperature": lead.get("temperature", "froid"),
+                "estimated_value": lead.get("estimated_value", 0),
+                "source": lead.get("source", "linkedin"),
+                "notes": lead.get("notes"),
+                "created_at": lead.get("created_at")
+            })
+        
+        return leads
+    except Exception as e:
+        logger.error(f"Error getting commercial leads: {e}")
+        return []
+
+@app.post("/api/commercial/leads")
+async def create_commercial_lead(
+    lead_data: dict,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
+    """Créer un nouveau lead"""
+    try:
+        user_id = current_user["id"]
+        
+        # 🔒 VÉRIFICATION LIMITE ABONNEMENT (Starter = 10 leads/mois)
+        limit_check = await check_subscription_limit(user_id, "leads", "commercial")
+        if not limit_check["allowed"]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Limite de leads atteinte ce mois ({limit_check['current']}/{limit_check['limit']}). Passez à Pro pour leads illimités."
+            )
+        
+        contact_name = f"{lead_data.get('first_name', '')} {lead_data.get('last_name', '')}".strip()
+        
+        new_lead = {
+            "contact_name": contact_name,
+            "contact_email": lead_data.get("email"),
+            "contact_phone": lead_data.get("phone"),
+            "company_name": lead_data.get("company"),
+            "lead_status": lead_data.get("status", "nouveau"),
+            "temperature": lead_data.get("temperature", "froid"),
+            "estimated_value": lead_data.get("estimated_value", 0),
+            "source": lead_data.get("source", "linkedin"),
+            "notes": lead_data.get("notes"),
+            "created_by": user_id
+        }
+        
+        result = supabase.table("leads").insert(new_lead).execute()
+        
+        return {"success": True, "lead": result.data[0] if result.data else None}
+    except Exception as e:
+        logger.error(f"Error creating lead: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/commercial/tracking-links")
+async def get_commercial_tracking_links(current_user: dict = Depends(get_current_user_from_cookie)):
+    """Liens trackés du commercial"""
+    try:
+        user_id = current_user["id"]
+        
+        # Récupérer les liens d'affiliation du commercial
+        result = supabase.table("affiliate_links").select("""
+            id,
+            product_id,
+            affiliate_code,
+            affiliate_url,
+            clicks,
+            conversions,
+            commission_earned,
+            created_at,
+            products(name)
+        """).eq("user_id", user_id).execute()
+        
+        links = []
+        for link in (result.data or []):
+            links.append({
+                "id": link.get("id"),
+                "product_name": link.get("products", {}).get("name", "Produit") if link.get("products") else "Produit",
+                "channel": "whatsapp",  # Default
+                "link_code": link.get("affiliate_code"),
+                "full_url": link.get("affiliate_url"),
+                "total_clicks": link.get("clicks", 0),
+                "total_conversions": link.get("conversions", 0),
+                "total_revenue": link.get("commission_earned", 0)
+            })
+        
+        return links
+    except Exception as e:
+        logger.error(f"Error getting tracking links: {e}")
+        return []
+
+@app.post("/api/commercial/tracking-links")
+async def create_commercial_tracking_link(
+    link_data: dict,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
+    """Créer un lien tracké"""
+    try:
+        user_id = current_user["id"]
+        product_id = link_data.get("product_id")
+        
+        # 🔒 VÉRIFICATION LIMITE ABONNEMENT (Starter = 3 liens max)
+        limit_check = await check_subscription_limit(user_id, "tracking_links", "commercial")
+        if not limit_check["allowed"]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Limite de liens trackés atteinte ({limit_check['current']}/{limit_check['limit']}). Passez à Pro pour liens illimités."
+            )
+        
+        # Générer code unique
+        import random
+        import string
+        link_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        
+        # Créer le lien d'affiliation
+        new_link = {
+            "user_id": user_id,
+            "product_id": product_id,
+            "affiliate_code": link_code,
+            "affiliate_url": f"https://app.shareyoursales.com/r/{link_code}",
+            "clicks": 0,
+            "conversions": 0,
+            "commission_earned": 0
+        }
+        
+        result = supabase.table("affiliate_links").insert(new_link).execute()
+        
+        return {
+            "success": True,
+            "link_code": link_code,
+            "full_url": new_link["affiliate_url"]
+        }
+    except Exception as e:
+        logger.error(f"Error creating tracking link: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/commercial/templates")
+async def get_commercial_templates(current_user: dict = Depends(get_current_user_from_cookie)):
+    """Templates marketing pour commerciaux"""
+    try:
+        return [
+            {
+                "id": "1",
+                "title": "Email de Prospection",
+                "category": "email",
+                "content": """Bonjour [Prénom],
+
+Je me permets de vous contacter car [Raison].
+
+Notre solution [Produit/Service] permet à des entreprises comme la vôtre de [Bénéfice principal].
+
+Seriez-vous disponible pour un échange de 15 minutes cette semaine ?
+
+Cordialement,
+[Votre nom]"""
+            },
+            {
+                "id": "2",
+                "title": "Message LinkedIn",
+                "category": "linkedin",
+                "content": """Bonjour [Prénom],
+
+J'ai remarqué que vous travaillez chez [Entreprise] et je pense que notre solution pourrait vous intéresser.
+
+Nous aidons les entreprises de [Secteur] à [Bénéfice].
+
+Êtes-vous ouvert à un échange ?"""
+            },
+            {
+                "id": "3",
+                "title": "Relance WhatsApp",
+                "category": "whatsapp",
+                "content": """Bonjour [Prénom] 👋
+
+Suite à notre dernier échange, je voulais savoir si vous aviez eu le temps de réfléchir à notre proposition ?
+
+Je reste disponible si vous avez des questions ! 😊"""
+            }
+        ]
+    except Exception as e:
+        logger.error(f"Error getting templates: {e}")
+        return []
+
+@app.get("/api/commercial/analytics/performance")
+async def get_commercial_performance(
+    period: int = 30,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
+    """Données de performance du commercial - DONNÉES RÉELLES"""
+    try:
+        from datetime import datetime, timedelta
+        
+        user_id = current_user["id"]
+        start_date = (datetime.now() - timedelta(days=period)).isoformat()
+        
+        # Récupérer les leads de la période
+        leads_result = supabase.table("leads").select("created_at, estimated_value, lead_status").eq("created_by", user_id).gte("created_at", start_date).execute()
+        leads = leads_result.data or []
+        
+        # Grouper par jour
+        leads_by_day = {}
+        revenue_by_day = {}
+        for lead in leads:
+            created = lead.get("created_at", "")[:10]  # YYYY-MM-DD
+            if created:
+                leads_by_day[created] = leads_by_day.get(created, 0) + 1
+                # Revenue = commission sur leads gagnés
+                if lead.get("lead_status") == "won":
+                    revenue_by_day[created] = revenue_by_day.get(created, 0) + float(lead.get("estimated_value", 0)) * 0.1
+        
+        # Générer les données pour chaque jour
+        data = []
+        for i in range(period):
+            date = datetime.now() - timedelta(days=period-1-i)
+            date_str = date.strftime("%Y-%m-%d")
+            data.append({
+                "date": date.strftime("%d/%m"),
+                "leads": leads_by_day.get(date_str, 0),
+                "revenue": round(revenue_by_day.get(date_str, 0), 2)
+            })
+        
+        return {"data": data}
+    except Exception as e:
+        logger.error(f"Error getting performance: {e}")
+        return {"data": []}
+
+@app.get("/api/commercial/analytics/funnel")
+async def get_commercial_funnel(current_user: dict = Depends(get_current_user_from_cookie)):
+    """Funnel de conversion du commercial"""
+    try:
+        user_id = current_user["id"]
+        
+        # Récupérer les leads par statut
+        result = supabase.table("leads").select("lead_status, estimated_value").eq("created_by", user_id).execute()
+        leads = result.data or []
+        
+        def count_by_status(status):
+            filtered = [l for l in leads if l.get("lead_status") == status]
+            return {
+                "count": len(filtered),
+                "value": sum([float(l.get("estimated_value", 0)) for l in filtered])
+            }
+        
+        return {
+            "nouveau": count_by_status("nouveau"),
+            "qualifie": count_by_status("qualifie"),
+            "en_negociation": count_by_status("en_negociation"),
+            "conclu": count_by_status("won")
+        }
+    except Exception as e:
+        logger.error(f"Error getting funnel: {e}")
+        return {
+            "nouveau": {"count": 0, "value": 0},
+            "qualifie": {"count": 0, "value": 0},
+            "en_negociation": {"count": 0, "value": 0},
+            "conclu": {"count": 0, "value": 0}
+        }
 
 
 if __name__ == "__main__":

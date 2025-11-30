@@ -266,8 +266,6 @@ def add_campaigns_endpoints(app, verify_token):
 
         from supabase_client import supabase
 
-        supabase = get_supabase_client()
-
         # Créer la campagne
         campaign_dict = {
             "merchant_id": merchant["id"],
@@ -293,7 +291,7 @@ def add_campaigns_endpoints(app, verify_token):
         # Assigner les produits si fournis
         if campaign_data.product_ids:
             for product_id in campaign_data.product_ids:
-                assign_products_to_campaign(campaign["id"], [product_id])
+                assign_products_to_campaign(campaign["id"], [str(product_id)])
 
         return {"message": "Campagne créée avec succès", "campaign": campaign}
 

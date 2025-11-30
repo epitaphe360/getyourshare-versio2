@@ -1,0 +1,38 @@
+LISTE DES CAPTURES D'ÉCRAN À PRENDRE
+====================================
+
+Pour générer votre PDF final, veuillez prendre des captures d'écran de votre application
+et les enregistrer dans ce dossier avec les noms exacts ci-dessous :
+
+ESPACE INFLUENCEUR
+------------------
+1.  04_dashboard_influenceur.png  -> Page /dashboard/influencer
+2.  05_marketplace.png            -> Page /marketplace
+3.  05_detail_produit.png         -> Pop-up détail d'un produit
+4.  06_mes_liens.png              -> Page /influencer/my-links
+5.  07_live_shopping_studio.png   -> Page /influencer/live-shopping
+6.  08_content_ia.png             -> Page /influencer/ai-content
+7.  09_smart_matching.png         -> Page /influencer/matching
+8.  13_wallet_revenus.png         -> Page /influencer/payouts
+
+ESPACE MARCHAND
+---------------
+9.  14_dashboard_marchand.png     -> Page /dashboard/merchant
+
+ESPACE ADMIN
+------------
+10. 22_dashboard_admin.png        -> Page /admin/dashboard
+
+FONCTIONNALITÉS AVANCÉES
+------------------------
+11. 27_tiktok_shop.png            -> Page /integrations/tiktok-shop
+12. 28_messagerie.png             -> Page /messages
+13. 29_leads_crm.png              -> Page /leads
+14. 30_integrations.png           -> Page /settings/integrations
+
+INSTRUCTIONS :
+1. Ouvrez l'application dans votre navigateur.
+2. Naviguez vers chaque page.
+3. Utilisez un outil de capture (Windows + Shift + S) pour prendre la zone principale.
+4. Enregistrez l'image dans ce dossier `screenshots` avec le nom correspondant.
+5. Une fois toutes les images présentes, vous pourrez convertir le fichier .md en PDF.

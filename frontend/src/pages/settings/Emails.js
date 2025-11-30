@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import { Mail, Eye } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 const Emails = () => {
+  const toast = useToast();
   const emailTemplates = [
     { id: 1, name: 'Bienvenue Affilié', subject: 'Bienvenue sur ShareYourSales!', status: 'active' },
     { id: 2, name: 'Approbation Affilié', subject: 'Votre compte a été approuvé', status: 'active' },
@@ -33,11 +35,18 @@ const Emails = () => {
                 </div>
               </div>
               <div className="flex space-x-2">
-                <Button size="sm" variant="outline">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => toast.info(`Aperçu du template: ${template.name}`)}
+                >
                   <Eye size={16} className="mr-2" />
                   Aperçu
                 </Button>
-                <Button size="sm">
+                <Button 
+                  size="sm"
+                  onClick={() => toast.info(`Modification du template: ${template.name}`)}
+                >
                   Modifier
                 </Button>
               </div>

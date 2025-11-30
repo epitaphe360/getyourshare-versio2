@@ -16,7 +16,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 const ChatbotWidget = ({ user, language = 'fr' }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -164,8 +164,16 @@ const ChatbotWidget = ({ user, language = 'fr' }) => {
   };
 
   const handleFeedback = async (messageIndex, rating) => {
-    // TODO: Envoyer feedback au backend
-    };
+    try {
+      await api.post('/api/bot/feedback', {
+        session_id: sessionId,
+        message_index: messageIndex,
+        rating: rating
+      });
+    } catch (error) {
+      console.error('Erreur envoi feedback:', error);
+    }
+  };
 
   const clearChat = () => {
     setMessages([
@@ -273,8 +281,21 @@ const ChatbotWidget = ({ user, language = 'fr' }) => {
                       <div
                         key={conv.session_id}
                         className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition"
-                        onClick={() => {
-                          // TODO: Charger conversation
+                        onClick={async () => {
+                          // Charger la conversation sélectionnée
+                          try {
+                            const response = await api.get(`/api/bot/conversations/${conv.session_id}`);
+                            if (response.data?.messages) {
+                              setMessages(response.data.messages.map(m => ({
+                                role: m.role,
+                                content: m.content,
+                                timestamp: new Date(m.created_at)
+                              })));
+                              setSessionId(conv.session_id);
+                            }
+                          } catch (error) {
+                            console.error('Erreur chargement conversation:', error);
+                          }
                           setShowHistory(false);
                         }}
                       >

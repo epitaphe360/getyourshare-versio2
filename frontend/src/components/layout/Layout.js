@@ -1,6 +1,6 @@
 import React from 'react';
 import Sidebar from './Sidebar';
-import NotificationBell from './NotificationBell';
+import NotificationBell from '../notifications/NotificationBell';
 import GlobalSearch from '../common/GlobalSearch';
 import LanguageSelector from '../common/LanguageSelector';
 

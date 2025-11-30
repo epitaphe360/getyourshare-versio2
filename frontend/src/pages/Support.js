@@ -112,7 +112,21 @@ const Support = () => {
                   <span>{method.available}</span>
                 </div>
               </div>
-              <Button size="sm" className="w-full">{method.action}</Button>
+              <Button 
+                size="sm" 
+                className="w-full"
+                onClick={() => {
+                  if (method.title === 'Chat en Direct') {
+                    toast.info('Chat en direct - Connexion en cours...');
+                  } else if (method.title === 'Email Support') {
+                    window.location.href = 'mailto:support@shareyoursales.com';
+                  } else if (method.title === 'Support Téléphonique') {
+                    toast.info('Appelez-nous au +212 5XX-XXXXXX');
+                  }
+                }}
+              >
+                {method.action}
+              </Button>
             </div>
           </Card>
         ))}

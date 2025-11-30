@@ -56,7 +56,10 @@ const MerchantsList = () => {
           <h1 className="text-3xl font-bold text-gray-900">Gérez vos annonceurs</h1>
           <p className="text-gray-600 mt-2">Suivez et gérez les comptes annonceurs</p>
         </div>
-        <button className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-semibold flex items-center gap-2">
+        <button 
+          onClick={() => navigate('/advertisers/registrations')}
+          className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition font-semibold flex items-center gap-2"
+        >
           <Users size={20} />
           Nouvel Annonceur
         </button>

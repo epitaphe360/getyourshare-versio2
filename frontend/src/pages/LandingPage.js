@@ -369,25 +369,25 @@ const LandingPage = () => {
               <ul className="space-y-2 text-sm">
                 <li><a href="#features" className="hover:text-white">Fonctionnalités</a></li>
                 <li><a href="#pricing" className="hover:text-white">Tarifs</a></li>
-                <li><a href="#" className="hover:text-white">Intégrations</a></li>
-                <li><a href="#" className="hover:text-white">API</a></li>
+                <li><button disabled={loading} onClick={() => navigate('/integrations')} className="hover:text-white">Intégrations</button></li>
+                <li><button disabled={loading} onClick={() => navigate('/api-docs')} className="hover:text-white">API</button></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-4">Ressources</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white">Documentation</a></li>
-                <li><a href="#" className="hover:text-white">Blog</a></li>
-                <li><a href="#" className="hover:text-white">Support</a></li>
-                <li><a href="#" className="hover:text-white">Status</a></li>
+                <li><button disabled={loading} onClick={() => navigate('/documentation')} className="hover:text-white">Documentation</button></li>
+                <li><button disabled={loading} onClick={() => navigate('/blog')} className="hover:text-white">Blog</button></li>
+                <li><button disabled={loading} onClick={() => navigate('/support')} className="hover:text-white">Support</button></li>
+                <li><button disabled={loading} onClick={() => navigate('/status')} className="hover:text-white">Status</button></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-4">Légal</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white">Confidentialité</a></li>
-                <li><a href="#" className="hover:text-white">Conditions</a></li>
-                <li><a href="#" className="hover:text-white">Cookies</a></li>
+                <li><button disabled={loading} onClick={() => navigate('/privacy')} className="hover:text-white">Confidentialité</button></li>
+                <li><button disabled={loading} onClick={() => navigate('/terms')} className="hover:text-white">Conditions</button></li>
+                <li><button disabled={loading} onClick={() => navigate('/cookies')} className="hover:text-white">Cookies</button></li>
                 <li><button disabled={loading} onClick={() => navigate('/contact')} className="hover:text-white">Contact</button></li>
               </ul>
             </div>

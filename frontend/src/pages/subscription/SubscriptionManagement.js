@@ -15,7 +15,7 @@ import {
   Zap,
   Shield
 } from 'lucide-react';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 const SubscriptionManagement = () => {
   const [subscription, setSubscription] = useState(null);

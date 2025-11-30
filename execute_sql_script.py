@@ -1,6 +1,8 @@
 import sys
 import os
+import time
 
+# Add backend to path
 backend_path = os.path.join(os.path.dirname(__file__), "backend")
 sys.path.insert(0, backend_path)
 os.chdir(os.path.dirname(__file__))
@@ -8,54 +10,76 @@ os.chdir(os.path.dirname(__file__))
 from dotenv import load_dotenv
 load_dotenv("backend/.env")
 
-from utils.supabase_client import get_supabase_client
+SQL_FILE = 'FIX_ALL_CRITICAL_TRACKING_SYSTEM.sql'
 
-supabase = get_supabase_client()
+def run_with_psycopg2():
+    try:
+        import psycopg2
+        db_url = os.getenv("DATABASE_URL")
+        if not db_url:
+            print("❌ DATABASE_URL not found in .env")
+            return False
+            
+        print("🔌 Connecting to database via psycopg2...")
+        conn = psycopg2.connect(db_url)
+        conn.autocommit = True
+        cur = conn.cursor()
+        
+        print(f"📖 Reading {SQL_FILE}...")
+        with open(SQL_FILE, 'r', encoding='utf-8') as f:
+            sql_content = f.read()
+            
+        print("🚀 Executing SQL script...")
+        cur.execute(sql_content)
+        
+        print("✅ Script executed successfully via psycopg2!")
+        conn.close()
+        return True
+    except ImportError:
+        print("⚠️  psycopg2 not installed.")
+        return False
+    except Exception as e:
+        print(f"❌ Error with psycopg2: {e}")
+        return False
 
-print("\n🔧 Exécution du script SQL pour ajouter le rôle 'commercial'...\n")
+def run_with_supabase_rpc():
+    try:
+        from utils.supabase_client import get_supabase_client
+        supabase = get_supabase_client()
+        
+        print("🔌 Connecting via Supabase Client (RPC)...")
+        
+        with open(SQL_FILE, 'r', encoding='utf-8') as f:
+            sql_content = f.read()
+            
+        # Try to execute via exec_sql RPC
+        print("🚀 Sending SQL to exec_sql function...")
+        supabase.rpc('exec_sql', {'query': sql_content}).execute()
+        
+        print("✅ Script executed successfully via RPC!")
+        return True
+    except Exception as e:
+        print(f"❌ Error with Supabase RPC: {e}")
+        if "function public.exec_sql" in str(e) or "does not exist" in str(e):
+            print("ℹ️  The 'exec_sql' function is missing in your database.")
+        return False
 
-try:
-    # Lire le script SQL
-    with open('ADD_COMMERCIAL_ROLE.sql', 'r', encoding='utf-8') as f:
-        sql_content = f.read()
+if __name__ == "__main__":
+    print(f"🔧 Attempting to execute {SQL_FILE}...\n")
     
-    # Extraire uniquement les commandes SQL (ignorer les commentaires)
-    sql_commands = []
-    for line in sql_content.split('\n'):
-        line = line.strip()
-        if line and not line.startswith('--'):
-            sql_commands.append(line)
+    # Try psycopg2 first (most reliable)
+    if run_with_psycopg2():
+        sys.exit(0)
+        
+    print("\n🔄 Trying fallback method...\n")
     
-    # Commande 1: Supprimer l'ancienne contrainte
-    print("1️⃣  Suppression de l'ancienne contrainte...")
-    result1 = supabase.rpc('exec_sql', {
-        'query': 'ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check'
-    }).execute()
-    print("   ✅ Ancienne contrainte supprimée\n")
-    
-    # Commande 2: Ajouter la nouvelle contrainte
-    print("2️⃣  Ajout de la nouvelle contrainte avec le rôle 'commercial'...")
-    result2 = supabase.rpc('exec_sql', {
-        'query': "ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'merchant', 'influencer', 'commercial', 'affiliate'))"
-    }).execute()
-    print("   ✅ Nouvelle contrainte ajoutée\n")
-    
-    print("✅ Script SQL exécuté avec succès!")
-    print("\n🎉 Le rôle 'commercial' est maintenant disponible!\n")
-    
-except Exception as e:
-    error_msg = str(e)
-    
-    if "function public.exec_sql" in error_msg or "does not exist" in error_msg:
-        print("⚠️  La fonction exec_sql n'existe pas dans Supabase.")
-        print("\n📋 Vous devez exécuter le script SQL manuellement:\n")
-        print("1. Ouvrez: https://supabase.com/dashboard")
-        print("2. Allez dans: SQL Editor > New Query")
-        print("3. Copiez-collez ces 2 lignes:\n")
-        print("   ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;")
-        print("   ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('admin', 'merchant', 'influencer', 'commercial', 'affiliate'));\n")
-        print("4. Cliquez sur 'Run'\n")
-        print("💡 Ou dites-moi que vous l'avez fait, et je créerai les commerciaux!")
-    else:
-        print(f"❌ Erreur: {error_msg}")
-        print("\n📋 Veuillez exécuter le script SQL manuellement dans Supabase.")
+    # Try Supabase RPC
+    if run_with_supabase_rpc():
+        sys.exit(0)
+        
+    print("\n❌ All execution methods failed.")
+    print("📋 Please execute the script manually in Supabase SQL Editor:")
+    print(f"   1. Copy content of {SQL_FILE}")
+    print("   2. Go to Supabase Dashboard > SQL Editor")
+    print("   3. Paste and Run")
+    print("\n💡 To fix this locally, run: pip install psycopg2-binary")

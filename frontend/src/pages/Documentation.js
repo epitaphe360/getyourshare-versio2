@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../components/common/Card';
 import { Book, Search, ChevronRight, FileText, Video, Code, Settings, Users, TrendingUp } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 const Documentation = () => {
+  const navigate = useNavigate();
+  const toast = useToast();
   const [searchTerm, setSearchTerm] = useState('');
 
   const categories = [
@@ -138,10 +142,16 @@ const Documentation = () => {
           <h3 className="text-xl font-bold text-gray-900 mb-2">Besoin d'aide supplémentaire ?</h3>
           <p className="text-gray-600 mb-6">Notre équipe support est là pour vous aider</p>
           <div className="flex justify-center space-x-4">
-            <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all">
+            <button 
+              onClick={() => navigate('/messages')}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+            >
               Contacter le Support
             </button>
-            <button className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all">
+            <button 
+              onClick={() => toast.info('Vidéos en cours de préparation')}
+              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all"
+            >
               Voir les Vidéos
             </button>
           </div>

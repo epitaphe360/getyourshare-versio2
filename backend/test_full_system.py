@@ -1,7 +1,14 @@
 import requests
 import json
 import time
+import sys
+import io
 from datetime import datetime
+
+# Configurer l'encodage UTF-8 pour éviter les erreurs avec les émojis sur Windows
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 BASE_URL = "http://localhost:5000"
 PASSWORD = "Test1234!"
@@ -219,6 +226,44 @@ def test_commercial_dashboard():
     except Exception as e:
         print_fail("Exception", str(e))
 
+def test_live_shopping():
+    print_header("TESTING LIVE SHOPPING FEATURES")
+    session = requests.Session()
+    if not login(session, USERS["influencer"], "Influencer"):
+        return
+
+    # 1. Upcoming Lives
+    print_section("Checking Upcoming Lives")
+    try:
+        res = session.get(f"{BASE_URL}/api/ai/live-shopping/upcoming")
+        if res.status_code == 200:
+            data = res.json()
+            lives = data.get("upcoming_lives", [])
+            print_success(f"Upcoming lives retrieved ({len(lives)})")
+        else:
+            print_fail("Upcoming lives failed", res.text)
+    except Exception as e:
+        print_fail("Exception", str(e))
+
+    # 2. My Sessions
+    print_section("Checking My Sessions")
+    try:
+        # Need user ID first
+        auth_res = session.get(f"{BASE_URL}/api/auth/me")
+        if auth_res.status_code == 200:
+            user_id = auth_res.json().get("id")
+            res = session.get(f"{BASE_URL}/api/ai/live-shopping/my-sessions/{user_id}")
+            if res.status_code == 200:
+                data = res.json()
+                sessions = data.get("sessions", [])
+                print_success(f"My sessions retrieved ({len(sessions)})")
+            else:
+                print_fail("My sessions failed", res.text)
+        else:
+            print_fail("Could not get user ID for my sessions check")
+    except Exception as e:
+        print_fail("Exception", str(e))
+
 if __name__ == "__main__":
     print(f"{Color.BOLD}STARTING FULL SYSTEM AUDIT...{Color.ENDC}")
     print(f"Target: {BASE_URL}")
@@ -228,5 +273,6 @@ if __name__ == "__main__":
     test_merchant_dashboard()
     test_influencer_dashboard()
     test_commercial_dashboard()
+    test_live_shopping()
     
     print_header("AUDIT COMPLETE")

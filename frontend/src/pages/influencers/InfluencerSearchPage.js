@@ -75,8 +75,15 @@ const InfluencerSearchPage = () => {
   };
 
   const handleContactInfluencer = async (influencer) => {
-    // TODO: Implémenter système de messagerie
-    toast.info(`Contacter ${influencer.full_name} - Fonctionnalité à venir`, { duration: 4000 });
+    // Ouvrir la modal de collaboration avec l'influenceur sélectionné
+    try {
+      // Rediriger vers la page de recherche d'influenceurs avec l'ID pré-sélectionné
+      navigate(`/influencers/${influencer.id}/collaborate`);
+    } catch (error) {
+      // Fallback: ouvrir le profil
+      toast.success(`Ouverture du profil de ${influencer.full_name}`, { duration: 2000 });
+      navigate(`/influencers/${influencer.id}`);
+    }
   };
 
   const formatNumber = (num) => {

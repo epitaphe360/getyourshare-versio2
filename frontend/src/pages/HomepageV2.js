@@ -799,23 +799,23 @@ const HomepageV2 = () => {
               <ul className="space-y-2 text-sm">
                 <li><a href="/pricing" className="hover:text-white transition">Tarifs</a></li>
                 <li><a href="/marketplace" className="hover:text-white transition">Marketplace</a></li>
-                <li><a href="#" className="hover:text-white transition">Fonctionnalités</a></li>
+                <li><a href="#features" className="hover:text-white transition">Fonctionnalités</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-4">Entreprise</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">À Propos</a></li>
+                <li><a href="/about" className="hover:text-white transition">À Propos</a></li>
                 <li><a href="/contact" className="hover:text-white transition">Contact</a></li>
-                <li><a href="#" className="hover:text-white transition">Carrières</a></li>
+                <li><a href="/careers" className="hover:text-white transition">Carrières</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-4">Légal</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">Confidentialité</a></li>
-                <li><a href="#" className="hover:text-white transition">CGV</a></li>
-                <li><a href="#" className="hover:text-white transition">Mentions Légales</a></li>
+                <li><a href="/privacy" className="hover:text-white transition">Confidentialité</a></li>
+                <li><a href="/terms" className="hover:text-white transition">CGV</a></li>
+                <li><a href="/legal" className="hover:text-white transition">Mentions Légales</a></li>
               </ul>
             </div>
           </div>

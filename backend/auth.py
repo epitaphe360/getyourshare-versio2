@@ -163,6 +163,38 @@ def require_role(required_role: str):
     return role_checker
 
 
+def require_roles(allowed_roles: list):
+    """
+    Dependency to require one of multiple roles.
+    
+    Usage:
+        @app.get("/api/admin/users")
+        async def get_users(user = Depends(require_roles(["admin"]))):
+            ...
+        
+        @app.get("/api/affiliates")
+        async def get_affiliates(user = Depends(require_roles(["merchant", "admin"]))):
+            ...
+    """
+    def role_checker(request: Request):
+        current_user = get_current_user_from_cookie(request)
+        user_role = current_user.get("role", "user")
+        if user_role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Required roles: {', '.join(allowed_roles)}. Your role: {user_role}"
+            )
+        return current_user
+    return role_checker
+
+
+# Pre-built dependencies for common role combinations
+require_admin = require_roles(["admin"])
+require_merchant_or_admin = require_roles(["merchant", "admin"])
+require_influencer_or_admin = require_roles(["influencer", "admin"])
+require_any_authenticated = require_roles(["admin", "merchant", "influencer", "commercial", "sales_rep"])
+
+
 async def optional_auth(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))):
     """
     Optional authentication - returns user payload if token provided, None otherwise

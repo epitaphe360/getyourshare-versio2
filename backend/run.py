@@ -5,6 +5,12 @@ Gère le PORT directement en Python pour éviter les problèmes de shell
 """
 import os
 import sys
+import io
+
+# Configurer l'encodage UTF-8 pour éviter les erreurs avec les émojis sur Windows
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
 if __name__ == "__main__":
     # DEBUG: Confirmer que ce script s'exécute

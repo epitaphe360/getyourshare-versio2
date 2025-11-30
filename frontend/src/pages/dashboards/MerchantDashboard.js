@@ -13,7 +13,8 @@ import CountUp from 'react-countup';
 import {
   DollarSign, ShoppingBag, Users, TrendingUp,
   Package, Eye, Target, Award, Plus, Search, FileText, Settings, RefreshCw,
-  UserCheck, Clock, CheckCircle, XCircle, TrendingDown, Gift, Video, UserPlus, Calculator, ShieldCheck
+  UserCheck, Clock, CheckCircle, XCircle, TrendingDown, Gift, Video, UserPlus, Calculator, ShieldCheck,
+  ShoppingCart, Sparkles
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar,
@@ -52,13 +53,95 @@ const MerchantDashboard = () => {
         return ['Premium', 'Enterprise'].includes(plan);
       case 'live_shopping':
         return ['Enterprise'].includes(plan);
+      case 'unlimited_campaigns':
+        return ['Enterprise'].includes(plan);
+      case 'advanced_matching':
+        return ['Premium', 'Enterprise'].includes(plan);
       default:
         return true;
     }
   };
 
+  // Obtenir les limites du plan
+  const getPlanLimits = () => {
+    if (!subscription) return { campaigns: 1, products: 5, affiliates: 10, budget: 500 };
+    const plan = subscription.plan_name;
+    
+    switch(plan) {
+      case 'Freemium':
+        return {
+          campaigns: 1,
+          products: 5,
+          affiliates: 10,
+          budget: 500,
+          analytics_days: 7
+        };
+      case 'Standard':
+        return {
+          campaigns: 5,
+          products: 25,
+          affiliates: 50,
+          budget: 5000,
+          analytics_days: 30
+        };
+      case 'Premium':
+        return {
+          campaigns: 20,
+          products: 100,
+          affiliates: 200,
+          budget: 50000,
+          analytics_days: 90
+        };
+      case 'Enterprise':
+        return {
+          campaigns: 999,
+          products: 999,
+          affiliates: 999,
+          budget: 999999,
+          analytics_days: 365
+        };
+      default:
+        return getPlanLimits();
+    }
+  };
+
+  // Obtenir le badge du plan
+  const getPlanBadge = () => {
+    if (!subscription) return { name: 'Freemium', color: 'bg-gray-100 text-gray-800 border-gray-300', icon: '🆓' };
+    const plan = subscription.plan_name;
+    
+    switch(plan) {
+      case 'Freemium':
+        return {
+          name: 'Freemium',
+          color: 'bg-gray-100 text-gray-800 border-gray-300',
+          icon: '🆓'
+        };
+      case 'Standard':
+        return {
+          name: 'Standard',
+          color: 'bg-blue-100 text-blue-800 border-blue-300',
+          icon: '⭐'
+        };
+      case 'Premium':
+        return {
+          name: 'Premium',
+          color: 'bg-purple-100 text-purple-800 border-purple-300',
+          icon: '💎'
+        };
+      case 'Enterprise':
+        return {
+          name: 'Enterprise',
+          color: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+          icon: '👑'
+        };
+      default:
+        return getPlanBadge();
+    }
+  };
+
   const handleLockedFeature = (featureName) => {
-    toast.info(`La fonctionnalité ${featureName} nécessite un abonnement supérieur.`);
+    toast.info(`🔒 ${featureName} nécessite un abonnement supérieur.`);
     navigate('/pricing');
   };
 
@@ -94,7 +177,7 @@ const MerchantDashboard = () => {
           affiliates_count: performance.affiliates_count || 0,
           total_clicks: performance.total_clicks || 0,
           conversion_rate: performance.conversion_rate || 0,
-          roi: performance.total_revenue > 0 ? ((performance.total_revenue / (performance.total_revenue * 0.1)) * 100) : 0,
+          roi: performance.roi || 0, // ROI calculé par le backend
           performance: {
             conversion_rate: performance.conversion_rate || 0,
             engagement_rate: performance.engagement_rate || 0,
@@ -305,14 +388,54 @@ const MerchantDashboard = () => {
         </div>
       </div>
 
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Entreprise</h1>
-          <p className="text-gray-600 mt-2">
-            Bienvenue {user?.first_name} ! Suivez vos performances en temps réel
-          </p>
+      {/* Header avec Badge Plan */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg shadow-lg p-6 text-white"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Dashboard Entreprise</h1>
+            <p className="text-indigo-100">
+              Bienvenue {user?.first_name} ! Suivez vos performances en temps réel
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className={`px-4 py-2 rounded-lg border-2 ${getPlanBadge().color} font-bold text-lg`}>
+              {getPlanBadge().icon} {getPlanBadge().name}
+            </div>
+            <div className="text-right bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
+              <div className="text-sm text-indigo-100">Budget Max</div>
+              <div className="text-2xl font-bold">{getPlanLimits().budget}€</div>
+            </div>
+          </div>
         </div>
+        
+        {/* Limites du Plan */}
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          <div className="bg-white/10 px-3 py-2 rounded backdrop-blur-sm">
+            <div className="text-indigo-100">Campagnes</div>
+            <div className="font-bold">{stats?.total_campaigns || 0}/{getPlanLimits().campaigns}</div>
+          </div>
+          <div className="bg-white/10 px-3 py-2 rounded backdrop-blur-sm">
+            <div className="text-indigo-100">Produits</div>
+            <div className="font-bold">{products.length}/{getPlanLimits().products}</div>
+          </div>
+          <div className="bg-white/10 px-3 py-2 rounded backdrop-blur-sm">
+            <div className="text-indigo-100">Affiliés</div>
+            <div className="font-bold">{stats?.affiliates_count || 0}/{getPlanLimits().affiliates}</div>
+          </div>
+          <div className="bg-white/10 px-3 py-2 rounded backdrop-blur-sm">
+            <div className="text-indigo-100">Analytics</div>
+            <div className="font-bold">{getPlanLimits().analytics_days} jours</div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Header Actions */}
+      <div className="flex justify-between items-start">
         <div className="flex space-x-3">
           <button
             onClick={() => fetchData()}
@@ -356,9 +479,26 @@ const MerchantDashboard = () => {
             Matching
           </button>
           <button
-            onClick={() => navigate('/campaigns/create')}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+            onClick={() => {
+              if ((stats?.total_campaigns || 0) >= getPlanLimits().campaigns && !checkAccess('unlimited_campaigns')) {
+                handleLockedFeature('Campagnes illimitées');
+              } else {
+                navigate('/campaigns/create');
+              }
+            }}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+              (stats?.total_campaigns || 0) >= getPlanLimits().campaigns && !checkAccess('unlimited_campaigns')
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-purple-600 text-white hover:bg-purple-700'
+            }`}
+            title={(stats?.total_campaigns || 0) >= getPlanLimits().campaigns && !checkAccess('unlimited_campaigns') 
+              ? `Limite atteinte (${stats?.total_campaigns}/${getPlanLimits().campaigns})`
+              : 'Créer une nouvelle campagne'
+            }
           >
+            {(stats?.total_campaigns || 0) >= getPlanLimits().campaigns && !checkAccess('unlimited_campaigns') && (
+              <span className="mr-1">🔒</span>
+            )}
             <Plus size={18} />
             Créer Campagne
           </button>
@@ -370,9 +510,26 @@ const MerchantDashboard = () => {
             Rechercher Influenceurs
           </button>
           <button
-            onClick={() => navigate('/products/create')}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+            onClick={() => {
+              if (products.length >= getPlanLimits().products && getPlanLimits().products < 999) {
+                handleLockedFeature('Produits illimités');
+              } else {
+                navigate('/products/create');
+              }
+            }}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+              products.length >= getPlanLimits().products && getPlanLimits().products < 999
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+            title={products.length >= getPlanLimits().products && getPlanLimits().products < 999
+              ? `Limite atteinte (${products.length}/${getPlanLimits().products})`
+              : 'Ajouter un nouveau produit'
+            }
           >
+            {products.length >= getPlanLimits().products && getPlanLimits().products < 999 && (
+              <span className="mr-1">🔒</span>
+            )}
             <Plus size={18} />
             Ajouter Produit
           </button>

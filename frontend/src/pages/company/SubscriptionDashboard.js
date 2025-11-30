@@ -30,7 +30,7 @@ import LanguageIcon from '@mui/icons-material/Language';
 import UpgradeIcon from '@mui/icons-material/Upgrade';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 /**
  * Dashboard d'abonnement - Gestion de l'abonnement entreprise

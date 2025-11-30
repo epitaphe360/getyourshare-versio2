@@ -22,6 +22,7 @@ const MarketplaceNew = memo(() => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -190,10 +191,19 @@ const MarketplaceNew = memo(() => {
           </p>
 
           <div className="flex flex-wrap justify-center gap-4">
-            <button className="px-8 py-4 bg-white text-purple-900 rounded-full font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center">
+            <button 
+              onClick={() => {
+                const productsSection = document.getElementById('products-section');
+                if (productsSection) productsSection.scrollIntoView({ behavior: 'smooth' });
+              }}
+              className="px-8 py-4 bg-white text-purple-900 rounded-full font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center"
+            >
               Explorer les Offres <ArrowRight className="ml-2 w-5 h-5" />
             </button>
-            <button className="px-8 py-4 bg-purple-800/50 backdrop-blur-md text-white rounded-full font-bold text-lg border border-white/20 hover:bg-purple-800/70 transition-all duration-300">
+            <button 
+              onClick={() => setShowHowItWorks(true)}
+              className="px-8 py-4 bg-purple-800/50 backdrop-blur-md text-white rounded-full font-bold text-lg border border-white/20 hover:bg-purple-800/70 transition-all duration-300"
+            >
               Comment ça marche ?
             </button>
           </div>

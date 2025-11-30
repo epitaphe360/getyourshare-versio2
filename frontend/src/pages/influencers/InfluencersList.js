@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 import api from '../../utils/api';
 import Card from '../../components/common/Card';
 import { 
@@ -10,6 +11,7 @@ import {
 
 const InfluencersList = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [influencers, setInfluencers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -63,7 +65,12 @@ const InfluencersList = () => {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Influenceurs</h1>
           <p className="text-gray-600 mt-2">Gérez tous vos partenaires influenceurs</p>
         </div>
-        <button className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold">
+        <button 
+          onClick={() => {
+            toast.info('Fonctionnalité d\'invitation en cours de développement');
+            navigate('/messaging');
+          }}
+          className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition font-semibold">
           + Inviter Influenceur
         </button>
       </div>
@@ -247,7 +254,12 @@ const InfluencersList = () => {
                 >
                   Voir Profil
                 </button>
-                <button className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toast.info('Options supplémentaires: Modifier, Supprimer, Contacter');
+                  }}
+                  className="px-3 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
                   <MoreVertical size={16} />
                 </button>
               </div>

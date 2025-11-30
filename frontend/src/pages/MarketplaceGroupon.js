@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import api from '../services/api';
+import api from '../utils/api';
 import Layout from '../components/layout/Layout';
 import CollaborationRequestModal from '../components/modals/CollaborationRequestModal';
 import './MarketplaceAnimations.css';
@@ -285,7 +285,15 @@ const MarketplaceGroupon = () => {
                   className="w-full pl-14 pr-5 py-5 rounded-2xl text-gray-900 text-lg font-medium focus:outline-none focus:ring-4 focus:ring-cyan-300 shadow-2xl hover-lift"
                 />
               </div>
-              <button className="px-10 py-5 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 text-white rounded-2xl font-bold hover:shadow-2xl hover:scale-105 transition-all duration-300 animate-gradient">
+              <button 
+                onClick={() => {
+                  if (searchQuery.trim()) {
+                    toast.info(`Recherche en cours pour "${searchQuery}"...`);
+                  } else {
+                    toast.info('Entrez un terme de recherche');
+                  }
+                }}
+                className="px-10 py-5 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 text-white rounded-2xl font-bold hover:shadow-2xl hover:scale-105 transition-all duration-300 animate-gradient">
                 🔍 Rechercher
               </button>
             </div>
@@ -408,7 +416,9 @@ const MarketplaceGroupon = () => {
                         </div>
                       </div>
                       
-                      <button className="w-full py-3.5 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-white rounded-xl font-bold hover:from-blue-700 hover:via-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-2xl transform hover:scale-105 animate-gradient">
+                      <button 
+                        onClick={() => handleViewDetails(product, 'product')}
+                        className="w-full py-3.5 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-white rounded-xl font-bold hover:from-blue-700 hover:via-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-2xl transform hover:scale-105 animate-gradient">
                         <span>Voir détails</span>
                         <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                       </button>
@@ -468,7 +478,9 @@ const MarketplaceGroupon = () => {
                         </div>
                       </div>
                       
-                      <button className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                      <button 
+                        onClick={() => handleViewDetails(service, 'product')}
+                        className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2">
                         Voir les détails <ChevronRight size={16} />
                       </button>
                     </div>
@@ -551,7 +563,12 @@ const MarketplaceGroupon = () => {
                         </div>
                       )}
 
-                      <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition flex items-center justify-center gap-2 shadow-md">
+                      <button 
+                        onClick={() => {
+                          toast.success(`Demande de contact envoyée à ${commercial.profile?.first_name || 'ce commercial'}`);
+                          navigate('/messaging', { state: { recipientId: commercial.id, recipientName: `${commercial.profile?.first_name || ''} ${commercial.profile?.last_name || ''}` } });
+                        }}
+                        className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition flex items-center justify-center gap-2 shadow-md">
                         <Users size={18} />
                         Contacter le Commercial
                       </button>
@@ -773,7 +790,9 @@ const MarketplaceGroupon = () => {
                         </div>
                       </div>
 
-                      <button className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition flex items-center justify-center gap-2 shadow-md">
+                      <button 
+                        onClick={() => handleViewMerchantProducts(merchant)}
+                        className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition flex items-center justify-center gap-2 shadow-md">
                         <Store size={18} />
                         Voir les Produits
                       </button>

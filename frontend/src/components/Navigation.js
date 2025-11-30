@@ -16,9 +16,9 @@ import {
   Home,
   Store,
   Analytics,
-  People,
   Settings,
-  ExitToApp
+  ExitToApp,
+  Star
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -44,10 +44,9 @@ const Navigation = () => {
 
   const navigationItems = [
     { label: 'Accueil', icon: <Home />, path: '/' },
-    { label: 'À Propos', icon: <People />, path: '/about' },
+    { label: 'Features', icon: <Star />, path: '/features' },
     { label: 'Marketplace', icon: <Store />, path: '/marketplace' },
     { label: 'Tarifs', icon: <Settings />, path: '/pricing' },
-    { label: 'Contact', icon: <Analytics />, path: '/contact' },
   ];
 
   return (

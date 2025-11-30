@@ -67,9 +67,9 @@ const AdminDashboard = () => {
             active_users_24h: metrics.active_users_24h || 0,
             conversion_rate: metrics.avg_conversion_rate || 0,
             new_signups_30d: metrics.new_signups_30d || 0,
-            user_growth_rate: 12.5, // Mock trend
-            conversion_trend: 5.2, // Mock trend
-            signup_trend: 8.4, // Mock trend
+            user_growth_rate: metrics.user_growth_rate || 0, // Données réelles depuis l'API
+            conversion_trend: metrics.conversion_trend || 0, // Données réelles depuis l'API
+            signup_trend: metrics.signup_trend || 0, // Données réelles depuis l'API
             quarterly_growth: metrics.quarterly_growth || 0
           }
         });
@@ -298,7 +298,7 @@ Généré par ShareYourSales
             title="Entreprises"
             value={<CountUp end={typeof stats?.total_merchants === 'number' && !isNaN(stats.total_merchants) ? stats.total_merchants : (merchants.length || 0)} duration={2} />}
             icon={<ShoppingBag className="text-indigo-600" size={24} />}
-            trend={8.2}
+            trend={stats?.platformMetrics?.merchant_growth || 0}
           />
         </motion.div>
         <motion.div
@@ -310,7 +310,7 @@ Généré par ShareYourSales
             title="Influenceurs"
             value={<CountUp end={typeof stats?.total_influencers === 'number' && !isNaN(stats.total_influencers) ? stats.total_influencers : (influencers.length || 0)} duration={2} />}
             icon={<Users className="text-purple-600" size={24} />}
-            trend={15.3}
+            trend={stats?.platformMetrics?.influencer_growth || 0}
           />
         </motion.div>
         <motion.div
@@ -322,7 +322,7 @@ Généré par ShareYourSales
             title="Produits"
             value={<CountUp end={typeof stats?.total_products === 'number' && !isNaN(stats.total_products) ? stats.total_products : 0} duration={2} />}
             icon={<Sparkles className="text-orange-600" size={24} />}
-            trend={5.7}
+            trend={stats?.platformMetrics?.product_growth || 0}
           />
         </motion.div>
       </div>
@@ -338,7 +338,7 @@ Généré par ShareYourSales
             title="Services"
             value={<CountUp end={typeof stats?.total_services === 'number' && !isNaN(stats.total_services) ? stats.total_services : 0} duration={2} />}
             icon={<Briefcase className="text-teal-600" size={24} />}
-            trend={12.4}
+            trend={stats?.platformMetrics?.service_growth || 0}
           />
         </motion.div>
       </div>

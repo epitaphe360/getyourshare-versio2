@@ -57,22 +57,59 @@ const InfluencerDashboard = () => {
   // Helper pour vérifier l'accès aux fonctionnalités selon le plan
   const checkAccess = (feature) => {
     if (!subscription) return false;
-    const plan = subscription.plan_name; // 'Free', 'Pro', 'Elite'
+    const plan = subscription.plan_name || subscription.plan_code || 'free';
+    const planLower = plan.toLowerCase();
     
     switch(feature) {
       case 'analytics_pro':
-        return ['Pro', 'Elite'].includes(plan);
+        return ['pro', 'elite', 'premium'].includes(planLower);
       case 'matching':
-        return ['Elite'].includes(plan);
+        return ['elite', 'premium'].includes(planLower);
       case 'ia_marketing':
-        return ['Elite'].includes(plan);
+        return ['elite', 'premium'].includes(planLower);
+      case 'live_shopping':
+        return !['free'].includes(planLower);
+      case 'referral':
+        return true;
       case 'mobile':
-        return true; // Accessible à tous
+        return true;
       case 'marketplace':
-        return true; // Accessible à tous
+        return true;
       default:
         return true;
     }
+  };
+
+  // Helper pour obtenir les limites selon le plan
+  const getPlanLimits = () => {
+    if (!subscription) return { campaigns: 3, lives: 0, commission: 5 };
+    const plan = (subscription.plan_name || subscription.plan_code || 'free').toLowerCase();
+    
+    const limits = {
+      'free': { campaigns: 3, lives: 0, commission: 5 },
+      'basic': { campaigns: 10, lives: 1, commission: 7 },
+      'pro': { campaigns: 50, lives: 5, commission: 10 },
+      'elite': { campaigns: -1, lives: -1, commission: 15 },
+      'premium': { campaigns: -1, lives: -1, commission: 15 }
+    };
+    
+    return limits[plan] || limits['free'];
+  };
+
+  // Helper pour obtenir le badge du plan
+  const getPlanBadge = () => {
+    if (!subscription) return { name: 'Free', color: 'bg-gray-100 text-gray-700', icon: '🆓' };
+    const plan = (subscription.plan_name || subscription.plan_code || 'free').toLowerCase();
+    
+    const badges = {
+      'free': { name: 'Free', color: 'bg-gray-100 text-gray-700', icon: '🆓' },
+      'basic': { name: 'Basic', color: 'bg-blue-100 text-blue-700', icon: '⭐' },
+      'pro': { name: 'Pro', color: 'bg-purple-100 text-purple-700', icon: '💎' },
+      'elite': { name: 'Elite', color: 'bg-yellow-100 text-yellow-700', icon: '👑' },
+      'premium': { name: 'Premium', color: 'bg-yellow-100 text-yellow-700', icon: '👑' }
+    };
+    
+    return badges[plan] || badges['free'];
   };
 
   const handleLockedFeature = (featureName) => {
@@ -134,17 +171,29 @@ const InfluencerDashboard = () => {
 
       // Gérer l'abonnement
       if (subscriptionRes.status === 'fulfilled') {
-        setSubscription(subscriptionRes.value.data);
+        const subData = subscriptionRes.value.data;
+        setSubscription({
+          ...subData,
+          plan_name: subData.plan_name || subData.plan_code || 'free',
+          commission_rate: subData.commission_rate || 5,
+          max_campaigns: subData.max_campaigns || subData.max_tracking_links || 5,
+          instant_payout: subData.instant_payout || false,
+          analytics_level: subData.analytics_level || 'basic',
+          status: subData.status || 'active'
+        });
       } else {
         console.error('Error loading subscription:', subscriptionRes.reason);
         // Abonnement par défaut gratuit
         setSubscription({
-          plan_name: 'Free',
+          plan_name: 'free',
+          plan_code: 'free',
           commission_rate: 5,
-          max_campaigns: 5,
+          max_campaigns: 3,
+          max_tracking_links: 5,
           instant_payout: false,
           analytics_level: 'basic',
-          status: 'active'
+          status: 'active',
+          is_free_plan: true
         });
       }
 
@@ -209,11 +258,10 @@ const InfluencerDashboard = () => {
         }));
         setEarningsData(mappedEarnings);
 
-        // Créer les données de performance basées sur les gains réels
-        const perfData = mappedEarnings.map(day => ({
-          date: day.date,
-          clics: Math.round((day.gains || 0) * 3), // Estimation basée sur les gains
-          conversions: Math.round((day.gains || 0) / 25) // Estimation: gain moyen de 25€ par conversion
+        // Utiliser les VRAIES données de conversions depuis l'API
+        const perfData = earningsDataResult.map(day => ({
+          date: day.formatted_date || day.date,
+          conversions: day.conversions || 0 // Vraies conversions depuis l'API
         }));
         setPerformanceData(perfData);
       } else {
@@ -329,44 +377,54 @@ const InfluencerDashboard = () => {
     }
   };
 
-  // Dummy data for Swipe Matching
-  const matchingCampaigns = [
-    {
-      id: 1,
-      title: 'Campagne Été 2025',
-      subtitle: 'Zara Fashion',
-      description: 'Nous recherchons des influenceurs mode pour notre nouvelle collection été. Style chic et décontracté.',
-      image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-      budget: '500€',
-      audience: '10k-50k'
-    },
-    {
-      id: 2,
-      title: 'Tech Review',
-      subtitle: 'Samsung Electronics',
-      description: 'Testez le nouveau Galaxy S25 avant tout le monde. Unboxing et review complète demandée.',
-      image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-      budget: '1200€',
-      audience: '50k+'
-    },
-    {
-      id: 3,
-      title: 'Skincare Routine',
-      subtitle: 'L\'Oréal Paris',
-      description: 'Partagez votre routine du soir avec nos produits Revitalift. Authenticité recherchée.',
-      image: 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-      budget: '300€ + Produits',
-      audience: '5k+'
-    }
-  ];
+  // State pour les campagnes de matching (chargées depuis l'API)
+  const [matchingCampaigns, setMatchingCampaigns] = useState([]);
+  const [matchingLoading, setMatchingLoading] = useState(false);
 
-  const handleMatch = (campaign) => {
-    toast.success(`Vous avez liké la campagne ${campaign.title} !`);
-    // API call to apply would go here
+  // Charger les campagnes de matching quand le mode matching est activé
+  useEffect(() => {
+    if (viewMode === 'matching' && matchingCampaigns.length === 0) {
+      fetchMatchingCampaigns();
+    }
+  }, [viewMode]);
+
+  const fetchMatchingCampaigns = async () => {
+    try {
+      setMatchingLoading(true);
+      const response = await api.get('/api/matching/campaigns-for-influencer?limit=20');
+      setMatchingCampaigns(response.data.campaigns || []);
+    } catch (error) {
+      console.error('Error fetching matching campaigns:', error);
+      toast.error('Erreur lors du chargement des campagnes');
+      // Fallback vide au lieu de données mockées
+      setMatchingCampaigns([]);
+    } finally {
+      setMatchingLoading(false);
+    }
   };
 
-  const handleReject = (campaign) => {
-    // API call to skip would go here
+  const handleMatch = async (campaign) => {
+    try {
+      await api.post('/api/matching/influencer-swipe', {
+        product_id: campaign.id,
+        action: 'like'
+      });
+      toast.success(`Vous avez liké "${campaign.title}" ! Demande envoyée au marchand.`);
+    } catch (error) {
+      console.error('Error matching campaign:', error);
+      toast.error('Erreur lors de l\'envoi de la demande');
+    }
+  };
+
+  const handleReject = async (campaign) => {
+    try {
+      await api.post('/api/matching/influencer-swipe', {
+        product_id: campaign.id,
+        action: 'pass'
+      });
+    } catch (error) {
+      console.error('Error rejecting campaign:', error);
+    }
   };
 
   if (loading) {
@@ -399,8 +457,39 @@ const InfluencerDashboard = () => {
     );
   }
 
+  const planBadge = getPlanBadge();
+  const planLimits = getPlanLimits();
+
   return (
     <div className="space-y-8">
+      {/* Header avec Badge Plan */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold">
+                {t('influencer.dashboard.title') || 'Tableau de Bord Influenceur'}
+              </h1>
+              <span className={`${planBadge.color} px-4 py-1.5 rounded-full text-sm font-semibold`}>
+                {planBadge.icon} {planBadge.name}
+              </span>
+            </div>
+            <p className="text-purple-100">
+              Bonjour {user?.first_name || user?.username || 'Influenceur'} 👋 • Commission: {subscription?.commission_rate || 5}%
+            </p>
+          </div>
+          {subscription?.is_free_plan && (
+            <button
+              onClick={() => navigate('/pricing?role=influencer')}
+              className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition"
+            >
+              <Sparkles size={20} />
+              Passer à Pro
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Navigation Bar */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-4">
         <div className="flex flex-wrap gap-3 items-center">
@@ -469,12 +558,12 @@ const InfluencerDashboard = () => {
                   ? 'bg-gray-800 text-white hover:bg-gray-700' 
                   : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600'
             }`}
-            title={checkAccess('matching') ? "Mode Matching Tinder-style" : "Mode Matching (Elite uniquement)"}
+            title={checkAccess('matching') ? "Mode Matching Tinder-style" : `Mode Matching (${planBadge.name === 'Free' ? 'Elite' : 'Elite'} uniquement)`}
           >
             {viewMode === 'matching' ? (
               <>📊 Retour Dashboard</>
             ) : (
-              <>{!checkAccess('matching') && <span className="mr-1">🔒</span>}<Flame size={18} /> Mode Matching</>
+              <>{!checkAccess('matching') && <span className="mr-1">🔒</span>}<Flame size={18} /> Mode Matching {!checkAccess('matching') && <span className="ml-1 text-xs">({planBadge.name === 'Free' ? 'Elite' : 'Elite'})</span>}</>
             )}
           </button>
           <button
@@ -542,11 +631,34 @@ const InfluencerDashboard = () => {
             <p className="text-gray-400">Swipe à droite pour postuler, à gauche pour passer</p>
           </div>
 
-          <SwipeMatching 
-            items={matchingCampaigns} 
-            onMatch={handleMatch} 
-            onReject={handleReject} 
-          />
+          {matchingLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center text-white">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                <p>Chargement des campagnes...</p>
+              </div>
+            </div>
+          ) : matchingCampaigns.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center text-white">
+                <Sparkles size={48} className="mx-auto mb-4 text-gray-400" />
+                <p className="text-xl mb-2">Aucune campagne disponible</p>
+                <p className="text-gray-400">Revenez plus tard ou explorez la marketplace</p>
+                <button
+                  onClick={() => navigate('/marketplace')}
+                  className="mt-4 px-6 py-2 bg-purple-600 rounded-lg hover:bg-purple-700 transition"
+                >
+                  Explorer Marketplace
+                </button>
+              </div>
+            </div>
+          ) : (
+            <SwipeMatching 
+              items={matchingCampaigns} 
+              onMatch={handleMatch} 
+              onReject={handleReject} 
+            />
+          )}
         </motion.div>
       ) : (
         <>
@@ -934,7 +1046,22 @@ const InfluencerDashboard = () => {
           icon={<Video size={20} className="text-red-600" />}
           className="border-l-4 border-red-500"
         >
-          {upcomingLives.length > 0 ? (
+          {!checkAccess('live_shopping') ? (
+            <div className="text-center py-6">
+              <Video size={48} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 mb-3">Fonctionnalité réservée aux abonnés {planBadge.name === 'Free' ? 'Basic+' : 'supérieurs'}</p>
+              <div className="bg-yellow-50 p-3 rounded-lg mb-3 text-xs text-yellow-800">
+                <strong>+5% de commission</strong> pendant tes lives! 🔥
+              </div>
+              <button
+                onClick={() => navigate('/pricing?role=influencer')}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium flex items-center gap-2 mx-auto"
+              >
+                <Sparkles size={16} />
+                Débloquer
+              </button>
+            </div>
+          ) : upcomingLives.length > 0 ? (
             <div className="space-y-3">
               <div className="bg-red-50 p-3 rounded-lg">
                 <div className="text-sm text-red-900 font-medium mb-2">
@@ -965,6 +1092,11 @@ const InfluencerDashboard = () => {
               <p className="text-gray-500 mb-3">Crée ton premier live shopping!</p>
               <div className="bg-yellow-50 p-3 rounded-lg mb-3 text-xs text-yellow-800">
                 <strong>+5% de commission</strong> pendant tes lives! 🔥
+                {planLimits.lives > 0 && (
+                  <div className="mt-1 text-gray-600">
+                    Limite: {planLimits.lives === -1 ? 'Illimité' : `${planLimits.lives} live(s)/mois`}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => navigate('/features?tab=live')}
@@ -996,9 +1128,13 @@ const InfluencerDashboard = () => {
           <div className="text-right">
             <div className="text-purple-100 mb-2">Gains ce Mois</div>
             <div className="text-3xl font-bold">
-              {((stats?.total_earnings || 0) * 0.25).toLocaleString()} €
+              {(stats?.monthly_earnings || stats?.total_earnings || 0).toLocaleString()} €
             </div>
-            <div className="text-purple-200 text-sm mt-1">+32% vs mois dernier</div>
+            {stats?.earnings_growth !== undefined && (
+              <div className={`text-sm mt-1 ${stats.earnings_growth >= 0 ? 'text-green-200' : 'text-red-200'}`}>
+                {stats.earnings_growth >= 0 ? '+' : ''}{stats.earnings_growth}% vs mois dernier
+              </div>
+            )}
           </div>
         </div>
       </div>
