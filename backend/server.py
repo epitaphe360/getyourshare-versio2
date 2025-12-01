@@ -519,6 +519,8 @@ from commercial_endpoints import router as commercial_router
 from roi_endpoints import router as roi_router
 from secured_endpoints import router as secured_router
 from registration_management_endpoints import router as registration_management_router
+from activity_endpoints import router as activity_router
+from admin_payouts_endpoints import router as admin_payouts_router
 
 # ============================================
 # NOUVEAUX ROUTERS - 4 KILLER FEATURES
@@ -623,6 +625,8 @@ app.include_router(secured_router, prefix="/api", tags=["Secured Endpoints"])  #
 app.include_router(registration_management_router, tags=["Registration Management"])  # ✅ Gestion des demandes d'inscription
 app.include_router(commercial_router)  # Dashboard Commercial - 3 niveaux d'abonnement
 app.include_router(roi_router, prefix="/api/roi", tags=["ROI Calculator"])
+app.include_router(activity_router)  # ✅ Activity feed for admin dashboard
+app.include_router(admin_payouts_router)  # ✅ Admin payouts management
 
 # 4 Killer Features - NEW
 app.include_router(live_shopping_enhanced_router)  # Live Shopping Enhanced (Instagram, TikTok, YouTube, Facebook)

@@ -148,6 +148,120 @@ async def get_revenue_chart(days: int = Query(30, description="Nombre de jours")
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
 # ============================================
+# GET /api/analytics/user-growth
+# Graphique de croissance des utilisateurs
+# ============================================
+@router.get("/user-growth")
+async def get_user_growth(period: str = Query("30days", description="Période: 7days, 30days, 90days, 1year")):
+    """Croissance des utilisateurs par rôle pour graphique"""
+    try:
+        supabase = get_supabase_client()
+
+        # Déterminer le nombre de jours selon la période
+        period_days = {
+            "7days": 7,
+            "30days": 30,
+            "90days": 90,
+            "1year": 365,
+            "all": 730  # 2 ans max
+        }
+        days = period_days.get(period, 30)
+
+        # Date de début
+        start_date = (datetime.now() - timedelta(days=days)).date()
+
+        # Récupérer tous les utilisateurs avec leur date de création
+        users = supabase.table('users').select('id, role, created_at').execute()
+
+        # Grouper par jour et rôle
+        data_by_day = {}
+
+        for user in (users.data or []):
+            created_at = user.get('created_at', '')
+            role = user.get('role', 'unknown')
+
+            if created_at:
+                # Extraire la date (YYYY-MM-DD)
+                date_str = created_at[:10]
+                date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+                if date_obj >= start_date:
+                    if date_str not in data_by_day:
+                        data_by_day[date_str] = {
+                            'merchants': 0,
+                            'influencers': 0,
+                            'commercials': 0,
+                            'total': 0
+                        }
+
+                    if role == 'merchant':
+                        data_by_day[date_str]['merchants'] += 1
+                    elif role == 'influencer':
+                        data_by_day[date_str]['influencers'] += 1
+                    elif role == 'commercial':
+                        data_by_day[date_str]['commercials'] += 1
+
+                    data_by_day[date_str]['total'] += 1
+
+        # Créer tableau avec cumul des utilisateurs (croissance cumulative)
+        data = []
+        current_date = start_date
+        end_date = datetime.now().date()
+
+        cumul_merchants = 0
+        cumul_influencers = 0
+        cumul_commercials = 0
+        cumul_total = 0
+
+        while current_date <= end_date:
+            date_str = current_date.strftime('%Y-%m-%d')
+            day_data = data_by_day.get(date_str, {
+                'merchants': 0,
+                'influencers': 0,
+                'commercials': 0,
+                'total': 0
+            })
+
+            # Ajouter au cumul
+            cumul_merchants += day_data['merchants']
+            cumul_influencers += day_data['influencers']
+            cumul_commercials += day_data['commercials']
+            cumul_total += day_data['total']
+
+            data.append({
+                "date": current_date.strftime('%d/%m'),
+                "merchants": cumul_merchants,
+                "influencers": cumul_influencers,
+                "commercials": cumul_commercials,
+                "total": cumul_total
+            })
+            current_date += timedelta(days=1)
+
+        # Calculer le taux de croissance
+        if len(data) >= 2:
+            first_total = data[0]['total'] or 1
+            last_total = data[-1]['total']
+            growth_rate = ((last_total - first_total) / first_total * 100)
+        else:
+            growth_rate = 0
+
+        return {
+            "success": True,
+            "data": data,
+            "period": period,
+            "total_days": len(data),
+            "growth_rate": round(growth_rate, 2),
+            "final_counts": {
+                "merchants": cumul_merchants,
+                "influencers": cumul_influencers,
+                "commercials": cumul_commercials,
+                "total": cumul_total
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+
+# ============================================
 # GET /api/analytics/categories
 # Répartition par catégorie de produits
 # ============================================
