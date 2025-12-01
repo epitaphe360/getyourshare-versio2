@@ -27,14 +27,14 @@ async def get_analytics_overview(current_user: dict = Depends(get_current_user_f
         supabase = get_supabase_client()
         
         # Compter utilisateurs par rôle
-        merchants = supabase.table('users').select('id', count='exact').eq('role', 'merchant').execute()
-        influencers = supabase.table('users').select('id', count='exact').eq('role', 'influencer').execute()
-        commercials = supabase.table('users').select('id', count='exact').eq('role', 'commercial').execute()
+        merchants = supabase.table('users').select('id', count='exact', head=True).eq('role', 'merchant').execute()
+        influencers = supabase.table('users').select('id', count='exact', head=True).eq('role', 'influencer').execute()
+        commercials = supabase.table('users').select('id', count='exact', head=True).eq('role', 'commercial').execute()
         
         # Compter products & services
-        products = supabase.table('products').select('id', count='exact').execute()
-        services = supabase.table('services').select('id', count='exact').execute()
-        campaigns = supabase.table('campaigns').select('id', count='exact').execute()
+        products = supabase.table('products').select('id', count='exact', head=True).execute()
+        services = supabase.table('services').select('id', count='exact', head=True).execute()
+        campaigns = supabase.table('campaigns').select('id', count='exact', head=True).execute()
         
         # Calculer revenus (total des ventes)
         sales = supabase.table('sales').select('amount').execute()
@@ -48,7 +48,7 @@ async def get_analytics_overview(current_user: dict = Depends(get_current_user_f
         tracking_links = supabase.table('tracking_links').select('clicks').execute()
         total_clicks = sum([int(t.get('clicks', 0)) for t in (tracking_links.data or [])])
         
-        conversions_count = supabase.table('conversions').select('id', count='exact').execute()
+        conversions_count = supabase.table('conversions').select('id', count='exact', head=True).execute()
         
         # Taux de conversion
         conversion_rate = (conversions_count.count / total_clicks * 100) if total_clicks > 0 else 0
@@ -59,7 +59,7 @@ async def get_analytics_overview(current_user: dict = Depends(get_current_user_f
         pending_payouts = len([p for p in (payouts.data or []) if p.get('status') == 'pending'])
         
         # Leads (commerciaux)
-        leads = supabase.table('leads').select('id', count='exact').execute()
+        leads = supabase.table('leads').select('id', count='exact', head=True).execute()
         
         return {
             "success": True,
@@ -290,7 +290,7 @@ async def get_platform_metrics():
         tracking_links = supabase.table('tracking_links').select('clicks').execute()
         total_clicks = sum([int(t.get('clicks', 0)) for t in (tracking_links.data or [])])
         
-        conversions = supabase.table('conversions').select('id', count='exact').execute()
+        conversions = supabase.table('conversions').select('id', count='exact', head=True).execute()
         conversion_rate = (conversions.count / total_clicks * 100) if total_clicks > 0 else 0
         
         # Dates de référence
@@ -298,7 +298,7 @@ async def get_platform_metrics():
         sixty_days_ago = (datetime.now() - timedelta(days=60)).isoformat()
         
         # Clics mensuels (30 derniers jours)
-        recent_conversions = supabase.table('conversions').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
+        recent_conversions = supabase.table('conversions').select('id', count='exact', head=True).gte('created_at', thirty_days_ago).execute()
         monthly_clicks = recent_conversions.count or 0
         
         # Croissance mensuelle revenue (comparer 30 derniers jours vs 30 jours précédents)
@@ -312,15 +312,15 @@ async def get_platform_metrics():
         
         # Active users (derniers 7 jours)
         seven_days_ago = (datetime.now() - timedelta(days=7)).isoformat()
-        active_users = supabase.table('users').select('id', count='exact').gte('last_login', seven_days_ago).execute()
+        active_users = supabase.table('users').select('id', count='exact', head=True).gte('last_login', seven_days_ago).execute()
         
         # Active users (dernières 24h)
         one_day_ago = (datetime.now() - timedelta(days=1)).isoformat()
-        active_users_24h = supabase.table('users').select('id', count='exact').gte('last_login', one_day_ago).execute()
+        active_users_24h = supabase.table('users').select('id', count='exact', head=True).gte('last_login', one_day_ago).execute()
 
         # Nouvelles inscriptions (30 jours)
-        new_signups = supabase.table('users').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
-        old_signups = supabase.table('users').select('id', count='exact').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        new_signups = supabase.table('users').select('id', count='exact', head=True).gte('created_at', thirty_days_ago).execute()
+        old_signups = supabase.table('users').select('id', count='exact', head=True).lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
         signup_trend = ((new_signups.count - (old_signups.count or 0)) / (old_signups.count or 1) * 100) if old_signups.count else 0
         
         # ============================================
@@ -328,32 +328,32 @@ async def get_platform_metrics():
         # ============================================
         
         # Croissance marchands (30j vs 30j précédents)
-        recent_merchants = supabase.table('users').select('id', count='exact').eq('role', 'merchant').gte('created_at', thirty_days_ago).execute()
-        old_merchants = supabase.table('users').select('id', count='exact').eq('role', 'merchant').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        recent_merchants = supabase.table('users').select('id', count='exact', head=True).eq('role', 'merchant').gte('created_at', thirty_days_ago).execute()
+        old_merchants = supabase.table('users').select('id', count='exact', head=True).eq('role', 'merchant').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
         merchant_growth = ((recent_merchants.count - (old_merchants.count or 0)) / (old_merchants.count or 1) * 100) if old_merchants.count else 0
         
         # Croissance influenceurs
-        recent_influencers = supabase.table('users').select('id', count='exact').eq('role', 'influencer').gte('created_at', thirty_days_ago).execute()
-        old_influencers = supabase.table('users').select('id', count='exact').eq('role', 'influencer').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        recent_influencers = supabase.table('users').select('id', count='exact', head=True).eq('role', 'influencer').gte('created_at', thirty_days_ago).execute()
+        old_influencers = supabase.table('users').select('id', count='exact', head=True).eq('role', 'influencer').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
         influencer_growth = ((recent_influencers.count - (old_influencers.count or 0)) / (old_influencers.count or 1) * 100) if old_influencers.count else 0
         
         # Croissance produits
-        recent_products = supabase.table('products').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
-        old_products = supabase.table('products').select('id', count='exact').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        recent_products = supabase.table('products').select('id', count='exact', head=True).gte('created_at', thirty_days_ago).execute()
+        old_products = supabase.table('products').select('id', count='exact', head=True).lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
         product_growth = ((recent_products.count - (old_products.count or 0)) / (old_products.count or 1) * 100) if old_products.count else 0
         
         # Croissance services
-        recent_services = supabase.table('services').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
-        old_services = supabase.table('services').select('id', count='exact').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        recent_services = supabase.table('services').select('id', count='exact', head=True).gte('created_at', thirty_days_ago).execute()
+        old_services = supabase.table('services').select('id', count='exact', head=True).lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
         service_growth = ((recent_services.count - (old_services.count or 0)) / (old_services.count or 1) * 100) if old_services.count else 0
         
         # Croissance taux de conversion
-        old_conversions = supabase.table('conversions').select('id', count='exact').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        old_conversions = supabase.table('conversions').select('id', count='exact', head=True).lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
         conversion_trend = ((recent_conversions.count - (old_conversions.count or 0)) / (old_conversions.count or 1) * 100) if old_conversions.count else 0
         
         # User growth rate (total)
-        total_recent_users = supabase.table('users').select('id', count='exact').gte('created_at', thirty_days_ago).execute()
-        total_old_users = supabase.table('users').select('id', count='exact').lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
+        total_recent_users = supabase.table('users').select('id', count='exact', head=True).gte('created_at', thirty_days_ago).execute()
+        total_old_users = supabase.table('users').select('id', count='exact', head=True).lt('created_at', thirty_days_ago).gte('created_at', sixty_days_ago).execute()
         user_growth_rate = ((total_recent_users.count - (total_old_users.count or 0)) / (total_old_users.count or 1) * 100) if total_old_users.count else 0
 
         return {

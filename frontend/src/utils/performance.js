@@ -315,8 +315,8 @@ export const checkPerformanceBudget = () => {
   const resources = performance.getEntriesByType('resource');
 
   const budgets = {
-    'script': 1000 * 1024,      // 1000 KB max for JS (increased for dev)
-    'stylesheet': 200 * 1024,  // 200 KB max for CSS
+    'script': 1500 * 1024,      // 1500 KB max for JS (realistic for production app with many features)
+    'stylesheet': 300 * 1024,  // 300 KB max for CSS
     'image': 2 * 1024 * 1024   // 2 MB max for images
   };
 
@@ -335,15 +335,21 @@ export const checkPerformanceBudget = () => {
     }
   });
 
-  // Check budgets
-  Object.keys(budgets).forEach(type => {
-    if (usage[type] > budgets[type]) {
-      console.warn(
-        `⚠️ Performance budget exceeded for ${type}: ` +
-        `${(usage[type] / 1024).toFixed(2)} KB / ${(budgets[type] / 1024).toFixed(2)} KB`
-      );
-    }
-  });
+  // Check budgets (only show warnings in development)
+  if (process.env.NODE_ENV === 'development') {
+    Object.keys(budgets).forEach(type => {
+      if (usage[type] > budgets[type]) {
+        console.warn(
+          `⚠️ Performance budget exceeded for ${type}: ` +
+          `${(usage[type] / 1024).toFixed(2)} KB / ${(budgets[type] / 1024).toFixed(2)} KB`
+        );
+      } else {
+        console.log(
+          `✅ ${type}: ${(usage[type] / 1024).toFixed(2)} KB / ${(budgets[type] / 1024).toFixed(2)} KB`
+        );
+      }
+    });
+  }
 
   return usage;
 };

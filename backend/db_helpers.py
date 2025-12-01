@@ -524,23 +524,23 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
     try:
         if role == "admin":
             # Stats admin depuis la table users
-            users_count = supabase.table("users").select("id", count="exact").execute().count or 0
+            users_count = supabase.table("users").select("id", count="exact", head=True).execute().count or 0
             
             # Compter les merchants
             merchants_count = (
-                supabase.table("users").select("id", count="exact").eq("role", "merchant").execute().count or 0
+                supabase.table("users").select("id", count="exact", head=True).eq("role", "merchant").execute().count or 0
             )
             
             # Compter les influencers
             influencers_count = (
-                supabase.table("users").select("id", count="exact").eq("role", "influencer").execute().count or 0
+                supabase.table("users").select("id", count="exact", head=True).eq("role", "influencer").execute().count or 0
             )
             
             # Compter les produits
-            products_count = supabase.table("products").select("id", count="exact").execute().count or 0
+            products_count = supabase.table("products").select("id", count="exact", head=True).execute().count or 0
 
             # Compter les services
-            services_count = supabase.table("services").select("id", count="exact").execute().count or 0
+            services_count = supabase.table("services").select("id", count="exact", head=True).execute().count or 0
 
             # Revenue total (sum des sales)
             sales = supabase.table("sales").select("amount").eq("status", "completed").execute()
@@ -563,7 +563,7 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
 
             products_count = (
                 supabase.table("products")
-                .select("id", count="exact")
+                .select("id", count="exact", head=True)
                 .eq("merchant_id", merchant["id"])
                 .execute()
                 .count
@@ -578,11 +578,35 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
             )
             total_sales = sum([s["amount"] for s in sales.data]) if sales.data else 0
 
+            # Calculate Affiliates Count (Distinct influencers)
+            affiliates_query = (
+                supabase.table("tracking_links")
+                .select("influencer_id")
+                .eq("merchant_id", merchant["id"])
+                .execute()
+            )
+            affiliates_count = len(set([a["influencer_id"] for a in affiliates_query.data])) if affiliates_query.data else 0
+
+            # Calculate ROI
+            # ROI = (Revenue - Cost) / Cost * 100
+            # Cost = Commissions
+            commissions_query = (
+                supabase.table("commissions")
+                .select("amount")
+                .eq("merchant_id", merchant["id"])
+                .execute()
+            )
+            total_commissions = sum([c["amount"] for c in commissions_query.data]) if commissions_query.data else 0
+            
+            roi = 0
+            if total_commissions > 0:
+                roi = ((total_sales - total_commissions) / total_commissions) * 100
+
             return {
                 "total_sales": total_sales,
                 "products_count": products_count,
-                "affiliates_count": 0,  # À implémenter
-                "roi": 320.5,
+                "affiliates_count": affiliates_count,
+                "roi": round(roi, 2),
             }
 
         elif role == "influencer":

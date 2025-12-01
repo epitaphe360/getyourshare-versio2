@@ -11,6 +11,7 @@ import WhatsAppFloatingButton from './components/social/WhatsAppFloatingButton';
 import CookieConsent from './components/CookieConsent';
 import LoadingFallback from './components/LoadingFallback';
 import performanceUtils from './utils/performance';
+import { usePerformanceMonitor } from './hooks/usePerformance';
 import './App.css';
 
 // ============================================================================
@@ -40,7 +41,7 @@ const GettingStarted = lazy(() => import('./pages/GettingStarted'));
 const News = lazy(() => import('./pages/News'));
 
 // ---------- Dashboards Spécifiques ----------
-const AdminDashboard = lazy(() => import('./pages/dashboards/AdminDashboard'));
+const AdminDashboard = lazy(() => import('./pages/dashboards/AdminDashboardComplete'));
 const MerchantDashboard = lazy(() => import('./pages/dashboards/MerchantDashboard'));
 const InfluencerDashboard = lazy(() => import('./pages/dashboards/InfluencerDashboard'));
 const CommercialDashboard = lazy(() => import('./pages/dashboards/CommercialDashboard'));
@@ -123,6 +124,8 @@ const PlatformSettings = lazy(() => import('./pages/settings/PlatformSettings'))
 // ---------- Admin ----------
 const AdminSocialDashboard = lazy(() => import('./pages/admin/AdminSocialDashboard'));
 const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const RegistrationManagement = lazy(() => import('./pages/admin/RegistrationManagement'));
+const MerchantManagement = lazy(() => import('./pages/admin/MerchantManagement'));
 const AnalyticsDashboard = lazy(() => import('./pages/admin/AnalyticsDashboard'));
 const LeadManagement = lazy(() => import('./pages/admin/LeadManagement'));
 const ModerationDashboard = lazy(() => import('./pages/admin/ModerationDashboard'));
@@ -135,8 +138,6 @@ const InfluencerMatchingPage = lazy(() => import('./pages/InfluencerMatchingPage
 const MobileDashboard = lazy(() => import('./components/mobile/MobileDashboard'));
 
 // ---------- Commercial & Influencer Dashboards ----------
-const CommercialDashboard = lazy(() => import('./pages/commercial/CommercialDashboard'));
-const InfluencerDashboard = lazy(() => import('./pages/influencer/InfluencerDashboard'));
 const LeadsPage = lazy(() => import('./pages/commercial/LeadsPage'));
 const LeadDetailPage = lazy(() => import('./pages/commercial/LeadDetailPage'));
 const CommercialTrackingPage = lazy(() => import('./pages/commercial/TrackingPage'));
@@ -179,16 +180,16 @@ const InvoiceGenerator = lazy(() => import('./pages/fiscal/InvoiceGenerator'));
 const TaxSettings = lazy(() => import('./pages/fiscal/TaxSettings'));
 
 // Fiscal Dashboards (Role-specific)
-const FiscalDashboardAdmin = lazy(() => import('./components/fiscal/FiscalDashboardAdmin'));
-const FiscalDashboardMerchant = lazy(() => import('./components/fiscal/FiscalDashboardMerchant'));
-const FiscalDashboardInfluencer = lazy(() => import('./components/fiscal/FiscalDashboardInfluencer'));
-const FiscalDashboardCommercial = lazy(() => import('./components/fiscal/FiscalDashboardCommercial'));
+// const FiscalDashboardAdmin = lazy(() => import('./components/fiscal/FiscalDashboardAdmin'));
+// const FiscalDashboardMerchant = lazy(() => import('./components/fiscal/FiscalDashboardMerchant'));
+// const FiscalDashboardInfluencer = lazy(() => import('./components/fiscal/FiscalDashboardInfluencer'));
+// const FiscalDashboardCommercial = lazy(() => import('./components/fiscal/FiscalDashboardCommercial'));
 
 // Fiscal Utilities
-const InvoiceGeneratorNew = lazy(() => import('./components/fiscal/InvoiceGenerator'));
-const VATCalculator = lazy(() => import('./components/fiscal/VATCalculator'));
-const TaxDeclarationForm = lazy(() => import('./components/fiscal/TaxDeclarationForm'));
-const AccountingExport = lazy(() => import('./components/fiscal/AccountingExport'));
+// const InvoiceGeneratorNew = lazy(() => import('./components/fiscal/InvoiceGenerator'));
+// const VATCalculator = lazy(() => import('./components/fiscal/VATCalculator'));
+// const TaxDeclarationForm = lazy(() => import('./components/fiscal/TaxDeclarationForm'));
+// const AccountingExport = lazy(() => import('./components/fiscal/AccountingExport'));
 
 // ---------- Invoices - Influencer & Commercial Invoices for Tax ----------
 const InfluencerInvoicesPage = lazy(() => import('./pages/invoices/InfluencerInvoicesPage'));
@@ -258,6 +259,9 @@ const RoleProtectedRoute = ({ children, allowedRoles = [] }) => {
 };
 
 function App() {
+  // Supprimer les avertissements de performance
+  usePerformanceMonitor();
+
   // Initialize performance optimizations on mount
   useEffect(() => {
     // Initialize all performance optimizations
@@ -266,11 +270,10 @@ function App() {
     // Preload critical resources
     performanceUtils.preload();
 
-    // Log performance budget
+    // Log performance budget (silencieusement)
     window.addEventListener('load', () => {
       setTimeout(() => {
-        const budget = performanceUtils.checkBudget();
-
+        performanceUtils.checkBudget();
       }, 2000);
     });
   }, []);
@@ -793,11 +796,28 @@ function App() {
                 <AdminSocialDashboard />
               </RoleProtectedRoute>
             }
+          />
           <Route
             path="/admin/users"
             element={
               <RoleProtectedRoute allowedRoles={['admin']}>
                 <UserManagement />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/registration-requests"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin']}>
+                <RegistrationManagement />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/merchants"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin']}>
+                <MerchantManagement />
               </RoleProtectedRoute>
             }
           />
@@ -1064,81 +1084,81 @@ function App() {
                 ======================================== */}
                 
                 {/* Admin - Dashboard fiscal global */}
-                <Route
+                {/* <Route
                   path="/fiscal/admin"
                   element={
                     <RoleProtectedRoute allowedRoles={['admin']}>
                       <FiscalDashboardAdmin />
                     </RoleProtectedRoute>
                   }
-                />
+                /> */}
                 
                 {/* Merchant - Dashboard fiscal marchand */}
-                <Route
+                {/* <Route
                   path="/fiscal/merchant"
                   element={
                     <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                       <FiscalDashboardMerchant />
                     </RoleProtectedRoute>
                   }
-                />
+                /> */}
                 
                 {/* Influencer - Dashboard fiscal influenceur (auto-entrepreneur) */}
-                <Route
+                {/* <Route
                   path="/fiscal/influencer"
                   element={
                     <RoleProtectedRoute allowedRoles={['influencer', 'admin']}>
                       <FiscalDashboardInfluencer />
                     </RoleProtectedRoute>
                   }
-                />
+                /> */}
                 
                 {/* Commercial - Dashboard fiscal salarié */}
-                <Route
+                {/* <Route
                   path="/fiscal/commercial"
                   element={
                     <RoleProtectedRoute allowedRoles={['commercial', 'admin']}>
                       <FiscalDashboardCommercial />
                     </RoleProtectedRoute>
                   }
-                />
+                /> */}
                 
                 {/* Outils fiscaux - Accessibles selon rôle */}
-                <Route
+                {/* <Route
                   path="/fiscal/invoice/new"
                   element={
                     <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                       <InvoiceGeneratorNew />
                     </RoleProtectedRoute>
                   }
-                />
+                /> */}
                 
-                <Route
+                {/* <Route
                   path="/fiscal/vat/calculator"
                   element={
                     <ProtectedRoute>
                       <VATCalculator />
                     </ProtectedRoute>
                   }
-                />
+                /> */}
                 
-                <Route
+                {/* <Route
                   path="/fiscal/vat/declare"
                   element={
                     <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                       <TaxDeclarationForm />
                     </RoleProtectedRoute>
                   }
-                />
+                /> */}
                 
-                <Route
+                {/* <Route
                   path="/fiscal/accounting/export"
                   element={
                     <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
                       <AccountingExport />
                     </RoleProtectedRoute>
                   }
-                />
+                /> */}
                 
                 {/* Routes legacy - Redirection vers nouvelles routes */}
                 <Route

@@ -304,19 +304,19 @@ const Sidebar = () => {
         icon: <Newspaper size={20} />,
         path: '/news',
       },
-      // ========== SECTION ANNONCEURS ==========
+      // ========== SECTION ANNONCEURS & CAMPAGNES ==========
       {
         section: true,
         title: 'Gestion Annonceurs',
       },
       {
-        title: translations.advertisers,
+        title: 'Annonceurs',
         icon: <Users size={20} />,
         submenu: 'advertisers',
         items: [
-          { title: translations.list, path: '/advertisers' },
-          { title: translations.registrations, path: '/advertisers/registrations' },
-          { title: translations.billing, path: '/advertisers/billing' },
+          { title: 'Liste annonceurs', path: '/admin/merchants' },
+          { title: 'Demandes inscription', path: '/admin/registration-requests' },
+          { title: 'Facturation', path: '/advertisers/billing' },
         ],
       },
       {

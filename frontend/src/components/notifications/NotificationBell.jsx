@@ -49,19 +49,83 @@ const NotificationBell = () => {
     };
   }, [user]);
 
+  const getNotificationTitle = (eventType) => {
+    const titles = {
+      commission_created: '💰 Nouvelle Commission',
+      commission_updated: '📝 Commission Mise à Jour',
+      payment_created: '💳 Nouveau Paiement',
+      payment_status_changed: '🔄 Statut Paiement',
+      sale_created: '🛒 Nouvelle Vente',
+      dashboard_update: '📊 Mise à Jour Dashboard'
+    };
+    return titles[eventType] || 'Nouvelle Notification';
+  };
+
+  const formatNotificationMessage = (data) => {
+    const { type, data: eventData } = data;
+    switch(type) {
+      case 'commission_created':
+        return `Nouvelle commission de ${eventData.amount}€`;
+      case 'payment_status_changed':
+        return `Paiement ${eventData.status}: ${eventData.amount}€`;
+      case 'sale_created':
+        return `Nouvelle vente enregistrée`;
+      default:
+        return 'Vous avez une nouvelle notification';
+    }
+  };
+
+  const mapEventType = (eventType) => {
+    const typeMap = {
+      commission_created: 'payment',
+      commission_updated: 'payment',
+      payment_created: 'payment',
+      payment_status_changed: 'payment',
+      sale_created: 'sale',
+      dashboard_update: 'info'
+    };
+    return typeMap[eventType] || 'info';
+  };
+
   const connectWebSocket = () => {
     try {
       const token = localStorage.getItem('token');
-      const wsUrl = `${process.env.REACT_APP_WS_URL || 'ws://localhost:8000'}/ws/notifications?token=${token}`;
+      const wsUrl = `${process.env.REACT_APP_WS_URL || 'ws://127.0.0.1:5000'}/ws`;
       const websocket = new WebSocket(wsUrl);
 
       websocket.onopen = () => {
         console.log('WebSocket notifications connecté');
+        // S'authentifier avec le token
+        if (user?.id) {
+          websocket.send(JSON.stringify({
+            type: 'auth',
+            user_id: user.id
+          }));
+        }
       };
 
       websocket.onmessage = (event) => {
-        const notification = JSON.parse(event.data);
-        handleNewNotification(notification);
+        try {
+          const data = JSON.parse(event.data);
+          // Ignorer les messages système (auth_success, pong, etc.)
+          if (data.type === 'auth_success' || data.type === 'pong') {
+            console.log('WebSocket:', data.type);
+            return;
+          }
+          // Traiter les vraies notifications
+          if (data.type && data.data) {
+            handleNewNotification({
+              id: Date.now(),
+              title: getNotificationTitle(data.type),
+              message: formatNotificationMessage(data),
+              type: mapEventType(data.type),
+              created_at: new Date().toISOString(),
+              read: false
+            });
+          }
+        } catch (error) {
+          console.error('Erreur parsing WebSocket message:', error);
+        }
       };
 
       websocket.onerror = (error) => {
@@ -70,8 +134,10 @@ const NotificationBell = () => {
 
       websocket.onclose = () => {
         console.log('WebSocket notifications fermé');
-        // Reconnexion après 5s
-        setTimeout(connectWebSocket, 5000);
+        // Reconnexion après 30s (évite les boucles rapides)
+        if (user?.id) {
+          setTimeout(connectWebSocket, 30000);
+        }
       };
 
       setWs(websocket);
@@ -305,7 +371,7 @@ const NotificationBell = () => {
   return (
     <>
       <Dropdown
-        overlay={dropdownContent}
+        popupRender={() => dropdownContent}
         trigger={['click']}
         placement="bottomRight"
       >

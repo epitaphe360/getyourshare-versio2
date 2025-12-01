@@ -27,6 +27,19 @@
 
 ---
 
+## 👤 Comptes de Test
+
+Utilisez ces identifiants pour vous connecter :
+
+| Rôle | Email | Mot de passe |
+|------|-------|--------------|
+| 👑 Admin | `admin@test.com` | `admin123` |
+| 🏪 Marchant | `merchant@test.com` | `merchant123` |
+| ⭐ Influenceur | `influencer@test.com` | `influencer123` |
+| 💼 Commercial | `commercial@test.com` | `commercial123` |
+
+---
+
 ## 🛑 Arrêter les serveurs
 
 Fermez les fenêtres PowerShell ouvertes

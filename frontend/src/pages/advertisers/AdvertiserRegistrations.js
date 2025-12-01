@@ -18,7 +18,18 @@ import {
   RefreshCw,
   ChevronDown,
   MapPin,
-  Sparkles
+  Sparkles,
+  Eye,
+  Download,
+  MessageSquare,
+  CheckSquare,
+  Square,
+  Send,
+  FileText,
+  Phone,
+  DollarSign,
+  Briefcase,
+  StickyNote
 } from 'lucide-react';
 import api from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
@@ -60,6 +71,13 @@ const AdvertiserRegistrations = () => {
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedRegistrations, setSelectedRegistrations] = useState([]);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedRegistration, setSelectedRegistration] = useState(null);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageForm, setMessageForm] = useState({ subject: '', message: '' });
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteText, setNoteText] = useState('');
   const toast = useToast();
 
   useEffect(() => {
@@ -83,7 +101,7 @@ const AdvertiserRegistrations = () => {
   const handleApprove = async (id) => {
     try {
       setActionLoading(id);
-      await api.post(`/api/advertiser-registrations/${id}/approve`);
+      await api.post(`/api/admin/registration-requests/${id}/approve`);
       toast.success('Demande approuvée avec succès');
       fetchRegistrations();
     } catch (error) {
@@ -101,7 +119,7 @@ const AdvertiserRegistrations = () => {
     
     try {
       setActionLoading(id);
-      await api.post(`/api/advertiser-registrations/${id}/reject`);
+      await api.post(`/api/admin/registration-requests/${id}/reject`);
       toast.success('Demande rejetée');
       fetchRegistrations();
     } catch (error) {
@@ -109,6 +127,132 @@ const AdvertiserRegistrations = () => {
       toast.error('Erreur lors du rejet');
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const handleBulkAction = async (action) => {
+    if (selectedRegistrations.length === 0) {
+      toast.error('Aucune demande sélectionnée');
+      return;
+    }
+
+    const confirmMsg = action === 'approve' 
+      ? `Approuver ${selectedRegistrations.length} demande(s) ?`
+      : `Rejeter ${selectedRegistrations.length} demande(s) ?`;
+    
+    if (!window.confirm(confirmMsg)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await api.post('/api/admin/registration-requests/bulk-actions', {
+        registration_ids: selectedRegistrations,
+        action: action
+      });
+      
+      toast.success(`${selectedRegistrations.length} demande(s) ${action === 'approve' ? 'approuvée(s)' : 'rejetée(s)'}`);
+      setSelectedRegistrations([]);
+      fetchRegistrations();
+    } catch (error) {
+      console.error('Error with bulk action:', error);
+      toast.error('Erreur lors de l\'action en masse');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewDetails = async (registration) => {
+    try {
+      const response = await api.get(`/api/admin/registration-requests/${registration.id}`);
+      setSelectedRegistration(response.data);
+      setShowDetailModal(true);
+    } catch (error) {
+      console.error('Error fetching details:', error);
+      toast.error('Erreur lors du chargement des détails');
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageForm.subject || !messageForm.message) {
+      toast.error('Veuillez remplir tous les champs');
+      return;
+    }
+
+    try {
+      await api.post(`/api/admin/registration-requests/${selectedRegistration.id}/send-message`, messageForm);
+      toast.success('Message envoyé avec succès');
+      setShowMessageModal(false);
+      setMessageForm({ subject: '', message: '' });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Erreur lors de l\'envoi du message');
+    }
+  };
+
+  const handleAddNote = async () => {
+    if (!noteText.trim()) {
+      toast.error('Veuillez saisir une note');
+      return;
+    }
+
+    try {
+      await api.post(`/api/admin/registration-requests/${selectedRegistration.id}/notes`, {
+        note: noteText
+      });
+      toast.success('Note ajoutée');
+      setShowNoteModal(false);
+      setNoteText('');
+      
+      // Rafraîchir les détails
+      const response = await api.get(`/api/admin/registration-requests/${selectedRegistration.id}`);
+      setSelectedRegistration(response.data);
+    } catch (error) {
+      console.error('Error adding note:', error);
+      toast.error('Erreur lors de l\'ajout de la note');
+    }
+  };
+
+  const handleExportCSV = () => {
+    const csvData = filteredRegistrations.map(reg => ({
+      'ID': reg.id,
+      'Entreprise': reg.company_name,
+      'Email': reg.email,
+      'Pays': reg.country,
+      'Statut': reg.status,
+      'Date de création': formatDate(reg.created_at)
+    }));
+
+    const headers = Object.keys(csvData[0] || {});
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => headers.map(h => `"${row[h] || ''}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `demandes_inscription_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    
+    toast.success('Export CSV réussi');
+  };
+
+  const toggleSelectRegistration = (id) => {
+    setSelectedRegistrations(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    const pendingIds = filteredRegistrations
+      .filter(r => r.status?.toLowerCase() === 'pending')
+      .map(r => r.id);
+    
+    if (selectedRegistrations.length === pendingIds.length) {
+      setSelectedRegistrations([]);
+    } else {
+      setSelectedRegistrations(pendingIds);
     }
   };
 
@@ -343,6 +487,15 @@ const AdvertiserRegistrations = () => {
           
           <div className="flex gap-3">
             <button
+              onClick={handleExportCSV}
+              disabled={filteredRegistrations.length === 0}
+              className="flex items-center gap-2 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-all duration-200 disabled:opacity-50"
+            >
+              <Download className="w-5 h-5" />
+              <span>Export CSV</span>
+            </button>
+            
+            <button
               onClick={() => setShowFilters(!showFilters)}
               className="flex items-center gap-2 px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all duration-200"
             >
@@ -391,6 +544,46 @@ const AdvertiserRegistrations = () => {
           )}
         </AnimatePresence>
       </motion.div>
+
+      {/* Barre d'actions en masse */}
+      {selectedRegistrations.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-indigo-50 border border-indigo-200 rounded-xl p-4"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckSquare className="w-5 h-5 text-indigo-600" />
+              <span className="font-medium text-indigo-900">
+                {selectedRegistrations.length} demande(s) sélectionnée(s)
+              </span>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleBulkAction('approve')}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-all duration-200"
+              >
+                <Check className="w-4 h-4" />
+                Approuver tout
+              </button>
+              <button
+                onClick={() => handleBulkAction('reject')}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200"
+              >
+                <X className="w-4 h-4" />
+                Rejeter tout
+              </button>
+              <button
+                onClick={() => setSelectedRegistrations([])}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-all duration-200"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Liste des demandes */}
       <motion.div
@@ -444,6 +637,20 @@ const AdvertiserRegistrations = () => {
                   <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                     {/* Infos entreprise */}
                     <div className="flex items-start gap-4">
+                      {/* Checkbox pour sélection multiple (seulement pour pending) */}
+                      {registration.status?.toLowerCase() === 'pending' && (
+                        <button
+                          onClick={() => toggleSelectRegistration(registration.id)}
+                          className="mt-2"
+                        >
+                          {selectedRegistrations.includes(registration.id) ? (
+                            <CheckSquare className="w-6 h-6 text-indigo-600" />
+                          ) : (
+                            <Square className="w-6 h-6 text-gray-400 hover:text-indigo-600" />
+                          )}
+                        </button>
+                      )}
+                      
                       <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg">
                         {registration.company_name?.charAt(0).toUpperCase() || 'A'}
                       </div>
@@ -478,7 +685,18 @@ const AdvertiserRegistrations = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      {/* Bouton Voir détails (toujours visible) */}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleViewDetails(registration)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all duration-200"
+                      >
+                        <Eye className="w-5 h-5" />
+                        <span>Détails</span>
+                      </motion.button>
+                      
                       {registration.status?.toLowerCase() === 'pending' && (
                         <>
                           <motion.button
@@ -547,6 +765,340 @@ const AdvertiserRegistrations = () => {
           {filter !== 'all' && ` (filtré sur ${stats.total} au total)`}
         </motion.div>
       )}
+
+      {/* Modal Détails */}
+      <AnimatePresence>
+        {showDetailModal && selectedRegistration && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowDetailModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white sticky top-0 z-10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl font-bold">
+                      {selectedRegistration.company_name?.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">{selectedRegistration.company_name}</h2>
+                      <p className="text-white/80">{selectedRegistration.email}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowDetailModal(false)}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-all duration-200"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Contenu */}
+              <div className="p-6 space-y-6">
+                {/* Informations principales */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                    <Mail className="w-5 h-5 text-gray-600" />
+                    <div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="font-medium">{selectedRegistration.email}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                    <MapPin className="w-5 h-5 text-gray-600" />
+                    <div>
+                      <p className="text-sm text-gray-500">Pays</p>
+                      <p className="font-medium">
+                        {getFlag(selectedRegistration.country)} {selectedRegistration.country}
+                      </p>
+                    </div>
+                  </div>
+
+                  {selectedRegistration.contact_person && (
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                      <Users className="w-5 h-5 text-gray-600" />
+                      <div>
+                        <p className="text-sm text-gray-500">Contact</p>
+                        <p className="font-medium">{selectedRegistration.contact_person}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedRegistration.phone && (
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                      <Phone className="w-5 h-5 text-gray-600" />
+                      <div>
+                        <p className="text-sm text-gray-500">Téléphone</p>
+                        <p className="font-medium">{selectedRegistration.phone}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedRegistration.website && (
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                      <Globe className="w-5 h-5 text-gray-600" />
+                      <div>
+                        <p className="text-sm text-gray-500">Site web</p>
+                        <a 
+                          href={selectedRegistration.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="font-medium text-indigo-600 hover:underline"
+                        >
+                          {selectedRegistration.website}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedRegistration.business_type && (
+                    <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                      <Briefcase className="w-5 h-5 text-gray-600" />
+                      <div>
+                        <p className="text-sm text-gray-500">Type d'entreprise</p>
+                        <p className="font-medium">{selectedRegistration.business_type}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                    <Calendar className="w-5 h-5 text-gray-600" />
+                    <div>
+                      <p className="text-sm text-gray-500">Date de demande</p>
+                      <p className="font-medium">{formatDate(selectedRegistration.created_at)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notes internes */}
+                {selectedRegistration.notes && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <StickyNote className="w-5 h-5 text-amber-600" />
+                      <h3 className="font-semibold text-amber-900">Notes internes</h3>
+                    </div>
+                    <div className="text-sm text-gray-700 whitespace-pre-wrap bg-white p-3 rounded-lg">
+                      {selectedRegistration.notes}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4 border-t">
+                  <button
+                    onClick={() => {
+                      setShowMessageModal(true);
+                      setShowDetailModal(false);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all duration-200"
+                  >
+                    <Send className="w-5 h-5" />
+                    Envoyer un message
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowNoteModal(true);
+                      setShowDetailModal(false);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition-all duration-200"
+                  >
+                    <StickyNote className="w-5 h-5" />
+                    Ajouter une note
+                  </button>
+
+                  {selectedRegistration.status?.toLowerCase() === 'pending' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          handleApprove(selectedRegistration.id);
+                          setShowDetailModal(false);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-all duration-200"
+                      >
+                        <Check className="w-5 h-5" />
+                        Approuver
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          handleReject(selectedRegistration.id);
+                          setShowDetailModal(false);
+                        }}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all duration-200"
+                      >
+                        <X className="w-5 h-5" />
+                        Rejeter
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Envoyer un message */}
+      <AnimatePresence>
+        {showMessageModal && selectedRegistration && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowMessageModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full"
+            >
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white rounded-t-2xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Send className="w-6 h-6" />
+                    <h2 className="text-xl font-bold">Envoyer un message</h2>
+                  </div>
+                  <button
+                    onClick={() => setShowMessageModal(false)}
+                    className="p-2 hover:bg-white/20 rounded-lg"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-white/80 mt-1">À: {selectedRegistration.email}</p>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Objet
+                  </label>
+                  <input
+                    type="text"
+                    value={messageForm.subject}
+                    onChange={(e) => setMessageForm({ ...messageForm, subject: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Objet du message"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Message
+                  </label>
+                  <textarea
+                    value={messageForm.message}
+                    onChange={(e) => setMessageForm({ ...messageForm, message: e.target.value })}
+                    rows={6}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Votre message..."
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={handleSendMessage}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-all duration-200"
+                  >
+                    <Send className="w-5 h-5" />
+                    Envoyer
+                  </button>
+                  <button
+                    onClick={() => setShowMessageModal(false)}
+                    className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-all duration-200"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Ajouter une note */}
+      <AnimatePresence>
+        {showNoteModal && selectedRegistration && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowNoteModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full"
+            >
+              <div className="bg-gradient-to-r from-amber-600 to-orange-600 p-6 text-white rounded-t-2xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <StickyNote className="w-6 h-6" />
+                    <h2 className="text-xl font-bold">Ajouter une note interne</h2>
+                  </div>
+                  <button
+                    onClick={() => setShowNoteModal(false)}
+                    className="p-2 hover:bg-white/20 rounded-lg"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-white/80 mt-1">Pour: {selectedRegistration.company_name}</p>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Note (visible uniquement par les administrateurs)
+                  </label>
+                  <textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    rows={6}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                    placeholder="Ajoutez vos notes ici..."
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={handleAddNote}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-medium transition-all duration-200"
+                  >
+                    <StickyNote className="w-5 h-5" />
+                    Ajouter la note
+                  </button>
+                  <button
+                    onClick={() => setShowNoteModal(false)}
+                    className="px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-all duration-200"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
