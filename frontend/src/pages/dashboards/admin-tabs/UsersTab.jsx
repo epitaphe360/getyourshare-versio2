@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../../context/ToastContext';
 import api from '../../../utils/api';
@@ -19,16 +19,12 @@ const UsersTab = ({ stats, refreshKey, onRefresh }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  useEffect(() => {
-    fetchUsers();
-  }, [refreshKey]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async (signal) => {
     try {
       setLoading(true);
       const [merchantsRes, influencersRes] = await Promise.allSettled([
-        api.get('/api/admin/users?role=merchant'),
-        api.get('/api/admin/users?role=influencer')
+        api.get('/api/admin/users?role=merchant', { signal }),
+        api.get('/api/admin/users?role=influencer', { signal })
       ]);
 
       if (merchantsRes.status === 'fulfilled') {
@@ -38,12 +34,20 @@ const UsersTab = ({ stats, refreshKey, onRefresh }) => {
         setInfluencers(influencersRes.value.data.users || influencersRes.value.data || []);
       }
     } catch (error) {
-      console.error('Erreur chargement utilisateurs:', error);
-      toast.error('Impossible de charger les utilisateurs');
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur chargement utilisateurs:', error);
+        toast.error('Impossible de charger les utilisateurs');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchUsers(controller.signal);
+    return () => controller.abort();
+  }, [fetchUsers, refreshKey]);
 
   const handleToggleStatus = async (user) => {
     try {

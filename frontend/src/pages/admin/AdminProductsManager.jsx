@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Package, Plus, Search, Filter, Edit2, Trash2, Eye, 
   ChevronLeft, ChevronRight, AlertCircle, Check, X,
@@ -38,14 +38,8 @@ const AdminProductsManager = () => {
     totalValue: 0
   });
 
-  // Chargement initial
-  useEffect(() => {
-    loadProducts();
-    loadStats();
-  }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, stockFilter]);
-
   // Charger les produits
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async (signal) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -57,25 +51,37 @@ const AdminProductsManager = () => {
         ...(stockFilter !== 'all' && { stock: stockFilter })
       });
 
-      const response = await api.get(`/api/products?${params}`);
+      const response = await api.get(`/api/products?${params}`, { signal });
       setProducts(response.data.products || []);
       setTotalProducts(response.data.total || 0);
     } catch (error) {
-      console.error('Erreur lors du chargement des produits:', error);
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur lors du chargement des produits:', error);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, stockFilter]);
 
   // Charger les statistiques
-  const loadStats = async () => {
+  const loadStats = useCallback(async (signal) => {
     try {
-      const response = await api.get('/api/products/stats');
+      const response = await api.get('/api/products/stats', { signal });
       setStats(response.data);
     } catch (error) {
-      console.error('Erreur lors du chargement des stats:', error);
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur lors du chargement des stats:', error);
+      }
     }
-  };
+  }, []);
+
+  // Chargement initial
+  useEffect(() => {
+    const controller = new AbortController();
+    loadProducts(controller.signal);
+    loadStats(controller.signal);
+    return () => controller.abort();
+  }, [loadProducts, loadStats]);
 
   // Créer un nouveau produit
   const handleCreate = () => {

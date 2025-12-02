@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { TrendingUp, Package, Users, DollarSign, Target } from 'lucide-react';
 import { formatCurrency, formatNumber } from '../../../utils/helpers';
@@ -14,17 +14,13 @@ const AnalyticsTab = ({ stats, dateFilter, refreshKey }) => {
   const [topInfluencers, setTopInfluencers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [dateFilter, refreshKey]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async (signal) => {
     try {
       setLoading(true);
       const [categoriesRes, productsRes, influencersRes] = await Promise.allSettled([
-        api.get(`/api/analytics/categories?period=${dateFilter}`),
-        api.get(`/api/analytics/top-products?period=${dateFilter}&limit=10`),
-        api.get(`/api/analytics/top-influencers?period=${dateFilter}&limit=10`)
+        api.get(`/api/analytics/categories?period=${dateFilter}`, { signal }),
+        api.get(`/api/analytics/top-products?period=${dateFilter}&limit=10`, { signal }),
+        api.get(`/api/analytics/top-influencers?period=${dateFilter}&limit=10`, { signal })
       ]);
 
       if (categoriesRes.status === 'fulfilled') {
@@ -37,12 +33,20 @@ const AnalyticsTab = ({ stats, dateFilter, refreshKey }) => {
         setTopInfluencers(influencersRes.value.data || []);
       }
     } catch (error) {
-      console.error('Erreur chargement analytics:', error);
-      toast.error('Impossible de charger les analytics');
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur chargement analytics:', error);
+        toast.error('Impossible de charger les analytics');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateFilter, toast]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchAnalytics(controller.signal);
+    return () => controller.abort();
+  }, [fetchAnalytics, refreshKey]);
 
   return (
     <div className="space-y-6">
@@ -100,7 +104,7 @@ const AnalyticsTab = ({ stats, dateFilter, refreshKey }) => {
                   dataKey="value"
                 >
                   {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell key={entry.name || entry.id || `cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(value) => formatCurrency(value)} />

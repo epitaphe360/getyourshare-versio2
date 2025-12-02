@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Package, Plus, Search, Filter, Edit2, Trash2, Eye,
   ChevronLeft, ChevronRight, AlertCircle, DollarSign,
@@ -7,9 +7,11 @@ import {
 import api from '../../utils/api';
 import ServiceFormModal from '../../components/admin/ServiceFormModal';
 import ServiceDetailsModal from '../../components/admin/ServiceDetailsModal';
-import { toast } from 'react-toastify';
+import { useToast } from '../../context/ToastContext';
 
 const ServiceManagement = () => {
+  const toast = useToast();
+
   // État principal
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,14 +45,8 @@ const ServiceManagement = () => {
     taux_conversion: 0
   });
 
-  // Chargement initial
-  useEffect(() => {
-    loadServices();
-    loadStats();
-  }, [currentPage, statusFilter, categorieFilter]);
-
   // Charger les services
-  const loadServices = async () => {
+  const loadServices = useCallback(async (signal) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -58,26 +54,38 @@ const ServiceManagement = () => {
         ...(categorieFilter !== 'all' && { categorie_id: categorieFilter })
       });
 
-      const response = await api.get(`/api/admin/services?${params}`);
+      const response = await api.get(`/api/admin/services?${params}`, { signal });
       setServices(response.data.services || []);
       setTotalServices(response.data.total || 0);
     } catch (error) {
-      console.error('Erreur lors du chargement des services:', error);
-      toast.error('Erreur lors du chargement des services');
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur lors du chargement des services:', error);
+        toast.error('Erreur lors du chargement des services');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, categorieFilter, toast]);
 
   // Charger les statistiques
-  const loadStats = async () => {
+  const loadStats = useCallback(async (signal) => {
     try {
-      const response = await api.get('/api/admin/services/stats/dashboard');
+      const response = await api.get('/api/admin/services/stats/dashboard', { signal });
       setStats(response.data.stats);
     } catch (error) {
-      console.error('Erreur lors du chargement des stats:', error);
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur lors du chargement des stats:', error);
+      }
     }
-  };
+  }, []);
+
+  // Chargement initial
+  useEffect(() => {
+    const controller = new AbortController();
+    loadServices(controller.signal);
+    loadStats(controller.signal);
+    return () => controller.abort();
+  }, [loadServices, loadStats, currentPage]);
 
   // Créer un nouveau service
   const handleCreate = () => {
