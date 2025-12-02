@@ -11,12 +11,13 @@ const FinanceTab = ({ stats, dateFilter, refreshKey }) => {
   const [payouts, setPayouts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchFinanceData = useCallback(async (signal) => {
+  const fetchFinanceData = useCallback(async (signal = null) => {
     try {
       setLoading(true);
+      const config = signal ? { signal } : {};
       const [transactionsRes, payoutsRes] = await Promise.allSettled([
-        api.get(`/api/transactions/history?period=${dateFilter}&limit=50`, { signal }),
-        api.get(`/api/admin/payouts?status=pending&limit=20`, { signal })
+        api.get(`/api/transactions/history?period=${dateFilter}&limit=50`, config),
+        api.get(`/api/admin/payouts?status=pending&limit=20`, config)
       ]);
 
       if (transactionsRes.status === 'fulfilled') {

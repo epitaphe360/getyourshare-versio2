@@ -51,7 +51,7 @@ const ServiceManagement = () => {
   });
 
   // Charger les services
-  const loadServices = useCallback(async (signal) => {
+  const loadServices = useCallback(async (signal = null) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -59,7 +59,8 @@ const ServiceManagement = () => {
         ...(categorieFilter !== 'all' && { categorie_id: categorieFilter })
       });
 
-      const response = await api.get(`/api/admin/services?${params}`, { signal });
+      const config = signal ? { signal } : {};
+      const response = await api.get(`/api/admin/services?${params}`, config);
       setServices(response.data.services || []);
       setTotalServices(response.data.total || 0);
     } catch (error) {
@@ -73,9 +74,10 @@ const ServiceManagement = () => {
   }, [statusFilter, categorieFilter, toast]);
 
   // Charger les statistiques
-  const loadStats = useCallback(async (signal) => {
+  const loadStats = useCallback(async (signal = null) => {
     try {
-      const response = await api.get('/api/admin/services/stats/dashboard', { signal });
+      const config = signal ? { signal } : {};
+      const response = await api.get('/api/admin/services/stats/dashboard', config);
       setStats(response.data.stats);
     } catch (error) {
       if (error.name !== 'AbortError' && error.name !== 'CanceledError') {

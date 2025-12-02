@@ -48,7 +48,7 @@ const AdminProductsManager = () => {
   });
 
   // Charger les produits
-  const loadProducts = useCallback(async (signal) => {
+  const loadProducts = useCallback(async (signal = null) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -60,7 +60,8 @@ const AdminProductsManager = () => {
         ...(stockFilter !== 'all' && { stock: stockFilter })
       });
 
-      const response = await api.get(`/api/products?${params}`, { signal });
+      const config = signal ? { signal } : {};
+      const response = await api.get(`/api/products?${params}`, config);
       setProducts(response.data.products || []);
       setTotalProducts(response.data.total || 0);
     } catch (error) {
@@ -73,9 +74,10 @@ const AdminProductsManager = () => {
   }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, stockFilter]);
 
   // Charger les statistiques
-  const loadStats = useCallback(async (signal) => {
+  const loadStats = useCallback(async (signal = null) => {
     try {
-      const response = await api.get('/api/products/stats', { signal });
+      const config = signal ? { signal } : {};
+      const response = await api.get('/api/products/stats', config);
       setStats(response.data);
     } catch (error) {
       if (error.name !== 'AbortError' && error.name !== 'CanceledError') {

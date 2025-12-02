@@ -14,13 +14,14 @@ const AnalyticsTab = ({ stats, dateFilter, refreshKey }) => {
   const [topInfluencers, setTopInfluencers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchAnalytics = useCallback(async (signal) => {
+  const fetchAnalytics = useCallback(async (signal = null) => {
     try {
       setLoading(true);
+      const config = signal ? { signal } : {};
       const [categoriesRes, productsRes, influencersRes] = await Promise.allSettled([
-        api.get(`/api/analytics/categories?period=${dateFilter}`, { signal }),
-        api.get(`/api/analytics/top-products?period=${dateFilter}&limit=10`, { signal }),
-        api.get(`/api/analytics/top-influencers?period=${dateFilter}&limit=10`, { signal })
+        api.get(`/api/analytics/categories?period=${dateFilter}`, config),
+        api.get(`/api/analytics/top-products?period=${dateFilter}&limit=10`, config),
+        api.get(`/api/analytics/top-influencers?period=${dateFilter}&limit=10`, config)
       ]);
 
       if (categoriesRes.status === 'fulfilled') {

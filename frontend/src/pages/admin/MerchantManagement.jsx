@@ -40,14 +40,17 @@ const MerchantManagement = () => {
   const [selectedMerchant, setSelectedMerchant] = useState(null);
   const [merchantDetails, setMerchantDetails] = useState(null);
 
-  const fetchMerchants = useCallback(async (signal) => {
+  const fetchMerchants = useCallback(async (signal = null) => {
     try {
       const params = { role: 'merchant' };
       if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
       if (subscriptionFilter && subscriptionFilter !== 'all') params.subscription = subscriptionFilter;
       if (searchText) params.search = searchText;
 
-      const response = await api.get('/api/admin/users', { params, signal });
+      const config = { params };
+      if (signal) config.signal = signal;
+
+      const response = await api.get('/api/admin/users', config);
       if (response.data.success) {
         const merchantsData = response.data.users || [];
         // Ajouter des valeurs par défaut pour les compteurs
@@ -67,9 +70,10 @@ const MerchantManagement = () => {
     }
   }, [statusFilter, subscriptionFilter, searchText]);
 
-  const fetchStats = useCallback(async (signal) => {
+  const fetchStats = useCallback(async (signal = null) => {
     try {
-      const response = await api.get('/api/admin/merchants/stats', { signal });
+      const config = signal ? { signal } : {};
+      const response = await api.get('/api/admin/merchants/stats', config);
       if (response.data.success) {
         setStats(response.data.stats);
       }
@@ -80,7 +84,7 @@ const MerchantManagement = () => {
     }
   }, []);
 
-  const fetchData = useCallback(async (signal) => {
+  const fetchData = useCallback(async (signal = null) => {
     setLoading(true);
     try {
       await Promise.all([

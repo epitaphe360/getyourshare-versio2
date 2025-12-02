@@ -19,12 +19,13 @@ const UsersTab = ({ stats, refreshKey, onRefresh }) => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
-  const fetchUsers = useCallback(async (signal) => {
+  const fetchUsers = useCallback(async (signal = null) => {
     try {
       setLoading(true);
+      const config = signal ? { signal } : {};
       const [merchantsRes, influencersRes] = await Promise.allSettled([
-        api.get('/api/admin/users?role=merchant', { signal }),
-        api.get('/api/admin/users?role=influencer', { signal })
+        api.get('/api/admin/users?role=merchant', config),
+        api.get('/api/admin/users?role=influencer', config)
       ]);
 
       if (merchantsRes.status === 'fulfilled') {
