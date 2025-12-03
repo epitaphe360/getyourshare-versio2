@@ -569,6 +569,13 @@ from notifications_endpoints import router as notifications_router
 from integrations_endpoints import router as integrations_router
 from advanced_features_endpoints import settings_router, email_router, api_router
 
+# ============================================
+# PREMIUM DASHBOARDS - 10/10 Features
+# ============================================
+from content_endpoints import router as content_router
+from inbox_endpoints import router as inbox_router
+from reviews_endpoints import router as reviews_router
+
 # Include all routers in the app
 app.include_router(marketplace_router)
 app.include_router(affiliate_links_router)
@@ -659,6 +666,14 @@ try:
     logger.info("✅ Balance Report router loaded")
 except ImportError as e:
     logger.warning(f"⚠️ Balance Report router not available: {e}")
+
+# ============================================
+# PREMIUM DASHBOARDS - 10/10 Features Integration
+# ============================================
+app.include_router(content_router, prefix="/api/content", tags=["Content Calendar"])
+app.include_router(inbox_router, prefix="/api/inbox", tags=["Unified Inbox"])
+app.include_router(reviews_router, prefix="/api/reviews", tags=["Review Management"])
+logger.info("✅ Premium Dashboards routers loaded (Content, Inbox, Reviews)")
 
 # Security
 security = HTTPBearer()
