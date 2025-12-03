@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { I18nProvider } from './i18n/i18n';
 import Layout from './components/layout/Layout';
 import PublicLayout from './components/layout/PublicLayout';
