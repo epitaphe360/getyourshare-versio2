@@ -54,18 +54,14 @@ const AdminDashboardComplete = () => {
     { id: 'analytics', label: 'Analytiques', icon: TrendingUp }
   ];
 
-  // ========== EFFECTS ==========
-  useEffect(() => {
-    fetchGlobalStats();
-  }, [dateFilter, refreshKey]);
-
   // ========== API CALLS ==========
-  const fetchGlobalStats = async () => {
+  const fetchGlobalStats = useCallback(async (signal = null) => {
     try {
       setLoading(true);
-      const response = await api.get('/api/analytics/overview', {
-        params: { period: dateFilter }
-      });
+      const config = { params: { period: dateFilter } };
+      if (signal) config.signal = signal;
+
+      const response = await api.get('/api/analytics/overview', config);
 
       if (response.data) {
         setGlobalStats({
@@ -99,12 +95,21 @@ const AdminDashboardComplete = () => {
         });
       }
     } catch (error) {
-      console.error('Erreur lors du chargement des stats:', error);
-      toast.error('Impossible de charger les statistiques');
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur lors du chargement des stats:', error);
+        toast.error('Impossible de charger les statistiques');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateFilter, toast]);
+
+  // ========== EFFECTS ==========
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchGlobalStats(controller.signal);
+    return () => controller.abort();
+  }, [fetchGlobalStats, refreshKey]);
 
   // Rafraîchir les données
   const handleRefresh = useCallback(() => {

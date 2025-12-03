@@ -410,6 +410,68 @@ async def get_top_influencers(limit: int = Query(10, description="Nombre d'influ
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
 # ============================================
+# GET /api/analytics/top-products
+# Top produits par revenus
+# ============================================
+@router.get("/top-products")
+async def get_top_products(
+    period: str = Query("30days", description="Période: 7days, 30days, 90days, 1year, all"),
+    limit: int = Query(10, description="Nombre de produits")
+):
+    """Top produits par revenus générés"""
+    try:
+        supabase = get_supabase_client()
+
+        # Calculer la date de début selon la période
+        if period == "7days":
+            start_date = (datetime.now() - timedelta(days=7)).isoformat()
+        elif period == "30days":
+            start_date = (datetime.now() - timedelta(days=30)).isoformat()
+        elif period == "90days":
+            start_date = (datetime.now() - timedelta(days=90)).isoformat()
+        elif period == "1year":
+            start_date = (datetime.now() - timedelta(days=365)).isoformat()
+        else:  # all
+            start_date = None
+
+        # Récupérer les conversions avec produits
+        conversions_query = supabase.table('conversions').select('product_id, order_total')
+        if start_date:
+            conversions_query = conversions_query.gte('created_at', start_date)
+
+        conversions = conversions_query.execute()
+
+        # Grouper par produit
+        products_revenue = {}
+        products_count = {}
+        for conversion in (conversions.data or []):
+            product_id = conversion.get('product_id')
+            if product_id:
+                if product_id not in products_revenue:
+                    products_revenue[product_id] = 0
+                    products_count[product_id] = 0
+                products_revenue[product_id] += float(conversion.get('order_total', 0))
+                products_count[product_id] += 1
+
+        # Récupérer infos des produits
+        top_products = []
+        for product_id, revenue in sorted(products_revenue.items(), key=lambda x: x[1], reverse=True)[:limit]:
+            product = supabase.table('products').select('id, name, price, category_id').eq('id', product_id).single().execute()
+            if product.data:
+                top_products.append({
+                    "id": product_id,
+                    "name": product.data.get('name', 'Produit sans nom'),
+                    "revenue": round(revenue, 2),
+                    "conversions": products_count.get(product_id, 0),
+                    "price": float(product.data.get('price', 0))
+                })
+
+        return top_products
+    except Exception as e:
+        print(f"Erreur top-products: {str(e)}")
+        return []
+
+# ============================================
 # GET /api/analytics/platform-metrics
 # Métriques de la plateforme
 # ============================================
