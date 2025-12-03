@@ -25,7 +25,8 @@ import {
   Languages,
   Calculator,
   Receipt,
-  CreditCard
+  CreditCard,
+  HelpCircle
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -285,11 +286,6 @@ const Sidebar = () => {
     // Menu pour ADMIN - Complet avec toutes les fonctionnalités
     const adminMenu = [
       {
-        title: translations.getting_started,
-        icon: <Newspaper size={20} />,
-        path: '/getting-started',
-      },
-      {
         title: translations.dashboard,
         icon: <LayoutDashboard size={20} />,
         path: '/dashboard',
@@ -300,23 +296,22 @@ const Sidebar = () => {
         path: '/messages',
       },
       {
-        title: translations.news,
-        icon: <Newspaper size={20} />,
-        path: '/news',
+        title: 'Modération & Support',
+        icon: <HelpCircle size={20} />,
+        path: '/support',
       },
-      // ========== SECTION ANNONCEURS & CAMPAGNES ==========
+      // ========== SECTION MARCHANDS & CAMPAGNES ==========
       {
         section: true,
-        title: 'Gestion Annonceurs',
+        title: 'Gestion Marchands',
       },
       {
-        title: 'Annonceurs',
+        title: 'Marchands',
         icon: <Users size={20} />,
         submenu: 'advertisers',
         items: [
-          { title: 'Liste annonceurs', path: '/admin/merchants' },
+          { title: 'Liste marchands', path: '/admin/merchants' },
           { title: 'Demandes inscription', path: '/admin/registration-requests' },
-          { title: 'Facturation', path: '/advertisers/billing' },
         ],
       },
       {
@@ -345,7 +340,7 @@ const Sidebar = () => {
         path: '/marketplace',
       },
       {
-        title: translations.moderation,
+        title: 'Modération IA',
         icon: <Shield size={20} />,
         path: '/admin/moderation',
       },
@@ -420,11 +415,12 @@ const Sidebar = () => {
         title: 'Fiscalité (MA/FR/US)',
       },
       {
-        title: translations.fiscal,
+        title: 'Fiscalité & Compta',
         icon: <Calculator size={20} />,
         submenu: 'fiscal',
         items: [
           { title: translations.fiscal_dashboard, path: '/fiscal/admin' },
+          { title: 'Facturation', path: '/advertisers/billing' },
           { title: translations.fiscal_invoices, path: '/fiscal/invoice/new' },
           { title: translations.fiscal_vat_calculator, path: '/fiscal/vat/calculator' },
           { title: translations.fiscal_vat_declare, path: '/fiscal/vat/declare' },
@@ -440,7 +436,7 @@ const Sidebar = () => {
         title: 'Configuration',
       },
       {
-        title: translations.settings,
+        title: 'Paramètres',
         icon: <Settings size={20} />,
         submenu: 'settings',
         items: [

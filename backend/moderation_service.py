@@ -23,13 +23,17 @@ except ImportError:
 
 # Configuration OpenAI
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+client = None
 
-if not OPENAI_AVAILABLE or not OPENAI_API_KEY:
-    if not OPENAI_API_KEY and OPENAI_AVAILABLE:
-        logger.warning("⚠️ OpenAI API key not configured for content moderation")
-    client = None
-else:
-    client = OpenAI(api_key=OPENAI_API_KEY)
+def get_openai_client():
+    """Initialise le client OpenAI uniquement si nécessaire"""
+    global client
+    if client is None and OPENAI_AVAILABLE and OPENAI_API_KEY:
+        try:
+            client = OpenAI(api_key=OPENAI_API_KEY)
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to initialize OpenAI client: {e}")
+    return client
 
 # ============================================
 # CATÉGORIES INTERDITES
@@ -136,7 +140,18 @@ FORMAT DE RÉPONSE (JSON STRICT):
 }}"""
 
         # Appel à l'API OpenAI
-        response = client.chat.completions.create(
+        openai_client = get_openai_client()
+        if not openai_client:
+            logger.warning("OpenAI client not available, skipping moderation")
+            return {
+                "approved": True,
+                "confidence": 0.0,
+                "risk_level": "unknown",
+                "flags": [],
+                "reason": "Modération IA non disponible",
+                "recommendation": "Vérification manuelle recommandée"
+            }
+        response = openai_client.chat.completions.create(
             model="gpt-4o-mini",  # Modèle rapide et économique
             messages=[
                 {

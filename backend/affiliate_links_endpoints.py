@@ -94,28 +94,48 @@ async def get_my_affiliate_links(
         ).eq('influencer_id', user_id).order('created_at', desc=True).range(offset, offset + limit - 1).execute()
 
         links = result.data or []
+        
+        if not links:
+             return {
+                "success": True,
+                "links": [],
+                "total": 0,
+                "page": page,
+                "limit": limit
+            }
+
+        link_ids = [link['id'] for link in links]
+
+        # Bulk fetch commissions
+        comm_result = supabase.table('commissions').select('link_id, amount').in_('link_id', link_ids).eq('status', 'approved').execute()
+        commissions_map = {}
+        for c in (comm_result.data or []):
+            lid = c.get('link_id')
+            commissions_map[lid] = commissions_map.get(lid, 0) + float(c.get('amount', 0))
+
+        # Bulk fetch conversions (counts)
+        # Fetching only link_id is lightweight
+        conv_result = supabase.table('conversions').select('link_id').in_('link_id', link_ids).execute()
+        conversions_map = {}
+        for c in (conv_result.data or []):
+            lid = c.get('link_id')
+            conversions_map[lid] = conversions_map.get(lid, 0) + 1
 
         # Enrichir avec stats
         for link in links:
             link_id = link['id']
 
-            # Stats tracking
-            stats_result = supabase.table('tracking_events').select('*', count='exact').eq('link_id', link_id).execute()
-
+            # Stats tracking (Clicks) - Optimized with head=True to avoid fetching data
+            stats_result = supabase.table('tracking_events').select('id', count='exact', head=True).eq('link_id', link_id).execute()
             clicks_count = stats_result.count or 0
 
-            # Conversions
-            conv_result = supabase.table('conversions').select('*', count='exact').eq('link_id', link_id).execute()
-            conversions_count = conv_result.count or 0
-
-            # Commissions
-            comm_result = supabase.table('commissions').select('amount').eq('link_id', link_id).eq('status', 'approved').execute()
-            total_commissions = sum(c.get('amount', 0) for c in (comm_result.data or []))
+            conversions_count = conversions_map.get(link_id, 0)
+            total_commissions = commissions_map.get(link_id, 0.0)
 
             link['stats'] = {
                 'clicks': clicks_count,
                 'conversions': conversions_count,
-                'total_commissions': float(total_commissions) if total_commissions else 0.0,
+                'total_commissions': float(total_commissions),
                 'conversion_rate': round((conversions_count / clicks_count * 100), 2) if clicks_count > 0 else 0.0
             }
 
@@ -295,11 +315,11 @@ async def get_link_stats(
         stats = {}
 
         # Clics
-        clicks_result = supabase.table('tracking_events').select('*', count='exact').eq('link_id', link_id).eq('event_type', 'click').execute()
+        clicks_result = supabase.table('tracking_events').select('id', count='exact', head=True).eq('link_id', link_id).eq('event_type', 'click').execute()
         stats['clicks'] = clicks_result.count or 0
 
         # Conversions
-        conversions_result = supabase.table('conversions').select('*', count='exact').eq('link_id', link_id).execute()
+        conversions_result = supabase.table('conversions').select('id', count='exact', head=True).eq('link_id', link_id).execute()
         stats['conversions'] = conversions_result.count or 0
 
         # Commissions

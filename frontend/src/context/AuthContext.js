@@ -81,7 +81,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log(`[Auth] Tentative de connexion pour: ${email}`);
       const response = await api.post('/api/auth/login', { email, password });
+      console.log("[Auth] Réponse reçue:", response.status);
 
       // Check if 2FA is required (support both snake_case and camelCase)
       if (response.data.requires_2fa || response.data.requires2FA) {
@@ -109,9 +111,31 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true };
     } catch (error) {
+      console.error("[Auth] Erreur de connexion détaillée:", error);
+      
+      let errorMessage = 'Connexion échouée';
+      
+      if (error.response) {
+        // La requête a été faite et le serveur a répondu avec un code d'état
+        // qui n'est pas dans la plage 2xx
+        console.error("[Auth] Data:", error.response.data);
+        console.error("[Auth] Status:", error.response.status);
+        console.error("[Auth] Headers:", error.response.headers);
+        
+        errorMessage = error.response.data?.detail || `Erreur serveur (${error.response.status})`;
+      } else if (error.request) {
+        // La requête a été faite mais aucune réponse n'a été reçue
+        console.error("[Auth] Pas de réponse reçue:", error.request);
+        errorMessage = "Le serveur ne répond pas. Vérifiez votre connexion ou si le backend est lancé.";
+      } else {
+        // Quelque chose s'est passé lors de la configuration de la requête
+        console.error("[Auth] Erreur configuration:", error.message);
+        errorMessage = `Erreur: ${error.message}`;
+      }
+
       return {
         success: false,
-        error: error.response?.data?.detail || 'Connexion échouée'
+        error: errorMessage
       };
     }
   };

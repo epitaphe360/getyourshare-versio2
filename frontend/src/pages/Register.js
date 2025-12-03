@@ -258,12 +258,13 @@ const Register = () => {
                   {/* Nom et Prénom */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
                         Prénom
                       </label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
+                          id="first_name"
                           type="text"
                           name="first_name"
                           value={formData.first_name}
@@ -271,14 +272,16 @@ const Register = () => {
                           className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                           placeholder="Jean"
                           required
+                          autoComplete="given-name"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
                         Nom
                       </label>
                       <input
+                        id="last_name"
                         type="text"
                         name="last_name"
                         value={formData.last_name}
@@ -286,6 +289,7 @@ const Register = () => {
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="Dupont"
                         required
+                        autoComplete="family-name"
                       />
                     </div>
                   </div>
@@ -293,12 +297,13 @@ const Register = () => {
                   {/* Company Name (Merchant only) */}
                   {role === 'merchant' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="company_name" className="block text-sm font-medium text-gray-700 mb-1">
                         Nom de l'entreprise
                       </label>
                       <div className="relative">
                         <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
+                          id="company_name"
                           type="text"
                           name="company_name"
                           value={formData.company_name}
@@ -306,6 +311,7 @@ const Register = () => {
                           className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                           placeholder="Mon Entreprise SAS"
                           required
+                          autoComplete="organization"
                         />
                       </div>
                     </div>
@@ -314,12 +320,13 @@ const Register = () => {
                   {/* Username (Influencer only) */}
                   {role === 'influencer' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
                         Nom d'utilisateur
                       </label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
+                          id="username"
                           type="text"
                           name="username"
                           value={formData.username}
@@ -327,6 +334,7 @@ const Register = () => {
                           className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                           placeholder="mon_username"
                           required
+                          autoComplete="username"
                         />
                       </div>
                     </div>
@@ -334,12 +342,13 @@ const Register = () => {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                       Email
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="email"
                         type="email"
                         name="email"
                         value={formData.email}
@@ -347,18 +356,20 @@ const Register = () => {
                         className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="email@exemple.com"
                         required
+                        autoComplete="email"
                       />
                     </div>
                   </div>
 
                   {/* Phone */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                       Téléphone
                     </label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="phone"
                         type="tel"
                         name="phone"
                         value={formData.phone}
@@ -366,18 +377,20 @@ const Register = () => {
                         className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="+33612345678"
                         required
+                        autoComplete="tel"
                       />
                     </div>
                   </div>
 
                   {/* Password */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                       Mot de passe
                     </label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="password"
                         type="password"
                         name="password"
                         value={formData.password}
@@ -385,18 +398,20 @@ const Register = () => {
                         className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="••••••••"
                         required
+                        autoComplete="new-password"
                       />
                     </div>
                   </div>
 
                   {/* Confirm Password */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                       Confirmer le mot de passe
                     </label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="confirmPassword"
                         type="password"
                         name="confirmPassword"
                         value={formData.confirmPassword}
@@ -404,6 +419,7 @@ const Register = () => {
                         className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="••••••••"
                         required
+                        autoComplete="new-password"
                       />
                     </div>
                   </div>

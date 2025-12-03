@@ -16,8 +16,23 @@ const Login = () => {
   const [requires2FA, setRequires2FA] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(null); // DEBUG MODE
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // DEBUG: Test connectivity
+  const testConnection = async () => {
+    setDebugInfo("Test de connexion en cours...");
+    try {
+      const startTime = Date.now();
+      const response = await api.get('/health');
+      const duration = Date.now() - startTime;
+      setDebugInfo(`✅ Backend connecté en ${duration}ms. Status: ${response.status}`);
+    } catch (err) {
+      console.error("Debug connection error:", err);
+      setDebugInfo(`❌ Erreur connexion: ${err.message}. ${err.response ? `Status: ${err.response.status}` : 'Pas de réponse'}`);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -182,12 +197,14 @@ const Login = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                     Email
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
+                      id="email"
+                      name="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -195,17 +212,20 @@ const Login = () => {
                       placeholder="votre@email.com"
                       required
                       data-testid="email-input"
+                      autoComplete="email"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                     Mot de passe
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
+                      id="password"
+                      name="password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -213,6 +233,7 @@ const Login = () => {
                       placeholder="••••••••"
                       required
                       data-testid="password-input"
+                      autoComplete="current-password"
                     />
                   </div>
                 </div>
@@ -238,6 +259,25 @@ const Login = () => {
 
               {/* Connexion rapide - Toujours visible pour les tests */}
               <>
+                {/* DEBUG SECTION */}
+                <div className="mt-4 p-2 border border-gray-200 rounded bg-gray-50 text-xs">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-gray-500">MODE DEBUG</span>
+                    <button 
+                      onClick={testConnection}
+                      type="button"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Tester Connexion API
+                    </button>
+                  </div>
+                  {debugInfo && (
+                    <div className={`p-2 rounded ${debugInfo.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {debugInfo}
+                    </div>
+                  )}
+                </div>
+
                 <div className="mt-6">
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
@@ -458,10 +498,12 @@ const Login = () => {
 
               <form onSubmit={handleVerify2FA} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="twoFACode" className="block text-sm font-medium text-gray-700 mb-1">
                     Code à 6 chiffres
                   </label>
                   <input
+                    id="twoFACode"
+                    name="twoFACode"
                     type="text"
                     value={twoFACode}
                     onChange={(e) => setTwoFACode(e.target.value)}
@@ -469,6 +511,7 @@ const Login = () => {
                     placeholder="000000"
                     maxLength="6"
                     required
+                    autoComplete="one-time-code"
                   />
                 </div>
 

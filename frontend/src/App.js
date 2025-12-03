@@ -41,6 +41,7 @@ const About = lazy(() => import('./pages/About'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const GettingStarted = lazy(() => import('./pages/GettingStarted'));
 const News = lazy(() => import('./pages/News'));
+const Support = lazy(() => import('./pages/Support'));
 
 // ---------- Dashboards Spécifiques ----------
 const AdminDashboard = lazy(() => import('./pages/dashboards/AdminDashboardComplete'));
@@ -84,9 +85,10 @@ const AdvertiserRegistrations = lazy(() => import('./pages/advertisers/Advertise
 const AdvertiserBilling = lazy(() => import('./pages/advertisers/AdvertiserBilling'));
 
 // ---------- Campaigns ----------
+const CampaignDashboard = lazy(() => import('./pages/campaigns/CampaignDashboard'));
 const CampaignsList = lazy(() => import('./pages/campaigns/CampaignsList'));
 const CreateCampaignPage = lazy(() => import('./pages/campaigns/CreateCampaignPage'));
-const CampaignDetailPage = lazy(() => import('./pages/campaigns/CampaignDetailPage'));
+const CampaignDetailEnhanced = lazy(() => import('./pages/campaigns/CampaignDetailEnhanced'));
 
 // ---------- Affiliates ----------
 const AffiliatesList = lazy(() => import('./pages/affiliates/AffiliatesList'));
@@ -368,6 +370,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/support"
+                  element={
+                    <ProtectedRoute>
+                      <Support />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/dashboard"
                   element={
                     <ProtectedRoute>
@@ -485,6 +495,14 @@ function App() {
                   path="/campaigns"
                   element={
                     <ProtectedRoute>
+                      <CampaignDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/campaigns/list"
+                  element={
+                    <ProtectedRoute>
                       <CampaignsList />
                     </ProtectedRoute>
                   }
@@ -494,7 +512,7 @@ function App() {
                   path="/campaigns/:id"
                   element={
                     <ProtectedRoute>
-                      <CampaignDetailPage />
+                      <CampaignDetailEnhanced />
                     </ProtectedRoute>
                   }
                 />

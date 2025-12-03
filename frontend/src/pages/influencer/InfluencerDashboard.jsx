@@ -165,6 +165,7 @@ const InfluencerDashboard = () => {
           </Text>
         </div>
         <Select
+          id="time-range-select"
           value={timeRange}
           onChange={setTimeRange}
           style={{ width: 180 }}

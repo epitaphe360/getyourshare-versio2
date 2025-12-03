@@ -23,6 +23,8 @@ from supabase import create_client, Client
 import os
 import secrets
 from auth import get_current_user
+import asyncio
+from fastapi.concurrency import run_in_threadpool
 
 router = APIRouter(prefix="/api/company/links", tags=["Company Links Management"])
 
@@ -522,21 +524,24 @@ async def get_company_links(
         if assigned_only:
             query = query.not_.is_("influencer_id", "null")
 
-        response = query.order("created_at", desc=True).execute()
+        response = await run_in_threadpool(lambda: query.order("created_at", desc=True).execute())
         links = response.data or []
 
         # Manually fetch related data to avoid PGRST200 errors
         product_ids = list(set(l['product_id'] for l in links if l.get('product_id')))
-        products_map = {}
-        if product_ids:
-            p_res = supabase.from_("products").select("id, name, price").in_("id", product_ids).execute()
-            products_map = {p['id']: p for p in p_res.data} if p_res.data else {}
-
         member_ids = list(set(l['influencer_id'] for l in links if l.get('influencer_id')))
-        members_map = {}
-        if member_ids:
-            m_res = supabase.from_("users").select("id, first_name, last_name, email").in_("id", member_ids).execute()
-            members_map = {m['id']: m for m in m_res.data} if m_res.data else {}
+
+        async def fetch_products():
+            if not product_ids: return {}
+            p_res = await run_in_threadpool(lambda: supabase.from_("products").select("id, name, price").in_("id", product_ids).execute())
+            return {p['id']: p for p in p_res.data} if p_res.data else {}
+
+        async def fetch_members():
+            if not member_ids: return {}
+            m_res = await run_in_threadpool(lambda: supabase.from_("users").select("id, first_name, last_name, email").in_("id", member_ids).execute())
+            return {m['id']: m for m in m_res.data} if m_res.data else {}
+
+        products_map, members_map = await asyncio.gather(fetch_products(), fetch_members())
 
         # Enrich links
         enriched_links = []
@@ -610,27 +615,32 @@ async def get_my_assigned_links(current_user: dict = Depends(get_current_user)):
     try:
         member_id = current_user["id"]
 
-        response = supabase.from_("tracking_links") \
+        response = await run_in_threadpool(
+            lambda: supabase.from_("tracking_links") \
             .select("*") \
             .eq("influencer_id", member_id) \
             .eq("is_active", True) \
             .order("created_at", desc=True) \
             .execute()
+        )
             
         links = response.data or []
 
         # Manually fetch related data
         product_ids = list(set(l['product_id'] for l in links if l.get('product_id')))
-        products_map = {}
-        if product_ids:
-            p_res = supabase.from_("products").select("id, name, description, price, images").in_("id", product_ids).execute()
-            products_map = {p['id']: p for p in p_res.data} if p_res.data else {}
-
         merchant_ids = list(set(l['merchant_id'] for l in links if l.get('merchant_id')))
-        companies_map = {}
-        if merchant_ids:
-            c_res = supabase.from_("users").select("id, first_name, last_name, company_name").in_("id", merchant_ids).execute()
-            companies_map = {c['id']: c for c in c_res.data} if c_res.data else {}
+
+        async def fetch_products():
+            if not product_ids: return {}
+            p_res = await run_in_threadpool(lambda: supabase.from_("products").select("id, name, description, price, images").in_("id", product_ids).execute())
+            return {p['id']: p for p in p_res.data} if p_res.data else {}
+
+        async def fetch_companies():
+            if not merchant_ids: return {}
+            c_res = await run_in_threadpool(lambda: supabase.from_("users").select("id, first_name, last_name, company_name").in_("id", merchant_ids).execute())
+            return {c['id']: c for c in c_res.data} if c_res.data else {}
+
+        products_map, companies_map = await asyncio.gather(fetch_products(), fetch_companies())
 
         # Enrichir avec URLs et stats
         enriched_links = []

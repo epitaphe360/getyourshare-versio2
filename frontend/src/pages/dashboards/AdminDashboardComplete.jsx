@@ -174,6 +174,8 @@ const AdminDashboardComplete = () => {
           {/* Actions globales */}
           <div className="flex items-center gap-3">
             <select
+              id="date-filter-select"
+              name="dateFilter"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"

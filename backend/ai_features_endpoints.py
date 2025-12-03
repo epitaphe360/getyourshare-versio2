@@ -96,6 +96,17 @@ async def generate_product_recommendations(influencer_id: str, force_refresh: bo
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/product-recommendations")
+async def get_my_product_recommendations(
+    limit: int = 10,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
+    """
+    Récupérer les recommandations de produits pour l'utilisateur connecté
+    """
+    return await get_product_recommendations(current_user["id"], limit)
+
+
 @router.get("/product-recommendations/{influencer_id}")
 async def get_product_recommendations(influencer_id: str, limit: int = 10):
     """
@@ -330,6 +341,17 @@ Réponds en JSON avec: title, content, hashtags (array), cta, best_time, best_da
 
     key = f"{platform}_{content_type}"
     return templates.get(key, templates['instagram_post'])
+
+
+@router.get("/content-templates")
+async def get_my_content_templates(
+    limit: int = 20,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
+    """
+    Récupérer les templates de contenu pour l'utilisateur connecté
+    """
+    return await get_content_templates(current_user["id"], limit)
 
 
 @router.get("/content-templates/{influencer_id}")

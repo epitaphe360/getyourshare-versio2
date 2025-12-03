@@ -25,13 +25,17 @@ const AnalyticsTab = ({ stats, dateFilter, refreshKey }) => {
       ]);
 
       if (categoriesRes.status === 'fulfilled') {
-        setCategoryData(categoriesRes.value.data || []);
+        // Handle wrapped response { success: true, data: [...] }
+        const resData = categoriesRes.value.data;
+        setCategoryData(Array.isArray(resData) ? resData : (resData?.data || []));
       }
       if (productsRes.status === 'fulfilled') {
         setTopProducts(productsRes.value.data || []);
       }
       if (influencersRes.status === 'fulfilled') {
-        setTopInfluencers(influencersRes.value.data || []);
+        // Handle wrapped response { success: true, influencers: [...] }
+        const resData = influencersRes.value.data;
+        setTopInfluencers(Array.isArray(resData) ? resData : (resData?.influencers || []));
       }
     } catch (error) {
       if (error.name !== 'AbortError' && error.name !== 'CanceledError') {

@@ -9,7 +9,7 @@ Implémente:
 """
 
 from fastapi import Request, HTTPException, status
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 from typing import Callable
 import secrets
 import structlog
@@ -107,6 +107,7 @@ async def csrf_middleware(request: Request, call_next: Callable):
         "/api/messages/send", # Messaging endpoint (excluded for testing)
         "/api/roi/calculate", # ROI Calculator (public tool)
         "/health",  # Health check endpoint
+        "/api/health", # Health check endpoint (API)
         "/docs",
         "/openapi.json"
     ]
@@ -129,9 +130,9 @@ async def csrf_middleware(request: Request, call_next: Callable):
             ip=request.client.host
         )
 
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="CSRF token validation failed"
+            content={"detail": "CSRF token validation failed"}
         )
 
     response = await call_next(request)
