@@ -28,13 +28,22 @@ const OverviewTab = ({ stats, dateFilter, refreshKey }) => {
       ]);
 
       if (revenueRes.status === 'fulfilled') {
-        setRevenueData(revenueRes.value.data || []);
+        // L'API retourne {data: [...]}
+        const revenue = revenueRes.value.data?.data || revenueRes.value.data || [];
+        console.log('📊 Revenue data:', revenue);
+        setRevenueData(Array.isArray(revenue) ? revenue : []);
       }
       if (growthRes.status === 'fulfilled') {
-        setUserGrowthData(growthRes.value.data || []);
+        // L'API retourne {data: [...]}
+        const growth = growthRes.value.data?.data || growthRes.value.data || [];
+        console.log('📈 Growth data:', growth);
+        setUserGrowthData(Array.isArray(growth) ? growth : []);
       }
       if (activityRes.status === 'fulfilled') {
-        setRecentActivity(activityRes.value.data || []);
+        const activityData = activityRes.value.data?.data || activityRes.value.data || [];
+        console.log('⚡ Activity data:', activityData);
+        // S'assurer que c'est bien un tableau
+        setRecentActivity(Array.isArray(activityData) ? activityData : []);
       }
     } catch (error) {
       if (error.name !== 'AbortError' && error.name !== 'CanceledError') {

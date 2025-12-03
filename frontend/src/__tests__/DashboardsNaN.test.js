@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import InfluencerDashboard from '../pages/dashboards/InfluencerDashboard';
 import MerchantDashboard from '../pages/dashboards/MerchantDashboard';
 import CommercialDashboard from '../pages/dashboards/CommercialDashboard';
-import AdminDashboard from '../pages/dashboards/AdminDashboard';
+import AdminDashboard from '../pages/dashboards/AdminDashboardComplete';
 import { AuthProvider } from '../context/AuthContext';
 import { ToastProvider } from '../context/ToastContext';
 import { I18nProvider } from '../i18n/i18n';

@@ -1112,6 +1112,11 @@ async def get_current_user_endpoint(payload: dict = Depends(get_current_user_fro
             
     return user_data
 
+@app.get("/api/users/me")
+async def get_current_user_alias(payload: dict = Depends(get_current_user_from_cookie)):
+    """Alias pour /api/auth/me - Récupère l'utilisateur connecté"""
+    return await get_current_user_endpoint(payload)
+
 @app.put("/api/auth/profile")
 async def update_profile(
     updates: UserUpdate,
@@ -1282,6 +1287,19 @@ async def get_analytics_overview(request: Request, payload: dict = Depends(get_c
         total_conversions = conversions_result.count or 0
         conversion_rate = (total_conversions / total_clicks * 100) if total_clicks > 0 else 0
         
+        # Statistiques abonnements
+        subscriptions_result = supabase.table("subscriptions").select("id, plan_id", count="exact").in_("status", ["active", "trialing"]).execute()
+        active_subscriptions = subscriptions_result.count or 0
+        
+        # Revenus des abonnements
+        subscription_revenue = 0
+        if active_subscriptions > 0 and subscriptions_result.data:
+            plan_ids = list(set([s.get("plan_id") for s in subscriptions_result.data if s.get("plan_id")]))
+            if plan_ids:
+                plans_result = supabase.table("subscription_plans").select("id, price").in_("id", plan_ids).execute()
+                plan_prices = {p.get("id"): float(p.get("price", 0)) for p in (plans_result.data or [])}
+                subscription_revenue = sum([plan_prices.get(s.get("plan_id"), 0) for s in subscriptions_result.data])
+        
         # Calcul croissance (comparaison mois dernier)
         last_month = (datetime.utcnow() - timedelta(days=30)).isoformat()
         last_month_commissions = supabase.table("commissions").select("amount").gte("created_at", last_month).execute()
@@ -1305,6 +1323,10 @@ async def get_analytics_overview(request: Request, payload: dict = Depends(get_c
                 "total_products": total_products,
                 "total_services": total_services,
                 "total_campaigns": total_campaigns
+            },
+            "subscriptions": {
+                "active_subscriptions": active_subscriptions,
+                "subscription_revenue": round(subscription_revenue, 2)
             },
             "financial": {
                 "total_revenue": round(total_revenue, 2),
@@ -4242,19 +4264,58 @@ async def get_admin_revenue_chart(current_user: dict = Depends(get_current_user_
             
             days_data.append({
                 'date': target_date.strftime('%d/%m'),
-                'revenus': round(revenus_total, 2)
+                'revenue': round(revenus_total, 2)  # Changé de 'revenus' à 'revenue'
             })
         
         return {"data": days_data}
         
     except Exception as e:
         logger.error(f"Error fetching admin revenue chart: {e}")
-        return {"data": [{"date": f"0{i}/01", "revenus": 0} for i in range(1, 8)]}
+        return {"data": [{"date": f"0{i}/01", "revenue": 0} for i in range(1, 8)]}
 
 @app.get("/api/analytics/revenue-chart")
 async def get_revenue_chart_alias(current_user: dict = Depends(get_current_user_from_cookie)):
     """Alias pour /api/analytics/admin/revenue-chart"""
-    return await get_admin_revenue_chart(payload)
+    return await get_admin_revenue_chart(current_user)
+
+@app.get("/api/analytics/user-growth")
+async def get_user_growth(period: str = "7d", current_user: dict = Depends(get_current_user_from_cookie)):
+    """Croissance des utilisateurs par rôle sur la période donnée"""
+    try:
+        from datetime import datetime, timedelta
+        
+        role = current_user.get("role")
+        if role != 'admin':
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Déterminer le nombre de jours selon la période
+        days_map = {"7d": 7, "30d": 30, "90d": 90, "1y": 365}
+        days = days_map.get(period, 7)
+        
+        today = datetime.now()
+        growth_data = []
+        
+        for i in range(days - 1, -1, -1):
+            target_date = today - timedelta(days=i)
+            date_str = target_date.strftime('%Y-%m-%d')
+            
+            # Compter les utilisateurs créés jusqu'à cette date
+            merchants_resp = supabase.table('users').select('id', count='exact').eq('role', 'merchant').lte('created_at', f'{date_str}T23:59:59').execute()
+            influencers_resp = supabase.table('users').select('id', count='exact').eq('role', 'influencer').lte('created_at', f'{date_str}T23:59:59').execute()
+            commercials_resp = supabase.table('users').select('id', count='exact').eq('role', 'commercial').lte('created_at', f'{date_str}T23:59:59').execute()
+            
+            growth_data.append({
+                'date': target_date.strftime('%d/%m'),
+                'merchants': merchants_resp.count if merchants_resp else 0,
+                'influencers': influencers_resp.count if influencers_resp else 0,
+                'commercials': commercials_resp.count if commercials_resp else 0
+            })
+        
+        return {"data": growth_data}
+        
+    except Exception as e:
+        logger.error(f"Error fetching user growth: {e}")
+        return {"data": []}
 
 @app.get("/api/analytics/admin/categories")
 async def get_admin_categories(current_user: dict = Depends(get_current_user_from_cookie)):
@@ -4320,7 +4381,7 @@ async def get_admin_categories(current_user: dict = Depends(get_current_user_fro
 @app.get("/api/analytics/categories")
 async def get_categories_alias(current_user: dict = Depends(get_current_user_from_cookie)):
     """Alias pour /api/analytics/admin/categories"""
-    return await get_admin_categories(payload)
+    return await get_admin_categories(current_user)
 
 # ============================================
 # PAYOUTS ENDPOINTS

@@ -61,6 +61,21 @@ async def get_analytics_overview(current_user: dict = Depends(get_current_user_f
         # Leads (commerciaux)
         leads = supabase.table('leads').select('id', count='exact', head=True).execute()
         
+        # Abonnements (subscriptions)
+        active_subs = supabase.table('subscriptions').select('id, plan_id', count='exact', head=True).in_('status', ['active', 'trialing']).execute()
+        
+        # Revenus des abonnements
+        subscription_revenue = 0
+        if active_subs.count and active_subs.count > 0:
+            # Récupérer les détails des plans pour calculer le revenu
+            all_subs = supabase.table('subscriptions').select('plan_id').in_('status', ['active', 'trialing']).execute()
+            if all_subs.data:
+                plan_ids = list(set([s.get('plan_id') for s in all_subs.data if s.get('plan_id')]))
+                if plan_ids:
+                    plans = supabase.table('subscription_plans').select('id, price').in_('id', plan_ids).execute()
+                    plan_prices = {p.get('id'): float(p.get('price', 0)) for p in (plans.data or [])}
+                    subscription_revenue = sum([plan_prices.get(s.get('plan_id'), 0) for s in all_subs.data])
+        
         return {
             "success": True,
             "users": {
@@ -73,6 +88,10 @@ async def get_analytics_overview(current_user: dict = Depends(get_current_user_f
                 "total_products": products.count or 0,
                 "total_services": services.count or 0,
                 "total_campaigns": campaigns.count or 0
+            },
+            "subscriptions": {
+                "active_subscriptions": active_subs.count or 0,
+                "subscription_revenue": round(subscription_revenue, 2)
             },
             "financial": {
                 "total_revenue": round(total_revenue, 2),
@@ -133,7 +152,7 @@ async def get_revenue_chart(days: int = Query(30, description="Nombre de jours")
             date_str = current_date.strftime('%Y-%m-%d')
             data.append({
                 "date": date_str,
-                "revenus": round(revenue_by_day.get(date_str, 0), 2),
+                "revenue": round(revenue_by_day.get(date_str, 0), 2),  # Changé de 'revenus' à 'revenue'
                 "formatted_date": current_date.strftime('%d/%m')
             })
             current_date += timedelta(days=1)
@@ -142,7 +161,7 @@ async def get_revenue_chart(days: int = Query(30, description="Nombre de jours")
             "success": True,
             "data": data,
             "total_days": len(data),
-            "total_revenue": round(sum([d['revenus'] for d in data]), 2)
+            "total_revenue": round(sum([d['revenue'] for d in data]), 2)  # Changé de 'revenus' à 'revenue'
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")

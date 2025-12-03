@@ -93,9 +93,9 @@ const AdminDashboardComplete = () => {
           conversion_rate: response.data.tracking?.conversion_rate || 0,
 
           // Abonnements
-          total_subscriptions: response.data.subscriptions?.total || 0,
-          active_subscriptions: response.data.subscriptions?.active || 0,
-          subscription_revenue: response.data.subscriptions?.mrr || 0
+          total_subscriptions: response.data.subscriptions?.active_subscriptions || 0,
+          active_subscriptions: response.data.subscriptions?.active_subscriptions || 0,
+          subscription_revenue: response.data.subscriptions?.subscription_revenue || 0
         });
       }
     } catch (error) {

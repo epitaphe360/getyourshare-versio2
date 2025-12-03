@@ -5,7 +5,8 @@ Endpoints pour la gestion des activités récentes de la plateforme
 from fastapi import APIRouter, Query, Depends, HTTPException
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
-from auth import get_current_user_from_cookie, get_supabase_client
+from auth import get_current_user_from_cookie
+from supabase_config import get_supabase_client
 
 router = APIRouter(prefix="/api/activity", tags=["Activity"])
 
@@ -81,7 +82,7 @@ async def get_recent_activity(
 
         # 3. Nouveaux services
         services_result = supabase.table('services')\
-            .select('id, nom, merchant_id, created_at')\
+            .select('id, nom, created_at')\
             .order('created_at', desc=True)\
             .limit(int(limit / 2))\
             .execute()
@@ -96,65 +97,74 @@ async def get_recent_activity(
                 'created_at': service.get('created_at'),
                 'time': service.get('created_at'),
                 'meta': {
-                    'service_id': service.get('id'),
-                    'merchant_id': service.get('merchant_id')
+                    'service_id': service.get('id')
                 }
             })
 
-        # 4. Nouvelles transactions récentes
-        transactions_result = supabase.table('transactions')\
-            .select('id, user_id, amount, type, status, created_at')\
-            .order('created_at', desc=True)\
-            .limit(int(limit / 2))\
-            .execute()
+        # 4. Nouvelles transactions récentes (optionnel - table peut ne pas exister)
+        try:
+            transactions_result = supabase.table('transactions')\
+                .select('id, user_id, amount, type, status, created_at')\
+                .order('created_at', desc=True)\
+                .limit(int(limit / 2))\
+                .execute()
 
-        for transaction in (transactions_result.data or []):
-            type_labels = {
-                'commission': 'Commission gagnée',
-                'payout': 'Paiement effectué',
-                'refund': 'Remboursement',
-                'subscription': 'Abonnement'
-            }
-            type_label = type_labels.get(transaction.get('type', ''), 'Transaction')
-
-            activities.append({
-                'id': f"transaction_{transaction.get('id')}",
-                'type': 'transaction',
-                'icon': 'DollarSign',
-                'description': f"{type_label}: {transaction.get('amount')}€",
-                'message': f"Transaction de {transaction.get('amount')}€",
-                'created_at': transaction.get('created_at'),
-                'time': transaction.get('created_at'),
-                'meta': {
-                    'transaction_id': transaction.get('id'),
-                    'amount': transaction.get('amount'),
-                    'type': transaction.get('type'),
-                    'status': transaction.get('status')
+            for transaction in (transactions_result.data or []):
+                type_labels = {
+                    'commission': 'Commission gagnée',
+                    'payout': 'Paiement effectué',
+                    'refund': 'Remboursement',
+                    'subscription': 'Abonnement'
                 }
-            })
+                type_label = type_labels.get(transaction.get('type', ''), 'Transaction')
 
-        # 5. Demandes d'inscription en attente
-        registrations_result = supabase.table('advertiser_registrations')\
-            .select('id, company_name, status, created_at')\
-            .eq('status', 'pending')\
-            .order('created_at', desc=True)\
-            .limit(int(limit / 3))\
-            .execute()
+                activities.append({
+                    'id': f"transaction_{transaction.get('id')}",
+                    'type': 'transaction',
+                    'icon': 'DollarSign',
+                    'description': f"{type_label}: {transaction.get('amount')}€",
+                    'message': f"Transaction de {transaction.get('amount')}€",
+                    'created_at': transaction.get('created_at'),
+                    'time': transaction.get('created_at'),
+                    'meta': {
+                        'transaction_id': transaction.get('id'),
+                        'amount': transaction.get('amount'),
+                        'type': transaction.get('type'),
+                        'status': transaction.get('status')
+                    }
+                })
+        except Exception as tx_error:
+            # Table transactions n'existe pas encore - on ignore
+            print(f"⚠️  Table transactions non disponible: {tx_error}")
+            pass
 
-        for reg in (registrations_result.data or []):
-            activities.append({
-                'id': f"registration_{reg.get('id')}",
-                'type': 'registration_pending',
-                'icon': 'UserCheck',
-                'description': f"Demande d'inscription: {reg.get('company_name')}",
-                'message': f"Nouvelle demande d'inscription en attente",
-                'created_at': reg.get('created_at'),
-                'time': reg.get('created_at'),
-                'meta': {
-                    'registration_id': reg.get('id'),
-                    'company_name': reg.get('company_name')
-                }
-            })
+        # 5. Demandes d'inscription en attente (optionnel - table peut ne pas exister)
+        try:
+            registrations_result = supabase.table('advertiser_registrations')\
+                .select('id, company_name, status, created_at')\
+                .eq('status', 'pending')\
+                .order('created_at', desc=True)\
+                .limit(int(limit / 3))\
+                .execute()
+
+            for reg in (registrations_result.data or []):
+                activities.append({
+                    'id': f"registration_{reg.get('id')}",
+                    'type': 'registration_pending',
+                    'icon': 'UserCheck',
+                    'description': f"Demande d'inscription: {reg.get('company_name')}",
+                    'message': f"Nouvelle demande d'inscription en attente",
+                    'created_at': reg.get('created_at'),
+                    'time': reg.get('created_at'),
+                    'meta': {
+                        'registration_id': reg.get('id'),
+                        'company_name': reg.get('company_name')
+                    }
+                })
+        except Exception as reg_error:
+            # Table advertiser_registrations n'existe pas encore - on ignore
+            print(f"⚠️  Table advertiser_registrations non disponible: {reg_error}")
+            pass
 
         # Trier toutes les activités par date (plus récent en premier)
         activities.sort(key=lambda x: x.get('created_at', ''), reverse=True)

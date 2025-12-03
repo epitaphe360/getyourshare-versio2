@@ -5,7 +5,8 @@ Endpoints admin pour la gestion des paiements et demandes de retrait
 from fastapi import APIRouter, Query, Depends, HTTPException, Body
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
-from auth import get_current_user_from_cookie, get_supabase_client
+from auth import get_current_user_from_cookie
+from supabase_config import get_supabase_client
 
 router = APIRouter(prefix="/api/admin", tags=["Admin Payouts"])
 

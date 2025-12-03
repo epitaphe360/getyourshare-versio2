@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
-import AdminDashboard from './dashboards/AdminDashboard';
+import AdminDashboard from './dashboards/AdminDashboardComplete';
 import MerchantDashboard from './dashboards/MerchantDashboard';
 import InfluencerDashboard from './dashboards/InfluencerDashboard';
 import CommercialDashboard from './dashboards/CommercialDashboard';
