@@ -1,33 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Package, Plus, Search, Filter, Edit2, Trash2, Eye, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Package, Plus, Search, Filter, Edit2, Trash2, Eye,
   ChevronLeft, ChevronRight, AlertCircle, Check, X,
   TrendingUp, TrendingDown, DollarSign, Box
 } from 'lucide-react';
 import api from '../../utils/api';
 import ProductFormModal from '../../components/admin/ProductFormModal';
+import BaseModal from '../../components/modals/BaseModal';
+import { useToast } from '../../context/ToastContext';
 
 const AdminProductsManager = () => {
+  const toast = useToast();
+
   // État principal
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProducts, setSelectedProducts] = useState([]);
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalProducts, setTotalProducts] = useState(0);
-  
+
   // Recherche et filtres
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [stockFilter, setStockFilter] = useState('all');
-  
+
   // Modal
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
+
+  // Confirmation modals
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [productToDelete, setProductToDelete] = useState(null);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   
   // Statistiques rapides
   const [stats, setStats] = useState({
@@ -38,14 +47,8 @@ const AdminProductsManager = () => {
     totalValue: 0
   });
 
-  // Chargement initial
-  useEffect(() => {
-    loadProducts();
-    loadStats();
-  }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, stockFilter]);
-
   // Charger les produits
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async (signal = null) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -57,25 +60,39 @@ const AdminProductsManager = () => {
         ...(stockFilter !== 'all' && { stock: stockFilter })
       });
 
-      const response = await api.get(`/api/products?${params}`);
+      const config = signal ? { signal } : {};
+      const response = await api.get(`/api/products?${params}`, config);
       setProducts(response.data.products || []);
       setTotalProducts(response.data.total || 0);
     } catch (error) {
-      console.error('Erreur lors du chargement des produits:', error);
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur lors du chargement des produits:', error);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, categoryFilter, statusFilter, stockFilter]);
 
   // Charger les statistiques
-  const loadStats = async () => {
+  const loadStats = useCallback(async (signal = null) => {
     try {
-      const response = await api.get('/api/products/stats');
+      const config = signal ? { signal } : {};
+      const response = await api.get('/api/products/stats', config);
       setStats(response.data);
     } catch (error) {
-      console.error('Erreur lors du chargement des stats:', error);
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur lors du chargement des stats:', error);
+      }
     }
-  };
+  }, []);
+
+  // Chargement initial
+  useEffect(() => {
+    const controller = new AbortController();
+    loadProducts(controller.signal);
+    loadStats(controller.signal);
+    return () => controller.abort();
+  }, [loadProducts, loadStats]);
 
   // Créer un nouveau produit
   const handleCreate = () => {
@@ -92,52 +109,59 @@ const AdminProductsManager = () => {
   };
 
   // Supprimer un produit
-  const handleDelete = async (productId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
-      return;
-    }
+  const handleDeleteClick = (productId) => {
+    setProductToDelete(productId);
+    setShowDeleteConfirm(true);
+  };
 
+  const confirmDelete = async () => {
     try {
-      await api.delete(`/api/products/${productId}`);
+      await api.delete(`/api/products/${productToDelete}`);
+      toast.success('Produit supprimé avec succès');
+      setShowDeleteConfirm(false);
+      setProductToDelete(null);
       loadProducts();
       loadStats();
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
-      alert('Erreur lors de la suppression du produit');
+      toast.error('Erreur lors de la suppression du produit');
     }
   };
 
   // Actions en masse
-  const handleBulkDelete = async () => {
-    if (!window.confirm(`Supprimer ${selectedProducts.length} produit(s) sélectionné(s) ?`)) {
-      return;
-    }
+  const handleBulkDeleteClick = () => {
+    setShowBulkDeleteConfirm(true);
+  };
 
+  const confirmBulkDelete = async () => {
     try {
       await Promise.all(
         selectedProducts.map(id => api.delete(`/api/products/${id}`))
       );
+      toast.success(`${selectedProducts.length} produit(s) supprimé(s) avec succès`);
       setSelectedProducts([]);
+      setShowBulkDeleteConfirm(false);
       loadProducts();
       loadStats();
     } catch (error) {
       console.error('Erreur lors de la suppression en masse:', error);
-      alert('Erreur lors de la suppression');
+      toast.error('Erreur lors de la suppression');
     }
   };
 
   const handleBulkStatusChange = async (status) => {
     try {
       await Promise.all(
-        selectedProducts.map(id => 
+        selectedProducts.map(id =>
           api.put(`/api/products/${id}`, { status })
         )
       );
+      toast.success('Statut modifié avec succès');
       setSelectedProducts([]);
       loadProducts();
     } catch (error) {
       console.error('Erreur lors du changement de statut:', error);
-      alert('Erreur lors du changement de statut');
+      toast.error('Erreur lors du changement de statut');
     }
   };
 
@@ -330,7 +354,7 @@ const AdminProductsManager = () => {
               Désactiver
             </button>
             <button
-              onClick={handleBulkDelete}
+              onClick={handleBulkDeleteClick}
               className="px-3 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm"
             >
               Supprimer
@@ -445,7 +469,7 @@ const AdminProductsManager = () => {
                           <Eye size={18} />
                         </button>
                         <button
-                          onClick={() => handleDelete(product.id)}
+                          onClick={() => handleDeleteClick(product.id)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                           title="Supprimer"
                         >
@@ -544,6 +568,69 @@ const AdminProductsManager = () => {
           }}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <BaseModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setProductToDelete(null);
+        }}
+        title="Confirmer la suppression"
+        size="md"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => {
+                setShowDeleteConfirm(false);
+                setProductToDelete(null);
+              }}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            >
+              Supprimer
+            </button>
+          </div>
+        }
+      >
+        <p className="text-gray-700">
+          Êtes-vous sûr de vouloir supprimer ce produit ? Cette action est irréversible.
+        </p>
+      </BaseModal>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <BaseModal
+        isOpen={showBulkDeleteConfirm}
+        onClose={() => setShowBulkDeleteConfirm(false)}
+        title="Confirmer la suppression en masse"
+        size="md"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => setShowBulkDeleteConfirm(false)}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={confirmBulkDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            >
+              Supprimer tout
+            </button>
+          </div>
+        }
+      >
+        <p className="text-gray-700">
+          Êtes-vous sûr de vouloir supprimer <strong>{selectedProducts.length} produit(s)</strong> ?
+          Cette action est irréversible.
+        </p>
+      </BaseModal>
     </div>
   );
 };

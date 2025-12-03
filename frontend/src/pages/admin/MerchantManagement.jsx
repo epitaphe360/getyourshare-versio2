@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Table, Button, Input, Select, Tag, Space, Card, Statistic, Row, Col,
   Modal, message, Badge, Drawer, Descriptions, Avatar, Tooltip,
@@ -40,33 +40,17 @@ const MerchantManagement = () => {
   const [selectedMerchant, setSelectedMerchant] = useState(null);
   const [merchantDetails, setMerchantDetails] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [statusFilter, subscriptionFilter]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      await Promise.all([
-        fetchMerchants(),
-        fetchStats()
-      ]);
-    } catch (error) {
-      console.error('Erreur:', error);
-      message.error('Erreur lors du chargement');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMerchants = async () => {
+  const fetchMerchants = useCallback(async (signal = null) => {
     try {
       const params = { role: 'merchant' };
       if (statusFilter && statusFilter !== 'all') params.status = statusFilter;
       if (subscriptionFilter && subscriptionFilter !== 'all') params.subscription = subscriptionFilter;
       if (searchText) params.search = searchText;
 
-      const response = await api.get('/api/admin/users', { params });
+      const config = { params };
+      if (signal) config.signal = signal;
+
+      const response = await api.get('/api/admin/users', config);
       if (response.data.success) {
         const merchantsData = response.data.users || [];
         // Ajouter des valeurs par défaut pour les compteurs
@@ -79,21 +63,49 @@ const MerchantManagement = () => {
         setMerchants(enrichedMerchants);
       }
     } catch (error) {
-      console.error('Erreur:', error);
-      message.error('Erreur lors du chargement des annonceurs');
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur:', error);
+        message.error('Erreur lors du chargement des annonceurs');
+      }
     }
-  };
+  }, [statusFilter, subscriptionFilter, searchText]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async (signal = null) => {
     try {
-      const response = await api.get('/api/admin/merchants/stats');
+      const config = signal ? { signal } : {};
+      const response = await api.get('/api/admin/merchants/stats', config);
       if (response.data.success) {
         setStats(response.data.stats);
       }
     } catch (error) {
-      console.error('Erreur:', error);
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur:', error);
+      }
     }
-  };
+  }, []);
+
+  const fetchData = useCallback(async (signal = null) => {
+    setLoading(true);
+    try {
+      await Promise.all([
+        fetchMerchants(signal),
+        fetchStats(signal)
+      ]);
+    } catch (error) {
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur:', error);
+        message.error('Erreur lors du chargement');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchMerchants, fetchStats]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchData(controller.signal);
+    return () => controller.abort();
+  }, [fetchData]);
 
   const fetchMerchantDetails = async (merchantId) => {
     try {

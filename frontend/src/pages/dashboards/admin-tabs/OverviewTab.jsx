@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CountUp from 'react-countup';
 import {
@@ -18,17 +18,13 @@ const OverviewTab = ({ stats, dateFilter, refreshKey }) => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchChartData();
-  }, [dateFilter, refreshKey]);
-
-  const fetchChartData = async () => {
+  const fetchChartData = useCallback(async (signal) => {
     try {
       setLoading(true);
       const [revenueRes, growthRes, activityRes] = await Promise.allSettled([
-        api.get(`/api/analytics/revenue-chart?period=${dateFilter}`),
-        api.get(`/api/analytics/user-growth?period=${dateFilter}`),
-        api.get('/api/activity/recent?limit=10')
+        api.get(`/api/analytics/revenue-chart?period=${dateFilter}`, { signal }),
+        api.get(`/api/analytics/user-growth?period=${dateFilter}`, { signal }),
+        api.get('/api/activity/recent?limit=10', { signal })
       ]);
 
       if (revenueRes.status === 'fulfilled') {
@@ -41,11 +37,19 @@ const OverviewTab = ({ stats, dateFilter, refreshKey }) => {
         setRecentActivity(activityRes.value.data || []);
       }
     } catch (error) {
-      console.error('Erreur chargement graphiques:', error);
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur chargement graphiques:', error);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateFilter]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchChartData(controller.signal);
+    return () => controller.abort();
+  }, [fetchChartData, refreshKey]);
 
   return (
     <div className="space-y-6">
@@ -217,8 +221,8 @@ const OverviewTab = ({ stats, dateFilter, refreshKey }) => {
           <p className="text-gray-500 text-center py-8">Aucune activité récente</p>
         ) : (
           <div className="space-y-3">
-            {recentActivity.map((activity, index) => (
-              <ActivityItem key={index} activity={activity} />
+            {recentActivity.map((activity) => (
+              <ActivityItem key={activity.id || activity.created_at || Math.random()} activity={activity} />
             ))}
           </div>
         )}

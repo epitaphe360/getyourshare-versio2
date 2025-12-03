@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import CountUp from 'react-countup';
 import { DollarSign, Sparkles, Clock, TrendingUp, ArrowUpRight, Download } from 'lucide-react';
 import { formatCurrency, formatDate, exportToCSV } from '../../../utils/helpers';
@@ -11,16 +11,13 @@ const FinanceTab = ({ stats, dateFilter, refreshKey }) => {
   const [payouts, setPayouts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchFinanceData();
-  }, [dateFilter, refreshKey]);
-
-  const fetchFinanceData = async () => {
+  const fetchFinanceData = useCallback(async (signal = null) => {
     try {
       setLoading(true);
+      const config = signal ? { signal } : {};
       const [transactionsRes, payoutsRes] = await Promise.allSettled([
-        api.get(`/api/transactions/history?period=${dateFilter}&limit=50`),
-        api.get(`/api/admin/payouts?status=pending&limit=20`)
+        api.get(`/api/transactions/history?period=${dateFilter}&limit=50`, config),
+        api.get(`/api/admin/payouts?status=pending&limit=20`, config)
       ]);
 
       if (transactionsRes.status === 'fulfilled') {
@@ -30,12 +27,20 @@ const FinanceTab = ({ stats, dateFilter, refreshKey }) => {
         setPayouts(payoutsRes.value.data.payouts || payoutsRes.value.data || []);
       }
     } catch (error) {
-      console.error('Erreur chargement finances:', error);
-      toast.error('Impossible de charger les données financières');
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur chargement finances:', error);
+        toast.error('Impossible de charger les données financières');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateFilter, toast]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchFinanceData(controller.signal);
+    return () => controller.abort();
+  }, [fetchFinanceData, refreshKey]);
 
   return (
     <div className="space-y-6">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Package, Plus, Search, Filter, Edit2, Trash2, Eye,
   ChevronLeft, ChevronRight, AlertCircle, DollarSign,
@@ -7,9 +7,12 @@ import {
 import api from '../../utils/api';
 import ServiceFormModal from '../../components/admin/ServiceFormModal';
 import ServiceDetailsModal from '../../components/admin/ServiceDetailsModal';
-import { toast } from 'react-toastify';
+import BaseModal from '../../components/modals/BaseModal';
+import { useToast } from '../../context/ToastContext';
 
 const ServiceManagement = () => {
+  const toast = useToast();
+
   // État principal
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,6 +35,10 @@ const ServiceManagement = () => {
   const [selectedService, setSelectedService] = useState(null);
   const [modalMode, setModalMode] = useState('create'); // 'create' or 'edit'
 
+  // Confirmation modal
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState(null);
+
   // Statistiques
   const [stats, setStats] = useState({
     total_services: 0,
@@ -43,14 +50,8 @@ const ServiceManagement = () => {
     taux_conversion: 0
   });
 
-  // Chargement initial
-  useEffect(() => {
-    loadServices();
-    loadStats();
-  }, [currentPage, statusFilter, categorieFilter]);
-
   // Charger les services
-  const loadServices = async () => {
+  const loadServices = useCallback(async (signal = null) => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -58,26 +59,40 @@ const ServiceManagement = () => {
         ...(categorieFilter !== 'all' && { categorie_id: categorieFilter })
       });
 
-      const response = await api.get(`/api/admin/services?${params}`);
+      const config = signal ? { signal } : {};
+      const response = await api.get(`/api/admin/services?${params}`, config);
       setServices(response.data.services || []);
       setTotalServices(response.data.total || 0);
     } catch (error) {
-      console.error('Erreur lors du chargement des services:', error);
-      toast.error('Erreur lors du chargement des services');
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur lors du chargement des services:', error);
+        toast.error('Erreur lors du chargement des services');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, categorieFilter, toast]);
 
   // Charger les statistiques
-  const loadStats = async () => {
+  const loadStats = useCallback(async (signal = null) => {
     try {
-      const response = await api.get('/api/admin/services/stats/dashboard');
+      const config = signal ? { signal } : {};
+      const response = await api.get('/api/admin/services/stats/dashboard', config);
       setStats(response.data.stats);
     } catch (error) {
-      console.error('Erreur lors du chargement des stats:', error);
+      if (error.name !== 'AbortError' && error.name !== 'CanceledError') {
+        console.error('Erreur lors du chargement des stats:', error);
+      }
     }
-  };
+  }, []);
+
+  // Chargement initial
+  useEffect(() => {
+    const controller = new AbortController();
+    loadServices(controller.signal);
+    loadStats(controller.signal);
+    return () => controller.abort();
+  }, [loadServices, loadStats, currentPage]);
 
   // Créer un nouveau service
   const handleCreate = () => {
@@ -100,14 +115,17 @@ const ServiceManagement = () => {
   };
 
   // Supprimer un service
-  const handleDelete = async (serviceId) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce service ? Tous les leads associés seront également supprimés.')) {
-      return;
-    }
+  const handleDeleteClick = (serviceId) => {
+    setServiceToDelete(serviceId);
+    setShowDeleteConfirm(true);
+  };
 
+  const confirmDelete = async () => {
     try {
-      await api.delete(`/api/admin/services/${serviceId}`);
+      await api.delete(`/api/admin/services/${serviceToDelete}`);
       toast.success('Service supprimé avec succès');
+      setShowDeleteConfirm(false);
+      setServiceToDelete(null);
       loadServices();
       loadStats();
     } catch (error) {
@@ -372,7 +390,7 @@ const ServiceManagement = () => {
                           <Edit2 size={18} />
                         </button>
                         <button
-                          onClick={() => handleDelete(service.id)}
+                          onClick={() => handleDeleteClick(service.id)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                           title="Supprimer"
                         >
@@ -446,6 +464,43 @@ const ServiceManagement = () => {
           }}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <BaseModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setServiceToDelete(null);
+        }}
+        title="Confirmer la suppression"
+        size="md"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <button
+              onClick={() => {
+                setShowDeleteConfirm(false);
+                setServiceToDelete(null);
+              }}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={confirmDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            >
+              Supprimer
+            </button>
+          </div>
+        }
+      >
+        <p className="text-gray-700 mb-2">
+          Êtes-vous sûr de vouloir supprimer ce service ?
+        </p>
+        <p className="text-sm text-red-600">
+          ⚠️ Tous les leads associés seront également supprimés. Cette action est irréversible.
+        </p>
+      </BaseModal>
     </div>
   );
 };
