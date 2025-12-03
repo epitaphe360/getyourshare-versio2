@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { CurrencyProvider } from './context/CurrencyContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { NotificationProvider } from './context/NotificationContext';
 import { I18nProvider } from './i18n/i18n';
 import Layout from './components/layout/Layout';
 import PublicLayout from './components/layout/PublicLayout';
@@ -180,6 +181,11 @@ const FeaturesHub = lazy(() => import('./pages/features/FeaturesHub'));
 const TaxDashboard = lazy(() => import('./pages/fiscal/TaxDashboard'));
 const InvoiceGenerator = lazy(() => import('./pages/fiscal/InvoiceGenerator'));
 const TaxSettings = lazy(() => import('./pages/fiscal/TaxSettings'));
+
+// ---------- Automation Dashboards (Premium SaaS Features) ----------
+const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboard'));
+const MarketingDashboard = lazy(() => import('./pages/marketing/MarketingDashboard'));
+const CRMDashboard = lazy(() => import('./pages/crm/CRMDashboard'));
 
 // Fiscal Dashboards (Role-specific)
 // const FiscalDashboardAdmin = lazy(() => import('./components/fiscal/FiscalDashboardAdmin'));
@@ -1002,6 +1008,41 @@ function App() {
                   element={
                     <RoleProtectedRoute allowedRoles={['influencer', 'admin']}>
                       <InfluencerDashboard />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                {/* ========================================
+                    AUTOMATION DASHBOARDS (PREMIUM SAAS)
+                    ROI Total: 6.42M€/month
+                ======================================== */}
+
+                {/* Inventory Management - Merchants & Admin */}
+                <Route
+                  path="/inventory"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
+                      <InventoryDashboard />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                {/* Marketing Automation - Merchants & Admin */}
+                <Route
+                  path="/marketing"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
+                      <MarketingDashboard />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                {/* CRM Automation - Commercial & Admin */}
+                <Route
+                  path="/crm"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['commercial', 'admin']}>
+                      <CRMDashboard />
                     </RoleProtectedRoute>
                   }
                 />
