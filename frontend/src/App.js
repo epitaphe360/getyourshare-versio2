@@ -187,6 +187,11 @@ const InventoryDashboard = lazy(() => import('./pages/inventory/InventoryDashboa
 const MarketingDashboard = lazy(() => import('./pages/marketing/MarketingDashboard'));
 const CRMDashboard = lazy(() => import('./pages/crm/CRMDashboard'));
 
+// ---------- 10/10 DASHBOARDS (Final Premium Features) ----------
+const ContentCalendarDashboard = lazy(() => import('./pages/content/ContentCalendarDashboard'));
+const UnifiedInboxDashboard = lazy(() => import('./pages/inbox/UnifiedInboxDashboard'));
+const ReviewManagementDashboard = lazy(() => import('./pages/reviews/ReviewManagementDashboard'));
+
 // Fiscal Dashboards (Role-specific)
 // const FiscalDashboardAdmin = lazy(() => import('./components/fiscal/FiscalDashboardAdmin'));
 // const FiscalDashboardMerchant = lazy(() => import('./components/fiscal/FiscalDashboardMerchant'));
@@ -1043,6 +1048,41 @@ function App() {
                   element={
                     <RoleProtectedRoute allowedRoles={['commercial', 'admin']}>
                       <CRMDashboard />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                {/* ========================================
+                    10/10 DASHBOARDS (FINAL PREMIUM FEATURES)
+                    Content Calendar, Unified Inbox, Review Management
+                ======================================== */}
+
+                {/* Content Calendar - Influencers & Admin */}
+                <Route
+                  path="/content-calendar"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['influencer', 'admin']}>
+                      <ContentCalendarDashboard />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                {/* Unified Inbox - Commercial & Admin */}
+                <Route
+                  path="/unified-inbox"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['commercial', 'admin']}>
+                      <UnifiedInboxDashboard />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                {/* Review Management - Merchant & Admin */}
+                <Route
+                  path="/review-management"
+                  element={
+                    <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
+                      <ReviewManagementDashboard />
                     </RoleProtectedRoute>
                   }
                 />
