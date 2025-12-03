@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { CurrencyProvider } from './context/CurrencyContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { I18nProvider } from './i18n/i18n';
 import Layout from './components/layout/Layout';
 import PublicLayout from './components/layout/PublicLayout';
@@ -10,6 +11,7 @@ import ChatbotWidget from './components/bot/ChatbotWidget';
 import WhatsAppFloatingButton from './components/social/WhatsAppFloatingButton';
 import CookieConsent from './components/CookieConsent';
 import LoadingFallback from './components/LoadingFallback';
+import GlobalSearch from './components/GlobalSearch';
 import performanceUtils from './utils/performance';
 import { usePerformanceMonitor } from './hooks/usePerformance';
 import './App.css';
@@ -279,11 +281,12 @@ function App() {
   }, []);
 
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <CurrencyProvider>
-          <I18nProvider>
-            <BrowserRouter
+    <ThemeProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <CurrencyProvider>
+            <I18nProvider>
+              <BrowserRouter
             future={{
               v7_startTransition: true,
               v7_relativeSplatPath: true
@@ -1343,11 +1346,15 @@ function App() {
 
             {/* Bannière Cookies (RGPD) */}
             <CookieConsent />
+
+            {/* Recherche Globale (Cmd+K / Ctrl+K) */}
+            <GlobalSearch />
           </BrowserRouter>
-          </I18nProvider>
-        </CurrencyProvider>
-      </ToastProvider>
-    </AuthProvider>
+            </I18nProvider>
+          </CurrencyProvider>
+        </ToastProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
