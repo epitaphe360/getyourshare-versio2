@@ -1054,57 +1054,58 @@ async def get_subscription_invoices(subscription_id: str):
             
         stripe_sub_id = sub_result.data.get("stripe_subscription_id")
         
-        if not stripe_sub_id:
-            # Return dummy invoices for demo purposes if no stripe ID
-            return {"invoices": _get_dummy_invoices(subscription_id)}
-            
-        # Récupérer les factures Stripe
-        invoices = stripe.Invoice.list(subscription=stripe_sub_id, limit=24)
-        
-        if not invoices.data:
-             return {"invoices": _get_dummy_invoices(subscription_id)}
-
         formatted_invoices = []
-        for inv in invoices.data:
-            formatted_invoices.append({
-                "id": inv.id,
-                "number": inv.number,
-                "amount_paid": inv.amount_paid / 100, # Stripe amounts are in cents
-                "currency": inv.currency.upper(),
-                "status": inv.status,
-                "created": datetime.fromtimestamp(inv.created),
-                "pdf_url": inv.invoice_pdf,
-                "period_start": datetime.fromtimestamp(inv.period_start),
-                "period_end": datetime.fromtimestamp(inv.period_end)
-            })
+        
+        # 1. Try to fetch from local invoices table first
+        try:
+            local_invoices = supabase.table("invoices").select("*").eq("subscription_id", subscription_id).order("created_at", desc=True).execute()
+            if local_invoices.data:
+                for inv in local_invoices.data:
+                    formatted_invoices.append({
+                        "id": inv.get("id"),
+                        "number": inv.get("invoice_number"),
+                        "amount_paid": inv.get("amount"),
+                        "currency": "MAD", # Default to MAD for local
+                        "status": inv.get("status"),
+                        "created": inv.get("created_at"),
+                        "pdf_url": inv.get("pdf_url"),
+                        "period_start": inv.get("created_at"), # Approx
+                        "period_end": inv.get("due_date")
+                    })
+        except Exception as e:
+            logger.warning(f"Error fetching local invoices: {e}")
+
+        # 2. If Stripe ID exists, fetch from Stripe and merge/deduplicate
+        if stripe_sub_id:
+            try:
+                invoices = stripe.Invoice.list(subscription=stripe_sub_id, limit=24)
+                if invoices.data:
+                    for inv in invoices.data:
+                        # Check if already added from local (by stripe_invoice_id if we had it, or just append)
+                        # For now, just append if not empty
+                        formatted_invoices.append({
+                            "id": inv.id,
+                            "number": inv.number,
+                            "amount_paid": inv.amount_paid / 100, # Stripe amounts are in cents
+                            "currency": inv.currency.upper(),
+                            "status": inv.status,
+                            "created": datetime.fromtimestamp(inv.created),
+                            "pdf_url": inv.invoice_pdf,
+                            "period_start": datetime.fromtimestamp(inv.period_start),
+                            "period_end": datetime.fromtimestamp(inv.period_end)
+                        })
+            except Exception as e:
+                logger.warning(f"Error fetching Stripe invoices: {e}")
             
         return {"invoices": formatted_invoices}
         
     except Exception as e:
         logger.error(f"Error fetching invoices: {e}")
-        # Return dummy invoices instead of empty list on error for demo
-        return {"invoices": _get_dummy_invoices(subscription_id)}
+        return {"invoices": []}
 
 def _get_dummy_invoices(sub_id):
-    """Génère des factures factices pour la démo"""
-    import random
-    invoices = []
-    base_date = datetime.now()
-    
-    for i in range(3):
-        date = base_date - timedelta(days=30*i)
-        invoices.append({
-            "id": f"inv_demo_{sub_id}_{i}",
-            "number": f"INV-{20250000 + i}",
-            "amount_paid": random.choice([199.0, 499.0, 2999.0]),
-            "currency": "MAD",
-            "status": "paid",
-            "created": date,
-            "pdf_url": "#",
-            "period_start": date,
-            "period_end": date + timedelta(days=30)
-        })
-    return invoices
+    """Deprecated: No longer used"""
+    return []
 
 class AdminCreateSubscriptionRequest(BaseModel):
     user_email: str
@@ -1515,8 +1516,8 @@ async def admin_refund_subscription(subscription_id: str, request: AdminRefundRe
             #     )
             #     refund_result["stripe_refund_id"] = refund.id
             #     refund_result["status"] = "completed"
-            refund_result["status"] = "completed"
-            refund_result["note"] = "Remboursement Stripe simulé (intégration à finaliser)"
+            refund_result["status"] = "pending"
+            refund_result["note"] = "Remboursement Stripe en attente"
         
         elif request.type == "credit":
             # Ajouter un crédit au compte utilisateur
@@ -1528,8 +1529,19 @@ async def admin_refund_subscription(subscription_id: str, request: AdminRefundRe
             refund_result["status"] = "manual_required"
             refund_result["note"] = "Remboursement manuel requis (virement, etc.)"
         
-        # 4. Enregistrer le remboursement dans la table refunds (à créer)
-        # TODO: Créer table refunds pour tracking
+        # 4. Enregistrer le remboursement dans la table refunds
+        try:
+            refund_data = {
+                "subscription_id": subscription_id,
+                "amount": refund_amount,
+                "reason": request.reason,
+                "status": refund_result["status"],
+                "type": request.type,
+                "created_at": datetime.utcnow().isoformat()
+            }
+            supabase.table("refunds").insert(refund_data).execute()
+        except Exception as e:
+            logger.error(f"Error saving refund: {e}")
         
         # 5. Si remboursement complet, annuler l'abonnement
         if refund_amount >= monthly_fee:
@@ -1582,7 +1594,7 @@ async def get_all_subscriptions_admin(
         query = supabase.table("subscriptions").select("""
             *,
             subscription_plans (
-                id, name, code, type, price_mad, price, currency
+                id, name, code, type, price_mad, price
             )
         """)
         

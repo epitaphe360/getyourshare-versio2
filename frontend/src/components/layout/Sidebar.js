@@ -145,7 +145,7 @@ const Sidebar = () => {
       {
         title: translations.marketplace,
         icon: <ShoppingCart size={20} />,
-        path: '/marketplace',
+        path: '/dashboard/marketplace',
       },
       {
         title: translations.my_campaigns,
@@ -213,6 +213,11 @@ const Sidebar = () => {
         title: translations.my_products,
         icon: <ShoppingCart size={20} />,
         path: '/products',
+      },
+      {
+        title: translations.services,
+        icon: <Briefcase size={20} />,
+        path: '/services',
       },
       {
         title: translations.my_campaigns,
@@ -337,7 +342,7 @@ const Sidebar = () => {
       {
         title: translations.marketplace,
         icon: <ShoppingCart size={20} />,
-        path: '/marketplace',
+        path: '/dashboard/marketplace',
       },
       {
         title: 'Modération IA',
@@ -477,7 +482,7 @@ const Sidebar = () => {
       {
         title: translations.marketplace,
         icon: <ShoppingCart size={20} />,
-        path: '/marketplace',
+        path: '/dashboard/marketplace',
       },
       {
         title: translations.my_campaigns,

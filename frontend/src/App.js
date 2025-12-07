@@ -315,13 +315,16 @@ function App() {
                 <Route path="/pricing-v3" element={<PricingV3 />} />
                 <Route path="/marketplace-4tabs" element={<MarketplaceFourTabs />} />
                 <Route path="/marketplace" element={<PublicLayout><MarketplaceGroupon /></PublicLayout>} />
+                {/* Route Marketplace pour le Dashboard (garder le layout) */}
+                <Route path="/dashboard/marketplace" element={<ProtectedRoute><MarketplaceGroupon /></ProtectedRoute>} />
+                <Route path="/dashboard/marketplace/product/:productId" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
                 <Route path="/marketplace/product/:productId" element={<PublicLayout><ProductDetail /></PublicLayout>} />
                 <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
                 <Route path="/roi-calculator" element={<ROICalculator />} />
 
                 {/* Services & Lead Generation (Public Access) */}
-                <Route path="/services" element={<PublicLayout><PublicServices /></PublicLayout>} />
-                <Route path="/services/:id" element={<PublicLayout><ServiceRequest /></PublicLayout>} />
+                <Route path="/marketplace/services" element={<PublicLayout><PublicServices /></PublicLayout>} />
+                <Route path="/marketplace/services/:id" element={<PublicLayout><ServiceRequest /></PublicLayout>} />
 
                 {/* Legal Pages */}
                 <Route path="/privacy" element={<PublicLayout><Privacy /></PublicLayout>} />
@@ -1146,81 +1149,90 @@ function App() {
                 ======================================== */}
                 
                 {/* Admin - Dashboard fiscal global */}
-                {/* <Route
+                <Route
                   path="/fiscal/admin"
                   element={
                     <RoleProtectedRoute allowedRoles={['admin']}>
-                      <FiscalDashboardAdmin />
+                      <TaxDashboard />
                     </RoleProtectedRoute>
                   }
-                /> */}
+                />
                 
                 {/* Merchant - Dashboard fiscal marchand */}
-                {/* <Route
+                <Route
                   path="/fiscal/merchant"
                   element={
                     <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
-                      <FiscalDashboardMerchant />
+                      <TaxDashboard />
                     </RoleProtectedRoute>
                   }
-                /> */}
+                />
                 
                 {/* Influencer - Dashboard fiscal influenceur (auto-entrepreneur) */}
-                {/* <Route
+                <Route
                   path="/fiscal/influencer"
                   element={
                     <RoleProtectedRoute allowedRoles={['influencer', 'admin']}>
-                      <FiscalDashboardInfluencer />
+                      <TaxDashboard />
                     </RoleProtectedRoute>
                   }
-                /> */}
+                />
                 
                 {/* Commercial - Dashboard fiscal salarié */}
-                {/* <Route
+                <Route
                   path="/fiscal/commercial"
                   element={
                     <RoleProtectedRoute allowedRoles={['commercial', 'admin']}>
-                      <FiscalDashboardCommercial />
+                      <TaxDashboard />
                     </RoleProtectedRoute>
                   }
-                /> */}
+                />
                 
                 {/* Outils fiscaux - Accessibles selon rôle */}
-                {/* <Route
+                <Route
                   path="/fiscal/invoice/new"
                   element={
                     <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
-                      <InvoiceGeneratorNew />
+                      <InvoiceGenerator />
                     </RoleProtectedRoute>
                   }
-                /> */}
+                />
                 
-                {/* <Route
+                <Route
                   path="/fiscal/vat/calculator"
                   element={
                     <ProtectedRoute>
-                      <VATCalculator />
+                      <TaxDashboard />
                     </ProtectedRoute>
                   }
-                /> */}
+                />
                 
-                {/* <Route
+                <Route
                   path="/fiscal/vat/declare"
                   element={
                     <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
-                      <TaxDeclarationForm />
+                      <TaxDashboard />
                     </RoleProtectedRoute>
                   }
-                /> */}
+                />
                 
-                {/* <Route
+                <Route
                   path="/fiscal/accounting/export"
                   element={
                     <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
-                      <AccountingExport />
+                      <TaxDashboard />
                     </RoleProtectedRoute>
                   }
-                /> */}
+                />
+                
+                <Route
+                  path="/fiscal/settings"
+                  element={
+                    <ProtectedRoute>
+                      <TaxSettings />
+                    </ProtectedRoute>
+                  }
+                />
                 
                 {/* Routes legacy - Redirection vers nouvelles routes */}
                 <Route

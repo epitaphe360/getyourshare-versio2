@@ -43,12 +43,12 @@ async def get_earnings(current_user: Dict = Depends(get_current_user_from_cookie
             # Pour l'instant, on suppose une structure similaire ou on retourne des données mockées si la table n'existe pas
             try:
                 # Si une table commissions_commercial existe
-                commissions_result = supabase.table("commercial_commissions").select("amount").eq("commercial_id", user_id).execute()
+                commissions_result = supabase.table("mlm_commissions").select("amount").eq("commercial_id", user_id).execute()
                 commissions = commissions_result.data if commissions_result.data else []
                 total_earned = sum([float(c.get("amount", 0)) for c in commissions])
                 
                 # Payouts
-                payouts_result = supabase.table("commercial_payouts").select("amount, status").eq("commercial_id", user_id).execute()
+                payouts_result = supabase.table("payouts").select("amount, status").eq("user_id", user_id).execute()
                 payouts = payouts_result.data if payouts_result.data else []
                 total_withdrawn = sum([float(p.get("amount", 0)) for p in payouts if p.get("status") in ["paid", "processing"]])
                 pending_payouts = sum([float(p.get("amount", 0)) for p in payouts if p.get("status") == "pending"])

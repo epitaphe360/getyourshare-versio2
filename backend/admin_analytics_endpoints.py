@@ -84,7 +84,7 @@ async def get_metrics(
 
         # Récupérer les abonnements actifs
         active_subs_response = supabase.table('subscriptions')\
-            .select('*, subscription_plans(price_mad, price, currency)')\
+            .select('*, subscription_plans(price_mad, price)')\
             .eq('status', 'active')\
             .execute()
         
@@ -140,19 +140,6 @@ async def get_metrics(
             prev_mrr += float(price)
 
         revenue_growth = ((mrr - prev_mrr) / prev_mrr * 100) if prev_mrr > 0 else 0
-
-        # Si aucune donnée n'est trouvée (base vide), retourner des données de démonstration
-        if active_users == 0 and mrr == 0:
-            return {
-                'metrics': MetricsResponse(
-                    mrr=12500.00,
-                    arr=150000.00,
-                    churn_rate=2.5,
-                    active_users=190,
-                    new_users=45,
-                    revenue_growth=15.5
-                )
-            }
 
         return {
             'metrics': MetricsResponse(
@@ -227,22 +214,6 @@ async def get_revenue_data(
             
             current_date += timedelta(days=1)
 
-        # Si aucune donnée n'est trouvée (base vide), retourner des données de démonstration
-        if not data or all(d['revenue'] == 0 for d in data):
-            data = []
-            current_date = start_date
-            while current_date <= end_date:
-                # Générer une courbe croissante avec un peu de variation
-                days_diff = (current_date - start_date).days
-                base_revenue = 5000 + (days_diff * 50)
-                variation = (days_diff % 5) * 100
-                
-                data.append({
-                    'date': current_date.strftime('%Y-%m-%d'),
-                    'revenue': round(base_revenue + variation, 2)
-                })
-                current_date += timedelta(days=1)
-
         return {'data': data}
 
     except Exception as e:
@@ -304,23 +275,6 @@ async def get_users_growth(
             
             current_date += timedelta(days=1)
 
-        # Si aucune donnée n'est trouvée (base vide), retourner des données de démonstration
-        if not data or all(d['total_users'] == 0 for d in data):
-            data = []
-            current_date = start_date
-            while current_date <= end_date:
-                days_diff = (current_date - start_date).days
-                base_users = 100 + days_diff
-                
-                data.append({
-                    'date': current_date.strftime('%Y-%m-%d'),
-                    'total_users': base_users,
-                    'merchants': int(base_users * 0.4),
-                    'influencers': int(base_users * 0.5),
-                    'commercials': int(base_users * 0.1)
-                })
-                current_date += timedelta(days=1)
-
         return {'data': data}
 
     except Exception as e:
@@ -377,20 +331,6 @@ async def get_subscriptions_data(
             })
             
             current_date = next_date
-
-        # Si aucune donnée n'est trouvée (base vide), retourner des données de démonstration
-        if not data or all(d['new_subscriptions'] == 0 for d in data):
-            data = []
-            current_date = start_date
-            while current_date <= end_date:
-                days_diff = (current_date - start_date).days
-                
-                data.append({
-                    'date': current_date.strftime('%Y-%m-%d'),
-                    'new_subscriptions': 2 + (days_diff % 3),
-                    'cancelled_subscriptions': 0 if days_diff % 5 != 0 else 1
-                })
-                current_date += timedelta(days=1)
 
         return {'data': data}
 
@@ -456,21 +396,6 @@ async def get_churn_data(
             
             current_date = next_date
 
-        # Si aucune donnée n'est trouvée (base vide), retourner des données de démonstration
-        if not data or all(d['churn_rate'] == 0 for d in data):
-            data = []
-            current_date = start_date
-            while current_date <= end_date:
-                days_diff = (current_date - start_date).days
-                churn = 2.0 + (days_diff % 10) / 10.0
-                
-                data.append({
-                    'date': current_date.strftime('%Y-%m-%d'),
-                    'churn_rate': round(churn, 2),
-                    'retention_rate': round(100 - churn, 2)
-                })
-                current_date += timedelta(days=1)
-
         return {'data': data}
 
     except Exception as e:
@@ -508,15 +433,6 @@ async def get_plan_distribution(
                     'count': count
                 })
 
-        # Si aucune donnée n'est trouvée (base vide), retourner des données de démonstration
-        if not distribution:
-            distribution = [
-                {'name': 'Starter', 'count': 45},
-                {'name': 'Pro', 'count': 25},
-                {'name': 'Enterprise', 'count': 10},
-                {'name': 'Free', 'count': 120}
-            ]
-
         return {'data': distribution}
 
     except Exception as e:
@@ -537,38 +453,78 @@ async def get_top_performers(
     """
     try:
         start_date, end_date = get_date_range(days)
-
-        # TODO: Implémenter avec une vraie table de transactions
-        # Pour l'instant, retourner des données de démonstration
-        performers = [
-            {
-                'rank': 1,
-                'user_id': 'user_1',
-                'user_name': 'Mohammed Alami',
-                'email': 'mohammed@example.com',
-                'role': 'merchant',
-                'revenue': 15000.0,
-                'transactions_count': 45
-            },
-            {
-                'rank': 2,
-                'user_id': 'user_2',
-                'user_name': 'Fatima Zahra',
-                'email': 'fatima@example.com',
-                'role': 'influencer',
-                'revenue': 12500.0,
-                'transactions_count': 38
-            },
-            {
-                'rank': 3,
-                'user_id': 'user_3',
-                'user_name': 'Youssef Bennani',
-                'email': 'youssef@example.com',
-                'role': 'commercial',
-                'revenue': 10200.0,
-                'transactions_count': 32
-            }
-        ]
+        
+        # 1. Récupérer les commissions (Influencers & Commercials)
+        commissions_res = supabase.table('commissions')\
+            .select('influencer_id, amount')\
+            .eq('status', 'approved')\
+            .gte('created_at', start_date.isoformat())\
+            .execute()
+            
+        user_stats = {}
+        
+        for comm in (commissions_res.data or []):
+            uid = comm.get('influencer_id')
+            if not uid: continue
+            
+            if uid not in user_stats:
+                user_stats[uid] = {'revenue': 0.0, 'transactions': 0}
+            
+            user_stats[uid]['revenue'] += float(comm.get('amount', 0))
+            user_stats[uid]['transactions'] += 1
+            
+        # 2. Récupérer les factures payées (Merchants)
+        invoices_res = supabase.table('invoices')\
+            .select('user_id, amount')\
+            .eq('status', 'paid')\
+            .gte('created_at', start_date.isoformat())\
+            .execute()
+            
+        for inv in (invoices_res.data or []):
+            uid = inv.get('user_id')
+            if not uid: continue
+            
+            if uid not in user_stats:
+                user_stats[uid] = {'revenue': 0.0, 'transactions': 0}
+                
+            user_stats[uid]['revenue'] += float(inv.get('amount', 0))
+            user_stats[uid]['transactions'] += 1
+            
+        # 3. Récupérer les infos utilisateurs
+        if not user_stats:
+            return {'data': []}
+            
+        user_ids = list(user_stats.keys())
+        users_res = supabase.table('users')\
+            .select('id, first_name, last_name, email, role')\
+            .in_('id', user_ids)\
+            .execute()
+            
+        users_map = {u['id']: u for u in (users_res.data or [])}
+        
+        # 4. Construire la liste finale
+        performers = []
+        for uid, stats in user_stats.items():
+            user = users_map.get(uid, {})
+            name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+            if not name:
+                name = user.get('email', 'Unknown')
+                
+            performers.append({
+                'user_id': uid,
+                'user_name': name,
+                'email': user.get('email'),
+                'role': user.get('role'),
+                'revenue': round(stats['revenue'], 2),
+                'transactions_count': stats['transactions']
+            })
+            
+        # Trier par revenu décroissant
+        performers.sort(key=lambda x: x['revenue'], reverse=True)
+        
+        # Ajouter le rang
+        for i, p in enumerate(performers):
+            p['rank'] = i + 1
 
         return {'data': performers[:limit]}
 
@@ -610,14 +566,6 @@ async def get_revenue_by_source(
 
         # Formatter pour le PieChart
         data = [{'name': k.capitalize(), 'value': v} for k, v in sources.items()]
-
-        # Si aucune donnée n'est trouvée (base vide), retourner des données de démonstration
-        if not data:
-            data = [
-                {'name': 'Abonnements', 'value': 12500.0},
-                {'name': 'Commissions', 'value': 5400.0},
-                {'name': 'Services', 'value': 2895.76}
-            ]
 
         return {'data': data}
 

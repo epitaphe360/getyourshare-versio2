@@ -8,7 +8,7 @@ from datetime import datetime
 sys.path.append(os.path.join(os.getcwd(), 'backend'))
 
 # Configuration
-BASE_URL = "http://localhost:8005"
+BASE_URL = "http://localhost:5000"
 MERCHANT_EMAIL = "boutique.maroc@getyourshare.com"
 INFLUENCER_EMAIL = "hassan.oudrhiri@getyourshare.com"
 PASSWORD = "Test123!"
@@ -17,6 +17,29 @@ def print_step(step):
     print(f"\n{'='*50}")
     print(f"STEP: {step}")
     print(f"{'='*50}")
+
+def register(email, password, role):
+    print_step(f"Registering {role} ({email})")
+    url = f"{BASE_URL}/api/auth/register"
+    payload = {
+        "email": email,
+        "password": password,
+        "role": role.lower()
+    }
+    try:
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            print(f"✅ Registration successful for {email}")
+            return True
+        elif response.status_code == 400 and "Email déjà utilisé" in response.text:
+            print(f"⚠️ User {email} already exists. Proceeding to login.")
+            return True
+        else:
+            print(f"❌ Registration failed: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Connection error during registration: {e}")
+        return False
 
 def login(email, password, role_name):
     print_step(f"Login as {role_name} ({email})")
@@ -46,6 +69,9 @@ def create_test_product(merchant_id, token):
     # But we are running this as a script, so we can import supabase
     try:
         from supabase_client import supabase
+        
+        # Use user_id as merchant_id because products table references users table
+        # The argument 'merchant_id' passed to this function is actually the user_id from the login response
         
         product_name = f"Test Product {datetime.now().strftime('%H%M%S')}"
         
@@ -125,6 +151,7 @@ def verify_link(token, product_id):
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         data = response.json()
+        print(f"DEBUG: Response from my-links: {json.dumps(data, indent=2)}")
         links = data.get("links", [])
         
         # Find link for our product
@@ -145,6 +172,10 @@ def verify_link(token, product_id):
 def main():
     print("🚀 STARTING CAMPAIGN SIMULATION TEST")
     
+    # 0. Register Users
+    if not register(MERCHANT_EMAIL, PASSWORD, "merchant"): return
+    if not register(INFLUENCER_EMAIL, PASSWORD, "influencer"): return
+
     # 1. Login Merchant
     merchant_token, merchant_user = login(MERCHANT_EMAIL, PASSWORD, "Merchant")
     if not merchant_token: return

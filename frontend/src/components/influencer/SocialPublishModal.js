@@ -110,15 +110,19 @@ const SocialPublishModal = ({ link, onClose, onSuccess }) => {
     }
   };
 
-  const defaultCaption = `🔥 Découvrez ${link.product?.name || 'cette offre'} !
+  const item = link.item_details || link.product || {};
+  const isService = link.item_type === 'service';
+  const price = item.price || item.discounted_price;
 
-${link.product?.description || ''}
+  const defaultCaption = `🔥 Découvrez ${item.name || 'cette offre'} !
 
-💰 Prix: ${link.product?.discounted_price?.toLocaleString() || 'N/A'} DH
-${link.product?.discount_percentage ? `🎁 -${link.product.discount_percentage}% de réduction!\n` : ''}
-👉 Commandez maintenant: ${link.full_url}
+${item.description || ''}
 
-#ShareYourSales #Maroc #Deal #Shopping #Promotion`;
+💰 Prix: ${price?.toLocaleString() || 'N/A'} DH
+${item.discount_percentage ? `🎁 -${item.discount_percentage}% de réduction!\n` : ''}
+👉 ${isService ? 'Réservez' : 'Commandez'} maintenant: ${link.full_url}
+
+#ShareYourSales #Maroc #Deal #${isService ? 'Service' : 'Shopping'} #Promotion`;
 
   return (
     <Modal isOpen={true} onClose={onClose} size="large">
@@ -133,12 +137,12 @@ ${link.product?.discount_percentage ? `🎁 -${link.product.discount_percentage}
           </p>
         </div>
 
-        {/* Product Preview */}
+        {/* Product/Service Preview */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg flex items-start space-x-4">
-          {link.product?.images && link.product.images[0] ? (
+          {item.images && item.images[0] ? (
             <img
-              src={link.product.images[0]}
-              alt={link.product.name}
+              src={item.images[0]}
+              alt={item.name}
               className="w-20 h-20 object-cover rounded-lg"
             />
           ) : (
@@ -147,11 +151,11 @@ ${link.product?.discount_percentage ? `🎁 -${link.product.discount_percentage}
             </div>
           )}
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 mb-1">{link.product?.name}</h3>
+            <h3 className="font-semibold text-gray-900 mb-1">{item.name}</h3>
             <p className="text-sm text-gray-600 mb-2">
-              Prix: {link.product?.discounted_price?.toLocaleString()} DH
-              {link.product?.discount_percentage && (
-                <span className="ml-2 text-red-600">-{link.product.discount_percentage}%</span>
+              Prix: {price?.toLocaleString()} DH
+              {item.discount_percentage && (
+                <span className="ml-2 text-red-600">-{item.discount_percentage}%</span>
               )}
             </p>
             <code className="text-xs bg-white px-2 py-1 rounded">{link.full_url}</code>

@@ -227,10 +227,10 @@ const SubscriptionsTab = ({ stats, refreshKey, onRefresh }) => {
 
       return {
         id: s.id,
-        utilisateur: s.user?.email || 'N/A',
-        role: s.user?.role || 'N/A',
-        plan: s.plan,
-        prix_mensuel: planPrices[s.plan] || 0,
+        utilisateur: s.user_email || 'N/A',
+        role: s.user_role || 'N/A',
+        plan: s.plan_name || s.plan || 'N/A',
+        prix_mensuel: s.plan_price || planPrices[s.plan] || 0,
         statut: s.status,
         debut_periode: formatDate(s.period_start),
         fin_periode: formatDate(s.period_end),
@@ -246,13 +246,14 @@ const SubscriptionsTab = ({ stats, refreshKey, onRefresh }) => {
   // ========== FILTRAGE ==========
   const filteredSubscriptions = subscriptions.filter(subscription => {
     // Recherche
-    const userEmail = subscription.user?.email || '';
+    const userEmail = subscription.user_email || '';
     if (searchTerm && !userEmail.toLowerCase().includes(searchTerm.toLowerCase())) {
       return false;
     }
 
     // Plan
-    if (planFilter !== 'all' && subscription.plan !== planFilter) {
+    const subPlan = subscription.plan_name || subscription.plan || '';
+    if (planFilter !== 'all' && !subPlan.toLowerCase().includes(planFilter.toLowerCase())) {
       return false;
     }
 
@@ -262,7 +263,7 @@ const SubscriptionsTab = ({ stats, refreshKey, onRefresh }) => {
     }
 
     // Rôle
-    if (roleFilter !== 'all' && subscription.user?.role !== roleFilter) {
+    if (roleFilter !== 'all' && subscription.user_role !== roleFilter) {
       return false;
     }
 
@@ -540,7 +541,7 @@ const SubscriptionsTab = ({ stats, refreshKey, onRefresh }) => {
                 filteredSubscriptions.map(subscription => {
                   const progress = getPeriodProgress(subscription);
                   const daysRemaining = getDaysRemaining(subscription);
-                  const price = planPrices[subscription.plan] || 0;
+                  const price = subscription.plan_price || planPrices[subscription.plan] || 0;
 
                   return (
                     <tr
@@ -550,16 +551,16 @@ const SubscriptionsTab = ({ stats, refreshKey, onRefresh }) => {
                       <td className="px-6 py-4">
                         <div>
                           <p className="font-medium text-gray-900">
-                            {subscription.user?.email || 'Utilisateur inconnu'}
+                            {subscription.user_email || subscription.user_name || 'N/A'}
                           </p>
                           <p className="text-sm text-gray-500 capitalize">
-                            {subscription.user?.role || 'N/A'}
+                            {subscription.user_role || 'N/A'}
                           </p>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium capitalize">
-                          {subscription.plan}
+                        <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium capitalize">
+                          {subscription.plan_name || subscription.plan || 'Free'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -682,17 +683,17 @@ const SubscriptionsTab = ({ stats, refreshKey, onRefresh }) => {
             {/* Informations principales */}
             <div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                {selectedSubscription.user?.email}
+                {selectedSubscription.user_email || selectedSubscription.user_name || 'N/A'}
               </h3>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-500">Plan</p>
-                  <p className="text-lg font-semibold capitalize">{selectedSubscription.plan}</p>
+                  <p className="text-lg font-semibold capitalize">{selectedSubscription.plan_name || selectedSubscription.plan || 'Free'}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-500">Prix/mois</p>
-                  <p className="text-lg font-semibold">{formatCurrency(planPrices[selectedSubscription.plan] || 0)}</p>
+                  <p className="text-lg font-semibold">{formatCurrency(selectedSubscription.plan_price || planPrices[selectedSubscription.plan] || 0)}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-500">Statut</p>
@@ -700,7 +701,7 @@ const SubscriptionsTab = ({ stats, refreshKey, onRefresh }) => {
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-sm text-gray-500">Rôle</p>
-                  <p className="text-lg font-semibold capitalize">{selectedSubscription.user?.role || 'N/A'}</p>
+                  <p className="text-lg font-semibold capitalize">{selectedSubscription.user_role || 'N/A'}</p>
                 </div>
               </div>
             </div>

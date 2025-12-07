@@ -52,9 +52,9 @@ const UsersTab = ({ stats, refreshKey, onRefresh }) => {
 
   const handleToggleStatus = async (user) => {
     try {
-      const newStatus = !user.is_active;
-      await api.patch(`/api/admin/users/${user.id}/status`, { is_active: newStatus });
-      toast.success(`Utilisateur ${newStatus ? 'activé' : 'suspendu'} avec succès`);
+      const newStatus = user.status === 'active' ? 'suspended' : 'active';
+      await api.patch(`/api/admin/users/${user.id}/status`, { status: newStatus });
+      toast.success(`Utilisateur ${newStatus === 'active' ? 'activé' : 'suspendu'} avec succès`);
       fetchUsers();
     } catch (error) {
       toast.error('Impossible de modifier le statut');
@@ -71,8 +71,8 @@ const UsersTab = ({ stats, refreshKey, onRefresh }) => {
       m.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' ||
-      (statusFilter === 'active' && m.is_active) ||
-      (statusFilter === 'inactive' && !m.is_active);
+      (statusFilter === 'active' && m.status === 'active') ||
+      (statusFilter === 'inactive' && m.status !== 'active');
     return matchesSearch && matchesStatus;
   });
 
@@ -82,8 +82,8 @@ const UsersTab = ({ stats, refreshKey, onRefresh }) => {
       i.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       i.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' ||
-      (statusFilter === 'active' && i.is_active) ||
-      (statusFilter === 'inactive' && !i.is_active);
+      (statusFilter === 'active' && i.status === 'active') ||
+      (statusFilter === 'inactive' && i.status !== 'active');
     return matchesSearch && matchesStatus;
   });
 
@@ -238,11 +238,11 @@ const UserTable = ({ title, icon, users, loading, onToggleStatus, onViewDetails,
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    user.is_active
+                    user.status === 'active'
                       ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
                   }`}>
-                    {user.is_active ? 'Actif' : 'Suspendu'}
+                    {user.status === 'active' ? 'Actif' : 'Suspendu'}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -256,10 +256,10 @@ const UserTable = ({ title, icon, users, loading, onToggleStatus, onViewDetails,
                     </button>
                     <button
                       onClick={() => onToggleStatus(user)}
-                      className={user.is_active ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
-                      title={user.is_active ? 'Suspendre' : 'Activer'}
+                      className={user.status === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+                      title={user.status === 'active' ? 'Suspendre' : 'Activer'}
                     >
-                      {user.is_active ? <Lock size={18} /> : <Unlock size={18} />}
+                      {user.status === 'active' ? <Lock size={18} /> : <Unlock size={18} />}
                     </button>
                     <a
                       href={`mailto:${user.email}`}

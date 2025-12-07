@@ -116,10 +116,21 @@ const MarketplaceV2 = () => {
       return;
     }
 
+    const product = products.find(p => p.id === productId) || featuredProducts.find(p => p.id === productId) || dealsOfDay.find(p => p.id === productId);
+    if (!product) return;
+
     try {
-      const response = await api.post(`/api/marketplace/products/${productId}/request-affiliate`, {
-        message: 'Je souhaite promouvoir ce produit sur mes réseaux sociaux.'
-      });
+      const payload = {
+        influencer_message: 'Je souhaite promouvoir ce produit sur mes réseaux sociaux.'
+      };
+
+      if (product.is_service) {
+        payload.service_id = productId;
+      } else {
+        payload.product_id = productId;
+      }
+
+      const response = await api.post('/api/affiliation-requests/request', payload);
 
       if (response.data.success) {
         toast.success('Demande d\'affiliation envoyée avec succès!');

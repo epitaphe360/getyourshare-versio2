@@ -48,7 +48,7 @@ const MerchantsTab = ({ stats, refreshKey, onRefresh }) => {
       // Calculer stats locales
       setLocalStats({
         total: merchantsData.length,
-        active: merchantsData.filter(m => m.is_active).length,
+        active: merchantsData.filter(m => m.status === 'active').length,
         totalRevenue: merchantsData.reduce((sum, m) => sum + (m.balance || 0), 0),
         totalProducts: merchantsData.reduce((sum, m) => sum + (m.products_count || 0), 0)
       });
@@ -70,9 +70,9 @@ const MerchantsTab = ({ stats, refreshKey, onRefresh }) => {
 
   const handleToggleStatus = async (merchant) => {
     try {
-      const newStatus = !merchant.is_active;
-      await api.patch(`/api/admin/users/${merchant.id}/status`, { is_active: newStatus });
-      toast.success(`Annonceur ${newStatus ? 'activé' : 'suspendu'} avec succès`);
+      const newStatus = merchant.status === 'active' ? 'suspended' : 'active';
+      await api.patch(`/api/admin/users/${merchant.id}/status`, { status: newStatus });
+      toast.success(`Annonceur ${newStatus === 'active' ? 'activé' : 'suspendu'} avec succès`);
       fetchMerchants();
     } catch (error) {
       toast.error('Impossible de modifier le statut');
@@ -89,8 +89,8 @@ const MerchantsTab = ({ stats, refreshKey, onRefresh }) => {
       m.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' ||
-      (statusFilter === 'active' && m.is_active) ||
-      (statusFilter === 'inactive' && !m.is_active);
+      (statusFilter === 'active' && m.status === 'active') ||
+      (statusFilter === 'inactive' && m.status !== 'active');
     const matchesSubscription = subscriptionFilter === 'all' ||
       m.subscription_plan === subscriptionFilter;
     return matchesSearch && matchesStatus && matchesSubscription;
@@ -176,10 +176,10 @@ const MerchantsTab = ({ stats, refreshKey, onRefresh }) => {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">Tous les plans</option>
-            <option value="freemium">Freemium</option>
-            <option value="standard">Standard</option>
-            <option value="premium">Premium</option>
-            <option value="enterprise">Enterprise</option>
+            <option value="marketplace">Marketplace (99 MAD)</option>
+            <option value="small">Small Business (199 MAD)</option>
+            <option value="medium">Medium Business (499 MAD)</option>
+            <option value="large">Large Enterprise (799 MAD)</option>
           </select>
 
           <button
@@ -245,13 +245,18 @@ const MerchantsTab = ({ stats, refreshKey, onRefresh }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{merchant.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        merchant.subscription_plan === 'enterprise' ? 'bg-purple-100 text-purple-800' :
-                        merchant.subscription_plan === 'premium' ? 'bg-yellow-100 text-yellow-800' :
-                        merchant.subscription_plan === 'standard' ? 'bg-blue-100 text-blue-800' :
+                      <span className={`px-3 py-1 text-xs rounded-full font-medium capitalize ${
+                        merchant.subscription_plan === 'large' ? 'bg-purple-100 text-purple-800' :
+                        merchant.subscription_plan === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        merchant.subscription_plan === 'small' ? 'bg-blue-100 text-blue-800' :
+                        merchant.subscription_plan === 'marketplace' ? 'bg-green-100 text-green-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
-                        {merchant.subscription_plan || 'Freemium'}
+                        {merchant.subscription_plan === 'marketplace' ? 'Marketplace' :
+                         merchant.subscription_plan === 'small' ? 'Small Business' :
+                         merchant.subscription_plan === 'medium' ? 'Medium Business' :
+                         merchant.subscription_plan === 'large' ? 'Large Enterprise' :
+                         merchant.subscription_plan || 'Aucun plan'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -262,11 +267,11 @@ const MerchantsTab = ({ stats, refreshKey, onRefresh }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        merchant.is_active
+                        merchant.status === 'active'
                           ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {merchant.is_active ? 'Actif' : 'Suspendu'}
+                        {merchant.status === 'active' ? 'Actif' : 'Suspendu'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -280,10 +285,10 @@ const MerchantsTab = ({ stats, refreshKey, onRefresh }) => {
                         </button>
                         <button
                           onClick={() => handleToggleStatus(merchant)}
-                          className={merchant.is_active ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
-                          title={merchant.is_active ? 'Suspendre' : 'Activer'}
+                          className={merchant.status === 'active' ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+                          title={merchant.status === 'active' ? 'Suspendre' : 'Activer'}
                         >
-                          {merchant.is_active ? <Lock size={18} /> : <Unlock size={18} />}
+                          {merchant.status === 'active' ? <Lock size={18} /> : <Unlock size={18} />}
                         </button>
                         <a
                           href={`mailto:${merchant.email}`}
@@ -364,8 +369,12 @@ const MerchantsTab = ({ stats, refreshKey, onRefresh }) => {
               <h4 className="font-semibold mb-3">Abonnement</h4>
               <div className="bg-gray-50 rounded-lg p-4">
                 <p className="text-sm text-gray-600">Plan actuel</p>
-                <p className="text-xl font-bold text-indigo-600 uppercase">
-                  {selectedMerchant.subscription_plan || 'Freemium'}
+                <p className="text-xl font-bold text-indigo-600 capitalize">
+                  {selectedMerchant.subscription_plan === 'marketplace' ? 'Marketplace' :
+                   selectedMerchant.subscription_plan === 'small' ? 'Small Business' :
+                   selectedMerchant.subscription_plan === 'medium' ? 'Medium Business' :
+                   selectedMerchant.subscription_plan === 'large' ? 'Large Enterprise' :
+                   selectedMerchant.subscription_plan || 'Aucun plan'}
                 </p>
               </div>
             </div>

@@ -330,16 +330,6 @@ async def get_categories_distribution():
         # Trier par count
         data.sort(key=lambda x: x['value'], reverse=True)
         
-        # DEMO DATA INJECTION
-        if not data:
-            data = [
-                {"name": "Électronique", "value": 15, "total_value": 4500.00},
-                {"name": "Mode", "value": 12, "total_value": 2400.00},
-                {"name": "Maison", "value": 8, "total_value": 1200.00},
-                {"name": "Beauté", "value": 5, "total_value": 800.00},
-                {"name": "Sport", "value": 3, "total_value": 450.00}
-            ]
-
         return {
             "success": True,
             "data": data,
@@ -382,16 +372,6 @@ async def get_top_merchants(limit: int = Query(10, description="Nombre de marcha
                     "total_revenue": round(revenue, 2)
                 })
         
-        # DEMO DATA INJECTION
-        if not top_merchants:
-            top_merchants = [
-                {"merchant_id": "demo1", "company_name": "TechStore", "email": "contact@techstore.com", "total_revenue": 15000.00},
-                {"merchant_id": "demo2", "company_name": "FashionHub", "email": "sales@fashionhub.com", "total_revenue": 12500.00},
-                {"merchant_id": "demo3", "company_name": "HomeDecor", "email": "info@homedecor.com", "total_revenue": 8900.00},
-                {"merchant_id": "demo4", "company_name": "BeautyBox", "email": "hello@beautybox.com", "total_revenue": 5600.00},
-                {"merchant_id": "demo5", "company_name": "SportLife", "email": "team@sportlife.com", "total_revenue": 3200.00}
-            ]
-
         return {
             "success": True,
             "merchants": top_merchants,
@@ -406,44 +386,60 @@ async def get_top_merchants(limit: int = Query(10, description="Nombre de marcha
 # ============================================
 @router.get("/top-influencers")
 async def get_top_influencers(limit: int = Query(10, description="Nombre d'influenceurs")):
-    """Top influenceurs par commissions gagnées"""
+    """Top influenceurs par commissions gagnées avec clics et conversions"""
     try:
         supabase = get_supabase_client()
         
         # Récupérer toutes les commissions
         commissions = supabase.table('commissions').select('influencer_id, amount').execute()
         
+        # Récupérer tous les tracking links pour les clics
+        tracking_links = supabase.table('tracking_links').select('influencer_id, clicks').execute()
+        
+        # Récupérer toutes les conversions
+        conversions = supabase.table('conversions').select('influencer_id').execute()
+        
         # Grouper par influencer
-        influencers_earnings = {}
+        influencers_data = {}
+        
+        # Calculer les earnings
         for commission in (commissions.data or []):
             influencer_id = commission.get('influencer_id')
             if influencer_id:
-                if influencer_id not in influencers_earnings:
-                    influencers_earnings[influencer_id] = 0
-                influencers_earnings[influencer_id] += float(commission.get('amount', 0))
+                if influencer_id not in influencers_data:
+                    influencers_data[influencer_id] = {'earnings': 0, 'clicks': 0, 'conversions': 0}
+                influencers_data[influencer_id]['earnings'] += float(commission.get('amount', 0))
         
-        # Récupérer infos des influencers
+        # Calculer les clics
+        for link in (tracking_links.data or []):
+            influencer_id = link.get('influencer_id')
+            if influencer_id:
+                if influencer_id not in influencers_data:
+                    influencers_data[influencer_id] = {'earnings': 0, 'clicks': 0, 'conversions': 0}
+                influencers_data[influencer_id]['clicks'] += int(link.get('clicks', 0))
+        
+        # Calculer les conversions
+        for conversion in (conversions.data or []):
+            influencer_id = conversion.get('influencer_id')
+            if influencer_id:
+                if influencer_id not in influencers_data:
+                    influencers_data[influencer_id] = {'earnings': 0, 'clicks': 0, 'conversions': 0}
+                influencers_data[influencer_id]['conversions'] += 1
+        
+        # Récupérer infos des influencers et construire le résultat
         top_influencers = []
-        for influencer_id, earnings in sorted(influencers_earnings.items(), key=lambda x: x[1], reverse=True)[:limit]:
+        for influencer_id, data in sorted(influencers_data.items(), key=lambda x: x[1]['earnings'], reverse=True)[:limit]:
             user = supabase.table('users').select('id, full_name, email').eq('id', influencer_id).single().execute()
             if user.data:
                 top_influencers.append({
                     "influencer_id": influencer_id,
                     "name": user.data.get('full_name') or user.data.get('email', 'Inconnu'),
                     "email": user.data.get('email'),
-                    "total_earnings": round(earnings, 2)
+                    "total_earnings": round(data['earnings'], 2),
+                    "total_clicks": data['clicks'],
+                    "total_conversions": data['conversions']
                 })
         
-        # DEMO DATA INJECTION
-        if not top_influencers:
-            top_influencers = [
-                {"influencer_id": "demo1", "name": "Sophie Martin", "email": "sophie@demo.com", "total_earnings": 2500.00},
-                {"influencer_id": "demo2", "name": "Thomas Dubois", "email": "thomas@demo.com", "total_earnings": 1800.00},
-                {"influencer_id": "demo3", "name": "Julie Bernard", "email": "julie@demo.com", "total_earnings": 1200.00},
-                {"influencer_id": "demo4", "name": "Lucas Petit", "email": "lucas@demo.com", "total_earnings": 950.00},
-                {"influencer_id": "demo5", "name": "Emma Robert", "email": "emma@demo.com", "total_earnings": 750.00}
-            ]
-
         return {
             "success": True,
             "influencers": top_influencers,
@@ -477,47 +473,67 @@ async def get_top_products(
         else:  # all
             start_date = None
 
-        # Récupérer les conversions avec produits
-        conversions_query = supabase.table('conversions').select('product_id, order_total')
-        if start_date:
-            conversions_query = conversions_query.gte('created_at', start_date)
-
-        conversions = conversions_query.execute()
-
-        # Grouper par produit
         products_revenue = {}
         products_count = {}
-        for conversion in (conversions.data or []):
-            product_id = conversion.get('product_id')
-            if product_id:
-                if product_id not in products_revenue:
-                    products_revenue[product_id] = 0
-                    products_count[product_id] = 0
-                products_revenue[product_id] += float(conversion.get('order_total', 0))
-                products_count[product_id] += 1
+        
+        # 1. Essayer d'abord avec les conversions (colonne sale_amount)
+        try:
+            conversions_query = supabase.table('conversions').select('product_id, sale_amount')
+            if start_date:
+                conversions_query = conversions_query.gte('created_at', start_date)
+            conversions = conversions_query.execute()
+            
+            for conversion in (conversions.data or []):
+                product_id = conversion.get('product_id')
+                if product_id:
+                    if product_id not in products_revenue:
+                        products_revenue[product_id] = 0
+                        products_count[product_id] = 0
+                    products_revenue[product_id] += float(conversion.get('sale_amount', 0))
+                    products_count[product_id] += 1
+        except Exception as e:
+            print(f"⚠️ Erreur conversions: {e}")
+        
+        # 2. Compléter/Utiliser les ventes de la table sales
+        try:
+            sales_query = supabase.table('sales').select('product_id, amount')
+            if start_date:
+                sales_query = sales_query.gte('created_at', start_date)
+            sales = sales_query.execute()
+            
+            for sale in (sales.data or []):
+                product_id = sale.get('product_id')
+                if product_id:
+                    if product_id not in products_revenue:
+                        products_revenue[product_id] = 0
+                        products_count[product_id] = 0
+                    products_revenue[product_id] += float(sale.get('amount', 0))
+                    products_count[product_id] += 1
+        except Exception as e:
+            print(f"⚠️ Erreur sales: {e}")
 
         # Récupérer infos des produits
         top_products = []
         for product_id, revenue in sorted(products_revenue.items(), key=lambda x: x[1], reverse=True)[:limit]:
-            product = supabase.table('products').select('id, name, price, category_id').eq('id', product_id).single().execute()
-            if product.data:
+            try:
+                product = supabase.table('products').select('id, name, price, category').eq('id', product_id).single().execute()
+                if product.data:
+                    top_products.append({
+                        "id": product_id,
+                        "name": product.data.get('name', 'Produit sans nom'),
+                        "revenue": round(revenue, 2),
+                        "conversions": products_count.get(product_id, 0),
+                        "price": float(product.data.get('price', 0))
+                    })
+            except Exception as e:
+                # Produit non trouvé, on l'ajoute quand même avec les données disponibles
                 top_products.append({
                     "id": product_id,
-                    "name": product.data.get('name', 'Produit sans nom'),
+                    "name": f"Produit #{product_id[:8]}",
                     "revenue": round(revenue, 2),
                     "conversions": products_count.get(product_id, 0),
-                    "price": float(product.data.get('price', 0))
+                    "price": 0
                 })
-
-        # DEMO DATA INJECTION
-        if not top_products:
-            top_products = [
-                {"id": "demo1", "name": "Smartphone X", "revenue": 5000.00, "conversions": 10, "price": 500.00},
-                {"id": "demo2", "name": "Laptop Pro", "revenue": 4500.00, "conversions": 3, "price": 1500.00},
-                {"id": "demo3", "name": "Casque Audio", "revenue": 2000.00, "conversions": 10, "price": 200.00},
-                {"id": "demo4", "name": "Montre Connectée", "revenue": 1500.00, "conversions": 5, "price": 300.00},
-                {"id": "demo5", "name": "Sac à dos", "revenue": 800.00, "conversions": 16, "price": 50.00}
-            ]
 
         return top_products
     except Exception as e:
@@ -704,26 +720,6 @@ async def get_platform_metrics():
         conversion_trend = ((recent_conversions - old_conversions) / (old_conversions or 1) * 100) if old_conversions else 0
         user_growth_rate = ((total_recent_users - total_old_users) / (total_old_users or 1) * 100) if total_old_users else 0
 
-        # DEMO DATA INJECTION
-        if total_conversions == 0 and total_clicks == 0 and total_recent_users == 0:
-             return {
-                "success": True,
-                "avg_conversion_rate": 2.5,
-                "monthly_clicks": 1250,
-                "quarterly_growth": 15.4,
-                "active_users_7d": 45,
-                "active_users_24h": 12,
-                "new_signups_30d": 25,
-                "total_tracking_links": 150,
-                "user_growth_rate": 10.5,
-                "signup_trend": 5.2,
-                "conversion_trend": 3.8,
-                "merchant_growth": 4.1,
-                "influencer_growth": 6.3,
-                "product_growth": 8.2,
-                "service_growth": 2.1
-            }
-
         return {
             "success": True,
             "avg_conversion_rate": round(conversion_rate, 2),
@@ -785,44 +781,6 @@ async def get_merchant_sales_chart(
             query = query.eq('merchant_id', target_merchant_id)
         sales = query.execute()
         
-        # DEMO DATA INJECTION
-        if not sales.data:
-            # Générer des données de démonstration si aucune vente réelle
-            import random
-            data = []
-            current_date = start_date
-            end_date = datetime.now().date()
-            
-            total_sales_demo = 0
-            total_orders_demo = 0
-            
-            while current_date <= end_date:
-                date_str = current_date.strftime('%Y-%m-%d')
-                # Simuler des ventes aléatoires
-                daily_orders = random.randint(0, 5)
-                daily_sales = 0
-                if daily_orders > 0:
-                    daily_sales = daily_orders * random.uniform(20.0, 150.0)
-                
-                data.append({
-                    "date": date_str,
-                    "sales": round(daily_sales, 2),
-                    "orders": daily_orders,
-                    "formatted_date": current_date.strftime('%d/%m')
-                })
-                total_sales_demo += daily_sales
-                total_orders_demo += daily_orders
-                current_date += timedelta(days=1)
-                
-            return {
-                "success": True,
-                "data": data,
-                "total_days": len(data),
-                "total_sales": round(total_sales_demo, 2),
-                "total_orders": total_orders_demo,
-                "is_demo_data": True
-            }
-
         # Grouper par jour
         sales_by_day = {}
         for sale in (sales.data or []):
@@ -902,24 +860,6 @@ async def get_merchant_performance(
             query = query.eq('merchant_id', target_merchant_id)
         sales = query.execute()
         
-        # DEMO DATA INJECTION
-        if not sales.data:
-            return {
-                "success": True,
-                "conversion_rate": 3.5,
-                "engagement_rate": 12.4,
-                "satisfaction_rate": 98.5,
-                "monthly_goal_progress": 65.2,
-                "total_revenue": 6520.50,
-                "total_sales": 45,
-                "products_count": 12,
-                "affiliates_count": 8,
-                "total_clicks": 1250,
-                "roi": 320.5,
-                "total_commissions_paid": 1550.25,
-                "is_demo_data": True
-            }
-
         total_sales = len(sales.data or [])
         completed_sales = len([s for s in (sales.data or []) if s.get('status') == 'completed'])
         total_revenue = sum([float(s.get('amount', 0)) for s in (sales.data or [])])
@@ -1034,49 +974,6 @@ async def get_influencer_earnings_chart(
             query = query.eq('influencer_id', target_influencer_id)
         commissions = query.execute()
         
-        # DEMO DATA INJECTION
-        if not commissions.data:
-            import random
-            data = []
-            current_date = start_date
-            end_date = datetime.now().date()
-            
-            total_earnings_demo = 0
-            total_commissions_demo = 0
-            total_conversions_demo = 0
-            
-            while current_date <= end_date:
-                date_str = current_date.strftime('%Y-%m-%d')
-                # Simuler des commissions
-                daily_comms = random.randint(0, 3)
-                daily_earnings = 0
-                daily_convs = random.randint(daily_comms, daily_comms + 5)
-                
-                if daily_comms > 0:
-                    daily_earnings = daily_comms * random.uniform(5.0, 25.0)
-                
-                data.append({
-                    "date": date_str,
-                    "earnings": round(daily_earnings, 2),
-                    "commissions": daily_comms,
-                    "conversions": daily_convs,
-                    "formatted_date": current_date.strftime('%d/%m')
-                })
-                total_earnings_demo += daily_earnings
-                total_commissions_demo += daily_comms
-                total_conversions_demo += daily_convs
-                current_date += timedelta(days=1)
-                
-            return {
-                "success": True,
-                "data": data,
-                "total_days": len(data),
-                "total_earnings": round(total_earnings_demo, 2),
-                "total_commissions": total_commissions_demo,
-                "total_conversions": total_conversions_demo,
-                "is_demo_data": True
-            }
-
         # Récupérer les conversions par jour (pour avoir les clics/ventes réels)
         conv_query = supabase.table('conversions').select('created_at, tracking_link_id')
         if target_influencer_id:
@@ -1173,23 +1070,6 @@ async def get_influencer_overview(
             comm_query = comm_query.eq('influencer_id', target_influencer_id)
         commissions = comm_query.execute()
         
-        # DEMO DATA INJECTION
-        if not commissions.data:
-            return {
-                "success": True,
-                "total_earnings": 1250.50,
-                "total_clicks": 3450,
-                "total_sales": 85,
-                "balance": 450.25,
-                "earnings_growth": 15.4,
-                "clicks_growth": 8.2,
-                "sales_growth": 12.1,
-                "pending_amount": 120.00,
-                "total_links": 15,
-                "monthly_earnings": 350.75,
-                "is_demo_data": True
-            }
-
         total_earnings = sum([float(c.get('amount', 0)) for c in (commissions.data or [])])
         
         # Tracking links et clics

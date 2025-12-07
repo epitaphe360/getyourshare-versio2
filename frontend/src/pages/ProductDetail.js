@@ -1,5 +1,5 @@
 import React, { useMemo, memo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Sparkles, ChevronLeft, AlertCircle } from 'lucide-react';
 import SEOHead from '../components/SEO/SEOHead';
@@ -30,6 +30,10 @@ import ProductDetailAffiliateModal from '../components/ProductDetail/ProductDeta
  */
 const ProductDetail = memo(() => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isDashboard = location.pathname.startsWith('/dashboard');
+  const backPath = isDashboard ? '/dashboard/marketplace' : '/marketplace';
+
   const { user } = useAuth();
   const { state, actions } = useProductDetail();
 
@@ -122,7 +126,7 @@ const ProductDetail = memo(() => {
             Ce produit n'existe pas ou a été supprimé
           </p>
           <button
-            onClick={() => navigate('/marketplace')}
+            onClick={() => navigate(backPath)}
             className="px-8 py-4 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-white rounded-xl font-bold hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2 mx-auto"
           >
             <ChevronLeft size={20} />
@@ -148,7 +152,7 @@ const ProductDetail = memo(() => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Back Button */}
           <button
-            onClick={() => navigate('/marketplace')}
+            onClick={() => navigate(backPath)}
             className="group flex items-center gap-2 px-6 py-3 bg-white/80 backdrop-blur-sm rounded-xl font-bold text-gray-700 hover:text-cyan-600 transition-all duration-300 shadow-md hover:shadow-xl transform hover:scale-105 mb-8"
           >
             <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />

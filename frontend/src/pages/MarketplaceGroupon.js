@@ -166,9 +166,12 @@ const MarketplaceGroupon = () => {
     // Permettre l'accès aux détails sans connexion
     // La connexion sera demandée seulement lors de la demande d'affiliation
     
+    const isDashboard = location.pathname.startsWith('/dashboard');
+    const productBasePath = isDashboard ? '/dashboard/marketplace/product' : '/marketplace/product';
+
     // Rediriger selon le type
     if (type === 'product' || type === 'service') {
-      navigate(`/marketplace/product/${item.id}`);
+      navigate(`${productBasePath}/${item.id}`);
     } else if (type === 'commercial') {
       navigate(`/commercial/${item.id}`);
     } else if (type === 'influencer') {
@@ -941,23 +944,6 @@ const MarketplaceGroupon = () => {
     </div>
   );
 
-  // Si on vient du dashboard, afficher avec le Layout (menu)
-  if (fromDashboard) {
-    return (
-      <Layout>
-        {marketplaceContent}
-        <CollaborationRequestModal
-          isOpen={showCollabModal}
-          onClose={() => setShowCollabModal(false)}
-          products={merchantProducts}
-          influencerId={selectedInfluencer?.id}
-          influencerName={selectedInfluencer?.name || `${selectedInfluencer?.first_name} ${selectedInfluencer?.last_name}`}
-        />
-      </Layout>
-    );
-  }
-
-  // Sinon, afficher sans menu (depuis la home)
   return (
     <>
       {marketplaceContent}

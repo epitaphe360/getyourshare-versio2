@@ -546,7 +546,46 @@ async def get_user_stats(
             'commission_total': 0.0
         }
 
-        # TODO: Implémenter les vraies stats depuis les tables appropriées
+        # Products count
+        try:
+            prod_res = supabase.table('products').select('id', count='exact').eq('merchant_id', user_id).execute()
+            stats['products_count'] = prod_res.count or 0
+        except:
+            pass
+
+        # Campaigns count
+        try:
+            camp_res = supabase.table('campaigns').select('id', count='exact').eq('merchant_id', user_id).execute()
+            stats['campaigns_count'] = camp_res.count or 0
+        except:
+            pass
+
+        # Clicks count (from tracking_events or click_logs)
+        try:
+            # Try tracking_events first (affiliate links)
+            links_res = supabase.table('affiliate_links').select('id').eq('influencer_id', user_id).execute()
+            if links_res.data:
+                link_ids = [l['id'] for l in links_res.data]
+                clicks_res = supabase.table('tracking_events').select('id', count='exact').in_('link_id', link_ids).eq('event_type', 'click').execute()
+                stats['clicks_count'] = clicks_res.count or 0
+        except:
+            pass
+
+        # Commission total
+        try:
+            comm_res = supabase.table('commissions').select('amount').eq('influencer_id', user_id).eq('status', 'approved').execute()
+            if comm_res.data:
+                stats['commission_total'] = sum(float(c['amount']) for c in comm_res.data)
+        except:
+            pass
+            
+        # Login count (if tracked in users table)
+        try:
+            user_res = supabase.table('users').select('login_count').eq('id', user_id).single().execute()
+            if user_res.data:
+                stats['login_count'] = user_res.data.get('login_count', 0)
+        except:
+            pass
 
         return {'stats': stats}
 
@@ -565,15 +604,22 @@ async def get_user_activity(
     """
     try:
         # TODO: Implémenter une vraie table d'audit/logs
-        # Pour l'instant, retourner des données de démonstration
-        activity = [
-            {
-                'action': 'Connexion réussie',
-                'type': 'info',
-                'details': 'IP: 192.168.1.1',
-                'created_at': datetime.utcnow().isoformat()
-            }
-        ]
+        # Pour l'instant, retourner vide plutôt que des fausses données
+        activity = []
+        
+        # Try to fetch from click_logs if relevant
+        try:
+             logs_res = supabase.table('click_logs').select('*').eq('user_id', user_id).order('created_at', desc=True).limit(limit).execute()
+             if logs_res.data:
+                 for log in logs_res.data:
+                     activity.append({
+                         'action': 'Click',
+                         'type': 'info',
+                         'details': f"Clicked on link {log.get('link_id')}",
+                         'created_at': log.get('created_at')
+                     })
+        except:
+            pass
 
         return {'activity': activity}
 

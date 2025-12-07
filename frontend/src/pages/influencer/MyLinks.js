@@ -247,11 +247,11 @@ const MyLinks = () => {
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Product Info - Left Side */}
                 <div className="lg:col-span-4 flex items-start space-x-4">
-                  {/* Product Image */}
-                  {link.product?.images && link.product.images.length > 0 ? (
+                  {/* Product/Service Image */}
+                  {(link.item_details?.images && link.item_details.images.length > 0) || (link.product?.images && link.product.images.length > 0) ? (
                     <img
-                      src={link.product.images[0]}
-                      alt={link.product.name}
+                      src={link.item_details?.images?.[0] || link.product?.images?.[0]}
+                      alt={link.item_details?.name || link.product?.name}
                       className="w-20 h-20 object-cover rounded-lg"
                     />
                   ) : (
@@ -260,13 +260,13 @@ const MyLinks = () => {
                     </div>
                   )}
 
-                  {/* Product Details */}
+                  {/* Product/Service Details */}
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900 mb-1">
-                      {link.product?.name || 'Produit'}
+                      {link.item_details?.name || link.product?.name || (link.item_type === 'service' ? 'Service' : 'Produit')}
                     </h3>
                     <p className="text-sm text-gray-600 mb-2">
-                      Prix: {link.product?.discounted_price?.toLocaleString() || 'N/A'} DH
+                      Prix: {(link.item_details?.price || link.product?.discounted_price)?.toLocaleString() || 'N/A'} DH
                     </p>
                     <div className="flex items-center space-x-2">
                       <button
@@ -410,7 +410,7 @@ const MyLinks = () => {
                     <tr key={pub.id} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div className="font-medium text-gray-900">
-                          {pub.product?.name || 'Produit'}
+                          {pub.products?.name || pub.services?.title || 'Produit/Service'}
                         </div>
                       </td>
                       <td className="py-3 px-4">

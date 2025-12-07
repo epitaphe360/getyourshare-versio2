@@ -543,7 +543,7 @@ const CommercialDashboard = () => {
             Nouveau Lead
           </button>
           <button
-            onClick={() => navigate('/marketplace')}
+            onClick={() => navigate('/dashboard/marketplace')}
             className="px-4 py-2 text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition flex items-center gap-2 font-medium"
           >
             <ShoppingCart size={18} />

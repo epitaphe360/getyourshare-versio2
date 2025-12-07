@@ -22,8 +22,8 @@ const OverviewTab = ({ stats, dateFilter, refreshKey }) => {
     try {
       setLoading(true);
       const [revenueRes, growthRes, activityRes] = await Promise.allSettled([
-        api.get(`/api/analytics/revenue-chart?period=${dateFilter}`, { signal }),
-        api.get(`/api/analytics/user-growth?period=${dateFilter}`, { signal }),
+        api.get(`/api/admin/analytics/revenue?days=${dateFilter === '7days' ? 7 : dateFilter === '30days' ? 30 : dateFilter === '90days' ? 90 : 365}`, { signal }),
+        api.get(`/api/admin/analytics/users-growth?days=${dateFilter === '7days' ? 7 : dateFilter === '30days' ? 30 : dateFilter === '90days' ? 90 : 365}`, { signal }),
         api.get('/api/activity/recent?limit=10', { signal })
       ]);
 

@@ -7,6 +7,7 @@ from supabase_client import supabase
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import bcrypt
+import sys
 from utils.logger import logger
 
 # ============================================
@@ -39,10 +40,18 @@ def create_user(email: str, password: str, role: str, **kwargs) -> Optional[Dict
     try:
         password_hash = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
+        # WORKAROUND: Trigger 'trg_auto_assign_sales_rep' is broken (BEFORE INSERT with FK check).
+        # We insert as 'influencer' first (which bypasses the trigger), then update to correct role.
+        original_role = role
+        temp_role = role
+        if role in ['merchant', 'advertiser']:
+            temp_role = 'influencer'
+            logger.info(f"Using temp role '{temp_role}' for '{role}' to bypass broken trigger")
+
         user_data = {
             "email": email,
             "password_hash": password_hash,
-            "role": role,
+            "role": temp_role,
             "phone": kwargs.get("phone"),
             "two_fa_enabled": kwargs.get("two_fa_enabled", False),
             "is_active": kwargs.get("is_active", True),
@@ -58,9 +67,18 @@ def create_user(email: str, password: str, role: str, **kwargs) -> Optional[Dict
             user_data["verification_sent_at"] = kwargs.get("verification_sent_at")
 
         result = supabase.table("users").insert(user_data).execute()
-        return result.data[0] if result.data else None
+        user = result.data[0] if result.data else None
+
+        if user and temp_role != original_role:
+            # Update to correct role
+            logger.info(f"Updating user {user['id']} role from '{temp_role}' to '{original_role}'")
+            supabase.table("users").update({"role": original_role}).eq("id", user["id"]).execute()
+            user["role"] = original_role # Update local object
+
+        return user
     except Exception as e:
         logger.error(f"Error creating user: {e}")
+        print(f"CRITICAL ERROR creating user: {e}", file=sys.stderr)
         return None
 
 
@@ -311,6 +329,66 @@ def get_product_by_id(product_id: str) -> Optional[Dict]:
     except Exception as e:
         logger.error(f"Error getting product: {e}")
         return None
+
+
+def create_product(product_data: Dict) -> Optional[Dict]:
+    """Crée un nouveau produit"""
+    try:
+        # S'assurer que le stock est un entier
+        if "stock" in product_data:
+            product_data["stock"] = int(product_data["stock"])
+            
+        # S'assurer que le prix est un float
+        if "price" in product_data:
+            product_data["price"] = float(product_data["price"])
+            
+        # S'assurer que la commission est un float
+        if "commission_rate" in product_data:
+            product_data["commission_rate"] = float(product_data["commission_rate"])
+
+        result = supabase.table("products").insert(product_data).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        logger.error(f"Error creating product: {e}")
+        return None
+
+
+def update_product(product_id: str, updates: Dict) -> bool:
+    """Met à jour un produit"""
+    try:
+        # Nettoyage des données
+        if "stock" in updates:
+            updates["stock"] = int(updates["stock"])
+        if "price" in updates:
+            updates["price"] = float(updates["price"])
+        if "commission_rate" in updates:
+            updates["commission_rate"] = float(updates["commission_rate"])
+            
+        # Ne pas mettre à jour l'ID ou le merchant_id
+        if "id" in updates:
+            del updates["id"]
+        if "merchant_id" in updates:
+            del updates["merchant_id"]
+        if "created_at" in updates:
+            del updates["created_at"]
+            
+        updates["updated_at"] = datetime.now().isoformat()
+
+        supabase.table("products").update(updates).eq("id", product_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error updating product: {e}")
+        return False
+
+
+def delete_product(product_id: str) -> bool:
+    """Supprime un produit"""
+    try:
+        supabase.table("products").delete().eq("id", product_id).execute()
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting product: {e}")
+        return False
 
 
 # ==================== SERVICES ====================

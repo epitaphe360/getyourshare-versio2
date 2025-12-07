@@ -119,7 +119,7 @@ const PublicServices = () => {
               {filteredServices.map(service => (
                 <div
                   key={service.id}
-                  onClick={() => navigate(`/services/${service.id}`)}
+                  onClick={() => navigate(`/marketplace/services/${service.id}`)}
                   className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition cursor-pointer group"
                 >
                   {/* Image */}

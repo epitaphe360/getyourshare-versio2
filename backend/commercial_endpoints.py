@@ -368,7 +368,7 @@ async def get_leads(
                 'first_name': first_name,
                 'last_name': last_name,
                 'email': item.get('contact_email'),
-                'phone': item.get('phone'),
+                'phone': item.get('contact_phone'),
                 'company': item.get('company_name'),
                 'status': item.get('status'),
                 'temperature': temp,
@@ -406,10 +406,27 @@ async def create_lead(
         # Get sales_rep_id
         sales_rep_result = supabase.table('sales_representatives').select('id').eq('user_id', user_id).execute()
         if not sales_rep_result.data:
-             # Auto-create if missing (should be handled in stats but good safety)
-             pass # Assume handled or fail
-             raise HTTPException(status_code=404, detail="Sales profile not found")
-        sales_rep_id = sales_rep_result.data[0]['id']
+             # Auto-create if missing
+             user_data = supabase.table('users').select('email, first_name, last_name, phone').eq('id', user_id).single().execute()
+             if user_data.data:
+                new_rep = {
+                    'user_id': user_id,
+                    'email': user_data.data.get('email'),
+                    'first_name': user_data.data.get('first_name', 'Commercial'),
+                    'last_name': user_data.data.get('last_name', ''),
+                    'phone': user_data.data.get('phone'),
+                    'commission_rate': 5.0,
+                    'is_active': True
+                }
+                created_rep = supabase.table('sales_representatives').insert(new_rep).execute()
+                if created_rep.data:
+                    sales_rep_id = created_rep.data[0]['id']
+                else:
+                    raise HTTPException(status_code=500, detail="Failed to create sales profile")
+             else:
+                 raise HTTPException(status_code=404, detail="User not found")
+        else:
+            sales_rep_id = sales_rep_result.data[0]['id']
 
         # Vérifier la limite pour STARTER
         if subscription_tier == 'starter':
@@ -430,21 +447,23 @@ async def create_lead(
                 )
         
         # Créer le lead dans services_leads
+        lead_insert_data = {
+            'commercial_id': user_id,
+            'contact_name': f"{lead_data.first_name} {lead_data.last_name}".strip(),
+            'contact_email': lead_data.email,
+            'contact_phone': lead_data.phone,
+            'company_name': lead_data.company,
+            'status': lead_data.status,
+            'temperature': lead_data.temperature,
+            'source': lead_data.source,
+            'estimated_value': lead_data.estimated_value,
+            'notes': lead_data.notes,
+            'next_action': lead_data.next_action,
+            'next_action_date': lead_data.next_action_date
+        }
+        
         result = supabase.table('services_leads') \
-            .insert({
-                'commercial_id': user_id,
-                'contact_name': f"{lead_data.first_name} {lead_data.last_name}".strip(),
-                'contact_email': lead_data.email,
-                'phone': lead_data.phone,
-                'company_name': lead_data.company,
-                'status': lead_data.status,
-                'temperature': lead_data.temperature,
-                'source': lead_data.source,
-                'estimated_value': lead_data.estimated_value,
-                'notes': lead_data.notes,
-                'next_action': lead_data.next_action,
-                'next_action_date': lead_data.next_action_date
-            }) \
+            .insert(lead_insert_data) \
             .execute()
         
         if not result.data:
@@ -459,7 +478,7 @@ async def create_lead(
             'first_name': name_parts[0],
             'last_name': name_parts[1] if len(name_parts) > 1 else '',
             'email': item.get('contact_email'),
-            'phone': item.get('phone'),
+            'phone': item.get('contact_phone'),
             'company': item.get('company_name'),
             'status': item.get('status'),
             'temperature': item.get('temperature'),
@@ -496,8 +515,27 @@ async def update_lead(
         # Get sales_rep_id
         sales_rep_result = supabase.table('sales_representatives').select('id').eq('user_id', user_id).execute()
         if not sales_rep_result.data:
-             raise HTTPException(status_code=404, detail="Sales profile not found")
-        sales_rep_id = sales_rep_result.data[0]['id']
+             # Auto-create if missing
+             user_data = supabase.table('users').select('email, first_name, last_name, phone').eq('id', user_id).single().execute()
+             if user_data.data:
+                new_rep = {
+                    'user_id': user_id,
+                    'email': user_data.data.get('email'),
+                    'first_name': user_data.data.get('first_name', 'Commercial'),
+                    'last_name': user_data.data.get('last_name', ''),
+                    'phone': user_data.data.get('phone'),
+                    'commission_rate': 5.0,
+                    'is_active': True
+                }
+                created_rep = supabase.table('sales_representatives').insert(new_rep).execute()
+                if created_rep.data:
+                    sales_rep_id = created_rep.data[0]['id']
+                else:
+                    raise HTTPException(status_code=500, detail="Failed to create sales profile")
+             else:
+                 raise HTTPException(status_code=404, detail="User not found")
+        else:
+            sales_rep_id = sales_rep_result.data[0]['id']
 
         # Vérifier que le lead appartient bien à l'utilisateur
         check_result = supabase.table('services_leads') \

@@ -503,7 +503,7 @@ const InfluencerDashboard = () => {
             Accueil
           </button>
           <button
-            onClick={() => navigate('/marketplace')}
+            onClick={() => navigate('/dashboard/marketplace')}
             className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
           >
             <ShoppingCart size={18} />
@@ -594,7 +594,7 @@ const InfluencerDashboard = () => {
             📱 Mobile
           </button>
           <button
-            onClick={() => navigate('/marketplace', { state: { fromDashboard: true } })}
+            onClick={() => navigate('/dashboard/marketplace')}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
           >
             🛍️ Marketplace
@@ -645,7 +645,7 @@ const InfluencerDashboard = () => {
                 <p className="text-xl mb-2">Aucune campagne disponible</p>
                 <p className="text-gray-400">Revenez plus tard ou explorez la marketplace</p>
                 <button
-                  onClick={() => navigate('/marketplace')}
+                  onClick={() => navigate('/dashboard/marketplace')}
                   className="mt-4 px-6 py-2 bg-purple-600 rounded-lg hover:bg-purple-700 transition"
                 >
                   Explorer Marketplace

@@ -54,10 +54,16 @@ const ProductsTab = ({ stats, refreshKey, onRefresh }) => {
     try {
       setLoading(true);
       const config = signal ? { signal } : {};
+      
+      // Construire les paramètres de requête
+      const params = {};
+      if (categoryFilter && categoryFilter !== 'all') {
+        params.category = categoryFilter;
+      }
 
       // Appel parallèle pour récupérer produits et catégories
       const [productsRes, categoriesRes] = await Promise.allSettled([
-        api.get('/api/products', config),
+        api.get('/api/products', { ...config, params }),
         api.get('/api/categories', config)
       ]);
 
@@ -85,7 +91,7 @@ const ProductsTab = ({ stats, refreshKey, onRefresh }) => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [categoryFilter, toast]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -199,7 +205,7 @@ const ProductsTab = ({ stats, refreshKey, onRefresh }) => {
     const exportData = filteredProducts.map(p => ({
       id: p.id,
       nom: p.name,
-      categorie: categories.find(c => c.id === p.category_id)?.name || 'N/A',
+      categorie: p.category?.name || p.categories?.name || 'Aucune catégorie',
       prix: p.price,
       stock: p.stock || 0,
       commission: p.commission_rate,
@@ -219,10 +225,8 @@ const ProductsTab = ({ stats, refreshKey, onRefresh }) => {
       return false;
     }
 
-    // Catégorie
-    if (categoryFilter !== 'all' && product.category_id !== categoryFilter) {
-      return false;
-    }
+    // Catégorie - Le filtre est maintenant géré côté backend via l'API
+    // Le filtre client n'est plus nécessaire car l'API retourne déjà les produits filtrés
 
     // Statut
     if (statusFilter === 'active' && !product.is_active) return false;
@@ -511,7 +515,7 @@ const ProductsTab = ({ stats, refreshKey, onRefresh }) => {
                     </td>
                     <td className="px-6 py-4">
                       <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
-                        {categories.find(c => c.id === product.category_id)?.name || 'N/A'}
+                        {product.category?.name || product.categories?.name || 'Aucune catégorie'}
                       </span>
                     </td>
                     <td className="px-6 py-4">

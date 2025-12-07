@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import random
 from dotenv import load_dotenv
 from supabase_client import supabase
+from utils.logger import logger
 
 load_dotenv()
 
@@ -26,12 +27,15 @@ def generate_seed_data():
         logger.info("📦 Ajout de produits de test...")
 
         # Récupérer un merchant existant
-        merchants = supabase.table("merchants").select("id").limit(1).execute()
+        merchants = supabase.table("merchants").select("id, user_id").limit(1).execute()
         if not merchants.data:
             logger.info("❌ Aucun merchant trouvé. Créez d'abord des utilisateurs.")
             return False
 
-        merchant_id = merchants.data[0]["id"]
+        merchant_data_obj = merchants.data[0]
+        merchant_id = merchant_data_obj["id"]
+        # Try using user_id if available, otherwise id
+        merchant_user_id = merchant_data_obj.get("user_id", merchant_id)
 
         products = [
             {
@@ -39,70 +43,70 @@ def generate_seed_data():
                 "description": "Dernier iPhone avec puce A17",
                 "price": 1299.00,
                 "category": "Électronique",
-                "merchant_id": merchant_id,
+                "merchant_id": merchant_user_id,
                 "image_url": "https://picsum.photos/400/300?random=1",
                 "commission_rate": 5.0,
                 "is_active": True,
-                "stock_quantity": 50,
-                "total_views": random.randint(5000, 15000),
-                "total_clicks": random.randint(500, 2000),
-                "total_sales": random.randint(50, 200)
+                # "stock_quantity": 50,
+                # "total_views": random.randint(5000, 15000),
+                # "total_clicks": random.randint(500, 2000),
+                # "total_sales": random.randint(50, 200)
             },
             {
                 "name": "MacBook Pro 16\" M3",
                 "description": "MacBook avec puce M3 Max",
                 "price": 2899.00,
                 "category": "Électronique",
-                "merchant_id": merchant_id,
+                "merchant_id": merchant_user_id,
                 "image_url": "https://picsum.photos/400/300?random=2",
                 "commission_rate": 4.5,
                 "is_active": True,
-                "stock_quantity": 30,
-                "total_views": random.randint(8000, 18000),
-                "total_clicks": random.randint(800, 2500),
-                "total_sales": random.randint(30, 150)
+                # "stock_quantity": 30,
+                # "total_views": random.randint(8000, 18000),
+                # "total_clicks": random.randint(800, 2500),
+                # "total_sales": random.randint(30, 150)
             },
             {
                 "name": "AirPods Pro 2",
                 "description": "Écouteurs sans fil avec ANC",
                 "price": 279.00,
                 "category": "Électronique",
-                "merchant_id": merchant_id,
+                "merchant_id": merchant_user_id,
                 "image_url": "https://picsum.photos/400/300?random=3",
                 "commission_rate": 6.0,
                 "is_active": True,
-                "stock_quantity": 100,
-                "total_views": random.randint(10000, 25000),
-                "total_clicks": random.randint(1500, 3500),
-                "total_sales": random.randint(100, 300)
+                # "stock_quantity": 100,
+                # "total_views": random.randint(10000, 25000),
+                # "total_clicks": random.randint(1500, 3500),
+                # "total_sales": random.randint(100, 300)
             },
             {
                 "name": "Nike Air Max 2024",
                 "description": "Sneakers dernière génération",
                 "price": 169.00,
                 "category": "Mode",
-                "merchant_id": merchant_id,
+                "merchant_id": merchant_user_id,
                 "image_url": "https://picsum.photos/400/300?random=4",
                 "commission_rate": 8.0,
                 "is_active": True,
-                "stock_quantity": 200,
-                "total_views": random.randint(15000, 30000),
-                "total_clicks": random.randint(2000, 4000),
-                "total_sales": random.randint(150, 400)
+                # "stock_quantity": 200,
+                # "total_views": random.randint(15000, 30000),
+                # "total_clicks": random.randint(2000, 4000),
+                # "total_sales": random.randint(150, 400)
             },
             {
                 "name": "PS5 Slim Digital",
                 "description": "Console PlayStation 5 version Slim",
                 "price": 449.00,
                 "category": "Gaming",
-                "merchant_id": merchant_id,
+                "merchant_id": merchant_user_id,
                 "image_url": "https://picsum.photos/400/300?random=5",
                 "commission_rate": 3.5,
                 "is_active": True,
-                "stock_quantity": 75,
-                "total_views": random.randint(20000, 35000),
-                "total_clicks": random.randint(3000, 5000),
-                "total_sales": random.randint(80, 250)
+                # "stock_quantity": 75,
+                # "total_views": random.randint(20000, 35000),
+                # "total_clicks": random.randint(3000, 5000),
+                # "total_sales": random.randint(80, 250)
             }
         ]
 
@@ -179,11 +183,11 @@ def generate_seed_data():
                             "full_name": inf_data["full_name"],
                             "username": inf_data["username"],
                             "influencer_type": inf_data["influencer_type"],
-                            "total_followers": inf_data["total_followers"],
-                            "engagement_rate": inf_data["engagement_rate"],
-                            "total_earnings": inf_data["total_earnings"],
-                            "total_clicks": inf_data["total_clicks"],
-                            "total_sales": inf_data["total_sales"],
+                            # "total_followers": inf_data["total_followers"],
+                            # "engagement_rate": inf_data["engagement_rate"],
+                            # "total_earnings": inf_data["total_earnings"],
+                            # "total_clicks": inf_data["total_clicks"],
+                            # "total_sales": inf_data["total_sales"],
                             "balance": inf_data["balance"]
                         }
                         supabase.table("influencers").insert(influencer).execute()
@@ -205,7 +209,7 @@ def generate_seed_data():
             return False
 
         # Récupérer tous les influencers
-        all_influencers = supabase.table("influencers").select("id").execute()
+        all_influencers = supabase.table("influencers").select("id, user_id").execute()
         if not all_influencers.data:
             logger.info("  ⚠️  Aucun influencer trouvé")
             return False
@@ -220,6 +224,9 @@ def generate_seed_data():
             for _ in range(num_sales):
                 product = random.choice(all_products.data)
                 influencer = random.choice(all_influencers.data)
+                
+                # Use user_id if available, otherwise id
+                influencer_ref_id = influencer.get("user_id", influencer["id"])
 
                 amount = float(product["price"])
                 commission = amount * 0.10  # 10% de commission
@@ -227,9 +234,9 @@ def generate_seed_data():
                 sale_data = {
                     "product_id": product["id"],
                     "merchant_id": product["merchant_id"],
-                    "influencer_id": influencer["id"],
+                    "influencer_id": influencer_ref_id,
                     "amount": amount,
-                    "commission": commission,
+                    # "commission": commission,
                     "status": "completed",
                     "sale_timestamp": sale_date.isoformat()
                 }
@@ -238,6 +245,7 @@ def generate_seed_data():
                     supabase.table("sales").insert(sale_data).execute()
                     sales_generated += 1
                 except Exception as e:
+                    logger.info(f"  ⚠️  Erreur vente: {e}")
                     pass  # Continue même en cas d'erreur
 
         logger.info(f"  ✅ {sales_generated} ventes générées sur 30 jours")
@@ -317,13 +325,16 @@ def generate_seed_data():
             # Compter les produits
             products_count = supabase.table("products").select("id", count="exact").eq("merchant_id", merchant_data["id"]).execute()
 
-            update_data = {
-                "total_sales": total_sales,
-                "products_count": products_count.count if products_count else 0
-            }
+            try:
+                update_data = {
+                    "total_sales": total_sales,
+                    "products_count": products_count.count if products_count else 0
+                }
 
-            supabase.table("merchants").update(update_data).eq("id", merchant_data["id"]).execute()
-            logger.info(f"  ✅ Stats merchant mises à jour")
+                supabase.table("merchants").update(update_data).eq("id", merchant_data["id"]).execute()
+                logger.info(f"  ✅ Stats merchant mises à jour")
+            except Exception as e:
+                logger.info(f"  ⚠️  Impossible de mettre à jour les stats merchant (colonnes manquantes?): {str(e)[:50]}")
 
         print()
         logger.info("="*70)
@@ -344,7 +355,6 @@ def generate_seed_data():
     except Exception as e:
         logger.info(f"\n❌ Erreur: {e}")
         import traceback
-from utils.logger import logger
         traceback.print_exc()
         return False
 

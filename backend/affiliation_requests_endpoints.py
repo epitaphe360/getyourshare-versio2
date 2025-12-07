@@ -22,7 +22,8 @@ router = APIRouter(prefix="/api/affiliation-requests", tags=["affiliation_reques
 
 class AffiliationRequestCreate(BaseModel):
     """Modèle pour créer une demande d'affiliation"""
-    product_id: str
+    product_id: Optional[str] = None
+    service_id: Optional[str] = None
     influencer_message: Optional[str] = None
     influencer_followers: Optional[int] = None
     influencer_engagement_rate: Optional[float] = None
@@ -55,14 +56,25 @@ async def create_affiliation_request(
     5. Retour confirmation à l'influenceur
     """
     try:
-        # 1. Récupérer le produit pour avoir le merchant_id
-        product_result = supabase.table('products').select('*').eq('id', request_data.product_id).execute()
-
-        if not product_result.data:
-            raise HTTPException(status_code=404, detail="Produit introuvable")
-
-        product = product_result.data[0]
-        merchant_id = product['merchant_id']
+        # 1. Récupérer le produit ou service pour avoir le merchant_id
+        merchant_id = None
+        product = None
+        service = None
+        
+        if request_data.product_id:
+            product_result = supabase.table('products').select('*').eq('id', request_data.product_id).execute()
+            if not product_result.data:
+                raise HTTPException(status_code=404, detail="Produit introuvable")
+            product = product_result.data[0]
+            merchant_id = product['merchant_id']
+        elif request_data.service_id:
+            service_result = supabase.table('services').select('*').eq('id', request_data.service_id).execute()
+            if not service_result.data:
+                raise HTTPException(status_code=404, detail="Service introuvable")
+            service = service_result.data[0]
+            merchant_id = service['merchant_id']
+        else:
+             raise HTTPException(status_code=400, detail="Product ID or Service ID required")
 
         # 2. Récupérer l'influenceur depuis l'utilisateur connecté
         user_id = user['id']
@@ -76,15 +88,22 @@ async def create_affiliation_request(
         influencer_id = influencer['id']
 
         # 3. Vérifier qu'il n'y a pas déjà une demande pending pour ce produit
-        existing_request = supabase.table('affiliate_requests').select('*').eq('influencer_id', influencer_id).eq('product_id', request_data.product_id).eq('status', 'pending').execute()
+        query = supabase.table('affiliate_requests').select('*').eq('influencer_id', influencer_id).eq('status', 'pending')
+        if request_data.product_id:
+            query = query.eq('product_id', request_data.product_id)
+        else:
+            query = query.eq('service_id', request_data.service_id)
+            
+        existing_request = query.execute()
 
         if existing_request.data:
-            raise HTTPException(status_code=400, detail="Vous avez déjà une demande en attente pour ce produit")
+            raise HTTPException(status_code=400, detail="Vous avez déjà une demande en attente pour cet élément")
 
         # 4. Créer la demande d'affiliation
         affiliation_request = {
             'influencer_id': influencer_id,
             'product_id': request_data.product_id,
+            'service_id': request_data.service_id,
             'merchant_id': merchant_id,
             'status': 'pending',
             'influencer_message': request_data.influencer_message,
@@ -102,9 +121,11 @@ async def create_affiliation_request(
         request_id = result.data[0]['id']
 
         # 5. Envoyer notifications au marchand
-        await send_merchant_notifications(merchant_id, influencer, product, request_id)
+        # Adapt notification to handle service
+        item_for_notif = product if product else {'name': service['title']}
+        await send_merchant_notifications(merchant_id, influencer, item_for_notif, request_id)
 
-        logger.info(f"✅ Demande d'affiliation créée: {request_id} | Influenceur: {influencer_id} | Produit: {request_data.product_id}")
+        logger.info(f"✅ Demande d'affiliation créée: {request_id} | Influenceur: {influencer_id}")
 
         return {
             "success": True,
@@ -228,10 +249,17 @@ async def get_merchant_pending_requests(
             p_res = supabase.table('products').select('id, name, price, commission_rate, images').in_('id', product_ids).execute()
             products_map = {p['id']: p for p in p_res.data} if p_res.data else {}
 
+        service_ids = list(set(r['service_id'] for r in requests if r.get('service_id')))
+        services_map = {}
+        if service_ids:
+            s_res = supabase.table('services').select('id, title, price, description').in_('id', service_ids).execute()
+            services_map = {s['id']: s for s in s_res.data} if s_res.data else {}
+
         # Enrich
         for req in requests:
             req['influencers'] = influencers_map.get(req['influencer_id'])
             req['products'] = products_map.get(req['product_id'])
+            req['services'] = services_map.get(req['service_id'])
 
         return {
             "success": True,
@@ -285,9 +313,12 @@ async def respond_to_request(
         if not merchant_result.data:
             raise HTTPException(status_code=403, detail="Marchand introuvable")
 
-        merchant_id = merchant_result.data[0]['id']
+        merchant_profile_id = merchant_result.data[0]['id']
 
-        if affiliation_request['merchant_id'] != merchant_id:
+        # Check if the request belongs to this merchant
+        # Note: products.merchant_id references users.id, so affiliation_request['merchant_id'] is likely user_id
+        # But we check both user_id and merchant_profile_id to be safe
+        if affiliation_request['merchant_id'] != user_id and affiliation_request['merchant_id'] != merchant_profile_id:
             raise HTTPException(status_code=403, detail="Vous n'avez pas le droit de répondre à cette demande")
 
         # 3. Vérifier que la demande est pending
@@ -298,12 +329,27 @@ async def respond_to_request(
         if response_data.status == 'approved':
             # ✅ APPROBATION
             # Générer automatiquement le lien trackable
-            product = supabase.table('products').select('*').eq('id', affiliation_request['product_id']).execute().data[0]
+            product = None
+            target_url = ""
+            item_name = "Produit/Service"
+            commission_rate = 0
+            
+            if affiliation_request.get('product_id'):
+                product = supabase.table('products').select('*').eq('id', affiliation_request['product_id']).execute().data[0]
+                target_url = product.get('url', f"https://merchant.com/product/{product['id']}")
+                item_name = product['name']
+                commission_rate = product.get('commission_rate', 0)
+            elif affiliation_request.get('service_id'):
+                service = supabase.table('services').select('*').eq('id', affiliation_request['service_id']).execute().data[0]
+                target_url = f"https://merchant.com/service/{service['id']}"
+                item_name = service['title']
+                # commission_rate = service.get('commission_rate', 0) # If services have commission rate
 
             link_result = await tracking_service.create_tracking_link(
                 influencer_id=affiliation_request['influencer_id'],
-                product_id=affiliation_request['product_id'],
-                merchant_url=product.get('url', f"https://merchant.com/product/{product['id']}"),
+                product_id=affiliation_request.get('product_id'),
+                service_id=affiliation_request.get('service_id'),
+                merchant_url=target_url,
                 campaign_id=None
             )
 
@@ -313,17 +359,22 @@ async def respond_to_request(
             # Mettre à jour la demande
             update_data = {
                 'status': 'approved',
-                'merchant_response': response_data.merchant_response,
-                'generated_link_id': link_result['link_id'],
-                'responded_at': datetime.now().isoformat()
+                # 'merchant_response': response_data.merchant_response, # Column missing in DB
+                # 'generated_link_id': link_result['link_id'], # Column missing in DB
+                # 'responded_at': datetime.now().isoformat() # Column missing in DB
             }
 
             supabase.table('affiliate_requests').update(update_data).eq('id', request_id).execute()
 
             # Envoyer notification à l'influenceur
+            # We need to adapt send_influencer_approval_notification to handle services too
+            # For now, we pass a dummy product dict if it's a service, or update the function
+            
+            notification_item = product if product else {'name': item_name, 'commission_rate': commission_rate}
+            
             await send_influencer_approval_notification(
                 affiliation_request['influencer_id'],
-                product,
+                notification_item,
                 link_result['tracking_url'],
                 link_result['short_code'],
                 response_data.merchant_response

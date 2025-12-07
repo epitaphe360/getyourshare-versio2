@@ -31,7 +31,7 @@ const ServiceRequest = () => {
     } catch (error) {
       console.error('Erreur:', error);
       toast.error('Service introuvable');
-      navigate('/services');
+      navigate('/marketplace/services');
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,7 @@ const ServiceRequest = () => {
             Vous recevrez également un email de confirmation.
           </p>
           <button
-            onClick={() => navigate('/services')}
+            onClick={() => navigate('/marketplace/services')}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition font-medium"
           >
             Retour aux services
@@ -105,7 +105,7 @@ const ServiceRequest = () => {
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
           <button
-            onClick={() => navigate('/services')}
+            onClick={() => navigate('/marketplace/services')}
             className="flex items-center text-gray-600 hover:text-gray-800 transition"
           >
             <ArrowLeft size={20} className="mr-2" />

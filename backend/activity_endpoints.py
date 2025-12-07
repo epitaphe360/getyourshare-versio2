@@ -82,7 +82,7 @@ async def get_recent_activity(
 
         # 3. Nouveaux services
         services_result = supabase.table('services')\
-            .select('id, nom, created_at')\
+            .select('id, name, created_at')\
             .order('created_at', desc=True)\
             .limit(int(limit / 2))\
             .execute()
@@ -92,7 +92,7 @@ async def get_recent_activity(
                 'id': f"service_{service.get('id')}",
                 'type': 'service_created',
                 'icon': 'Sparkles',
-                'description': f"Nouveau service: {service.get('nom')}",
+                'description': f"Nouveau service: {service.get('name')}",
                 'message': f"Un service a été créé",
                 'created_at': service.get('created_at'),
                 'time': service.get('created_at'),
@@ -214,10 +214,14 @@ async def get_activity_stats(
             .gte('created_at', start_date)\
             .execute()
 
-        transactions_count = supabase.table('transactions')\
-            .select('id', count='exact')\
-            .gte('created_at', start_date)\
-            .execute()
+        try:
+            transactions_count = supabase.table('transactions')\
+                .select('id', count='exact')\
+                .gte('created_at', start_date)\
+                .execute()
+            tx_count = transactions_count.count or 0
+        except Exception:
+            tx_count = 0
 
         return {
             "success": True,
@@ -226,12 +230,12 @@ async def get_activity_stats(
                 "new_users": users_count.count or 0,
                 "new_products": products_count.count or 0,
                 "new_services": services_count.count or 0,
-                "transactions": transactions_count.count or 0,
+                "transactions": tx_count,
                 "total_activities": (
                     (users_count.count or 0) +
                     (products_count.count or 0) +
                     (services_count.count or 0) +
-                    (transactions_count.count or 0)
+                    tx_count
                 )
             }
         }

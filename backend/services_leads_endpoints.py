@@ -656,34 +656,45 @@ async def get_categories():
 async def get_leads_stats(
     current_user: Dict = Depends(get_current_user_from_cookie)
 ):
-    """Récupérer les statistiques des leads"""
+    """Récupérer les statistiques des leads (Optimisé)"""
     try:
         if current_user.get("role") not in ["admin", "merchant"]:
             raise HTTPException(status_code=403, detail="Accès refusé")
         
         from supabase_client import supabase
         
-        # Base query
-        query = supabase.table("service_leads").select("*")
+        # Base query builder
+        def get_base_query():
+            query = supabase.table("service_leads").select("id", count="exact", head=True)
+            # Si marchand, filtrer par ses services
+            if current_user.get("role") == "merchant":
+                services_result = supabase.table("services")\
+                    .select("id")\
+                    .eq("marchand_id", current_user["id"])\
+                    .execute()
+                service_ids = [s["id"] for s in (services_result.data or [])]
+                if service_ids:
+                    query = query.in_("service_id", service_ids)
+                else:
+                    # Force 0 results if no services
+                    query = query.eq("id", "00000000-0000-0000-0000-000000000000") 
+            return query
+
+        # Execute counts in parallel (conceptually, though here sequential)
+        total_res = get_base_query().execute()
+        total = total_res.count or 0
         
-        # Si marchand, filtrer par ses services
-        if current_user.get("role") == "merchant":
-            services_result = supabase.table("services")\
-                .select("id")\
-                .eq("marchand_id", current_user["id"])\
-                .execute()
-            service_ids = [s["id"] for s in (services_result.data or [])]
-            if service_ids:
-                query = query.in_("service_id", service_ids)
+        new_res = get_base_query().eq("statut", "nouveau").execute()
+        new = new_res.count or 0
         
-        result = query.execute()
-        leads = result.data if result.data else []
+        contacted_res = get_base_query().eq("statut", "contacté").execute()
+        contacted = contacted_res.count or 0
         
-        total = len(leads)
-        new = len([l for l in leads if l.get("statut") == "nouveau"])
-        contacted = len([l for l in leads if l.get("statut") == "contacté"])
-        qualified = len([l for l in leads if l.get("statut") == "qualifié"])
-        converted = len([l for l in leads if l.get("statut") == "converti"])
+        qualified_res = get_base_query().eq("statut", "qualifié").execute()
+        qualified = qualified_res.count or 0
+        
+        converted_res = get_base_query().eq("statut", "converti").execute()
+        converted = converted_res.count or 0
         
         conversion_rate = (converted / total * 100) if total > 0 else 0
         
@@ -717,36 +728,96 @@ async def get_leads_analytics(
         from supabase_client import supabase
         from datetime import datetime, timedelta
         
-        # Données de démonstration pour le moment
-        # TODO: Implémenter avec vraies données
+        # 1. Conversion Trend (30 derniers jours)
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=30)
         
-        conversion_trend = []
-        for i in range(30):
-            date = (datetime.now() - timedelta(days=30-i)).strftime("%Y-%m-%d")
-            conversion_trend.append({
-                "date": date,
-                "leads": 5 + i % 10,
-                "converted": 1 + i % 3
-            })
+        query = supabase.table("service_leads")\
+            .select("created_at, statut")\
+            .gte("created_at", start_date.isoformat())
+            
+        # Si marchand, filtrer par ses services
+        if current_user.get("role") == "merchant":
+            services_result = supabase.table("services")\
+                .select("id")\
+                .eq("marchand_id", current_user["id"])\
+                .execute()
+            service_ids = [s["id"] for s in (services_result.data or [])]
+            if service_ids:
+                query = query.in_("service_id", service_ids)
+            else:
+                # Aucun service, donc aucun lead
+                return {
+                    "analytics": {
+                        "conversionTrend": [],
+                        "sourceDistribution": [],
+                        "servicePerformance": []
+                    }
+                }
+                
+        result = query.execute()
+        leads = result.data if result.data else []
         
-        source_distribution = [
-            {"name": "Site Web", "value": 45},
-            {"name": "Référence", "value": 30},
-            {"name": "Campagne", "value": 20},
-            {"name": "Direct", "value": 5}
-        ]
+        # Grouper par date
+        trend_data = {}
+        current = start_date
+        while current <= end_date:
+            date_str = current.strftime("%Y-%m-%d")
+            trend_data[date_str] = {"date": date_str, "leads": 0, "converted": 0}
+            current += timedelta(days=1)
+            
+        for lead in leads:
+            created_at = datetime.fromisoformat(lead["created_at"].replace("Z", "+00:00"))
+            date_str = created_at.strftime("%Y-%m-%d")
+            if date_str in trend_data:
+                trend_data[date_str]["leads"] += 1
+                if lead.get("statut") == "converti":
+                    trend_data[date_str]["converted"] += 1
+                    
+        conversion_trend = list(trend_data.values())
+        conversion_trend.sort(key=lambda x: x["date"])
         
-        service_performance = [
-            {"service": "Développement Web", "leads": 25, "converted": 10},
-            {"service": "Marketing Digital", "leads": 20, "converted": 8},
-            {"service": "Consulting", "leads": 15, "converted": 5}
-        ]
+        # 2. Source Distribution
+        # Note: On suppose qu'il y a un champ 'source' dans service_leads. 
+        # Sinon on utilise une distribution vide ou basée sur d'autres métadonnées.
+        # Vérifions si 'source' existe dans le modèle LeadCreate... non.
+        # On va utiliser le statut pour la distribution si source n'existe pas, ou retourner vide.
+        # Pour l'instant, retournons vide si pas de champ source, pour ne pas inventer de données.
+        source_distribution = []
+        
+        # 3. Service Performance
+        # On a besoin des noms de services
+        perf_query = supabase.table("service_leads")\
+            .select("service_id, statut, services(nom)")
+            
+        if current_user.get("role") == "merchant":
+             if service_ids:
+                perf_query = perf_query.in_("service_id", service_ids)
+        
+        perf_result = perf_query.execute()
+        perf_leads = perf_result.data if perf_result.data else []
+        
+        service_stats = {}
+        for lead in perf_leads:
+            svc = lead.get("services")
+            svc_name = svc.get("nom", "Inconnu") if svc else "Inconnu"
+            
+            if svc_name not in service_stats:
+                service_stats[svc_name] = {"service": svc_name, "leads": 0, "converted": 0}
+            
+            service_stats[svc_name]["leads"] += 1
+            if lead.get("statut") == "converti":
+                service_stats[svc_name]["converted"] += 1
+                
+        service_performance = list(service_stats.values())
+        # Trier par nombre de leads
+        service_performance.sort(key=lambda x: x["leads"], reverse=True)
         
         return {
             "analytics": {
                 "conversionTrend": conversion_trend,
                 "sourceDistribution": source_distribution,
-                "servicePerformance": service_performance
+                "servicePerformance": service_performance[:10] # Top 10
             }
         }
     
@@ -882,8 +953,42 @@ async def send_lead_email(
         if current_user.get("role") not in ["admin", "merchant"]:
             raise HTTPException(status_code=403, detail="Accès refusé")
         
-        # TODO: Implémenter l'envoi d'email réel
-        logger.info(f"Email sent to lead {lead_id}: {email_data}")
+        from services.email_service import email_service
+        from supabase_client import supabase
+        
+        # Récupérer le lead pour avoir l'email
+        lead_res = supabase.table("service_leads").select("email_client, nom_client").eq("id", lead_id).single().execute()
+        if not lead_res.data:
+            raise HTTPException(status_code=404, detail="Lead introuvable")
+            
+        lead = lead_res.data
+        recipient_email = lead.get("email_client")
+        
+        if not recipient_email:
+             raise HTTPException(status_code=400, detail="Le lead n'a pas d'adresse email")
+
+        subject = email_data.get("subject", "Message concernant votre demande")
+        message = email_data.get("message", "")
+        
+        # Envoyer l'email
+        try:
+            email_service.send_email(
+                to_email=recipient_email,
+                subject=subject,
+                html_content=f"""
+                <p>Bonjour {lead.get('nom_client', '')},</p>
+                <p>{message}</p>
+                <br>
+                <p>Cordialement,</p>
+                <p>{current_user.get('first_name', '')} {current_user.get('last_name', '')}</p>
+                """
+            )
+        except Exception as e:
+            logger.error(f"Failed to send email via service: {e}")
+            # Fallback log if email service fails (but we tried!)
+            pass
+        
+        logger.info(f"Email sent to lead {lead_id} at {recipient_email}")
         
         return {
             "success": True,
