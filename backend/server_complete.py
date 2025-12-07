@@ -202,6 +202,51 @@ except ImportError as e:
     logger.info(f"⚠️ Platform settings endpoints not available: {e}")
     PLATFORM_SETTINGS_ENDPOINTS_AVAILABLE = False
 
+# Analytics routes (complete with real DB logic)
+try:
+    from routes.analytics_routes import router as analytics_router
+    ANALYTICS_ROUTES_AVAILABLE = True
+    logger.info("✅ Analytics routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Analytics routes not available: {e}")
+    ANALYTICS_ROUTES_AVAILABLE = False
+
+# Products routes (CRUD + bulk import + variants)
+try:
+    from routes.products_routes import router as products_router
+    PRODUCTS_ROUTES_AVAILABLE = True
+    logger.info("✅ Products routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Products routes not available: {e}")
+    PRODUCTS_ROUTES_AVAILABLE = False
+
+# Campaigns routes (create, analytics, manage)
+try:
+    from routes.campaigns_routes import router as campaigns_router
+    CAMPAIGNS_ROUTES_AVAILABLE = True
+    logger.info("✅ Campaigns routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Campaigns routes not available: {e}")
+    CAMPAIGNS_ROUTES_AVAILABLE = False
+
+# Commissions routes (real calculations)
+try:
+    from routes.commissions_routes import router as commissions_router
+    COMMISSIONS_ROUTES_AVAILABLE = True
+    logger.info("✅ Commissions routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Commissions routes not available: {e}")
+    COMMISSIONS_ROUTES_AVAILABLE = False
+
+# Reports routes (summary + detailed with exports)
+try:
+    from routes.reports_routes import router as reports_router
+    REPORTS_ROUTES_AVAILABLE = True
+    logger.info("✅ Reports routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Reports routes not available: {e}")
+    REPORTS_ROUTES_AVAILABLE = False
+
 # ============================================
 # CONFIGURATION
 # ============================================
@@ -391,8 +436,29 @@ try:
     app.include_router(auth_advanced_router)
     logger.info("✅ Advanced auth endpoints mounted at /api/auth")
 except ImportError as e:
-    logger.info(f"⚠️ Advanced auth endpoints not available: {e}")
+    logger.info("⚠️ Advanced auth endpoints not available: {e}")
     logger.info("💡 Install missing dependencies: pip install pyotp qrcode Pillow")
+
+# Monter les nouveaux routers avec vraie logique DB
+if ANALYTICS_ROUTES_AVAILABLE:
+    app.include_router(analytics_router)
+    logger.info("✅ Analytics routes mounted at /api/analytics")
+
+if PRODUCTS_ROUTES_AVAILABLE:
+    app.include_router(products_router)
+    logger.info("✅ Products routes mounted at /api/products")
+
+if CAMPAIGNS_ROUTES_AVAILABLE:
+    app.include_router(campaigns_router)
+    logger.info("✅ Campaigns routes mounted at /api/campaigns")
+
+if COMMISSIONS_ROUTES_AVAILABLE:
+    app.include_router(commissions_router)
+    logger.info("✅ Commissions routes mounted at /api/commissions")
+
+if REPORTS_ROUTES_AVAILABLE:
+    app.include_router(reports_router)
+    logger.info("✅ Reports routes mounted at /api/reports")
 
 # ============================================
 # HEALTH CHECK ENDPOINT (for Railway)
