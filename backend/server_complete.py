@@ -247,6 +247,24 @@ except ImportError as e:
     logger.info(f"⚠️ Reports routes not available: {e}")
     REPORTS_ROUTES_AVAILABLE = False
 
+# Content Studio routes (templates, AI generation, scheduling)
+try:
+    from routes.content_studio_routes import router as content_studio_router
+    CONTENT_STUDIO_ROUTES_AVAILABLE = True
+    logger.info("✅ Content Studio routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Content Studio routes not available: {e}")
+    CONTENT_STUDIO_ROUTES_AVAILABLE = False
+
+# Utility routes (settings, notifications, currency, messages, referrals, reviews, system)
+try:
+    from routes.utility_routes import router as utility_router
+    UTILITY_ROUTES_AVAILABLE = True
+    logger.info("✅ Utility routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Utility routes not available: {e}")
+    UTILITY_ROUTES_AVAILABLE = False
+
 # ============================================
 # CONFIGURATION
 # ============================================
@@ -459,6 +477,14 @@ if COMMISSIONS_ROUTES_AVAILABLE:
 if REPORTS_ROUTES_AVAILABLE:
     app.include_router(reports_router)
     logger.info("✅ Reports routes mounted at /api/reports")
+
+if CONTENT_STUDIO_ROUTES_AVAILABLE:
+    app.include_router(content_studio_router)
+    logger.info("✅ Content Studio routes mounted at /api/content-studio")
+
+if UTILITY_ROUTES_AVAILABLE:
+    app.include_router(utility_router)
+    logger.info("✅ Utility routes mounted (settings, notifications, currency, messages, referrals, reviews, system)")
 
 # ============================================
 # HEALTH CHECK ENDPOINT (for Railway)
