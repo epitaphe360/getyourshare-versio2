@@ -197,8 +197,11 @@ async def check_subscription_limit(user_id: str, limit_type: str, user_role: str
 # Import scheduler LEADS (démarrage automatique)
 try:
     from scheduler.leads_scheduler import start_scheduler, stop_scheduler
-    SCHEDULER_AVAILABLE = False  # TEMPORAIREMENT DÉSACTIVÉ POUR DEBUGGING
-    logger.info("✅ LEADS scheduler loaded successfully (but disabled)")
+    SCHEDULER_AVAILABLE = os.getenv("ENV", "development") == "production"
+    if SCHEDULER_AVAILABLE:
+        logger.info("✅ LEADS scheduler loaded and ENABLED (production mode)")
+    else:
+        logger.info("✅ LEADS scheduler loaded but disabled (development mode)")
 except ImportError as e:
     SCHEDULER_AVAILABLE = False
     logger.warning(f"⚠️ LEADS scheduler not available: {e}")
@@ -459,9 +462,9 @@ if os.getenv("ENV", "development") == "development":
     # Allow local network IPs (192.168.x.x, 10.x.x.x, 172.x.x.x) on any port
     local_ip_regex = r"|http://192\.168\.\d{1,3}\.\d{1,3}:\d+|http://10\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+|http://172\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+"
     vercel_regex += local_ip_regex
-    # DEBUG: Allow ALL origins in development to fix CORS issues
+    # Development: Allow ALL origins for testing
     vercel_regex = r".*" 
-    logger.info(f"CORS regex updated for local development: {vercel_regex}")
+    logger.info(f"CORS configured for local development")
 
 app.add_middleware(
     CORSMiddleware,
@@ -2969,7 +2972,18 @@ async def approve_registration(
         result = supabase.table("users").update(update_data).eq("id", registration_id).execute()
         
         if result.data:
-            # TODO: Envoyer un email de bienvenue
+            # Envoyer email de bienvenue
+            try:
+                from email_service import send_welcome_email
+                user_data = result.data[0]
+                await send_welcome_email(
+                    user_email=user_data.get("email", ""),
+                    user_name=user_data.get("full_name", user_data.get("email", "")),
+                    role=user_data.get("role", "user")
+                )
+            except Exception as e:
+                logger.error(f"Erreur envoi email bienvenue: {e}")
+            
             return {
                 "success": True,
                 "message": "Demande approuvée avec succès",
@@ -3539,7 +3553,18 @@ async def approve_advertiser_registration(
         if update_result.data:
             logger.info(f"✅ Advertiser registration approved: {registration_id}")
             
-            # TODO: Envoyer un email de confirmation à l'annonceur
+            # Envoyer email de confirmation à l'annonceur
+            try:
+                from email_service import send_merchant_notification
+                user_data = update_result.data[0]
+                await send_merchant_notification(
+                    merchant_email=user_data.get("email", ""),
+                    merchant_name=user_data.get("full_name", user_data.get("email", "")),
+                    subject="🎉 Votre compte annonceur est approuvé!",
+                    message="Votre demande d'annonceur a été approuvée. Vous pouvez maintenant créer des campagnes."
+                )
+            except Exception as e:
+                logger.error(f"Erreur envoi email: {e}")
             
             return {
                 "message": "Demande approuvée avec succès",
@@ -3769,7 +3794,17 @@ async def reject_advertiser_registration(
         if update_result.data:
             logger.info(f"❌ Advertiser registration rejected: {registration_id}")
             
-            # TODO: Envoyer un email de notification à l'annonceur
+            # Envoyer email de notification à l'annonceur
+            try:
+                from email_service import send_rejection_email
+                user_data = update_result.data[0]
+                await send_rejection_email(
+                    user_email=user_data.get("email", ""),
+                    user_name=user_data.get("full_name", user_data.get("email", "")),
+                    reason="Votre demande n'a pas été approuvée."
+                )
+            except Exception as e:
+                logger.error(f"Erreur envoi email: {e}")
             
             return {
                 "message": "Demande rejetée",

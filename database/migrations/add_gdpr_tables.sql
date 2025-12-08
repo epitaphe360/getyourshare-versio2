@@ -42,29 +42,29 @@ CREATE INDEX IF NOT EXISTS idx_user_consents_date ON user_consents(consent_date)
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_consents_unique ON user_consents(user_id, consent_type)
 WHERE revoked = FALSE;
 
--- RLS
-ALTER TABLE user_consents ENABLE ROW LEVEL SECURITY;
+-- RLS (désactivé pour simplicité - activer en production si auth Supabase utilisée)
+-- ALTER TABLE user_consents ENABLE ROW LEVEL SECURITY;
 
 -- Policy: User peut voir ses consentements
-CREATE POLICY user_consents_user_read ON user_consents
-    FOR SELECT
-    USING (user_id = auth.uid());
+-- CREATE POLICY user_consents_user_read ON user_consents
+--     FOR SELECT
+--     USING (user_id = auth.uid());
 
 -- Policy: User peut créer/modifier ses consentements
-CREATE POLICY user_consents_user_write ON user_consents
-    FOR ALL
-    USING (user_id = auth.uid());
+-- CREATE POLICY user_consents_user_write ON user_consents
+--     FOR ALL
+--     USING (user_id = auth.uid());
 
 -- Policy: Admin peut tout voir
-CREATE POLICY user_consents_admin_all ON user_consents
-    FOR ALL
-    USING (
-        EXISTS (
-            SELECT 1 FROM users
-            WHERE users.id = auth.uid()
-            AND users.role = 'admin'
-        )
-    );
+-- CREATE POLICY user_consents_admin_all ON user_consents
+--     FOR ALL
+--     USING (
+--         EXISTS (
+--             SELECT 1 FROM users
+--             WHERE users.id = auth.uid()
+--             AND users.role = 'admin'
+--         )
+--     );
 
 
 -- ============================================
@@ -106,18 +106,18 @@ CREATE INDEX IF NOT EXISTS idx_gdpr_deletions_status ON gdpr_deletion_requests(s
 CREATE INDEX IF NOT EXISTS idx_gdpr_deletions_date ON gdpr_deletion_requests(requested_at);
 
 -- RLS: Table accessible seulement par admins (données sensibles)
-ALTER TABLE gdpr_deletion_requests ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE gdpr_deletion_requests ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Admin uniquement
-CREATE POLICY gdpr_deletions_admin_only ON gdpr_deletion_requests
-    FOR ALL
-    USING (
-        EXISTS (
-            SELECT 1 FROM users
-            WHERE users.id = auth.uid()
-            AND users.role = 'admin'
-        )
-    );
+-- CREATE POLICY gdpr_deletions_admin_only ON gdpr_deletion_requests
+--     FOR ALL
+--     USING (
+--         EXISTS (
+--             SELECT 1 FROM users
+--             WHERE users.id = auth.uid()
+--             AND users.role = 'admin'
+--         )
+--     );
 
 
 -- ============================================
@@ -160,24 +160,24 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_ip ON audit_logs(ip_address);
 -- Partitionnement par mois (pour performance)
 -- TODO: Mettre en place quand la table devient grosse
 
--- RLS
-ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+-- RLS (désactivé pour simplicité - activer en production si auth Supabase utilisée)
+-- ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Policy: User peut voir ses propres logs
-CREATE POLICY audit_logs_user_read ON audit_logs
-    FOR SELECT
-    USING (user_id = auth.uid());
+-- CREATE POLICY audit_logs_user_read ON audit_logs
+--     FOR SELECT
+--     USING (user_id = auth.uid());
 
 -- Policy: Admin peut tout voir
-CREATE POLICY audit_logs_admin_all ON audit_logs
-    FOR ALL
-    USING (
-        EXISTS (
-            SELECT 1 FROM users
-            WHERE users.id = auth.uid()
-            AND users.role = 'admin'
-        )
-    );
+-- CREATE POLICY audit_logs_admin_all ON audit_logs
+--     FOR ALL
+--     USING (
+--         EXISTS (
+--             SELECT 1 FROM users
+--             WHERE users.id = auth.uid()
+--             AND users.role = 'admin'
+--         )
+--     );
 
 
 -- ============================================
@@ -215,24 +215,24 @@ CREATE INDEX IF NOT EXISTS idx_login_history_date ON login_history(created_at);
 CREATE INDEX IF NOT EXISTS idx_login_history_event ON login_history(event_type);
 CREATE INDEX IF NOT EXISTS idx_login_history_ip ON login_history(ip_address);
 
--- RLS
-ALTER TABLE login_history ENABLE ROW LEVEL SECURITY;
+-- RLS (désactivé pour simplicité - activer en production si auth Supabase utilisée)
+-- ALTER TABLE login_history ENABLE ROW LEVEL SECURITY;
 
 -- Policy: User peut voir son historique
-CREATE POLICY login_history_user_read ON login_history
-    FOR SELECT
-    USING (user_id = auth.uid());
+-- CREATE POLICY login_history_user_read ON login_history
+--     FOR SELECT
+--     USING (user_id = auth.uid());
 
 -- Policy: Admin peut tout voir
-CREATE POLICY login_history_admin_all ON login_history
-    FOR ALL
-    USING (
-        EXISTS (
-            SELECT 1 FROM users
-            WHERE users.id = auth.uid()
-            AND users.role = 'admin'
-        )
-    );
+-- CREATE POLICY login_history_admin_all ON login_history
+--     FOR ALL
+--     USING (
+--         EXISTS (
+--             SELECT 1 FROM users
+--             WHERE users.id = auth.uid()
+--             AND users.role = 'admin'
+--         )
+--     );
 
 
 -- ============================================
@@ -350,7 +350,7 @@ SELECT
 
 COMMENT ON TABLE user_consents IS 'Consentements cookies et GDPR des utilisateurs (granulaire)';
 COMMENT ON TABLE gdpr_deletion_requests IS 'Demandes de suppression de compte (Right to be forgotten)';
-COMMENT ON TABLE audit_logs IS 'Logs d\'audit pour traçabilité GDPR';
+COMMENT ON TABLE audit_logs IS 'Logs d''audit pour traçabilité GDPR';
 COMMENT ON TABLE login_history IS 'Historique des connexions utilisateurs (sécurité + GDPR)';
 
 COMMENT ON COLUMN user_consents.necessary_cookies IS 'Cookies essentiels (toujours TRUE, non désactivables)';
