@@ -425,7 +425,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 
 DO $$
 DECLARE
-    idx_record RECORD;
+    idx_query TEXT;
     idx_queries TEXT[] := ARRAY[
         'CREATE INDEX IF NOT EXISTS idx_support_tickets_user ON support_tickets(user_id)',
         'CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status)',
@@ -484,9 +484,9 @@ DECLARE
         'CREATE INDEX IF NOT EXISTS idx_subscriptions_stripe_sub ON subscriptions(stripe_subscription_id)'
     ];
 BEGIN
-    FOREACH idx_record IN ARRAY idx_queries
+    FOREACH idx_query IN ARRAY idx_queries
     LOOP
-        EXECUTE idx_record;
+        EXECUTE idx_query;
     END LOOP;
 END $$;
 
