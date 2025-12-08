@@ -265,6 +265,123 @@ except ImportError as e:
     logger.info(f"⚠️ Utility routes not available: {e}")
     UTILITY_ROUTES_AVAILABLE = False
 
+# E-commerce integrations routes (Shopify, WooCommerce, PrestaShop)
+try:
+    from routes.ecommerce_routes import router as ecommerce_router
+    ECOMMERCE_ROUTES_AVAILABLE = True
+    logger.info("✅ E-commerce routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ E-commerce routes not available: {e}")
+    ECOMMERCE_ROUTES_AVAILABLE = False
+
+# Payment gateways routes (Stripe, PayPal, Apple Pay, Google Pay, Crypto)
+try:
+    from routes.payment_gateways_routes import router as payment_gateways_router
+    PAYMENT_GATEWAYS_ROUTES_AVAILABLE = True
+    logger.info("✅ Payment gateways routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Payment gateways routes not available: {e}")
+    PAYMENT_GATEWAYS_ROUTES_AVAILABLE = False
+
+# Social media routes (Instagram, Facebook, TikTok, Twitter)
+try:
+    from routes.social_media_routes import router as social_media_router
+    SOCIAL_MEDIA_ROUTES_AVAILABLE = True
+    logger.info("✅ Social media routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Social media routes not available: {e}")
+    SOCIAL_MEDIA_ROUTES_AVAILABLE = False
+
+# Team management routes (invite, roles, permissions)
+try:
+    from routes.team_routes import router as team_router
+    TEAM_ROUTES_AVAILABLE = True
+    logger.info("✅ Team routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Team routes not available: {e}")
+    TEAM_ROUTES_AVAILABLE = False
+
+# Webhooks routes (Stripe, Shopify, WooCommerce, PayPal)
+try:
+    from routes.webhooks_routes import router as webhooks_router
+    WEBHOOKS_ROUTES_AVAILABLE = True
+    logger.info("✅ Webhooks routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Webhooks routes not available: {e}")
+    WEBHOOKS_ROUTES_AVAILABLE = False
+
+# Gamification routes (badges, achievements, points, leaderboard)
+try:
+    from routes.gamification_routes import router as gamification_router
+    GAMIFICATION_ROUTES_AVAILABLE = True
+    logger.info("✅ Gamification routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Gamification routes not available: {e}")
+    GAMIFICATION_ROUTES_AVAILABLE = False
+
+# KYC routes (upload, verify, status)
+try:
+    from routes.kyc_routes import router as kyc_router
+    KYC_ROUTES_AVAILABLE = True
+    logger.info("✅ KYC routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ KYC routes not available: {e}")
+    KYC_ROUTES_AVAILABLE = False
+
+# Mobile routes (WhatsApp Business, Mobile Payments Morocco)
+try:
+    from routes.mobile_routes import router as mobile_router
+    MOBILE_ROUTES_AVAILABLE = True
+    logger.info("✅ Mobile routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Mobile routes not available: {e}")
+    MOBILE_ROUTES_AVAILABLE = False
+
+# AI routes (Recommendations, Chatbot, Insights)
+try:
+    from routes.ai_routes import router as ai_router
+    AI_ROUTES_AVAILABLE = True
+    logger.info("✅ AI routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ AI routes not available: {e}")
+    AI_ROUTES_AVAILABLE = False
+
+# Customer Service routes (Ticketing System)
+try:
+    from routes.customer_service_routes import router as customer_service_router
+    CUSTOMER_SERVICE_ROUTES_AVAILABLE = True
+    logger.info("✅ Customer Service routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Customer Service routes not available: {e}")
+    CUSTOMER_SERVICE_ROUTES_AVAILABLE = False
+
+# Live Chat routes (WebSocket Real-time Chat)
+try:
+    from routes.live_chat_routes import router as live_chat_router
+    LIVE_CHAT_ROUTES_AVAILABLE = True
+    logger.info("✅ Live Chat routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Live Chat routes not available: {e}")
+    LIVE_CHAT_ROUTES_AVAILABLE = False
+
+# Advanced Analytics routes (Cohort, RFM, Segments, A/B Testing)
+try:
+    from routes.advanced_analytics_routes import router as advanced_analytics_router
+    ADVANCED_ANALYTICS_ROUTES_AVAILABLE = True
+    logger.info("✅ Advanced Analytics routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Advanced Analytics routes not available: {e}")
+    ADVANCED_ANALYTICS_ROUTES_AVAILABLE = False
+
+# Admin Dashboard routes (Stats, Users, Moderation, System)
+try:
+    from routes.admin_dashboard_routes import router as admin_dashboard_router
+    ADMIN_DASHBOARD_ROUTES_AVAILABLE = True
+    logger.info("✅ Admin Dashboard routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Admin Dashboard routes not available: {e}")
+    ADMIN_DASHBOARD_ROUTES_AVAILABLE = False
+
 # ============================================
 # CONFIGURATION
 # ============================================
@@ -485,6 +602,58 @@ if CONTENT_STUDIO_ROUTES_AVAILABLE:
 if UTILITY_ROUTES_AVAILABLE:
     app.include_router(utility_router)
     logger.info("✅ Utility routes mounted (settings, notifications, currency, messages, referrals, reviews, system)")
+
+if ECOMMERCE_ROUTES_AVAILABLE:
+    app.include_router(ecommerce_router)
+    logger.info("✅ E-commerce routes mounted at /api/ecommerce")
+
+if PAYMENT_GATEWAYS_ROUTES_AVAILABLE:
+    app.include_router(payment_gateways_router)
+    logger.info("✅ Payment gateways routes mounted at /api/payments")
+
+if SOCIAL_MEDIA_ROUTES_AVAILABLE:
+    app.include_router(social_media_router)
+    logger.info("✅ Social media routes mounted at /api/social-media")
+
+if TEAM_ROUTES_AVAILABLE:
+    app.include_router(team_router)
+    logger.info("✅ Team routes mounted at /api/team")
+
+if WEBHOOKS_ROUTES_AVAILABLE:
+    app.include_router(webhooks_router)
+    logger.info("✅ Webhooks routes mounted at /api/webhooks")
+
+if GAMIFICATION_ROUTES_AVAILABLE:
+    app.include_router(gamification_router)
+    logger.info("✅ Gamification routes mounted at /api/gamification")
+
+if KYC_ROUTES_AVAILABLE:
+    app.include_router(kyc_router)
+    logger.info("✅ KYC routes mounted at /api/kyc")
+
+if MOBILE_ROUTES_AVAILABLE:
+    app.include_router(mobile_router)
+    logger.info("✅ Mobile routes mounted (/api/whatsapp, /api/mobile-payments-ma)")
+
+if AI_ROUTES_AVAILABLE:
+    app.include_router(ai_router)
+    logger.info("✅ AI routes mounted at /api/ai")
+
+if CUSTOMER_SERVICE_ROUTES_AVAILABLE:
+    app.include_router(customer_service_router)
+    logger.info("✅ Customer Service routes mounted at /api/support")
+
+if LIVE_CHAT_ROUTES_AVAILABLE:
+    app.include_router(live_chat_router)
+    logger.info("✅ Live Chat routes mounted at /api/live-chat")
+
+if ADVANCED_ANALYTICS_ROUTES_AVAILABLE:
+    app.include_router(advanced_analytics_router)
+    logger.info("✅ Advanced Analytics routes mounted at /api/advanced-analytics")
+
+if ADMIN_DASHBOARD_ROUTES_AVAILABLE:
+    app.include_router(admin_dashboard_router)
+    logger.info("✅ Admin Dashboard routes mounted at /api/admin")
 
 # ============================================
 # HEALTH CHECK ENDPOINT (for Railway)
