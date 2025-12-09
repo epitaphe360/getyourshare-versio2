@@ -31,12 +31,18 @@
 
 Utilisez ces identifiants pour vous connecter :
 
-| Rôle | Email | Mot de passe |
-|------|-------|--------------|
-| 👑 Admin | `admin@test.com` | `admin123` |
-| 🏪 Marchant | `merchant@test.com` | `merchant123` |
-| ⭐ Influenceur | `influencer@test.com` | `influencer123` |
-| 💼 Commercial | `commercial@test.com` | `commercial123` |
+**🔑 Mot de passe universel pour tous les comptes : `Test123!`**
+
+| Rôle | Email | Plan |
+|------|-------|------|
+| 👑 Admin | `admin@getyourshare.com` | Enterprise |
+| ⭐ Influenceur | `hassan.oudrhiri@getyourshare.com` | Starter |
+| ⭐ Influenceur | `sarah.benali@getyourshare.com` | Pro |
+| ⭐ Influenceur | `karim.benjelloun@getyourshare.com` | Enterprise ⭐ |
+| 🏪 Marchand | `boutique.maroc@getyourshare.com` | Starter |
+| 🏪 Marchand | `luxury.crafts@getyourshare.com` | Pro |
+| 🏪 Marchand | `electromaroc@getyourshare.com` | Enterprise ⭐ |
+| 💼 Commercial | `sofia.chakir@getyourshare.com` | Enterprise |
 
 ---
 

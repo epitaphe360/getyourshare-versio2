@@ -39,6 +39,13 @@ const Toast = ({
     warning: 'Warning'
   };
 
+  // Ensure message is always a string to prevent React error #31
+  const displayMessage = typeof message === 'string'
+    ? message
+    : typeof message === 'object' && message !== null
+      ? JSON.stringify(message)
+      : String(message);
+
   return (
     <div
       role="alert"
@@ -51,7 +58,7 @@ const Toast = ({
         {icons[type]}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900">{message}</p>
+        <p className="text-sm font-medium text-gray-900">{displayMessage}</p>
         {action && (
           <button
             onClick={action.onClick}

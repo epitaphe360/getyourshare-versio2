@@ -57,7 +57,7 @@ class ProductReviewRequest(BaseModel):
     """Créer un avis"""
     rating: int = Field(..., ge=1, le=5, description="Note de 1 à 5")
     title: Optional[str] = Field(None, max_length=255)
-    comment: str = Field(..., min_length=10, max_length=2000)
+    comment: str = Field(..., min_length=1, max_length=2000, description="Commentaire (minimum 1 caractère)")
 
     class Config:
         json_schema_extra = {
@@ -666,12 +666,20 @@ async def create_product_review(
                 detail="Vous avez déjà laissé un avis sur ce produit"
             )
 
+        # Validation supplémentaire
+        if not review_data.comment or len(review_data.comment.strip()) < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Le commentaire est requis"
+            )
+
         # Créer review
         review = {
             'product_id': product_id,
             'user_id': user_id,
             'rating': review_data.rating,
-            'review': review_data.comment,
+            'title': review_data.title if review_data.title else None,
+            'review': review_data.comment.strip(),
             'created_at': datetime.utcnow().isoformat()
         }
 
@@ -693,7 +701,7 @@ async def create_product_review(
         logger.error("create_product_review_failed", user_id=user_id, product_id=product_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Erreur lors de la création de l'avis"
+            detail=f"Erreur lors de la création de l'avis: {str(e)}"
         )
 
 

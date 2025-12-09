@@ -375,10 +375,9 @@ async def send_custom_message(registration_id: int, message_data: SendMessageReq
             raise HTTPException(status_code=404, detail="Demande non trouvée")
         
         registration = response.data[0]
-        
-        # Envoyer l'email
-        # Construire le message en échappant les sauts de ligne avant la f-string
-        safe_message = message_data.message.replace("\n", "<br>")
+
+        # Préparer le message formaté (éviter backslash dans f-string)
+        safe_message = message_data.message.replace('\n', '<br>')
         email_content = f"""
         <html>
         <body style="font-family: Arial, sans-serif; padding: 20px;">

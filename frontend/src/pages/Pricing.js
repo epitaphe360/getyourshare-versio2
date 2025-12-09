@@ -165,7 +165,7 @@ const Pricing = () => {
 
   const fetchSubscriptionPlans = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/subscription-plans`);
+      const response = await axios.get(`${API_URL}/subscription-plans`);
       if (response.data && (response.data.merchants?.length > 0 || response.data.influencers?.length > 0)) {
         setSubscriptionPlans(response.data);
       }

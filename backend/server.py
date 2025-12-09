@@ -426,6 +426,9 @@ allowed_origins = [
     "http://127.0.0.1:3003",
     os.getenv("FRONTEND_URL", "https://getyourshare.com"),
     os.getenv("PRODUCTION_URL", "https://www.getyourshare.com"),
+    # Vercel deployment URLs
+    "https://getyourshare.vercel.app",
+    "https://www.getyourshare.vercel.app",
 ]
 
 # Ajouter les URLs Vercel (déploiement et preview)
@@ -9475,31 +9478,40 @@ async def get_influencer_profile(
     """Profil de l'influenceur connecté"""
     try:
         user = verify_token(credentials.credentials)
-        
+
         if user['role'] != 'influencer':
             raise HTTPException(status_code=403, detail="Must be an influencer")
-        
+
         # Récupérer les infos utilisateur
         user_result = supabase.table("users").select("*").eq("id", user["id"]).single().execute()
-        
+
         profile = user_result.data
-        
+
         # Ajouter les stats de l'influenceur
         links_count = supabase.table("tracking_links").select("id", count="exact").eq("influencer_id", user["id"]).execute().count or 0
         conversions_count = supabase.table("conversions").select("id", count="exact").eq("influencer_id", user["id"]).execute().count or 0
-        
+
         profile["stats"] = {
             "total_links": links_count,
             "total_conversions": conversions_count,
             "total_earnings": conversions_count * 10,  # Simulation: 10€ par conversion
             "active_collaborations": 5
         }
-        
-        return profile
-    
+
+        return {"profile": profile}
+
     except Exception as e:
         logger.error(f"Error fetching influencer profile: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Alias endpoint with plural form for frontend compatibility
+@app.get("/api/influencers/profile")
+async def get_influencers_profile_plural(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Profil de l'influenceur connecté (alias pluriel)"""
+    return await get_influencer_profile(credentials)
 
 
 @app.get("/api/influencer/tracking-links")
@@ -9712,28 +9724,48 @@ async def respond_to_invitation(
         
         # Mettre à jour le statut
         new_status = "accepted" if action == "accept" else "declined"
+        from datetime import datetime
         result = supabase.table("invitations").update({
             "status": new_status,
-            "responded_at": "now()"
+            "responded_at": datetime.utcnow().isoformat()
         }).eq("id", invitation_id).execute()
-        
+
         # Si acceptée, créer un tracking link
+        affiliate_links = []
         if action == "accept":
             invitation_data = invitation.data
+            user_id_str = str(user["id"])
             tracking_link = {
                 "influencer_id": user["id"],
                 "merchant_id": invitation_data["merchant_id"],
                 "product_id": invitation_data.get("product_id"),
                 "service_id": invitation_data.get("service_id"),
-                "link_code": f"INF{user['id'][:8]}",
+                "link_code": f"INF{user_id_str[:8] if len(user_id_str) >= 8 else user_id_str}",
                 "commission_rate": invitation_data.get("commission_rate", 10),
-                "created_at": "now()"
+                "created_at": datetime.utcnow().isoformat()
             }
-            supabase.table("tracking_links").insert(tracking_link).execute()
-        
+            link_result = supabase.table("tracking_links").insert(tracking_link).execute()
+
+            # Prepare affiliate link response for frontend
+            if link_result.data:
+                product_name = "Produit"
+                if invitation_data.get("product_id"):
+                    prod_res = supabase.table("products").select("name").eq("id", invitation_data["product_id"]).execute()
+                    if prod_res.data:
+                        product_name = prod_res.data[0].get("name", "Produit")
+
+                affiliate_links.append({
+                    "product_id": invitation_data.get("product_id"),
+                    "product_name": product_name,
+                    "affiliate_code": tracking_link["link_code"],
+                    "affiliate_link": f"/track/{tracking_link['link_code']}"
+                })
+
         return {
             "success": True,
-            "status": new_status
+            "message": "Invitation acceptée" if action == "accept" else "Invitation refusée",
+            "status": new_status,
+            "affiliate_links": affiliate_links if action == "accept" else []
         }
     
     except Exception as e:

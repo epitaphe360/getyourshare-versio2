@@ -105,7 +105,7 @@ const Register = () => {
         ...(role === 'influencer' && { username: formData.username })
       };
 
-      const response = await axios.post(`${API_URL}/api/auth/register`, registerData);
+      const response = await axios.post(`${API_URL}/auth/register`, registerData);
       
       if (response.data.success) {
         setSuccess(true);
