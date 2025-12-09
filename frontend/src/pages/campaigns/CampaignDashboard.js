@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp,
@@ -32,6 +33,7 @@ import { useToast } from '../../context/ToastContext';
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const CampaignDashboard = () => {
+  const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -632,15 +634,15 @@ const CampaignDashboard = () => {
               ⚡ Actions Rapides
             </h3>
             <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start" onClick={() => {}}>
+              <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/campaigns/create')}>
                 <Plus className="w-4 h-4 mr-2" />
                 Créer une Campagne
               </Button>
-              <Button variant="outline" className="w-full justify-start" onClick={() => {}}>
+              <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/reports/advanced')}>
                 <Download className="w-4 h-4 mr-2" />
                 Rapport Mensuel
               </Button>
-              <Button variant="outline" className="w-full justify-start" onClick={() => {}}>
+              <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/reports/advanced')}>
                 <Calendar className="w-4 h-4 mr-2" />
                 Programmer Analyse
               </Button>

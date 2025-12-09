@@ -31,7 +31,7 @@ const SwipeCard = ({ item, onSwipe, style }) => {
       {/* Image Section */}
       <div className="h-3/5 w-full relative">
         <img 
-          src={item.image || 'https://via.placeholder.com/400x600'} 
+          src={(item.image || 'https://placehold.co/400x600').replace('via.placeholder.com', 'placehold.co')} 
           alt={item.title} 
           className="w-full h-full object-cover pointer-events-none"
         />

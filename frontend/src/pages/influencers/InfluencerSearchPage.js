@@ -322,7 +322,7 @@ const InfluencerSearchPage = () => {
                 <div className="p-5">
                   <div className="flex items-start gap-3 mb-3">
                     <img
-                      src={influencer.profile_image || 'https://via.placeholder.com/50'}
+                      src={(influencer.profile_image || 'https://placehold.co/50').replace('via.placeholder.com', 'placehold.co')}
                       alt={influencer.full_name}
                       className="w-16 h-16 rounded-full object-cover border-2 border-purple-100"
                     />

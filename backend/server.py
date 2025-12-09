@@ -3683,47 +3683,77 @@ async def get_pending_moderation(
         
         # Produits en attente
         if not content_type or content_type == "product":
-            products_result = supabase.table("products")\
-                .select("*, users(full_name, email)")\
-                .eq("status", "pending")\
-                .order("created_at", desc=True)\
-                .limit(limit)\
-                .execute()
-            
-            for product in products_result.data if products_result.data else []:
-                pending_items.append({
-                    "id": product["id"],
-                    "type": "product",
-                    "title": product.get("name"),
-                    "content": product.get("description"),
-                    "submitted_by": product.get("users"),
-                    "created_at": product.get("created_at"),
-                    "status": "pending"
-                })
-        
+            try:
+                products_result = supabase.table("products")\
+                    .select("*, users(full_name, email)")\
+                    .eq("status", "pending")\
+                    .order("created_at", desc=True)\
+                    .limit(limit)\
+                    .execute()
+                
+                for product in products_result.data if products_result.data else []:
+                    pending_items.append({
+                        "id": product["id"],
+                        "type": "product",
+                        "title": product.get("name"),
+                        "content": product.get("description"),
+                        "submitted_by": product.get("users"),
+                        "created_at": product.get("created_at"),
+                        "status": "pending"
+                    })
+            except Exception as e:
+                print(f"⚠️ Error fetching pending products: {e}")
+
         # Commentaires/reviews en attente
         if not content_type or content_type == "review":
-            reviews_result = supabase.table("reviews")\
-                .select("*, users(full_name, email)")\
-                .eq("status", "pending")\
-                .order("created_at", desc=True)\
-                .limit(limit)\
-                .execute()
-            
-            for review in reviews_result.data if reviews_result.data else []:
-                pending_items.append({
-                    "id": review["id"],
-                    "type": "review",
-                    "title": f"Review #{review['id'][:8]}",
-                    "content": review.get("comment"),
-                    "rating": review.get("rating"),
-                    "submitted_by": review.get("users"),
-                    "created_at": review.get("created_at"),
-                    "status": "pending"
-                })
+            try:
+                reviews_result = supabase.table("reviews")\
+                    .select("*, users(full_name, email)")\
+                    .eq("status", "pending")\
+                    .order("created_at", desc=True)\
+                    .limit(limit)\
+                    .execute()
+                
+                for review in reviews_result.data if reviews_result.data else []:
+                    pending_items.append({
+                        "id": review["id"],
+                        "type": "review",
+                        "title": f"Review #{review['id'][:8]}",
+                        "content": review.get("comment"),
+                        "rating": review.get("rating"),
+                        "submitted_by": review.get("users"),
+                        "created_at": review.get("created_at"),
+                        "status": "pending"
+                    })
+            except Exception as e:
+                print(f"⚠️ Error fetching pending reviews: {e}")
+
+        # Advertiser Registrations en attente
+        if not content_type or content_type == "advertiser":
+            try:
+                advertisers_result = supabase.table("advertiser_registrations")\
+                    .select("*")\
+                    .eq("status", "pending")\
+                    .order("created_at", desc=True)\
+                    .limit(limit)\
+                    .execute()
+                
+                for advertiser in advertisers_result.data if advertisers_result.data else []:
+                    pending_items.append({
+                        "id": advertiser["id"],
+                        "type": "advertiser",
+                        "title": advertiser.get("company_name"),
+                        "content": f"Registration request from {advertiser.get('contact_person')}",
+                        "submitted_by": {"full_name": advertiser.get("contact_person"), "email": advertiser.get("email")},
+                        "created_at": advertiser.get("created_at"),
+                        "status": "pending",
+                        "details": advertiser 
+                    })
+            except Exception as e:
+                print(f"⚠️ Error fetching pending advertisers: {e}")
         
         # Trier par date
-        pending_items.sort(key=lambda x: x["created_at"], reverse=True)
+        pending_items.sort(key=lambda x: x["created_at"] or "", reverse=True)
         
         return {"pending_items": pending_items[:limit], "total": len(pending_items)}
     except HTTPException:
@@ -5694,6 +5724,42 @@ async def get_campaigns_endpoint(current_user: dict = Depends(get_current_user_f
     else:
         campaigns = get_all_campaigns()
 
+    # --- Calcul des stats réelles depuis la table conversions ---
+    campaign_stats = {} # campaign_id -> {conversions: 0, revenue: 0}
+    
+    try:
+        campaign_ids = [c['id'] for c in campaigns]
+        if campaign_ids:
+            # 1. Récupérer les tracking links
+            tl_result = supabase.table('tracking_links').select('id, campaign_id').in_('campaign_id', campaign_ids).execute()
+            tracking_links = tl_result.data or []
+            
+            tracking_link_to_campaign = {tl['id']: tl['campaign_id'] for tl in tracking_links}
+            tl_ids = list(tracking_link_to_campaign.keys())
+            
+            if tl_ids:
+                # 2. Récupérer les conversions (completed ou paid)
+                conv_result = supabase.table('conversions')\
+                    .select('tracking_link_id, sale_amount')\
+                    .in_('tracking_link_id', tl_ids)\
+                    .in_('status', ['completed', 'paid'])\
+                    .execute()
+                
+                conversions = conv_result.data or []
+                
+                for conv in conversions:
+                    tl_id = conv.get('tracking_link_id')
+                    c_id = tracking_link_to_campaign.get(tl_id)
+                    
+                    if c_id:
+                        if c_id not in campaign_stats:
+                            campaign_stats[c_id] = {'conversions': 0, 'revenue': 0.0}
+                        
+                        campaign_stats[c_id]['conversions'] += 1
+                        campaign_stats[c_id]['revenue'] += float(conv.get('sale_amount') or 0)
+    except Exception as e:
+        print(f"Erreur calcul stats campagnes: {e}")
+
     # Enrichir chaque campagne avec des métadonnées supplémentaires
     enriched_campaigns = []
     for campaign in campaigns:
@@ -5730,6 +5796,12 @@ async def get_campaigns_endpoint(current_user: dict = Depends(get_current_user_f
             campaign['impressions'] = 0
             campaign['engagement_rate'] = 0
         
+        # Surcharger avec les stats réelles si disponibles
+        c_id = campaign['id']
+        if c_id in campaign_stats:
+            campaign['total_conversions'] = campaign_stats[c_id]['conversions']
+            campaign['total_revenue'] = campaign_stats[c_id]['revenue']
+
         enriched_campaigns.append(campaign)
 
     return {"data": enriched_campaigns, "total": len(enriched_campaigns)}
@@ -5757,9 +5829,27 @@ async def get_campaign_stats(campaign_id: str, current_user: dict = Depends(get_
             .eq('campaign_id', campaign_id)\
             .execute()
         
-        total_clicks = sum(link.get('clicks', 0) for link in (tracking_links_response.data or []))
-        total_conversions = sum(link.get('conversions', 0) for link in (tracking_links_response.data or []))
-        total_revenue = sum(float(link.get('revenue', 0)) for link in (tracking_links_response.data or []))
+        tracking_links = tracking_links_response.data or []
+        tl_ids = [tl['id'] for tl in tracking_links]
+        
+        # Calculer les conversions réelles depuis la table conversions
+        real_conversions = 0
+        real_revenue = 0.0
+        
+        if tl_ids:
+            conv_result = supabase.table('conversions')\
+                .select('sale_amount')\
+                .in_('tracking_link_id', tl_ids)\
+                .in_('status', ['completed', 'paid'])\
+                .execute()
+            
+            conversions_data = conv_result.data or []
+            real_conversions = len(conversions_data)
+            real_revenue = sum(float(c.get('sale_amount') or 0) for c in conversions_data)
+
+        total_clicks = sum(link.get('clicks', 0) for link in tracking_links)
+        total_conversions = real_conversions
+        total_revenue = real_revenue
         
         # Récupérer les vues depuis performance_metrics si disponible
         performance_metrics = campaign.get('performance_metrics', {})
@@ -10440,7 +10530,7 @@ async def upgrade_subscription(
         # Pour les influenceurs: créer/mettre à jour dans subscriptions
         if user['role'] == 'influencer':
             # Vérifier si l'influenceur a déjà un abonnement
-            existing = supabase.table("subscriptions").select("*").eq("influencer_id", user["id"]).eq("status", "active").execute()
+            existing = supabase.table("subscriptions").select("*").eq("user_id", user["id"]).eq("status", "active").execute()
             
             if existing.data:
                 # Annuler l'ancien
@@ -10452,7 +10542,7 @@ async def upgrade_subscription(
             end_date = start_date + timedelta(days=30)
             
             new_subscription = {
-                "influencer_id": user["id"],
+                "user_id": user["id"],
                 "plan_id": new_plan_id,
                 "status": "active",
                 "start_date": start_date.isoformat(),
@@ -10498,7 +10588,7 @@ async def cancel_subscription(
             # Annuler l'abonnement dans subscriptions
             result = supabase.table("subscriptions").update({
                 "status": "cancelled"
-            }).eq("influencer_id", user["id"]).eq("status", "active").execute()
+            }).eq("user_id", user["id"]).eq("status", "active").execute()
             
             return {
                 "success": True,

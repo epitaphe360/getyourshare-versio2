@@ -84,22 +84,24 @@ const ServicesListPage = () => {
 
   // Fonction utilitaire pour gérer les images (JSONB array)
   const getFirstImage = (service) => {
+    let img = null;
     if (!service.images) return null;
 
     if (Array.isArray(service.images) && service.images.length > 0) {
-      return service.images[0];
-    }
-
-    if (typeof service.images === 'string') {
+      img = service.images[0];
+    } else if (typeof service.images === 'string') {
       try {
         const parsed = JSON.parse(service.images);
-        return Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
+        img = Array.isArray(parsed) && parsed.length > 0 ? parsed[0] : null;
       } catch {
-        return null;
+        img = null;
       }
     }
 
-    return null;
+    if (img && typeof img === 'string' && img.includes('via.placeholder.com')) {
+      return img.replace('via.placeholder.com', 'placehold.co');
+    }
+    return img;
   };
 
   const columns = useMemo(() => [

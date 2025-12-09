@@ -175,7 +175,7 @@ const AdvancedMarketplace = () => {
           <div style={{ position: 'relative', height: 200, overflow: 'hidden' }}>
             <Image
               alt={product.name}
-              src={product.image || 'https://via.placeholder.com/300x200'}
+              src={(product.image || 'https://placehold.co/300x200').replace('via.placeholder.com', 'placehold.co')}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               preview={false}
             />

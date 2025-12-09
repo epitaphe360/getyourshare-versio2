@@ -754,7 +754,7 @@ const HomePage = () => {
                   <CardMedia
                     component="img"
                     height="220"
-                    image={product.image_url || 'https://via.placeholder.com/400x300'}
+                    image={(product.image_url || 'https://placehold.co/400x300').replace('via.placeholder.com', 'placehold.co')}
                     alt={product.name}
                     sx={{ objectFit: 'cover' }}
                   />

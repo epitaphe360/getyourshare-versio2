@@ -327,7 +327,7 @@ const UserManagement = () => {
           <Avatar
             size={40}
             icon={<UserOutlined />}
-            src={user.avatar}
+            src={user.avatar && user.avatar.includes('via.placeholder.com') ? user.avatar.replace('via.placeholder.com', 'placehold.co') : user.avatar}
             style={{ backgroundColor: user.avatar ? 'transparent' : '#1890ff' }}
           />
           <div>

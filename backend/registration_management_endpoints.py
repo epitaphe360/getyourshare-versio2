@@ -222,41 +222,32 @@ async def approve_registration(registration_id: str):
         
         # Envoyer email de confirmation
         email_content = f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; padding: 20px;">
-            <div style="max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 30px; border-radius: 10px;">
-                <h1 style="color: #10b981;">🎉 Votre demande a été approuvée !</h1>
-                <p>Bonjour {registration.get('company_name', '')} !</p>
-                <p>Nous avons le plaisir de vous informer que votre demande d'inscription en tant qu'annonceur sur <strong>GetYourShare</strong> a été approuvée.</p>
-                <p>Votre compte a été créé avec succès. Voici vos identifiants de connexion :</p>
-                <div style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e5e7eb; margin: 20px 0;">
-                    <p><strong>Email :</strong> {registration['email']}</p>
-                    <p><strong>Mot de passe :</strong> {generated_password}</p>
-                </div>
-                <p>Nous vous recommandons de changer votre mot de passe dès votre première connexion.</p>
-                <div style="margin: 30px 0;">
-                    <a href="https://getyourshare.com/login" style="background: #4f46e5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">
-                        Accéder à mon espace
-                    </a>
-                </div>
-                <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-                <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-                    Cordialement,<br>
-                    L'équipe GetYourShare
-                </p>
-            </div>
-        </body>
-        </html>
-        """
-                <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
-                <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
-                    Cordialement,<br>
-                    L'équipe GetYourShare
-                </p>
-            </div>
-        </body>
-        </html>
-        """
+<html>
+<body style="font-family: Arial, sans-serif; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 30px; border-radius: 10px;">
+        <h1 style="color: #10b981;">🎉 Votre demande a été approuvée !</h1>
+        <p>Bonjour {registration.get('company_name', '')} !</p>
+        <p>Nous avons le plaisir de vous informer que votre demande d'inscription en tant qu'annonceur sur <strong>GetYourShare</strong> a été approuvée.</p>
+        <p>Votre compte a été créé avec succès. Voici vos identifiants de connexion :</p>
+        <div style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e5e7eb; margin: 20px 0;">
+            <p><strong>Email :</strong> {registration['email']}</p>
+            <p><strong>Mot de passe :</strong> {generated_password}</p>
+        </div>
+        <p>Nous vous recommandons de changer votre mot de passe dès votre première connexion.</p>
+        <div style="margin: 30px 0;">
+            <a href="https://getyourshare.com/login" style="background: #4f46e5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">
+                Accéder à mon espace
+            </a>
+        </div>
+        <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+            Cordialement,<br>
+            L'équipe GetYourShare
+        </p>
+    </div>
+</body>
+</html>
+"""
         
         await send_email(
             registration['email'],
