@@ -1351,60 +1351,104 @@ async def get_analytics_overview(
         
         # DEBUG: Log pour vérifier
         print(f"🔍 DEBUG: {len(sales)} ventes trouvées")
+        logger.info(f"🔍 DEBUG: {len(sales)} ventes trouvées")
         
-        # Calculer les totaux depuis les ventes réelles
-        total_revenue = sum(float(s.get("amount", 0)) for s in sales)
-        platform_commission = sum(float(s.get("platform_commission", 0)) for s in sales)
-        influencer_commission = sum(float(s.get("commission_amount", 0)) for s in sales)
+        # Calculer les totaux depuis les ventes réelles avec gestion d'erreur
+        try:
+            total_revenue = sum(float(s.get("amount", 0) or 0) for s in sales)
+            platform_commission = sum(float(s.get("platform_commission", 0) or 0) for s in sales)
+            influencer_commission = sum(float(s.get("commission_amount", 0) or 0) for s in sales)
+        except (TypeError, ValueError) as calc_error:
+            logger.error(f"❌ Erreur calcul revenus: {calc_error}")
+            total_revenue = 0
+            platform_commission = 0
+            influencer_commission = 0
         
         print(f"🔍 DEBUG platform_commission calculée: {platform_commission}")
-        # Merchant revenue = total - platform commission - influencer commission
+        logger.info(f"🔍 Fetching commissions table...")
         merchant_revenue = total_revenue - platform_commission - influencer_commission
         
         # Commissions (table séparée - pour legacy)
-        commissions_result = supabase.table("commissions").select("amount").execute()
-        commissions = commissions_result.data or []
-        total_commissions_table = sum(c.get("amount", 0) for c in commissions)
+        try:
+            commissions_result = supabase.table("commissions").select("amount").execute()
+            commissions = commissions_result.data or []
+            total_commissions_table = sum(float(c.get("amount", 0) or 0) for c in commissions)
+        except Exception as comm_error:
+            logger.warning(f"⚠️ Table commissions error: {comm_error}")
+            total_commissions_table = 0
         
-        payouts_result = supabase.table("payouts").select("amount").eq("status", "pending").execute()
-        payouts = payouts_result.data or []
-        pending_payouts = sum(p.get("amount", 0) for p in payouts)
+        logger.info(f"🔍 Fetching payouts...")
+        try:
+            payouts_result = supabase.table("payouts").select("amount").eq("status", "pending").execute()
+            payouts = payouts_result.data or []
+            pending_payouts = sum(float(p.get("amount", 0) or 0) for p in payouts)
+        except Exception as pay_error:
+            logger.warning(f"⚠️ Table payouts error: {pay_error}")
+            pending_payouts = 0
         
+        logger.info(f"🔍 Fetching clicks/conversions...")
         # Statistiques tracking
-        clicks_result = supabase.table("clicks").select("id", count="exact", head=True).execute()
-        conversions_result = supabase.table("conversions").select("id", count="exact", head=True).execute()
+        try:
+            clicks_result = supabase.table("clicks").select("id", count="exact", head=True).execute()
+            total_clicks = clicks_result.count or 0
+        except Exception:
+            total_clicks = 0
+            
+        try:
+            conversions_result = supabase.table("conversions").select("id", count="exact", head=True).execute()
+            total_conversions = conversions_result.count or 0
+        except Exception:
+            total_conversions = 0
         
-        total_clicks = clicks_result.count or 0
-        total_conversions = conversions_result.count or 0
         conversion_rate = (total_conversions / total_clicks * 100) if total_clicks > 0 else 0
         
+        logger.info(f"🔍 Fetching subscriptions...")
         # Statistiques abonnements
-        subscriptions_result = supabase.table("subscriptions").select("id, plan_id", count="exact").in_("status", ["active", "trialing"]).execute()
-        active_subscriptions = subscriptions_result.count or 0
+        try:
+            subscriptions_result = supabase.table("subscriptions").select("id, plan_id", count="exact").in_("status", ["active", "trialing"]).execute()
+            active_subscriptions = subscriptions_result.count or 0
+        except Exception as sub_error:
+            logger.warning(f"⚠️ Subscriptions error: {sub_error}")
+            active_subscriptions = 0
+            subscriptions_result = type('obj', (object,), {'data': []})()
         
         # Revenus des abonnements
         subscription_revenue = 0
-        if active_subscriptions > 0 and subscriptions_result.data:
-            plan_ids = list(set([s.get("plan_id") for s in subscriptions_result.data if s.get("plan_id")]))
-            if plan_ids:
-                plans_result = supabase.table("subscription_plans").select("id, price").in_("id", plan_ids).execute()
-                plan_prices = {p.get("id"): float(p.get("price", 0)) for p in (plans_result.data or [])}
-                subscription_revenue = sum([plan_prices.get(s.get("plan_id"), 0) for s in subscriptions_result.data])
+        try:
+            if active_subscriptions > 0 and subscriptions_result.data:
+                plan_ids = list(set([s.get("plan_id") for s in subscriptions_result.data if s.get("plan_id")]))
+                if plan_ids:
+                    plans_result = supabase.table("subscription_plans").select("id, price").in_("id", plan_ids).execute()
+                    plan_prices = {p.get("id"): float(p.get("price", 0) or 0) for p in (plans_result.data or [])}
+                    subscription_revenue = sum([plan_prices.get(s.get("plan_id"), 0) for s in subscriptions_result.data])
+        except Exception as sub_rev_error:
+            logger.warning(f"⚠️ Subscription revenue calculation error: {sub_rev_error}")
+            subscription_revenue = 0
         
+        logger.info(f"🔍 Calculating growth...")
         # Calcul croissance (comparaison mois dernier)
         last_month = (datetime.utcnow() - timedelta(days=30)).isoformat()
         
         # Optimisation: Récupérer seulement amount pour le mois dernier
-        last_month_commissions = supabase.table("commissions").select("amount").gte("created_at", last_month).execute()
-        last_month_revenue = sum(c.get("amount", 0) for c in (last_month_commissions.data or []))
+        try:
+            last_month_commissions = supabase.table("commissions").select("amount").gte("created_at", last_month).execute()
+            last_month_revenue = sum(float(c.get("amount", 0) or 0) for c in (last_month_commissions.data or []))
+        except Exception:
+            last_month_revenue = 0
         revenue_growth = ((total_revenue - last_month_revenue) / last_month_revenue * 100) if last_month_revenue > 0 else 0
         
         # Optimisation: Count pour user growth
-        last_month_users_count = supabase.table("users").select("id", count="exact", head=True).gt("created_at", last_month).execute()
-        last_month_users = last_month_users_count.count or 0
+        try:
+            last_month_users_count = supabase.table("users").select("id", count="exact", head=True).gt("created_at", last_month).execute()
+            last_month_users = last_month_users_count.count or 0
+        except Exception:
+            last_month_users = 0
         
-        total_users_count = supabase.table("users").select("id", count="exact", head=True).execute()
-        total_users = total_users_count.count or 0
+        try:
+            total_users_count = supabase.table("users").select("id", count="exact", head=True).execute()
+            total_users = total_users_count.count or 0
+        except Exception:
+            total_users = 0
         
         prev_total_users = total_users - last_month_users
         user_growth = ((total_users - prev_total_users) / prev_total_users * 100) if prev_total_users > 0 else 0
