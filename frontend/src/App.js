@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { CurrencyProvider } from './context/CurrencyContext';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { I18nProvider } from './i18n/i18n';
 import Layout from './components/layout/Layout';

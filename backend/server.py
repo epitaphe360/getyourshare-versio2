@@ -1304,7 +1304,11 @@ async def get_dashboard_stats_endpoint(request: Request, payload: dict = Depends
     return stats
 
 @app.get("/api/analytics/overview")
-async def get_analytics_overview(request: Request, payload: dict = Depends(get_current_user_from_cookie)):
+async def get_analytics_overview(
+    request: Request, 
+    period: str = Query("30days", description="Période d'analyse: 7days, 30days, 90days"),
+    payload: dict = Depends(get_current_user_from_cookie)
+):
     """Vue d'ensemble complète des analytics pour admin"""
     try:
         # Optimisation: Utiliser count='exact' au lieu de récupérer toutes les données
