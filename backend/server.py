@@ -3691,13 +3691,14 @@ async def get_pending_moderation(
                     .limit(limit)\
                     .execute()
                 
-                for product in products_result.data if products_result.data else []:
+                for product in (products_result.data or []):
+                    user_data = product.get("users") or {}
                     pending_items.append({
                         "id": product["id"],
                         "type": "product",
                         "title": product.get("name"),
                         "content": product.get("description"),
-                        "submitted_by": product.get("users"),
+                        "submitted_by": user_data,
                         "created_at": product.get("created_at"),
                         "status": "pending"
                     })
@@ -3714,14 +3715,15 @@ async def get_pending_moderation(
                     .limit(limit)\
                     .execute()
                 
-                for review in reviews_result.data if reviews_result.data else []:
+                for review in (reviews_result.data or []):
+                    user_data = review.get("users") or {}
                     pending_items.append({
                         "id": review["id"],
                         "type": "review",
-                        "title": f"Review #{review['id'][:8]}",
+                        "title": f"Review #{str(review['id'])[:8]}",
                         "content": review.get("comment"),
                         "rating": review.get("rating"),
-                        "submitted_by": review.get("users"),
+                        "submitted_by": user_data,
                         "created_at": review.get("created_at"),
                         "status": "pending"
                     })
@@ -3738,7 +3740,7 @@ async def get_pending_moderation(
                     .limit(limit)\
                     .execute()
                 
-                for advertiser in advertisers_result.data if advertisers_result.data else []:
+                for advertiser in (advertisers_result.data or []):
                     pending_items.append({
                         "id": advertiser["id"],
                         "type": "advertiser",
@@ -3752,12 +3754,19 @@ async def get_pending_moderation(
             except Exception as e:
                 print(f"⚠️ Error fetching pending advertisers: {e}")
         
-        # Trier par date
-        pending_items.sort(key=lambda x: x["created_at"] or "", reverse=True)
+        # Trier par date (safe sort)
+        def get_sort_key(item):
+            return item.get("created_at") or ""
+            
+        pending_items.sort(key=get_sort_key, reverse=True)
         
         return {"pending_items": pending_items[:limit], "total": len(pending_items)}
-    except HTTPException:
-        raise
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"❌ Critical Error in get_pending_moderation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         print(f"❌ Erreur get_pending_moderation: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -7362,29 +7371,72 @@ async def get_advertisers(current_user: dict = Depends(get_current_user_from_coo
 async def get_affiliates(current_user: dict = Depends(get_current_user_from_cookie)):
     """Liste des affiliés (alias pour influencers)"""
     influencers = get_all_influencers()
+    if not influencers:
+        return {"data": [], "total": 0}
     
-    # Enrichir avec les stats calculées si les colonnes n'existent pas encore
+    # Optimisation: Récupérer toutes les données en une fois pour éviter N+1 requêtes
+    try:
+        # 1. Récupérer tous les tracking links
+        tl_res = supabase.table("tracking_links").select("id, influencer_id, clicks").execute()
+        all_tracking_links = tl_res.data if tl_res.data else []
+        
+        # 2. Récupérer toutes les conversions
+        conv_res = supabase.table("conversions").select("id, influencer_id, tracking_link_id, commission_amount, status").execute()
+        all_conversions = conv_res.data if conv_res.data else []
+        
+        # 3. Indexer les données en mémoire
+        inf_to_links = {}
+        link_id_to_inf = {}
+        
+        for tl in all_tracking_links:
+            inf_id = tl.get('influencer_id')
+            if inf_id:
+                if inf_id not in inf_to_links:
+                    inf_to_links[inf_id] = []
+                inf_to_links[inf_id].append(tl)
+                link_id_to_inf[tl['id']] = inf_id
+                
+        inf_to_convs = {}
+        for conv in all_conversions:
+            inf_id = conv.get('influencer_id')
+            tl_id = conv.get('tracking_link_id')
+            
+            # Fallback: Si influencer_id manquant, utiliser le tracking link
+            if not inf_id and tl_id and tl_id in link_id_to_inf:
+                inf_id = link_id_to_inf[tl_id]
+                
+            if inf_id:
+                if inf_id not in inf_to_convs:
+                    inf_to_convs[inf_id] = []
+                inf_to_convs[inf_id].append(conv)
+                
+    except Exception as e:
+        print(f"Error fetching bulk data for affiliates: {e}")
+        # Fallback sur listes vides si erreur
+        inf_to_links = {}
+        inf_to_convs = {}
+
+    # Enrichir les influenceurs
     enriched_influencers = []
     for inf in influencers:
-        # Clics
-        if "clicks" not in inf or inf["clicks"] is None:
-            try:
-                # Tenter de récupérer depuis tracking_links
-                res = supabase.table("tracking_links").select("clicks").eq("influencer_id", inf["id"]).execute()
-                total_clicks = sum(item.get("clicks", 0) for item in res.data) if res.data else 0
-                inf["clicks"] = total_clicks
-            except Exception:
-                inf["clicks"] = 0
+        inf_id = inf['id']
         
-        # Conversions (approximatif via sales ou conversions)
-        if "conversions" not in inf or inf["conversions"] is None:
-            try:
-                # On suppose que conversions est lié aux tracking_links de l'influenceur
-                # Ceci est une approximation si on n'a pas la jointure directe facile
-                # Pour l'instant on met 0 ou on pourrait faire une requête plus complexe
-                inf["conversions"] = 0 
-            except Exception:
-                inf["conversions"] = 0
+        # Clics (Calcul dynamique si 0 ou manquant)
+        if "clicks" not in inf or inf["clicks"] is None or inf["clicks"] == 0:
+            links = inf_to_links.get(inf_id, [])
+            inf["clicks"] = sum(tl.get("clicks", 0) for tl in links)
+        
+        # Conversions & Revenue (Calcul dynamique)
+        convs = inf_to_convs.get(inf_id, [])
+        
+        valid_revenue = sum(
+            float(c.get("commission_amount", 0) or 0) 
+            for c in convs 
+            if c.get("status") not in ['rejected', 'refunded', 'cancelled']
+        )
+        
+        inf["conversions"] = len(convs)
+        inf["total_earned"] = valid_revenue
 
         # Traffic Source
         if "traffic_source" not in inf or inf["traffic_source"] is None:

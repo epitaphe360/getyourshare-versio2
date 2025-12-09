@@ -28,21 +28,23 @@ const OverviewTab = ({ stats, dateFilter, refreshKey }) => {
       ]);
 
       if (revenueRes.status === 'fulfilled') {
-        // L'API retourne {data: [...]}
-        const revenue = revenueRes.value.data?.data || revenueRes.value.data || [];
+        // L'API retourne {revenue_data: [...]} ou {data: [...]}
+        const body = revenueRes.value.data;
+        const revenue = body?.revenue_data || body?.data || (Array.isArray(body) ? body : []);
         console.log('📊 Revenue data:', revenue);
         setRevenueData(Array.isArray(revenue) ? revenue : []);
       }
       if (growthRes.status === 'fulfilled') {
-        // L'API retourne {data: [...]}
-        const growth = growthRes.value.data?.data || growthRes.value.data || [];
+        // L'API retourne {growth_data: [...]} ou {data: [...]}
+        const body = growthRes.value.data;
+        const growth = body?.growth_data || body?.data || (Array.isArray(body) ? body : []);
         console.log('📈 Growth data:', growth);
         setUserGrowthData(Array.isArray(growth) ? growth : []);
       }
       if (activityRes.status === 'fulfilled') {
-        const activityData = activityRes.value.data?.data || activityRes.value.data || [];
+        const body = activityRes.value.data;
+        const activityData = body?.data || (Array.isArray(body) ? body : []);
         console.log('⚡ Activity data:', activityData);
-        // S'assurer que c'est bien un tableau
         setRecentActivity(Array.isArray(activityData) ? activityData : []);
       }
     } catch (error) {
