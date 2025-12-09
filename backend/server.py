@@ -426,6 +426,9 @@ allowed_origins = [
     "http://127.0.0.1:3003",
     os.getenv("FRONTEND_URL", "https://getyourshare.com"),
     os.getenv("PRODUCTION_URL", "https://www.getyourshare.com"),
+    # Vercel deployment URLs
+    "https://getyourshare.vercel.app",
+    "https://www.getyourshare.vercel.app",
 ]
 
 # Ajouter les URLs Vercel (déploiement et preview)
