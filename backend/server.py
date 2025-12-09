@@ -1318,40 +1318,65 @@ async def get_analytics_overview(
         
         # Statistiques utilisateurs par rôle
         logger.info("🔍 Fetching merchants count...")
-        merchants_count = supabase.table("users").select("id", count="exact", head=True).eq("role", "merchant").execute()
+        try:
+            merchants_count = supabase.table("users").select("id", count="exact", head=True).eq("role", "merchant").execute()
+            total_merchants = merchants_count.count or 0
+        except Exception:
+            total_merchants = 0
+
         logger.info("🔍 Fetching influencers count...")
-        influencers_count = supabase.table("users").select("id", count="exact", head=True).eq("role", "influencer").execute()
+        try:
+            influencers_count = supabase.table("users").select("id", count="exact", head=True).eq("role", "influencer").execute()
+            total_influencers = influencers_count.count or 0
+        except Exception:
+            total_influencers = 0
+
         logger.info("🔍 Fetching commercials count...")
-        commercials_count = supabase.table("users").select("id", count="exact", head=True).eq("role", "commercial").execute()
-        
-        total_merchants = merchants_count.count or 0
-        total_influencers = influencers_count.count or 0
-        total_commercials = commercials_count.count or 0
+        try:
+            commercials_count = supabase.table("users").select("id", count="exact", head=True).eq("role", "commercial").execute()
+            total_commercials = commercials_count.count or 0
+        except Exception:
+            total_commercials = 0
         
         # Utilisateurs actifs dernières 24h
         from datetime import datetime, timedelta
         yesterday = (datetime.utcnow() - timedelta(days=1)).isoformat()
-        active_users_count = supabase.table("users").select("id", count="exact", head=True).gt("last_login", yesterday).execute()
-        active_users_24h = active_users_count.count or 0
+        try:
+            active_users_count = supabase.table("users").select("id", count="exact", head=True).gt("last_login", yesterday).execute()
+            active_users_24h = active_users_count.count or 0
+        except Exception:
+            active_users_24h = 0
         
         print(f"🔍 DEBUG active_users_24h calculé: {active_users_24h}")
         
         # Statistiques produits et services
-        products_result = supabase.table("products").select("id", count="exact", head=True).execute()
-        services_result = supabase.table("services").select("id", count="exact", head=True).execute()
-        campaigns_result = supabase.table("campaigns").select("id", count="exact", head=True).execute()
-        
-        total_products = products_result.count or 0
-        total_services = services_result.count or 0
-        total_campaigns = campaigns_result.count or 0
+        try:
+            products_result = supabase.table("products").select("id", count="exact", head=True).execute()
+            total_products = products_result.count or 0
+        except Exception:
+            total_products = 0
+
+        try:
+            services_result = supabase.table("services").select("id", count="exact", head=True).execute()
+            total_services = services_result.count or 0
+        except Exception:
+            total_services = 0
+
+        try:
+            campaigns_result = supabase.table("campaigns").select("id", count="exact", head=True).execute()
+            total_campaigns = campaigns_result.count or 0
+        except Exception:
+            total_campaigns = 0
         
         # Statistiques financières - Récupérer depuis la table sales
-        sales_result = supabase.table("sales").select("amount, platform_commission, commission_amount").eq("status", "completed").execute()
-        sales = sales_result.data or []
-        
-        # DEBUG: Log pour vérifier
-        print(f"🔍 DEBUG: {len(sales)} ventes trouvées")
-        logger.info(f"🔍 DEBUG: {len(sales)} ventes trouvées")
+        sales = []
+        try:
+            sales_result = supabase.table("sales").select("amount, platform_commission, commission_amount").eq("status", "completed").execute()
+            sales = sales_result.data or []
+            logger.info(f"🔍 DEBUG: {len(sales)} ventes trouvées")
+        except Exception as sales_error:
+            logger.error(f"❌ Erreur récupération ventes: {sales_error}")
+            sales = []
         
         # Calculer les totaux depuis les ventes réelles avec gestion d'erreur
         try:
