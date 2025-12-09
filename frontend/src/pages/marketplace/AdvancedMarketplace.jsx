@@ -522,7 +522,7 @@ const AdvancedMarketplace = () => {
         {selectedProduct && (
           <Space direction="vertical" style={{ width: '100%' }} size="large">
             <Image
-              src={selectedProduct.image || 'https://via.placeholder.com/600x400'}
+              src={selectedProduct.image || 'https://placehold.co/600x400'}
               alt={selectedProduct.name}
               style={{ width: '100%', borderRadius: 8 }}
             />

@@ -95,7 +95,7 @@ const SubscriptionsTab = ({ stats, refreshKey, onRefresh }) => {
 
       // Calculer MRR (Monthly Recurring Revenue)
       const mrr = activeSubscriptions.reduce((sum, s) => {
-        const price = planPrices[s.plan] || 0;
+        const price = s.plan_price || planPrices[s.plan] || 0;
         return sum + price;
       }, 0);
 
