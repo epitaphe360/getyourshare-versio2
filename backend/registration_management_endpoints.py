@@ -133,8 +133,23 @@ async def get_registration_requests(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
+import bcrypt
+import secrets
+import string
+
+# Fonction utilitaire pour hasher le mot de passe
+def hash_password(password: str) -> str:
+    """Hash un mot de passe avec bcrypt"""
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
+def generate_random_password(length=12):
+    """Génère un mot de passe aléatoire sécurisé"""
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*"
+    return ''.join(secrets.choice(alphabet) for i in range(length))
+
 @router.get("/admin/registration-requests/{registration_id}")
-async def get_registration_detail(registration_id: int):
+async def get_registration_detail(registration_id: str):
     """
     Récupère les détails complets d'une demande d'inscription
     Admin only
@@ -153,7 +168,7 @@ async def get_registration_detail(registration_id: int):
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
 @router.post("/admin/registration-requests/{registration_id}/approve")
-async def approve_registration(registration_id: int):
+async def approve_registration(registration_id: str):
     """
     Approuve une demande d'inscription et envoie un email de confirmation
     Admin only
@@ -173,19 +188,37 @@ async def approve_registration(registration_id: int):
             'updated_at': datetime.now().isoformat()
         }).eq('id', registration_id).execute()
         
-        # Créer le compte utilisateur dans la table profiles
+        # Créer le compte utilisateur dans la table users
+        generated_password = generate_random_password()
+        hashed_password = hash_password(generated_password)
+        
         try:
-            user_data = {
-                'email': registration['email'],
-                'role': 'merchant',
-                'company_name': registration.get('company_name'),
-                'country': registration.get('country'),
-                'status': 'active',
-                'created_at': datetime.now().isoformat()
-            }
-            supabase.table('profiles').insert(user_data).execute()
+            # Vérifier si l'utilisateur existe déjà
+            existing_user = supabase.table('users').select('id').eq('email', registration['email']).execute()
+            
+            if not existing_user.data:
+                user_data = {
+                    'email': registration['email'],
+                    'password_hash': hashed_password,
+                    'role': 'merchant',
+                    'company': registration.get('company_name'),
+                    'country': registration.get('country'),
+                    'phone': registration.get('phone'),
+                    'status': 'active',
+                    'is_active': True,
+                    'created_at': datetime.now().isoformat(),
+                    'updated_at': datetime.now().isoformat()
+                }
+                supabase.table('users').insert(user_data).execute()
+                print(f"✅ Utilisateur créé pour {registration['email']}")
+            else:
+                print(f"⚠️ L'utilisateur {registration['email']} existe déjà")
+                # On ne met pas à jour le mot de passe si l'utilisateur existe déjà
+                generated_password = "Utilisez votre mot de passe existant"
+                
         except Exception as e:
-            print(f"⚠️ Création du profil (peut exister déjà): {str(e)}")
+            print(f"❌ Erreur création utilisateur: {str(e)}")
+            # On continue quand même pour envoyer l'email
         
         # Envoyer email de confirmation
         email_content = f"""
@@ -195,12 +228,26 @@ async def approve_registration(registration_id: int):
                 <h1 style="color: #10b981;">🎉 Votre demande a été approuvée !</h1>
                 <p>Bonjour {registration.get('company_name', '')} !</p>
                 <p>Nous avons le plaisir de vous informer que votre demande d'inscription en tant qu'annonceur sur <strong>GetYourShare</strong> a été approuvée.</p>
-                <p>Vous pouvez maintenant vous connecter à votre espace annonceur et commencer à créer vos campagnes.</p>
+                <p>Votre compte a été créé avec succès. Voici vos identifiants de connexion :</p>
+                <div style="background: #ffffff; padding: 15px; border-radius: 5px; border: 1px solid #e5e7eb; margin: 20px 0;">
+                    <p><strong>Email :</strong> {registration['email']}</p>
+                    <p><strong>Mot de passe :</strong> {generated_password}</p>
+                </div>
+                <p>Nous vous recommandons de changer votre mot de passe dès votre première connexion.</p>
                 <div style="margin: 30px 0;">
                     <a href="https://getyourshare.com/login" style="background: #4f46e5; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">
                         Accéder à mon espace
                     </a>
                 </div>
+                <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
+                <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+                    Cordialement,<br>
+                    L'équipe GetYourShare
+                </p>
+            </div>
+        </body>
+        </html>
+        """
                 <p>Si vous avez des questions, n'hésitez pas à nous contacter.</p>
                 <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
                     Cordialement,<br>
@@ -228,7 +275,7 @@ async def approve_registration(registration_id: int):
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
 
 @router.post("/admin/registration-requests/{registration_id}/reject")
-async def reject_registration(registration_id: int):
+async def reject_registration(registration_id: str):
     """
     Rejette une demande d'inscription et envoie un email d'information
     Admin only
