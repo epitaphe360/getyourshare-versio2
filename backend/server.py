@@ -387,12 +387,13 @@ async def global_exception_handler(request: Request, exc: Exception):
     Gestionnaire global d'exceptions pour masquer les stack traces en production.
     """
     # Log l'erreur complète côté serveur
-    logger.error(f"🔥 Unhandled Exception: {str(exc)}", exc_info=True)
+    logger.error(f"🔥 Unhandled Exception on {request.url.path}: {str(exc)}", exc_info=True)
+    print(f"🔥 GLOBAL EXCEPTION on {request.url.path}: {str(exc)}")
     
     # En production, masquer les détails
     if ENVIRONMENT == "production":
         return Response(
-            content='{"detail": "Internal Server Error"}',
+            content=f'{{"detail": "Internal Server Error", "path": "{request.url.path}"}}',
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             media_type="application/json"
         )
@@ -400,7 +401,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     # En développement, laisser FastAPI afficher le stack trace par défaut (ou le retourner)
     # Pour l'instant, on retourne l'erreur pour faciliter le debug
     return Response(
-        content=f'{{"detail": "{str(exc)}"}}',
+        content=f'{{"detail": "{str(exc)}", "path": "{request.url.path}"}}',
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         media_type="application/json"
     )
@@ -1313,11 +1314,14 @@ async def get_analytics_overview(
     logger.info(f"📊 Analytics overview requested by user: {payload.get('id')} with period: {period}")
     try:
         # Optimisation: Utiliser count='exact' au lieu de récupérer toutes les données
-        logger.debug("Starting analytics queries...")
+        logger.info("🔍 Starting analytics queries...")
         
         # Statistiques utilisateurs par rôle
+        logger.info("🔍 Fetching merchants count...")
         merchants_count = supabase.table("users").select("id", count="exact", head=True).eq("role", "merchant").execute()
+        logger.info("🔍 Fetching influencers count...")
         influencers_count = supabase.table("users").select("id", count="exact", head=True).eq("role", "influencer").execute()
+        logger.info("🔍 Fetching commercials count...")
         commercials_count = supabase.table("users").select("id", count="exact", head=True).eq("role", "commercial").execute()
         
         total_merchants = merchants_count.count or 0
@@ -1438,8 +1442,10 @@ async def get_analytics_overview(
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        logger.error(f"Erreur get_analytics_overview: {e}")
-        logger.error(f"Traceback complet: {error_details}")
+        logger.error(f"❌ Erreur get_analytics_overview: {e}")
+        logger.error(f"❌ Traceback complet: {error_details}")
+        print(f"❌ ANALYTICS ERROR: {e}")
+        print(f"❌ TRACEBACK: {error_details}")
         # Retourner des valeurs nulles en cas d'erreur au lieu de données fictives
         return {
             "users": {
