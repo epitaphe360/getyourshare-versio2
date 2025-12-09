@@ -31,78 +31,142 @@ async def get_analytics_overview(current_user: dict = Depends(get_current_user_f
         supabase = get_supabase_client()
         
         # Compter utilisateurs par rôle
-        merchants = supabase.table('users').select('id', count='exact', head=True).eq('role', 'merchant').execute()
-        influencers = supabase.table('users').select('id', count='exact', head=True).eq('role', 'influencer').execute()
-        commercials = supabase.table('users').select('id', count='exact', head=True).eq('role', 'commercial').execute()
+        try:
+            merchants = supabase.table('users').select('id', count='exact', head=True).eq('role', 'merchant').execute()
+            merchants_count = merchants.count or 0
+        except Exception:
+            merchants_count = 0
+
+        try:
+            influencers = supabase.table('users').select('id', count='exact', head=True).eq('role', 'influencer').execute()
+            influencers_count = influencers.count or 0
+        except Exception:
+            influencers_count = 0
+
+        try:
+            commercials = supabase.table('users').select('id', count='exact', head=True).eq('role', 'commercial').execute()
+            commercials_count = commercials.count or 0
+        except Exception:
+            commercials_count = 0
         
         # Utilisateurs actifs dernières 24h
-        yesterday = (datetime.utcnow() - timedelta(days=1)).isoformat()
-        active_users_count = supabase.table("users").select("id", count="exact", head=True).gt("last_login", yesterday).execute()
-        active_users_24h = active_users_count.count or 0
+        try:
+            yesterday = (datetime.utcnow() - timedelta(days=1)).isoformat()
+            active_users_res = supabase.table("users").select("id", count="exact", head=True).gt("last_login", yesterday).execute()
+            active_users_24h = active_users_res.count or 0
+        except Exception:
+            active_users_24h = 0
         
         # Compter products & services
-        products = supabase.table('products').select('id', count='exact', head=True).execute()
-        services = supabase.table('services').select('id', count='exact', head=True).execute()
-        campaigns = supabase.table('campaigns').select('id', count='exact', head=True).execute()
+        try:
+            products = supabase.table('products').select('id', count='exact', head=True).execute()
+            products_count = products.count or 0
+        except Exception:
+            products_count = 0
+
+        try:
+            services = supabase.table('services').select('id', count='exact', head=True).execute()
+            services_count = services.count or 0
+        except Exception:
+            services_count = 0
+
+        try:
+            campaigns = supabase.table('campaigns').select('id', count='exact', head=True).execute()
+            campaigns_count = campaigns.count or 0
+        except Exception:
+            campaigns_count = 0
         
         # Calculer revenus (total des ventes avec commissions)
-        sales = supabase.table('sales').select('amount, platform_commission, commission_amount').eq('status', 'completed').execute()
-        total_revenue = sum([float(s.get('amount', 0)) for s in (sales.data or [])])
-        platform_commission = sum([float(s.get('platform_commission', 0)) for s in (sales.data or [])])
-        influencer_commission = sum([float(s.get('commission_amount', 0)) for s in (sales.data or [])])
+        try:
+            sales = supabase.table('sales').select('amount, platform_commission, commission_amount').eq('status', 'completed').execute()
+            sales_data = sales.data or []
+            total_revenue = sum([float(s.get('amount', 0) or 0) for s in sales_data])
+            platform_commission = sum([float(s.get('platform_commission', 0) or 0) for s in sales_data])
+            influencer_commission = sum([float(s.get('commission_amount', 0) or 0) for s in sales_data])
+        except Exception:
+            total_revenue = 0
+            platform_commission = 0
+            influencer_commission = 0
         
         # Calculer commissions (table legacy)
-        commissions = supabase.table('commissions').select('amount').execute()
-        total_commissions = sum([float(c.get('amount', 0)) for c in (commissions.data or [])])
+        try:
+            commissions = supabase.table('commissions').select('amount').execute()
+            total_commissions = sum([float(c.get('amount', 0) or 0) for c in (commissions.data or [])])
+        except Exception:
+            total_commissions = 0
         
         # Stats tracking
-        tracking_links = supabase.table('tracking_links').select('clicks').execute()
-        total_clicks = sum([int(t.get('clicks', 0)) for t in (tracking_links.data or [])])
+        try:
+            tracking_links = supabase.table('tracking_links').select('clicks').execute()
+            tracking_data = tracking_links.data or []
+            total_clicks = sum([int(t.get('clicks', 0) or 0) for t in tracking_data])
+            total_links_count = len(tracking_data)
+        except Exception:
+            total_clicks = 0
+            total_links_count = 0
         
-        conversions_count = supabase.table('conversions').select('id', count='exact', head=True).execute()
+        try:
+            conversions_res = supabase.table('conversions').select('id', count='exact', head=True).execute()
+            conversions_count = conversions_res.count or 0
+        except Exception:
+            conversions_count = 0
         
         # Taux de conversion
-        conversion_rate = (conversions_count.count / total_clicks * 100) if total_clicks > 0 else 0
+        conversion_rate = (conversions_count / total_clicks * 100) if total_clicks > 0 else 0
         
         # Payouts
-        payouts = supabase.table('payouts').select('amount, status').execute()
-        total_payouts = sum([float(p.get('amount', 0)) for p in (payouts.data or []) if p.get('status') == 'paid'])
-        pending_payouts = len([p for p in (payouts.data or []) if p.get('status') == 'pending'])
+        try:
+            payouts = supabase.table('payouts').select('amount, status').execute()
+            payouts_data = payouts.data or []
+            total_payouts = sum([float(p.get('amount', 0) or 0) for p in payouts_data if p.get('status') == 'paid'])
+            pending_payouts = len([p for p in payouts_data if p.get('status') == 'pending'])
+        except Exception:
+            total_payouts = 0
+            pending_payouts = 0
         
         # Leads (commerciaux)
-        leads = supabase.table('leads').select('id', count='exact', head=True).execute()
+        try:
+            leads = supabase.table('leads').select('id', count='exact', head=True).execute()
+            leads_count = leads.count or 0
+        except Exception:
+            leads_count = 0
         
         # Abonnements (subscriptions)
-        active_subs = supabase.table('subscriptions').select('id, plan_id', count='exact', head=True).in_('status', ['active', 'trialing']).execute()
-        
-        # Revenus des abonnements
+        active_subs_count = 0
         subscription_revenue = 0
-        if active_subs.count and active_subs.count > 0:
-            # Récupérer les détails des plans pour calculer le revenu
-            all_subs = supabase.table('subscriptions').select('plan_id').in_('status', ['active', 'trialing']).execute()
-            if all_subs.data:
-                plan_ids = list(set([s.get('plan_id') for s in all_subs.data if s.get('plan_id')]))
-                if plan_ids:
-                    plans = supabase.table('subscription_plans').select('id, price').in_('id', plan_ids).execute()
-                    plan_prices = {p.get('id'): float(p.get('price', 0)) for p in (plans.data or [])}
-                    subscription_revenue = sum([plan_prices.get(s.get('plan_id'), 0) for s in all_subs.data])
+        try:
+            active_subs = supabase.table('subscriptions').select('id, plan_id', count='exact', head=True).in_('status', ['active', 'trialing']).execute()
+            active_subs_count = active_subs.count or 0
+            
+            # Revenus des abonnements
+            if active_subs_count > 0:
+                # Récupérer les détails des plans pour calculer le revenu
+                all_subs = supabase.table('subscriptions').select('plan_id').in_('status', ['active', 'trialing']).execute()
+                if all_subs.data:
+                    plan_ids = list(set([s.get('plan_id') for s in all_subs.data if s.get('plan_id')]))
+                    if plan_ids:
+                        plans = supabase.table('subscription_plans').select('id, price').in_('id', plan_ids).execute()
+                        plan_prices = {p.get('id'): float(p.get('price', 0) or 0) for p in (plans.data or [])}
+                        subscription_revenue = sum([plan_prices.get(s.get('plan_id'), 0) for s in all_subs.data])
+        except Exception:
+            pass # Keep defaults 0
         
         return {
             "success": True,
             "users": {
-                "total_merchants": merchants.count or 0,
-                "total_influencers": influencers.count or 0,
-                "total_commercials": commercials.count or 0,
+                "total_merchants": merchants_count,
+                "total_influencers": influencers_count,
+                "total_commercials": commercials_count,
                 "active_users_24h": active_users_24h,
-                "total": (merchants.count or 0) + (influencers.count or 0) + (commercials.count or 0)
+                "total": merchants_count + influencers_count + commercials_count
             },
             "catalog": {
-                "total_products": products.count or 0,
-                "total_services": services.count or 0,
-                "total_campaigns": campaigns.count or 0
+                "total_products": products_count,
+                "total_services": services_count,
+                "total_campaigns": campaigns_count
             },
             "subscriptions": {
-                "active_subscriptions": active_subs.count or 0,
+                "active_subscriptions": active_subs_count,
                 "subscription_revenue": round(subscription_revenue, 2)
             },
             "financial": {
@@ -115,16 +179,27 @@ async def get_analytics_overview(current_user: dict = Depends(get_current_user_f
             },
             "tracking": {
                 "total_clicks": total_clicks,
-                "total_conversions": conversions_count.count or 0,
+                "total_conversions": conversions_count,
                 "conversion_rate": round(conversion_rate, 2),
-                "total_links": len(tracking_links.data or [])
+                "total_links": total_links_count
             },
             "leads": {
-                "total": leads.count or 0
+                "total": leads_count
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+        # Log error but return empty structure instead of 500
+        print(f"❌ Error in analytics overview: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "users": {"total_merchants": 0, "total_influencers": 0, "total_commercials": 0, "active_users_24h": 0, "total": 0},
+            "catalog": {"total_products": 0, "total_services": 0, "total_campaigns": 0},
+            "subscriptions": {"active_subscriptions": 0, "subscription_revenue": 0},
+            "financial": {"total_revenue": 0, "platform_commission": 0, "total_commissions": 0, "total_payouts": 0, "pending_payouts": 0, "net_revenue": 0},
+            "tracking": {"total_clicks": 0, "total_conversions": 0, "conversion_rate": 0, "total_links": 0},
+            "leads": {"total": 0}
+        }
 
 # ============================================
 # GET /api/analytics/revenue-chart
