@@ -33,7 +33,7 @@ const TaxDashboard = () => {
 
   const fetchCountries = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/fiscal/countries`);
+      const response = await axios.get(`${API_URL}/fiscal/countries`);
       setCountries(response.data.countries);
     } catch (error) {
       console.error('Error fetching countries:', error);
@@ -42,7 +42,7 @@ const TaxDashboard = () => {
 
   const fetchTaxRates = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/fiscal/rates/${selectedCountry}`);
+      const response = await axios.get(`${API_URL}/fiscal/rates/${selectedCountry}`);
       setTaxRates(response.data);
     } catch (error) {
       console.error('Error fetching tax rates:', error);
@@ -52,7 +52,7 @@ const TaxDashboard = () => {
   const calculateTax = async () => {
     setLoading(true);
     try {
-      const response = await axios.post(`${API_URL}/api/fiscal/calculate`, {
+      const response = await axios.post(`${API_URL}/fiscal/calculate`, {
         amount: amount,
         country: selectedCountry,
         status: selectedStatus,
