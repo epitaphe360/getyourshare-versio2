@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../utils/api';
+import { getErrorMessage } from '../utils/errorHandler';
 
 // Initial state
 const initialState = {
@@ -276,7 +277,7 @@ export const useProductDetail = () => {
         dispatch({ type: ACTIONS.RESET_AFFILIATE_DATA });
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erreur lors de la demande');
+      toast.error(getErrorMessage(error, 'Erreur lors de la demande'));
     }
   }, [productId, state.affiliateData, toast]);
 
@@ -296,7 +297,7 @@ export const useProductDetail = () => {
         dispatch({ type: ACTIONS.RESET_REVIEW_DATA });
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erreur lors de l\'envoi de l\'avis');
+      toast.error(getErrorMessage(error, 'Erreur lors de l\'envoi de l\'avis'));
     }
   }, [user, productId, state.reviewData, toast]);
 

@@ -114,7 +114,7 @@ const InfluencerInvoicesPage = () => {
       if (filterYear) params.append('year', filterYear);
       if (filterInfluencer !== 'all') params.append('influencer_id', filterInfluencer);
       
-      const response = await fetch(`${API_URL}/api/invoices/influencers?${params}`);
+      const response = await fetch(`${API_URL}/invoices/influencers?${params}`);
       const data = await response.json();
       
       if (data.success) {
@@ -182,7 +182,7 @@ const InfluencerInvoicesPage = () => {
       if (user?.id) params.append('merchant_id', user.id);
       if (filterYear) params.append('year', filterYear);
       
-      const response = await fetch(`${API_URL}/api/invoices/influencers/stats?${params}`);
+      const response = await fetch(`${API_URL}/invoices/influencers/stats?${params}`);
       const data = await response.json();
       
       if (data.success) {
@@ -211,7 +211,7 @@ const InfluencerInvoicesPage = () => {
       if (user?.id) params.append('merchant_id', user.id);
       if (filterYear) params.append('year', filterYear);
       
-      const response = await fetch(`${API_URL}/api/invoices/influencers/influencers/list?${params}`);
+      const response = await fetch(`${API_URL}/invoices/influencers/list?${params}`);
       const data = await response.json();
       
       if (data.success) {
@@ -229,7 +229,7 @@ const InfluencerInvoicesPage = () => {
 
   const handleDownloadPDF = async (invoiceId, invoiceNumber) => {
     try {
-      const response = await fetch(`${API_URL}/api/invoices/influencers/${invoiceId}/pdf`);
+      const response = await fetch(`${API_URL}/invoices/influencers/${invoiceId}/pdf`);
       const blob = await response.blob();
       
       const url = window.URL.createObjectURL(blob);
@@ -253,7 +253,7 @@ const InfluencerInvoicesPage = () => {
       if (user?.id) params.append('merchant_id', user.id);
       params.append('year', filterYear);
       
-      const response = await fetch(`${API_URL}/api/invoices/influencers/annual/export?${params}`);
+      const response = await fetch(`${API_URL}/invoices/influencers/annual/export?${params}`);
       const blob = await response.blob();
       
       const url = window.URL.createObjectURL(blob);

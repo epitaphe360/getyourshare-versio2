@@ -70,7 +70,7 @@ const AIMarketing = () => {
       };
 
       const response = await axios.post(
-        `${API_URL}/api/ai-content/generate`,
+        `${API_URL}/ai-content/generate`,
         payload,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
@@ -86,7 +86,7 @@ const AIMarketing = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${API_URL}/api/ai/predictions`,
+        `${API_URL}/ai/predictions`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       setPredictions(response.data);

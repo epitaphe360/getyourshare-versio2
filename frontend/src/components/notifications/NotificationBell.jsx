@@ -89,12 +89,19 @@ const NotificationBell = () => {
 
   const connectWebSocket = () => {
     try {
+      // Only connect if WS_URL is explicitly set (not in development without backend)
+      const wsUrl = process.env.REACT_APP_WS_URL;
+      if (!wsUrl) {
+        // WebSocket not configured, skip silently
+        return;
+      }
+
       const token = localStorage.getItem('token');
-      const wsUrl = `${process.env.REACT_APP_WS_URL || 'ws://127.0.0.1:5000'}/ws`;
-      const websocket = new WebSocket(wsUrl);
+      const fullWsUrl = `${wsUrl}/ws`;
+      const websocket = new WebSocket(fullWsUrl);
 
       websocket.onopen = () => {
-        console.log('WebSocket notifications connecté');
+        console.log('✅ WebSocket notifications connecté');
         // S'authentifier avec le token
         if (user?.id) {
           websocket.send(JSON.stringify({
@@ -109,7 +116,6 @@ const NotificationBell = () => {
           const data = JSON.parse(event.data);
           // Ignorer les messages système (auth_success, pong, etc.)
           if (data.type === 'auth_success' || data.type === 'pong') {
-            console.log('WebSocket:', data.type);
             return;
           }
           // Traiter les vraies notifications
@@ -129,20 +135,21 @@ const NotificationBell = () => {
       };
 
       websocket.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        // Silent fail if WebSocket not available
+        console.debug('WebSocket non disponible (normal si pas configuré)');
       };
 
       websocket.onclose = () => {
-        console.log('WebSocket notifications fermé');
-        // Reconnexion après 30s (évite les boucles rapides)
-        if (user?.id) {
+        // Ne reconnecte que si l'utilisateur est connecté ET que le WS était configuré
+        if (user?.id && wsUrl) {
           setTimeout(connectWebSocket, 30000);
         }
       };
 
       setWs(websocket);
     } catch (error) {
-      console.error('Erreur connexion WebSocket:', error);
+      // Silent fail for WebSocket connection errors
+      console.debug('WebSocket non disponible');
     }
   };
 
