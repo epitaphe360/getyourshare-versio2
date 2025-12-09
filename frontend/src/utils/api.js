@@ -1,10 +1,12 @@
 import axios from 'axios';
 
 const getApiUrl = () => {
-  const envUrl = process.env.REACT_APP_API_URL;
-  
+  let envUrl = process.env.REACT_APP_API_URL;
+
   // If env var is set and not localhost, use it (e.g. production URL)
   if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    // Fix: Remove trailing /api if present (to avoid /api/api/ duplication)
+    envUrl = envUrl.replace(/\/api\/?$/, '');
     return envUrl;
   }
 
@@ -17,7 +19,7 @@ const getApiUrl = () => {
         return `http://${hostname}:5000`;
     }
   }
-  
+
   return envUrl || 'http://127.0.0.1:5000';
 };
 
