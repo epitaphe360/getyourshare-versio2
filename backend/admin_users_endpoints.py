@@ -245,12 +245,13 @@ async def get_users(
             pass
 
         return {
+            'success': True,
             'users': users,
             'pagination': {
                 'page': page,
                 'page_size': page_size,
                 'total': total,
-                'pages': (total + page_size - 1) // page_size
+                'total_pages': (total + page_size - 1) // page_size
             }
         }
 
