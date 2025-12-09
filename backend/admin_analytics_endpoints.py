@@ -82,18 +82,24 @@ async def get_metrics(
         start_date, end_date = get_date_range(days)
         prev_start_date = start_date - timedelta(days=days)
 
-        # Récupérer les abonnements actifs
+        # Récupérer les abonnements actifs (sans jointure)
         active_subs_response = supabase.table('subscriptions')\
-            .select('*, subscription_plans(price_mad, price)')\
+            .select('id, plan_id, status')\
             .eq('status', 'active')\
             .execute()
         
         active_subs = active_subs_response.data or []
+        
+        # Récupérer les plans séparément
+        plans_response = supabase.table('subscription_plans')\
+            .select('id, price_mad, price')\
+            .execute()
+        plans_dict = {p['id']: p for p in (plans_response.data or [])}
 
         # Calculer le MRR
         mrr = 0.0
         for sub in active_subs:
-            plan = sub.get('subscription_plans', {})
+            plan = plans_dict.get(sub.get('plan_id'), {})
             price = plan.get('price_mad') or plan.get('price') or 0
             mrr += float(price)
 
@@ -128,14 +134,14 @@ async def get_metrics(
 
         # Croissance des revenus (comparaison avec période précédente)
         prev_subs_response = supabase.table('subscriptions')\
-            .select('*, subscription_plans(price_mad, price)')\
+            .select('id, plan_id')\
             .eq('status', 'active')\
             .lte('created_at', start_date.isoformat())\
             .execute()
         
         prev_mrr = 0.0
         for sub in (prev_subs_response.data or []):
-            plan = sub.get('subscription_plans', {})
+            plan = plans_dict.get(sub.get('plan_id'), {})
             price = plan.get('price_mad') or plan.get('price') or 0
             prev_mrr += float(price)
 
@@ -170,10 +176,15 @@ async def get_revenue_data(
     try:
         start_date, end_date = get_date_range(days)
 
-        # Récupérer tous les abonnements actifs créés avant la date de fin
-        # Optimisation: Une seule requête au lieu de N requêtes
+        # Récupérer les plans d'abord
+        plans_response = supabase.table('subscription_plans')\
+            .select('id, price_mad, price')\
+            .execute()
+        plans_dict = {p['id']: p for p in (plans_response.data or [])}
+
+        # Récupérer tous les abonnements actifs créés avant la date de fin (sans jointure)
         subs_response = supabase.table('subscriptions')\
-            .select('created_at, subscription_plans(price_mad, price)')\
+            .select('created_at, plan_id')\
             .eq('status', 'active')\
             .lte('created_at', end_date.isoformat())\
             .execute()
@@ -181,11 +192,10 @@ async def get_revenue_data(
         subs = subs_response.data or []
         
         # Prétraitement des données
-        # Convertir les dates de création en objets datetime pour comparaison rapide
         processed_subs = []
         for sub in subs:
             created_at = datetime.fromisoformat(sub['created_at'].replace('Z', '+00:00'))
-            plan = sub.get('subscription_plans', {})
+            plan = plans_dict.get(sub.get('plan_id'), {})
             price = float(plan.get('price_mad') or plan.get('price') or 0)
             processed_subs.append({
                 'created_at': created_at,
@@ -546,9 +556,15 @@ async def get_revenue_by_source(
     try:
         start_date, end_date = get_date_range(days)
 
-        # Récupérer les abonnements actifs avec leurs plans
+        # Récupérer les plans d'abord
+        plans_response = supabase.table('subscription_plans')\
+            .select('id, name, price_mad, price, type')\
+            .execute()
+        plans_dict = {p['id']: p for p in (plans_response.data or [])}
+
+        # Récupérer les abonnements actifs (sans jointure)
         subs_response = supabase.table('subscriptions')\
-            .select('*, subscription_plans(name, price_mad, price, type)')\
+            .select('id, plan_id')\
             .eq('status', 'active')\
             .gte('created_at', start_date.isoformat())\
             .execute()
@@ -556,7 +572,7 @@ async def get_revenue_by_source(
         # Grouper par type de plan
         sources = {}
         for sub in (subs_response.data or []):
-            plan = sub.get('subscription_plans', {})
+            plan = plans_dict.get(sub.get('plan_id'), {})
             plan_type = plan.get('type', 'standard')
             price = plan.get('price_mad') or plan.get('price') or 0
             
