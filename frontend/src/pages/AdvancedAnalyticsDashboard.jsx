@@ -11,6 +11,12 @@ import {
   Target, Zap, Award, ArrowUp, ArrowDown, Minus
 } from 'lucide-react';
 
+// Import Advanced Analytics Components
+import CohortAnalysisView from '../components/analytics/CohortAnalysisView';
+import RFMSegmentationView from '../components/analytics/RFMSegmentationView';
+import CustomerSegmentsPanel from '../components/analytics/CustomerSegmentsPanel';
+import ABTestingManager from '../components/analytics/ABTestingManager';
+
 const AdvancedAnalyticsDashboard = ({ userType = 'merchant', userId }) => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -125,7 +131,7 @@ const AdvancedAnalyticsDashboard = ({ userType = 'merchant', userId }) => {
 
           {/* Tabs */}
           <div className="flex gap-4 mt-6 border-b">
-            {['overview', 'insights', 'predictions', 'comparison'].map((tab) => (
+            {['overview', 'insights', 'predictions', 'comparison', 'segments'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -139,6 +145,7 @@ const AdvancedAnalyticsDashboard = ({ userType = 'merchant', userId }) => {
                 {tab === 'insights' && 'Insights IA'}
                 {tab === 'predictions' && 'Prédictions'}
                 {tab === 'comparison' && 'Comparaison'}
+                {tab === 'segments' && 'Segmentation'}
               </button>
             ))}
           </div>
@@ -176,6 +183,47 @@ const AdvancedAnalyticsDashboard = ({ userType = 'merchant', userId }) => {
             trends={analytics.metrics.trends}
             userType={userType}
           />
+        )}
+
+        {/* Segments Tab */}
+        {activeTab === 'segments' && (
+          <div className="space-y-6">
+            {/* Cohort Analysis */}
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Users className="h-6 w-6 text-blue-500" />
+                Analyse de Cohortes
+              </h2>
+              <CohortAnalysisView />
+            </div>
+
+            {/* RFM Segmentation */}
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Target className="h-6 w-6 text-purple-500" />
+                Segmentation RFM
+              </h2>
+              <RFMSegmentationView />
+            </div>
+
+            {/* Customer Segments */}
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Users className="h-6 w-6 text-green-500" />
+                Segments Clients
+              </h2>
+              <CustomerSegmentsPanel />
+            </div>
+
+            {/* A/B Testing */}
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <BarChart2 className="h-6 w-6 text-orange-500" />
+                Gestion A/B Testing
+              </h2>
+              <ABTestingManager />
+            </div>
+          </div>
         )}
       </div>
     </div>

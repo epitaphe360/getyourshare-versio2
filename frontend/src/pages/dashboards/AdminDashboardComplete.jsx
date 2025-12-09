@@ -5,7 +5,7 @@ import api from '../../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Crown, BarChart3, Users, DollarSign, TrendingUp, RefreshCw, Download,
-  ShoppingBag, Package, Sparkles, Target, FileText, UserCheck
+  ShoppingBag, Package, Sparkles, Target, FileText, UserCheck, Headphones, MessageSquare
 } from 'lucide-react';
 import {
   formatCurrency, formatDate, formatNumber, formatPercentage,
@@ -23,6 +23,14 @@ const ProductsTab = lazy(() => import('./admin-tabs/ProductsTab'));
 const ServicesTab = lazy(() => import('./admin-tabs/ServicesTab'));
 const RegistrationsTab = lazy(() => import('./admin-tabs/RegistrationsTab'));
 const MerchantsTab = lazy(() => import('./admin-tabs/MerchantsTab'));
+
+// New tabs for Support & Live Chat
+import SupportTicketsList from '../../components/support/SupportTicketsList';
+import TicketDetailView from '../../components/support/TicketDetailView';
+import SupportStatsWidget from '../../components/support/SupportStatsWidget';
+import ChatRoomsList from '../../components/chat/ChatRoomsList';
+import ChatWindow from '../../components/chat/ChatWindow';
+import ABTestingManager from '../../components/analytics/ABTestingManager';
 
 /**
  * Dashboard Administrateur Complet
@@ -48,6 +56,11 @@ const AdminDashboardComplete = () => {
   // Stats globales (utilisées par plusieurs onglets)
   const [globalStats, setGlobalStats] = useState(null);
 
+  // States for Support & Chat
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [selectedChatRoom, setSelectedChatRoom] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null);
+
   // ========== TABS CONFIGURATION ==========
   const tabs = [
     { id: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
@@ -58,7 +71,9 @@ const AdminDashboardComplete = () => {
     { id: 'subscriptions', label: 'Abonnements', icon: Target },
     { id: 'registrations', label: 'Inscriptions', icon: UserCheck },
     { id: 'finance', label: 'Finances', icon: DollarSign },
-    { id: 'analytics', label: 'Analytiques', icon: TrendingUp }
+    { id: 'analytics', label: 'Analytiques', icon: TrendingUp },
+    { id: 'support', label: 'Support', icon: Headphones },
+    { id: 'chat', label: 'Live Chat', icon: MessageSquare }
   ];
 
   // ========== API CALLS ==========
@@ -318,6 +333,76 @@ const AdminDashboardComplete = () => {
                 dateFilter={dateFilter}
                 refreshKey={refreshKey}
               />
+            )}
+
+            {activeTab === 'support' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Support Stats Widget */}
+                <div className="lg:col-span-3">
+                  <SupportStatsWidget />
+                </div>
+
+                {/* Tickets List */}
+                <div className="lg:col-span-1">
+                  <SupportTicketsList
+                    onSelectTicket={setSelectedTicket}
+                    currentUserId={currentUserId}
+                    userRole="admin"
+                  />
+                </div>
+
+                {/* Ticket Detail */}
+                <div className="lg:col-span-2">
+                  {selectedTicket ? (
+                    <TicketDetailView
+                      ticket={selectedTicket}
+                      currentUserId={currentUserId}
+                      userRole="admin"
+                      onClose={() => setSelectedTicket(null)}
+                      onUpdate={(updated) => setSelectedTicket(updated)}
+                    />
+                  ) : (
+                    <div className="bg-white rounded-lg shadow p-12 text-center text-gray-500">
+                      <Headphones size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>Sélectionnez un ticket pour voir les détails</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* A/B Testing Section */}
+                <div className="lg:col-span-3">
+                  <ABTestingManager />
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'chat' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Chat Rooms List */}
+                <div className="lg:col-span-1">
+                  <ChatRoomsList
+                    onSelectRoom={setSelectedChatRoom}
+                    currentUserId={currentUserId}
+                    userRole="admin"
+                  />
+                </div>
+
+                {/* Chat Window */}
+                <div className="lg:col-span-2">
+                  {selectedChatRoom ? (
+                    <ChatWindow
+                      room={selectedChatRoom}
+                      currentUserId={currentUserId}
+                      onClose={() => setSelectedChatRoom(null)}
+                    />
+                  ) : (
+                    <div className="bg-white rounded-lg shadow p-12 text-center text-gray-500">
+                      <MessageSquare size={48} className="mx-auto mb-4 opacity-50" />
+                      <p>Sélectionnez une conversation pour commencer</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </motion.div>
         </AnimatePresence>
