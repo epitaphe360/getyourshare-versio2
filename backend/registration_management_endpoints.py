@@ -377,6 +377,8 @@ async def send_custom_message(registration_id: int, message_data: SendMessageReq
         registration = response.data[0]
         
         # Envoyer l'email
+        # Construire le message en échappant les sauts de ligne avant la f-string
+        safe_message = message_data.message.replace("\n", "<br>")
         email_content = f"""
         <html>
         <body style="font-family: Arial, sans-serif; padding: 20px;">
@@ -384,7 +386,7 @@ async def send_custom_message(registration_id: int, message_data: SendMessageReq
                 <h1 style="color: #4f46e5;">{message_data.subject}</h1>
                 <p>Bonjour {registration.get('company_name', '')} !</p>
                 <div style="margin: 20px 0; padding: 20px; background: white; border-radius: 8px;">
-                    {message_data.message.replace('\n', '<br>')}
+                    {safe_message}
                 </div>
                 <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
                     Cordialement,<br>
