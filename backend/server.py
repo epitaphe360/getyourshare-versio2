@@ -1310,8 +1310,10 @@ async def get_analytics_overview(
     payload: dict = Depends(get_current_user_from_cookie)
 ):
     """Vue d'ensemble complète des analytics pour admin"""
+    logger.info(f"📊 Analytics overview requested by user: {payload.get('id')} with period: {period}")
     try:
         # Optimisation: Utiliser count='exact' au lieu de récupérer toutes les données
+        logger.debug("Starting analytics queries...")
         
         # Statistiques utilisateurs par rôle
         merchants_count = supabase.table("users").select("id", count="exact", head=True).eq("role", "merchant").execute()
@@ -1434,7 +1436,10 @@ async def get_analytics_overview(
             }
         }
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         logger.error(f"Erreur get_analytics_overview: {e}")
+        logger.error(f"Traceback complet: {error_details}")
         # Retourner des valeurs nulles en cas d'erreur au lieu de données fictives
         return {
             "users": {
