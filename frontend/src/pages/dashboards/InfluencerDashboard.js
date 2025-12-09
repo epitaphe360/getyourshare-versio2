@@ -24,6 +24,12 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
+// Import new AI and support components
+import AIRecommendationsWidget from '../../components/ai/AIRecommendationsWidget';
+import SupportTicketsList from '../../components/support/SupportTicketsList';
+import CreateTicketForm from '../../components/support/CreateTicketForm';
+import LiveChatWidget from '../../components/chat/LiveChatWidget';
+
 const InfluencerDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -1465,6 +1471,48 @@ const InfluencerDashboard = () => {
         request={selectedRequest}
         onRespond={handleCollaborationRespond}
       />
+
+      {/* AI Recommendations Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+        className="mt-6"
+      >
+        <AIRecommendationsWidget />
+      </motion.div>
+
+      {/* Support Tickets Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
+        className="mt-6"
+      >
+        <Card title="Support & Assistance" icon={<MessageSquare size={20} />}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold mb-4">Mes Tickets</h4>
+              <SupportTicketsList
+                onSelectTicket={(ticket) => navigate(`/support/ticket/${ticket.id}`)}
+                currentUserId={user?.id}
+                userRole="influencer"
+              />
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Créer un Ticket</h4>
+              <CreateTicketForm
+                onTicketCreated={() => {
+                  toast.success('Ticket créé avec succès!');
+                }}
+              />
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Live Chat Widget (Floating) */}
+      {user && <LiveChatWidget userId={user.id} userRole="influencer" />}
       </>
       )}
     </div>

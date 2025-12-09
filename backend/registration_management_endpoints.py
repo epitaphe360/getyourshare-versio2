@@ -375,7 +375,10 @@ async def send_custom_message(registration_id: int, message_data: SendMessageReq
             raise HTTPException(status_code=404, detail="Demande non trouvée")
         
         registration = response.data[0]
-        
+
+        # Préparer le message formaté (éviter backslash dans f-string)
+        formatted_message = message_data.message.replace('\n', '<br>')
+
         # Envoyer l'email
         email_content = f"""
         <html>
@@ -384,7 +387,7 @@ async def send_custom_message(registration_id: int, message_data: SendMessageReq
                 <h1 style="color: #4f46e5;">{message_data.subject}</h1>
                 <p>Bonjour {registration.get('company_name', '')} !</p>
                 <div style="margin: 20px 0; padding: 20px; background: white; border-radius: 8px;">
-                    {message_data.message.replace('\n', '<br>')}
+                    {formatted_message}
                 </div>
                 <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
                     Cordialement,<br>

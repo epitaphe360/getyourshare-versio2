@@ -21,6 +21,12 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
+// Import new AI and integration components
+import AIRecommendationsWidget from '../../components/ai/AIRecommendationsWidget';
+import AIInsightsPanel from '../../components/ai/AIInsightsPanel';
+import EcommerceIntegrationsPanel from '../../components/integrations/EcommerceIntegrationsPanel';
+import LiveChatWidget from '../../components/chat/LiveChatWidget';
+
 const MerchantDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -1141,6 +1147,36 @@ const MerchantDashboard = () => {
           </div>
         )}
       </Card>
+
+      {/* AI Recommendations Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+      >
+        <AIRecommendationsWidget />
+      </motion.div>
+
+      {/* AI Insights Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
+      >
+        <AIInsightsPanel />
+      </motion.div>
+
+      {/* E-commerce Integrations Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+      >
+        <EcommerceIntegrationsPanel />
+      </motion.div>
+
+      {/* Live Chat Widget (Floating) */}
+      {user && <LiveChatWidget userId={user.id} userRole="merchant" />}
     </div>
   );
 };
