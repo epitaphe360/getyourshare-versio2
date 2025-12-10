@@ -30,10 +30,12 @@ import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import api from '../../utils/api';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const CampaignDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -265,10 +267,12 @@ const CampaignDashboard = () => {
               <Download className="w-4 h-4 mr-2" />
               Exporter
             </Button>
-            <Button onClick={() => window.location.href = '/campaigns/create'}>
-              <Plus className="w-4 h-4 mr-2" />
-              Nouvelle Campagne
-            </Button>
+            {(user?.role === 'merchant' || user?.role === 'admin') && (
+              <Button onClick={() => window.location.href = '/campaigns/create'}>
+                <Plus className="w-4 h-4 mr-2" />
+                Nouvelle Campagne
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -634,10 +638,12 @@ const CampaignDashboard = () => {
               ⚡ Actions Rapides
             </h3>
             <div className="space-y-2">
-              <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/campaigns/create')}>
-                <Plus className="w-4 h-4 mr-2" />
-                Créer une Campagne
-              </Button>
+              {(user?.role === 'merchant' || user?.role === 'admin') && (
+                <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/campaigns/create')}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Créer une Campagne
+                </Button>
+              )}
               <Button variant="outline" className="w-full justify-start" onClick={() => navigate('/reports/advanced')}>
                 <Download className="w-4 h-4 mr-2" />
                 Rapport Mensuel

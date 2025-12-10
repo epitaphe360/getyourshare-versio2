@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 import uuid
 from supabase_client import supabase
-from auth import get_current_user
+from auth import get_current_user_from_cookie
 
 router = APIRouter(prefix="/api/support", tags=["Support"])
 
@@ -25,7 +25,7 @@ class TicketResponse(BaseModel):
     updated_at: Optional[str] = None
 
 @router.post("/tickets", response_model=TicketResponse)
-async def create_ticket(ticket: TicketCreate, current_user: dict = Depends(get_current_user)):
+async def create_ticket(ticket: TicketCreate, current_user: dict = Depends(get_current_user_from_cookie)):
     try:
         # Generate a ticket number (e.g., T-20251023-1234)
         timestamp = datetime.now().strftime("%Y%m%d")
@@ -55,7 +55,7 @@ async def create_ticket(ticket: TicketCreate, current_user: dict = Depends(get_c
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/tickets", response_model=List[TicketResponse])
-async def get_my_tickets(current_user: dict = Depends(get_current_user)):
+async def get_my_tickets(current_user: dict = Depends(get_current_user_from_cookie)):
     try:
         response = supabase.table("support_tickets")\
             .select("*")\

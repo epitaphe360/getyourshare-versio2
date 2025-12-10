@@ -5957,16 +5957,17 @@ async def create_campaign_endpoint(campaign_data: CampaignCreate, current_user: 
     """Créer une nouvelle campagne"""
     user = get_user_by_id(current_user["id"])
 
-    if user["role"] != "merchant":
-        raise HTTPException(status_code=403, detail="Seuls les merchants peuvent créer des campagnes")
+    if user["role"] not in ["merchant", "admin"]:
+        raise HTTPException(status_code=403, detail="Seuls les merchants et administrateurs peuvent créer des campagnes")
 
-    # 🔒 VÉRIFICATION LIMITE ABONNEMENT
-    limit_check = await check_subscription_limit(user["id"], "campaigns", "merchant")
-    if not limit_check["allowed"]:
-        raise HTTPException(
-            status_code=403,
-            detail=f"Limite de campagnes atteinte ({limit_check['current']}/{limit_check['limit']}). Passez à un plan supérieur."
-        )
+    # 🔒 VÉRIFICATION LIMITE ABONNEMENT (Uniquement pour les marchands)
+    if user["role"] == "merchant":
+        limit_check = await check_subscription_limit(user["id"], "campaigns", "merchant")
+        if not limit_check["allowed"]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Limite de campagnes atteinte ({limit_check['current']}/{limit_check['limit']}). Passez à un plan supérieur."
+            )
 
     # Utiliser directement user["id"] comme merchant_id pour cohérence
     campaign = create_campaign(
