@@ -314,6 +314,6 @@ const LiveChatWidget = forwardRef(({ userId, userRole = 'customer' }, ref) => {
       )}
     </>
   );
-};
+});
 
 export default LiveChatWidget;
