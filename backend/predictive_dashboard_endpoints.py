@@ -12,6 +12,7 @@ from predictive_dashboard_service import (
 )
 from auth import get_current_user
 from db_helpers import log_user_activity
+from db_queries_real import get_user_campaigns
 from supabase_client import supabase
 
 router = APIRouter(prefix="/api/dashboard", tags=["Predictive Dashboard"])

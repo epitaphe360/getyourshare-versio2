@@ -2213,7 +2213,8 @@ async def request_payout(request: Request, current_user: dict = Depends(get_curr
                     error_data = ast.literal_eval(match.group(0))
                 else:
                     error_data = {}
-            except:
+            except Exception as e:
+                logger.debug(f"Failed to parse error message: {e}")
                 error_data = {}
 
         # Check for P0001 code or "Payout refusé" text
