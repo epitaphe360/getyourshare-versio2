@@ -34,6 +34,7 @@ import asyncio
 from websocket_endpoints import router as websocket_router, listen_to_database_changes
 from fiscal_endpoints import router as fiscal_router
 from payment_webhooks import router as payment_webhooks_router
+from support_endpoints import router as support_router
 
 # Importer les helpers Supabase
 from db_helpers import (
@@ -621,6 +622,7 @@ app.include_router(integrations_router)  # Shopify/WooCommerce integrations
 app.include_router(settings_router)  # Platform settings & SMTP
 app.include_router(email_router)  # Email marketing campaigns
 app.include_router(api_router)  # Public API & documentation
+app.include_router(support_router)  # Support Tickets
 
 # Nouveaux routers - 6 Features Marketables
 app.include_router(websocket_router)
