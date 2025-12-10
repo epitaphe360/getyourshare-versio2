@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import LiveChatWidget from '../components/chat/LiveChatWidget';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { MessageCircle, Mail, Phone, Clock, Send, HelpCircle, AlertCircle, CheckCircle } from 'lucide-react';
 
 const Support = () => {
   const toast = useToast();
+  const { user } = useAuth();
+  const chatWidgetRef = useRef(null);
   const [formData, setFormData] = useState({
     subject: '',
     category: 'general',
@@ -117,7 +121,15 @@ const Support = () => {
                 className="w-full"
                 onClick={() => {
                   if (method.title === 'Chat en Direct') {
-                    toast.info('Chat en direct - Connexion en cours...');
+                    if (user) {
+                      if (chatWidgetRef.current) {
+                        chatWidgetRef.current.open();
+                      } else {
+                        toast.info('Le chat est en cours de chargement...');
+                      }
+                    } else {
+                      toast.info('Veuillez vous connecter pour accéder au chat en direct.');
+                    }
                   } else if (method.title === 'Email Support') {
                     window.location.href = 'mailto:support@shareyoursales.com';
                   } else if (method.title === 'Support Téléphonique') {
@@ -287,6 +299,8 @@ const Support = () => {
           ))}
         </div>
       </Card>
+
+      {user && <LiveChatWidget ref={chatWidgetRef} userId={user.id} userRole={user.role || 'customer'} />}
     </div>
   );
 };

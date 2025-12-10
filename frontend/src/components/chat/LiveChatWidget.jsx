@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { liveChatAPI } from '../../services/newEndpointsAPI';
 import './LiveChat.css';
 
-const LiveChatWidget = ({ userId, userRole = 'customer' }) => {
+const LiveChatWidget = forwardRef(({ userId, userRole = 'customer' }, ref) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -15,6 +15,12 @@ const LiveChatWidget = ({ userId, userRole = 'customer' }) => {
   const wsRef = useRef(null);
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+
+  useImperativeHandle(ref, () => ({
+    open: () => setIsOpen(true),
+    close: () => setIsOpen(false),
+    toggle: () => setIsOpen(prev => !prev)
+  }));
 
   useEffect(() => {
     if (isOpen && !isConnected && userId) {
