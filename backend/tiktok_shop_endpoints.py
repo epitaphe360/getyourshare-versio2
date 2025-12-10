@@ -121,7 +121,7 @@ async def get_product_status(tiktok_product_id: str):
 async def get_orders(
     start_date: Optional[str] = Query(None, description="Date de début (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="Date de fin (YYYY-MM-DD)"),
-    status: Optional[TikTokOrderStatus] = None
+    order_status: Optional[TikTokOrderStatus] = None
 ):
     """
     Récupérer les commandes TikTok Shop
@@ -139,7 +139,7 @@ async def get_orders(
     orders = await tiktok_shop_service.get_orders(
         start_date=start,
         end_date=end,
-        status=status
+        status=order_status
     )
 
     # Calculer les totaux

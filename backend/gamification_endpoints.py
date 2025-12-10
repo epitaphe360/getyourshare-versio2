@@ -107,8 +107,9 @@ async def get_gamification_profile(
                 .not_.is_('missions.badge_id', 'null')\
                 .execute()
             earned_badges_data = [b['missions']['badges'] for b in earned_badges.data if b.get('missions', {}).get('badges')]
-        except Exception:
+        except Exception as e:
             # Fallback if user_missions/badges tables have issues
+            logger.debug(f"Failed to get earned badges: {e}")
             pass
         
         # Récupérer missions actives
@@ -120,7 +121,8 @@ async def get_gamification_profile(
                 .eq('status', 'in_progress')\
                 .execute()
             active_missions_data = active_missions.data
-        except Exception:
+        except Exception as e:
+            logger.debug(f"Failed to get active missions: {e}")
             pass
         
         # Calculer progression vers prochain niveau

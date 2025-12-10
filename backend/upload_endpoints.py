@@ -42,8 +42,6 @@ def add_upload_endpoints(app, verify_token):
         file_path = f"{folder}/{datetime.now().strftime('%Y/%m')}/{unique_filename}"
 
         try:
-            supabase = get_supabase_client()
-
             # Upload vers Supabase Storage
             # Note: Supabase Storage doit être configuré dans le dashboard Supabase
             result = supabase.storage.from_("uploads").upload(
@@ -104,8 +102,6 @@ def add_upload_endpoints(app, verify_token):
         from supabase_client import supabase
 
         try:
-            supabase = get_supabase_client()
-
             # Supprimer le fichier
             result = supabase.storage.from_("uploads").remove([file_path])
 
@@ -120,8 +116,6 @@ def add_upload_endpoints(app, verify_token):
         from supabase_client import supabase
 
         try:
-            supabase = get_supabase_client()
-
             # Lister les fichiers
             files = supabase.storage.from_("uploads").list(folder)
 

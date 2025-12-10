@@ -551,14 +551,16 @@ async def get_user_stats(
         try:
             prod_res = supabase.table('products').select('id', count='exact').eq('merchant_id', user_id).execute()
             stats['products_count'] = prod_res.count or 0
-        except:
+        except Exception as e:
+            logger.debug(f"Failed to get products count: {e}")
             pass
 
         # Campaigns count
         try:
             camp_res = supabase.table('campaigns').select('id', count='exact').eq('merchant_id', user_id).execute()
             stats['campaigns_count'] = camp_res.count or 0
-        except:
+        except Exception as e:
+            logger.debug(f"Failed to get campaigns count: {e}")
             pass
 
         # Clicks count (from tracking_events or click_logs)
@@ -569,7 +571,8 @@ async def get_user_stats(
                 link_ids = [l['id'] for l in links_res.data]
                 clicks_res = supabase.table('tracking_events').select('id', count='exact').in_('link_id', link_ids).eq('event_type', 'click').execute()
                 stats['clicks_count'] = clicks_res.count or 0
-        except:
+        except Exception as e:
+            logger.debug(f"Failed to get clicks count: {e}")
             pass
 
         # Commission total
@@ -577,7 +580,8 @@ async def get_user_stats(
             comm_res = supabase.table('commissions').select('amount').eq('influencer_id', user_id).eq('status', 'approved').execute()
             if comm_res.data:
                 stats['commission_total'] = sum(float(c['amount']) for c in comm_res.data)
-        except:
+        except Exception as e:
+            logger.debug(f"Failed to get commission total: {e}")
             pass
             
         # Login count (if tracked in users table)
@@ -585,7 +589,8 @@ async def get_user_stats(
             user_res = supabase.table('users').select('login_count').eq('id', user_id).single().execute()
             if user_res.data:
                 stats['login_count'] = user_res.data.get('login_count', 0)
-        except:
+        except Exception as e:
+            logger.debug(f"Failed to get login count: {e}")
             pass
 
         return {'stats': stats}
@@ -619,7 +624,8 @@ async def get_user_activity(
                          'details': f"Clicked on link {log.get('link_id')}",
                          'created_at': log.get('created_at')
                      })
-        except:
+        except Exception as e:
+            logger.debug(f"Failed to get click logs: {e}")
             pass
 
         return {'activity': activity}

@@ -2213,7 +2213,8 @@ async def request_payout(request: Request, current_user: dict = Depends(get_curr
                     error_data = ast.literal_eval(match.group(0))
                 else:
                     error_data = {}
-            except:
+            except Exception as e:
+                logger.debug(f"Failed to parse error message: {e}")
                 error_data = {}
 
         # Check for P0001 code or "Payout refusé" text
@@ -4174,12 +4175,14 @@ def generate_simple_invoice_pdf(invoice_data: dict) -> bytes:
         if created_at:
             try:
                 created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00')).strftime('%d/%m/%Y')
-            except:
+            except Exception as e:
+                logger.debug(f"Date formatting error: {e}")
                 pass
         if due_date:
             try:
                 due_date = datetime.fromisoformat(due_date.replace('Z', '+00:00')).strftime('%d/%m/%Y')
-            except:
+            except Exception as e:
+                logger.debug(f"Date formatting error: {e}")
                 pass
         
         company_info = """
@@ -4763,7 +4766,8 @@ async def get_registration_timeline(
                     return {"timeline": [
                         {"date": registration.get("created_at"), "type": "created", "description": "Demande soumise", "status": "info"}
                     ]}
-            except:
+            except Exception as e:
+                logger.debug(f"Legacy registration lookup failed: {e}")
                 pass
             raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
         
@@ -7161,7 +7165,8 @@ async def get_subscription_plans():
                 import json
                 try:
                     features = json.loads(features)
-                except:
+                except Exception as e:
+                    logger.debug(f"Failed to parse features JSON: {e}")
                     features = {}
             
             # Logique de répartition
@@ -9727,7 +9732,8 @@ async def get_influencer_tracking_links(
                 conversions = conversions_result.count if hasattr(conversions_result, 'count') else 0
                 link["conversions_count"] = conversions
                 link["earnings"] = conversions * 10  # Estimation
-            except:
+            except Exception as e:
+                logger.debug(f"Failed to get conversions for link {link.get('id')}: {e}")
                 link["conversions_count"] = 0
                 link["earnings"] = 0
         
