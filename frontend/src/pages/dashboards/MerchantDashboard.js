@@ -107,7 +107,14 @@ const MerchantDashboard = () => {
           analytics_days: 365
         };
       default:
-        return getPlanLimits();
+        // Fallback to Freemium limits for unknown plans (prevents infinite recursion)
+        return {
+          campaigns: 1,
+          products: 5,
+          affiliates: 10,
+          budget: 500,
+          analytics_days: 7
+        };
     }
   };
 
@@ -142,7 +149,12 @@ const MerchantDashboard = () => {
           icon: '👑'
         };
       default:
-        return getPlanBadge();
+        // Fallback to Freemium badge for unknown plans (prevents infinite recursion)
+        return {
+          name: 'Freemium',
+          color: 'bg-gray-100 text-gray-800 border-gray-300',
+          icon: '🆓'
+        };
     }
   };
 
