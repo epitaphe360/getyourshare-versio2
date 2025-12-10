@@ -639,7 +639,7 @@ app.include_router(ai_content_router)
 app.include_router(mobile_payment_router)
 
 # Phase 5G - Système Fiscal & Comptable (Multi-pays: Maroc, France, USA)
-app.include_router(fiscal_router, prefix="/api/fiscal", tags=["Fiscal"])
+app.include_router(fiscal_router)
 app.include_router(payment_webhooks_router, prefix="/api", tags=["Payment Webhooks"])
 app.include_router(smart_match_router)
 app.include_router(trust_score_router)
@@ -5099,55 +5099,6 @@ async def get_fiscal_rates(country_code: str):
         raise HTTPException(status_code=404, detail="Pays non supporté")
     
     return rates[country_code]
-
-
-@app.post("/api/fiscal/calculate")
-async def calculate_fiscal(
-    data: dict,
-    current_user: dict = Depends(get_current_user_from_cookie)
-):
-    """Calcul fiscal complet pour un montant donné"""
-    amount = float(data.get("amount", 0))
-    country = data.get("country", "FR")
-    status = data.get("status", "auto_entrepreneur")
-    
-    # Récupérer les taux
-    rates_response = await get_fiscal_rates(country)
-    
-    vat_rate = rates_response["vat_rate"] / 100
-    social_rate = rates_response["social_charges"] / 100
-    
-    # Calculs de base
-    amount_ht = amount / (1 + vat_rate) if vat_rate > 0 else amount
-    vat_amount = amount - amount_ht if vat_rate > 0 else 0
-    
-    # Charges sociales
-    social_charges = amount_ht * social_rate
-    
-    # Revenu imposable
-    taxable_income = amount_ht - social_charges
-    
-    # Calcul IR progressif
-    income_tax = 0
-    for bracket in rates_response["income_tax_brackets"]:
-        if taxable_income > bracket["min"]:
-            taxable_in_bracket = min(taxable_income, bracket["max"]) - bracket["min"]
-            income_tax += taxable_in_bracket * (bracket["rate"] / 100)
-    
-    # Net
-    net_amount = amount_ht - social_charges - income_tax
-    
-    return {
-        "amount": amount,
-        "amount_ht": round(amount_ht, 2),
-        "vat": round(vat_amount, 2),
-        "social_charges": round(social_charges, 2),
-        "income_tax": round(income_tax, 2),
-        "net": round(net_amount, 2),
-        "effective_rate": round((amount - net_amount) / amount * 100, 2),
-        "country": country,
-        "status": status
-    }
 
 
 @app.get("/api/fiscal/settings")
