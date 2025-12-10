@@ -6,6 +6,7 @@ Recommendations + Chatbot
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, List
+from datetime import datetime, timedelta
 
 from auth import get_current_user_from_cookie
 from db_helpers import supabase
@@ -304,7 +305,6 @@ async def get_ai_insights(
         insights = []
 
         # Analyser les ventes
-        from datetime import timedelta
         start_date = (datetime.now() - timedelta(days=30)).isoformat()
 
         if role == "influencer":
@@ -376,6 +376,3 @@ async def get_ai_insights(
     except Exception as e:
         logger.error(f"Error getting AI insights: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-from datetime import datetime

@@ -106,13 +106,18 @@ async def get_analytics_overview(current_user: dict = Depends(get_current_user_f
             total_links_count = 0
         
         try:
-            conversions_res = supabase.table('conversions').select('id', count='exact', head=True).execute()
+            # Count only conversions that came from tracking links (have tracking_link_id)
+            conversions_res = supabase.table('conversions').select('id', count='exact', head=True).not_.is_('tracking_link_id', 'null').execute()
             conversions_count = conversions_res.count or 0
         except Exception:
             conversions_count = 0
-        
-        # Taux de conversion
-        conversion_rate = (conversions_count / total_clicks * 100) if total_clicks > 0 else 0
+
+        # Taux de conversion - capped at 100% max (can't have more conversions than clicks)
+        if total_clicks > 0:
+            raw_rate = (conversions_count / total_clicks * 100)
+            conversion_rate = min(raw_rate, 100.0)  # Cap at 100%
+        else:
+            conversion_rate = 0
         
         # Payouts
         try:
