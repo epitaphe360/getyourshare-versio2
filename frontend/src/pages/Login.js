@@ -291,7 +291,7 @@ const Login = () => {
                   {/* Admin */}
                   <div className="mt-6">
                     <button
-                      onClick={() => quickLogin('admin@getyourshare.com', 'Admin123!')}
+                      onClick={() => quickLogin('admin@getyourshare.com', 'admin123')}
                       disabled={loading}
                       className="w-full flex items-center justify-between px-4 py-3 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition disabled:opacity-50"
                     >
