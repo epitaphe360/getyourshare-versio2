@@ -106,6 +106,7 @@ async def csrf_middleware(request: Request, call_next: Callable):
         "/api/bot/",  # Bot endpoints
         "/api/messages/send", # Messaging endpoint (excluded for testing)
         "/api/roi/calculate", # ROI Calculator (public tool)
+        "/api/fiscal/calculate", # Fiscal Calculator (public tool)
         "/health",  # Health check endpoint
         "/api/health", # Health check endpoint (API)
         "/docs",
