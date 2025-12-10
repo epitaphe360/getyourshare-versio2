@@ -303,11 +303,11 @@ async def get_notification_settings(
         response = supabase.table('notification_settings')\
             .select('*')\
             .eq('user_id', current_user['id'])\
-            .single()\
+            .limit(1)\
             .execute()
         
-        if response.data:
-            return {'settings': response.data.get('settings', {})}
+        if response.data and len(response.data) > 0:
+            return {'settings': response.data[0].get('settings', {})}
         
         # Paramètres par défaut
         return {
