@@ -556,6 +556,7 @@ from search_endpoints import router as search_router
 # ============================================
 from referral_endpoints import router as referral_router
 from ai_features_endpoints import router as ai_features_router
+from routes.ai_routes import router as ai_routes_router
 from live_shopping_endpoints_enhanced import router as live_shopping_enhanced_router
 from whatsapp_endpoints import router as whatsapp_router
 from tiktok_shop_endpoints import router as tiktok_shop_router
@@ -675,6 +676,7 @@ app.include_router(registrations_router)
 # 4 Killer Features - NEW
 app.include_router(referral_router)
 app.include_router(ai_features_router)
+app.include_router(ai_routes_router)  # AI Recommendations & Insights
 app.include_router(live_shopping_enhanced_router)  # Live Shopping Enhanced (Instagram, TikTok, YouTube, Facebook)
 app.include_router(whatsapp_router)
 app.include_router(tiktok_shop_router)
@@ -2010,8 +2012,8 @@ async def get_current_subscription(request: Request, payload: dict = Depends(get
         sub_result = supabase.table("subscriptions").select("""
             id,
             status,
-            started_at,
-            ends_at,
+            start_date,
+            end_date,
             subscription_plans(
                 id,
                 name,
@@ -2053,8 +2055,8 @@ async def get_current_subscription(request: Request, payload: dict = Depends(get
             "analytics_level": features.get("analytics_level", "basic"),
             "priority_support": features.get("priority_support", False),
             "status": subscription.get("status", "active"),
-            "started_at": subscription.get("started_at"),
-            "ends_at": subscription.get("ends_at"),
+            "started_at": subscription.get("start_date"),
+            "ends_at": subscription.get("end_date"),
             "is_free_plan": False
         }
         
@@ -9116,8 +9118,8 @@ async def get_my_subscription(current_user: dict = Depends(get_current_user_from
             sub_result = supabase.table("subscriptions").select("""
                 id,
                 status,
-                started_at,
-                ends_at,
+                start_date,
+                end_date,
                 auto_renew,
                 subscription_plans(
                     id,
@@ -9169,8 +9171,8 @@ async def get_my_subscription(current_user: dict = Depends(get_current_user_from
                     "analytics_level": features.get("analytics_level", "basic"),
                     "priority_support": features.get("priority_support", False)
                 },
-                "started_at": subscription.get("started_at"),
-                "ends_at": subscription.get("ends_at"),
+                "started_at": subscription.get("start_date"),
+                "ends_at": subscription.get("end_date"),
                 "auto_renew": subscription.get("auto_renew", True),
                 "is_free_plan": False
             }

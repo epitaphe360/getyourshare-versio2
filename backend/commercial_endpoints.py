@@ -987,25 +987,25 @@ async def get_pipeline(current_user: dict = Depends(get_current_user_from_cookie
         won_leads = 0
         
         for lead in leads:
-            status = lead.get("status", "nouveau").lower()
+            lead_status = lead.get("status", "nouveau").lower()
             value = float(lead.get("estimated_value", 0) or 0)
-            
-            if status in ["nouveau", "new"]:
+
+            if lead_status in ["nouveau", "new"]:
                 pipeline["new"] += 1
                 pipeline["new_amount"] += value
-            elif status in ["contacté", "contacted"]:
+            elif lead_status in ["contacté", "contacted"]:
                 pipeline["contacted"] += 1
                 pipeline["contacted_amount"] += value
-            elif status in ["qualifié", "qualified"]:
+            elif lead_status in ["qualifié", "qualified"]:
                 pipeline["qualified"] += 1
                 pipeline["qualified_amount"] += value
-            elif status in ["proposition", "proposal"]:
+            elif lead_status in ["proposition", "proposal"]:
                 pipeline["proposal"] += 1
                 pipeline["proposal_amount"] += value
-            elif status in ["négociation", "negotiation"]:
+            elif lead_status in ["négociation", "negotiation"]:
                 pipeline["negotiation"] += 1
                 pipeline["negotiation_amount"] += value
-            elif status in ["gagné", "won", "conclu"]:
+            elif lead_status in ["gagné", "won", "conclu"]:
                 pipeline["won"] += 1
                 pipeline["won_amount"] += value
                 won_leads += 1

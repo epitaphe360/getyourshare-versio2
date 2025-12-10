@@ -8,10 +8,14 @@ from utils.logger import logger
 router = APIRouter()
 
 class ROICalculationRequest(BaseModel):
-    budget: float
+    # Support both old format (budget, campaign_type) and new format (monthly_traffic, conversion_rate)
+    budget: Optional[float] = None
     industry: str
-    campaign_type: str = "influencer" # influencer, ads, email
+    campaign_type: Optional[str] = "influencer" # influencer, ads, email
     average_order_value: float = 50.0
+    # New format fields
+    monthly_traffic: Optional[int] = None
+    conversion_rate: Optional[float] = None
 
 class ROICalculationResponse(BaseModel):
     estimated_clicks: int
@@ -42,70 +46,96 @@ BENCHMARKS = {
     "general": {"cpc": 0.50, "ctr": 2.0, "cr": 3.0}
 }
 
-@router.post("/calculate", response_model=ROICalculationResponse)
+@router.post("/calculate")
 async def calculate_roi(request: ROICalculationRequest):
     """
     Calcule le ROI estimé pour une campagne
+    Supporte deux formats:
+    1. Ancien format: budget + campaign_type
+    2. Nouveau format: monthly_traffic + conversion_rate
     """
-    # DEBUG: Return dummy response immediately
-    # return {
-    #     "estimated_clicks": 100,
-    #     "estimated_conversions": 10,
-    #     "estimated_revenue": 1000.0,
-    #     "roi_percentage": 10.0,
-    #     "net_profit": 100.0,
-    #     "metrics": {"cpc": 0.5, "ctr": 2.0, "cr": 3.0}
-    # }
-
     try:
         industry = request.industry.lower()
         if industry not in BENCHMARKS:
             industry = "general"
-        
+
         # Use copy to avoid modifying global state
         metrics = BENCHMARKS[industry].copy()
-        
-        # Ajustements selon le type de campagne
-        if request.campaign_type == "influencer":
-            # Influenceurs ont généralement un meilleur CR mais un CPC plus élevé (équivalent CPM)
-            metrics["cpc"] = float(metrics["cpc"]) * 1.2
-            metrics["cr"] = float(metrics["cr"]) * 1.5
-        elif request.campaign_type == "email":
-            metrics["cpc"] = 0.1 # Coût par envoi/clic très faible
-            metrics["cr"] = float(metrics["cr"]) * 2.0 # Conversion élevée sur audience chaude
-        
-        # Calculs
-        # Avoid division by zero
-        cpc = float(metrics["cpc"]) if float(metrics["cpc"]) > 0 else 0.1
-        estimated_clicks = int(request.budget / cpc)
-        
-        estimated_conversions = int(estimated_clicks * (float(metrics["cr"]) / 100))
-        estimated_revenue = estimated_conversions * request.average_order_value
-        
-        net_profit = estimated_revenue - request.budget
-        roi_percentage = (net_profit / request.budget) * 100 if request.budget > 0 else 0
-        
-        return {
-            "estimated_clicks": estimated_clicks,
-            "estimated_conversions": estimated_conversions,
-            "estimated_revenue": round(estimated_revenue, 2),
-            "roi_percentage": round(roi_percentage, 2),
-            "net_profit": round(net_profit, 2),
-            "metrics": metrics
-        }
+
+        # Determine which format is being used
+        if request.monthly_traffic is not None and request.conversion_rate is not None:
+            # NEW FORMAT: Calculate based on traffic and conversion rate
+            monthly_conversions = int(request.monthly_traffic * (request.conversion_rate / 100))
+            potential_revenue = monthly_conversions * request.average_order_value
+
+            # Estimate with 20% commission improvement from our platform
+            boosted_conversion_rate = request.conversion_rate * 1.2
+            boosted_conversions = int(request.monthly_traffic * (boosted_conversion_rate / 100))
+            boosted_revenue = boosted_conversions * request.average_order_value
+
+            additional_revenue = boosted_revenue - potential_revenue
+            roi_multiplier = round(boosted_revenue / potential_revenue, 2) if potential_revenue > 0 else 1.0
+
+            # Determine recommended tier based on traffic
+            if request.monthly_traffic < 5000:
+                recommended_tier = "basic"
+            elif request.monthly_traffic < 20000:
+                recommended_tier = "pro"
+            else:
+                recommended_tier = "enterprise"
+
+            return {
+                "potential_revenue": round(additional_revenue, 2),
+                "roi_multiplier": roi_multiplier,
+                "recommended_tier": recommended_tier,
+                "estimated_clicks": request.monthly_traffic,
+                "estimated_conversions": boosted_conversions,
+                "estimated_revenue": round(boosted_revenue, 2),
+                "roi_percentage": round((additional_revenue / potential_revenue) * 100 if potential_revenue > 0 else 0, 2),
+                "net_profit": round(additional_revenue, 2),
+                "metrics": {
+                    "current_conversion_rate": request.conversion_rate,
+                    "boosted_conversion_rate": round(boosted_conversion_rate, 2),
+                    "industry": industry
+                }
+            }
+        else:
+            # OLD FORMAT: Calculate based on budget
+            if request.budget is None:
+                raise ValueError("Either provide (monthly_traffic + conversion_rate) or (budget + campaign_type)")
+
+            # Ajustements selon le type de campagne
+            campaign_type = request.campaign_type or "influencer"
+            if campaign_type == "influencer":
+                metrics["cpc"] = float(metrics["cpc"]) * 1.2
+                metrics["cr"] = float(metrics["cr"]) * 1.5
+            elif campaign_type == "email":
+                metrics["cpc"] = 0.1
+                metrics["cr"] = float(metrics["cr"]) * 2.0
+
+            # Calculs
+            cpc = float(metrics["cpc"]) if float(metrics["cpc"]) > 0 else 0.1
+            estimated_clicks = int(request.budget / cpc)
+
+            estimated_conversions = int(estimated_clicks * (float(metrics["cr"]) / 100))
+            estimated_revenue = estimated_conversions * request.average_order_value
+
+            net_profit = estimated_revenue - request.budget
+            roi_percentage = (net_profit / request.budget) * 100 if request.budget > 0 else 0
+
+            return {
+                "estimated_clicks": estimated_clicks,
+                "estimated_conversions": estimated_conversions,
+                "estimated_revenue": round(estimated_revenue, 2),
+                "roi_percentage": round(roi_percentage, 2),
+                "net_profit": round(net_profit, 2),
+                "metrics": metrics
+            }
     except Exception as e:
         import traceback
         print(f"Error in calculate_roi: {e}")
         print(traceback.format_exc())
-        # Return a valid response even on error to debug
-        return {
-            "estimated_clicks": 0,
-            "estimated_conversions": 0,
-            "estimated_revenue": 0.0,
-            "roi_percentage": 0.0,
-            "net_profit": 0.0,
-            "metrics": {"error": str(e)}
-        }
+        raise HTTPException(status_code=400, detail=f"Erreur de calcul: {str(e)}")
 
 @router.get("/benchmarks")
 async def get_benchmarks():
