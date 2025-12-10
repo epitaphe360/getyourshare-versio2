@@ -153,6 +153,33 @@ const SubscriptionsTab = ({ stats, refreshKey, onRefresh }) => {
     return () => controller.abort();
   }, [fetchSubscriptions, refreshKey]);
 
+  // ========== FILTRAGE ==========
+  const filteredSubscriptions = subscriptions.filter(subscription => {
+    // Recherche
+    const userEmail = subscription.user_email || '';
+    if (searchTerm && !userEmail.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+
+    // Plan
+    const subPlan = subscription.plan_name || subscription.plan || '';
+    if (planFilter !== 'all' && !subPlan.toLowerCase().includes(planFilter.toLowerCase())) {
+      return false;
+    }
+
+    // Statut
+    if (statusFilter !== 'all' && subscription.status !== statusFilter) {
+      return false;
+    }
+
+    // Rôle
+    if (roleFilter !== 'all' && subscription.user_role !== roleFilter) {
+      return false;
+    }
+
+    return true;
+  });
+
   // ========== HANDLERS ==========
   const handleViewDetails = useCallback(async (subscription) => {
     try {
@@ -241,34 +268,7 @@ const SubscriptionsTab = ({ stats, refreshKey, onRefresh }) => {
 
     exportToCSV(exportData, 'abonnements_export');
     toast.success('Abonnements exportés avec succès');
-  }, [toast]);
-
-  // ========== FILTRAGE ==========
-  const filteredSubscriptions = subscriptions.filter(subscription => {
-    // Recherche
-    const userEmail = subscription.user_email || '';
-    if (searchTerm && !userEmail.toLowerCase().includes(searchTerm.toLowerCase())) {
-      return false;
-    }
-
-    // Plan
-    const subPlan = subscription.plan_name || subscription.plan || '';
-    if (planFilter !== 'all' && !subPlan.toLowerCase().includes(planFilter.toLowerCase())) {
-      return false;
-    }
-
-    // Statut
-    if (statusFilter !== 'all' && subscription.status !== statusFilter) {
-      return false;
-    }
-
-    // Rôle
-    if (roleFilter !== 'all' && subscription.user_role !== roleFilter) {
-      return false;
-    }
-
-    return true;
-  });
+  }, [filteredSubscriptions, toast, planPrices]);
 
   // Calculer progression de période
   const getPeriodProgress = (subscription) => {
