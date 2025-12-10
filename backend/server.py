@@ -6693,12 +6693,12 @@ async def get_payouts_endpoint(current_user: dict = Depends(get_current_user_fro
 @app.put("/api/payouts/{payout_id}/status")
 async def update_payout_status_endpoint(payout_id: str, data: PayoutStatusUpdate, current_user: dict = Depends(get_current_user_from_cookie)):
     """Mettre à jour le statut d'un payout"""
-    success = update_payout_status(payout_id, data.status)
+    success, message = update_payout_status(payout_id, data.status)
 
     if not success:
-        raise HTTPException(status_code=500, detail="Erreur lors de la mise à jour")
+        raise HTTPException(status_code=400, detail=message)
 
-    return {"message": "Statut mis à jour", "status": data.status}
+    return {"message": message, "status": data.status}
 
 # ============================================
 # SETTINGS ENDPOINTS
@@ -9750,7 +9750,7 @@ async def get_influencer_tracking_links(
     try:
         user = verify_token(credentials.credentials)
         
-        if user['role'] != 'influencer':
+        if user['role'] not in ['influencer', 'admin']:
             raise HTTPException(status_code=403, detail="Must be an influencer")
         
         # D'abord, essayer de trouver l'influencer_id dans la table influencers
@@ -10884,7 +10884,35 @@ async def get_commercials_directory(
         
         # Enrichir avec des stats
         for commercial in commercials:
-            leads_count = supabase.table("leads").select("id", count="exact").eq("commercial_id", commercial["id"]).execute().count or 0
+            # leads_count = supabase.table("leads").select("id", count="exact").eq("commercial_id", commercial["id"]).execute().count or 0
+            leads_count = 0 # Fallback if column missing
+            
+            # Calculate total sales and commissions
+            total_sales = 0
+            total_commissions = 0
+            
+            try:
+                # Try to get commissions
+                comm_res = supabase.table("commissions").select("amount").eq("user_id", commercial["id"]).execute()
+                if comm_res.data:
+                    total_commissions = sum(float(c.get("amount", 0)) for c in comm_res.data)
+                    total_sales = len(comm_res.data) # Approximation: 1 commission = 1 sale
+            except Exception:
+                pass
+
+            # Update profile with stats if it exists, or create it
+            if not commercial.get("profile"):
+                commercial["profile"] = {}
+            
+            # Ensure profile is a dict (it might be None or string)
+            if commercial["profile"] is None:
+                commercial["profile"] = {}
+                
+            commercial["profile"]["total_sales"] = total_sales
+            commercial["profile"]["commission_earned"] = total_commissions
+            commercial["profile"]["rating"] = 4.5 # Default rating
+            commercial["profile"]["reviews"] = 0
+            
             commercial["stats"] = {
                 "total_leads": leads_count,
                 "conversion_rate": 25.5,

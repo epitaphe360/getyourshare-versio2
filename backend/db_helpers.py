@@ -890,24 +890,88 @@ def get_payouts() -> List[Dict]:
         return []
 
 
-def update_payout_status(payout_id: str, status: str) -> bool:
-    """Met à jour le statut d'un payout"""
+def update_payout_status(payout_id: str, status: str) -> tuple[bool, str]:
+    """Met à jour le statut d'un payout (Implémentation Python pour contourner RPC cassé)"""
     try:
-        if status in {"approved", "paid", "rejected", "pending"}:
-            result = supabase.rpc(
-                "approve_payout_transaction", {"p_commission_id": payout_id, "p_status": status}
-            ).execute()
-            data = result.data
-            if isinstance(data, list):
-                return bool(data and data[0])
-            return bool(data)
+        # 1. Récupérer la commission
+        comm_result = supabase.table("commissions").select("*").eq("id", payout_id).execute()
+        if not comm_result.data:
+            msg = f"Commission {payout_id} not found"
+            logger.error(msg)
+            return False, msg
+        
+        commission = comm_result.data[0]
+        current_status = commission.get("status")
+        amount = float(commission.get("amount", 0))
+        influencer_id = commission.get("influencer_id")
+        
+        if not influencer_id:
+            msg = f"Commission {payout_id} has no influencer_id"
+            logger.error(msg)
+            return False, msg
 
+        # 2. Récupérer l'influenceur
+        inf_result = supabase.table("influencers").select("balance").eq("id", influencer_id).execute()
+        if not inf_result.data:
+            msg = f"Influencer {influencer_id} not found"
+            logger.error(msg)
+            return False, msg
+            
+        influencer_balance = float(inf_result.data[0].get("balance") or 0)
+        
+        # 3. Logique de transition (copiée du RPC)
+        if status == current_status:
+            return True, "Status already set"
+            
+        if status not in ('approved', 'paid', 'rejected', 'pending'):
+            msg = f"Invalid status: {status}"
+            logger.error(msg)
+            return False, msg
+
+        # approved -> pending: Check balance and deduct
+        if status == 'approved' and current_status == 'pending':
+            if influencer_balance < amount:
+                msg = f"Insufficient balance: {influencer_balance} < {amount}"
+                logger.error(msg)
+                return False, msg
+            
+            # Deduct balance
+            new_balance = influencer_balance - amount
+            supabase.table("influencers").update({"balance": new_balance}).eq("id", influencer_id).execute()
+            
+        # pending -> approved: Refund balance
+        elif status == 'pending' and current_status == 'approved':
+            new_balance = influencer_balance + amount
+            supabase.table("influencers").update({"balance": new_balance}).eq("id", influencer_id).execute()
+            
+        # rejected -> approved: Refund balance
+        elif status == 'rejected' and current_status == 'approved':
+            new_balance = influencer_balance + amount
+            supabase.table("influencers").update({"balance": new_balance}).eq("id", influencer_id).execute()
+            
+        # paid -> approved: No balance change, just status update
+        elif status == 'paid' and current_status != 'approved':
+            msg = "Cannot pay a commission that is not approved"
+            logger.error(msg)
+            return False, msg
+            
+        # Update commission status
         update_data = {"status": status}
+        if status == 'approved' and current_status == 'pending':
+            update_data["approved_at"] = datetime.now().isoformat()
+        elif status == 'paid':
+            update_data["paid_at"] = datetime.now().isoformat()
+        elif status in ('pending', 'rejected'):
+            update_data["approved_at"] = None
+            update_data["paid_at"] = None
+            
         supabase.table("commissions").update(update_data).eq("id", payout_id).execute()
-        return True
+        return True, "Status updated successfully"
+        
     except Exception as e:
-        logger.error(f"Error updating payout status: {e}")
-        return False
+        msg = f"Error updating payout status (Python fallback): {e}"
+        logger.error(msg)
+        return False, msg
 
 
 # ============================================
