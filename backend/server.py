@@ -9801,7 +9801,7 @@ async def get_influencer_affiliation_requests_alias(
     try:
         user = verify_token(credentials.credentials)
         
-        if user['role'] != 'influencer':
+        if user['role'] not in ['influencer', 'admin']:
             raise HTTPException(status_code=403, detail="Must be an influencer")
         
         # Récupérer l'ID influencer depuis la table influencers

@@ -569,7 +569,7 @@ const MarketplaceGroupon = () => {
                       <button 
                         onClick={() => {
                           toast.success(`Demande de contact envoyée à ${commercial.profile?.first_name || 'ce commercial'}`);
-                          navigate('/messaging', { state: { recipientId: commercial.id, recipientName: `${commercial.profile?.first_name || ''} ${commercial.profile?.last_name || ''}` } });
+                          navigate('/messages', { state: { recipientId: commercial.id, recipientName: `${commercial.profile?.first_name || ''} ${commercial.profile?.last_name || ''}` } });
                         }}
                         className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition flex items-center justify-center gap-2 shadow-md">
                         <Users size={18} />

@@ -80,24 +80,120 @@ async def get_pending_moderation(
         raise HTTPException(status_code=503, detail="Database not configured")
     
     try:
-        # Construire la requête
-        query = supabase.from_("v_pending_moderation").select("*")
+        # 1. Fetch pending items from moderation_queue
+        query = supabase.from_("moderation_queue").select("*").eq("status", "pending")
         
-        # Filtrer par risk_level si fourni
         if risk_level:
             query = query.eq("ai_risk_level", risk_level)
-        
-        # Pagination
-        query = query.range(offset, offset + limit - 1)
-        
-        # Exécuter
+            
+        # Fetch all pending items to sort and paginate in memory
         response = query.execute()
+        items = response.data
         
-        # Compter le total
-        count_response = supabase.from_("moderation_queue")\
-            .select("id", count="exact")\
-            .eq("status", "pending")\
-            .execute()
+        if not items:
+            return {"data": [], "count": 0}
+
+        # 2. Collect IDs
+        merchant_ids = set()
+        user_ids = set()
+        
+        for item in items:
+            if item.get('merchant_id'):
+                merchant_ids.add(item['merchant_id'])
+            if item.get('user_id'):
+                user_ids.add(item['user_id'])
+                
+        # 3. Fetch Merchants
+        merchants_map = {}
+        if merchant_ids:
+            merchants_response = supabase.from_("merchants")\
+                .select("id, company_name, user_id")\
+                .in_("id", list(merchant_ids))\
+                .execute()
+            for m in merchants_response.data:
+                merchants_map[m['id']] = m
+                if m.get('user_id'):
+                    user_ids.add(m['user_id'])
+                    
+        # 4. Fetch Users
+        users_map = {}
+        if user_ids:
+            users_response = supabase.from_("users")\
+                .select("id, email")\
+                .in_("id", list(user_ids))\
+                .execute()
+            for u in users_response.data:
+                users_map[u['id']] = u
+                
+        # 5. Enrich Data
+        enriched_data = []
+        for item in items:
+            # Calculate hours_pending
+            created_at_str = item.get('created_at')
+            hours_pending = 0
+            if created_at_str:
+                try:
+                    # Handle potential Z or +00:00
+                    created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                    # Ensure timezone awareness for subtraction
+                    now = datetime.now(created_at.tzinfo)
+                    hours_pending = (now - created_at).total_seconds() / 3600
+                except Exception:
+                    pass
+            
+            # Calculate risk_priority
+            risk = item.get('ai_risk_level', 'low')
+            if risk == 'critical': priority = 1
+            elif risk == 'high': priority = 2
+            elif risk == 'medium': priority = 3
+            else: priority = 4
+            
+            # Get related data
+            merchant = merchants_map.get(item.get('merchant_id'))
+            merchant_name = merchant.get('company_name') if merchant else None
+            
+            # Merchant email (from merchant -> user)
+            merchant_email = None
+            if merchant and merchant.get('user_id'):
+                merchant_user = users_map.get(merchant['user_id'])
+                if merchant_user:
+                    merchant_email = merchant_user.get('email')
+            
+            # Submitter email
+            user_email = None
+            if item.get('user_id'):
+                user = users_map.get(item['user_id'])
+                if user:
+                    user_email = user.get('email')
+
+            flat_item = {
+                **item,
+                'merchant_name': merchant_name,
+                'merchant_email': merchant_email,
+                'user_email': user_email,
+                'hours_pending': hours_pending,
+                'risk_priority': priority
+            }
+            enriched_data.append(flat_item)
+            
+        # 6. Sort
+        # Sort by risk_priority ASC, then created_at ASC
+        enriched_data.sort(key=lambda x: (x['risk_priority'], x.get('created_at', '')))
+        
+        # 7. Paginate
+        total_count = len(enriched_data)
+        paginated_data = enriched_data[offset : offset + limit]
+        
+        return {
+            "data": paginated_data,
+            "count": total_count
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching pending moderation: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
         
         return {
             "data": response.data or [],

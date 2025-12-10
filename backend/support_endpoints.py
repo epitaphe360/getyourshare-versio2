@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 import uuid
 from supabase_client import supabase
-from middleware.security import get_current_user
+from auth import get_current_user
 
 router = APIRouter(prefix="/api/support", tags=["Support"])
 
