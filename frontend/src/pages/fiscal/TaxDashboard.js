@@ -5,7 +5,7 @@ import {
   Calculator, Receipt, FileText, Globe, TrendingUp,
   DollarSign, Percent, AlertTriangle, CheckCircle,
   ChevronDown, RefreshCw, Download, Calendar,
-  Building2, Wallet, PieChart, BarChart3
+  Building2, Wallet, PieChart, BarChart3, X, FileCheck, Clock
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -20,6 +20,10 @@ const TaxDashboard = () => {
   const [countries, setCountries] = useState([]);
   const [taxRates, setTaxRates] = useState(null);
   const [annualRevenue, setAnnualRevenue] = useState(50000);
+  const [activeModal, setActiveModal] = useState(null);
+
+  const openModal = (modalName) => setActiveModal(modalName);
+  const closeModal = () => setActiveModal(null);
 
   useEffect(() => {
     fetchCountries();
@@ -391,7 +395,10 @@ const TaxDashboard = () => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <button className="p-5 bg-white rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-md transition-all group">
+        <button 
+          onClick={() => openModal('invoice')}
+          className="p-5 bg-white rounded-xl border border-gray-200 hover:border-emerald-300 hover:shadow-md transition-all group"
+        >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-emerald-100 rounded-xl group-hover:bg-emerald-200 transition">
               <Receipt className="text-emerald-600" size={24} />
@@ -403,7 +410,10 @@ const TaxDashboard = () => {
           </div>
         </button>
 
-        <button className="p-5 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group">
+        <button 
+          onClick={() => openModal('report')}
+          className="p-5 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all group"
+        >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-blue-100 rounded-xl group-hover:bg-blue-200 transition">
               <BarChart3 className="text-blue-600" size={24} />
@@ -415,7 +425,10 @@ const TaxDashboard = () => {
           </div>
         </button>
 
-        <button className="p-5 bg-white rounded-xl border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all group">
+        <button 
+          onClick={() => openModal('calendar')}
+          className="p-5 bg-white rounded-xl border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all group"
+        >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-purple-100 rounded-xl group-hover:bg-purple-200 transition">
               <Calendar className="text-purple-600" size={24} />
@@ -427,7 +440,10 @@ const TaxDashboard = () => {
           </div>
         </button>
 
-        <button className="p-5 bg-white rounded-xl border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all group">
+        <button 
+          onClick={() => openModal('documents')}
+          className="p-5 bg-white rounded-xl border border-gray-200 hover:border-orange-300 hover:shadow-md transition-all group"
+        >
           <div className="flex items-center gap-4">
             <div className="p-3 bg-orange-100 rounded-xl group-hover:bg-orange-200 transition">
               <FileText className="text-orange-600" size={24} />
@@ -500,8 +516,205 @@ const TaxDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      {activeModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                {activeModal === 'invoice' && <><Receipt className="text-emerald-600" /> Générer une Facture</>}
+                {activeModal === 'report' && <><BarChart3 className="text-blue-600" /> Rapport Fiscal Annuel</>}
+                {activeModal === 'calendar' && <><Calendar className="text-purple-600" /> Calendrier Fiscal</>}
+                {activeModal === 'documents' && <><FileText className="text-orange-600" /> Documents & Justificatifs</>}
+              </h3>
+              <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-full transition">
+                <X size={24} className="text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              {activeModal === 'invoice' && renderInvoiceContent()}
+              {activeModal === 'report' && renderReportContent()}
+              {activeModal === 'calendar' && renderCalendarContent()}
+              {activeModal === 'documents' && renderDocumentsContent()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+
+  function renderInvoiceContent() {
+    return (
+      <div className="space-y-4">
+        <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200 mb-4">
+          <p className="text-emerald-800 text-sm">
+            Générez une facture conforme aux normes de votre pays ({selectedCountry}).
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
+            <input type="text" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="Nom du client" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+            <input type="date" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" defaultValue={new Date().toISOString().split('T')[0]} />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          <textarea className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" rows="3" placeholder="Description des services..."></textarea>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Montant HT</label>
+            <input type="number" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" placeholder="0.00" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">TVA (%)</label>
+            <input type="number" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" defaultValue="20" />
+          </div>
+        </div>
+        <button className="w-full bg-emerald-600 text-white py-3 rounded-lg font-semibold hover:bg-emerald-700 transition mt-4 flex items-center justify-center gap-2">
+          <Download size={20} />
+          Télécharger la Facture (PDF)
+        </button>
+      </div>
+    );
+  }
+
+  function renderReportContent() {
+    return (
+      <div className="space-y-6">
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <h4 className="font-semibold text-blue-900 mb-2">Résumé Annuel 2025</h4>
+          <p className="text-blue-700 text-sm">
+            Basé sur vos revenus déclarés et les taux en vigueur pour {selectedCountry}.
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div className="p-4 bg-gray-50 rounded-xl">
+            <p className="text-sm text-gray-500">Chiffre d'Affaires</p>
+            <p className="text-2xl font-bold text-gray-900">{annualRevenue.toLocaleString()} {getCurrencySymbol()}</p>
+          </div>
+          <div className="p-4 bg-gray-50 rounded-xl">
+            <p className="text-sm text-gray-500">Taxes Estimées</p>
+            <p className="text-2xl font-bold text-red-600">{(annualRevenue * 0.22).toLocaleString()} {getCurrencySymbol()}</p>
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
+          <h4 className="font-semibold mb-3">Détail par Trimestre</h4>
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map(q => (
+              <div key={q} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg transition">
+                <span className="font-medium">Trimestre {q}</span>
+                <span className="text-gray-600">{(annualRevenue / 4).toLocaleString()} {getCurrencySymbol()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2">
+          <Download size={20} />
+          Télécharger le Rapport Complet
+        </button>
+      </div>
+    );
+  }
+
+  function renderCalendarContent() {
+    const events = {
+      FR: [
+        { date: '15 Janvier', title: 'Déclaration TVA Mensuelle', type: 'urgent' },
+        { date: '31 Janvier', title: 'Paiement CFE (Solde)', type: 'normal' },
+        { date: '15 Mai', title: 'Déclaration Impôt sur le Revenu', type: 'important' }
+      ],
+      US: [
+        { date: 'Jan 15', title: 'Q4 Estimated Tax Payment', type: 'urgent' },
+        { date: 'Apr 15', title: 'Federal Tax Return (1040)', type: 'important' },
+        { date: 'Jun 15', title: 'Q2 Estimated Tax Payment', type: 'normal' }
+      ],
+      MA: [
+        { date: '31 Janvier', title: 'Déclaration Trimestrielle T4', type: 'urgent' },
+        { date: '28 Février', title: 'Déclaration Annuelle', type: 'important' },
+        { date: '30 Avril', title: 'Déclaration Trimestrielle T1', type: 'normal' }
+      ]
+    };
+
+    const countryEvents = events[selectedCountry] || events['FR'];
+
+    return (
+      <div className="space-y-4">
+        {countryEvents.map((event, idx) => (
+          <div key={idx} className="flex items-center gap-4 p-4 border border-gray-100 rounded-xl hover:shadow-sm transition">
+            <div className={`p-3 rounded-lg ${
+              event.type === 'urgent' ? 'bg-red-100 text-red-600' :
+              event.type === 'important' ? 'bg-amber-100 text-amber-600' :
+              'bg-blue-100 text-blue-600'
+            }`}>
+              <Clock size={20} />
+            </div>
+            <div>
+              <p className="font-bold text-gray-900">{event.date}</p>
+              <p className="text-gray-600">{event.title}</p>
+            </div>
+            <div className="ml-auto">
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                event.type === 'urgent' ? 'bg-red-100 text-red-700' :
+                event.type === 'important' ? 'bg-amber-100 text-amber-700' :
+                'bg-blue-100 text-blue-700'
+              }`}>
+                {event.type === 'urgent' ? 'Urgent' : event.type === 'important' ? 'Important' : 'À venir'}
+              </span>
+            </div>
+          </div>
+        ))}
+        <button className="w-full mt-4 border border-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-50 transition flex items-center justify-center gap-2">
+          <Calendar size={20} />
+          Synchroniser avec mon calendrier
+        </button>
+      </div>
+    );
+  }
+
+  function renderDocumentsContent() {
+    const docs = {
+      FR: ['Attestation de Vigilance', 'Avis de Situation Sirene', 'Déclaration CFE', 'Justificatif de Domicile'],
+      US: ['Form W-9', 'Form 1099-NEC', 'Schedule C (Form 1040)', 'EIN Confirmation'],
+      MA: ['Attestation d\'Inscription Taxe Pro', 'Attestation de Régularité Fiscale', 'Registre de Commerce', 'Statuts de la Société']
+    };
+
+    return (
+      <div className="space-y-3">
+        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4">
+          <p className="text-orange-800 text-sm">
+            Documents essentiels pour votre statut <strong>{selectedStatus}</strong> en {selectedCountry}.
+          </p>
+        </div>
+        {(docs[selectedCountry] || docs['FR']).map((doc, idx) => (
+          <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 transition">
+            <div className="flex items-center gap-3">
+              <FileCheck className="text-gray-400" size={20} />
+              <span className="font-medium text-gray-700">{doc}</span>
+            </div>
+            <button className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition">
+              <Download size={18} />
+            </button>
+          </div>
+        ))}
+        <div className="mt-6 pt-4 border-t border-gray-100">
+          <button className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white py-3 rounded-lg hover:bg-gray-800 transition">
+            <Download size={18} />
+            Télécharger le Pack Complet (.zip)
+          </button>
+        </div>
+      </div>
+    );
+  }
 };
 
 export default TaxDashboard;
