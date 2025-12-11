@@ -132,7 +132,7 @@ async def update_user_settings(
         except Exception:
             # Fallback: stocker dans metadata de profile
             try:
-            profile = supabase.table('profiles').select('metadata').eq('user_id', user_id).single().execute()
+                profile = supabase.table('profiles').select('metadata').eq('user_id', user_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
 
@@ -334,7 +334,7 @@ async def get_conversations(
         result = []
         for conv in conversations.values():
             try:
-            profile = supabase.table('profiles').select('full_name').eq('user_id', conv['user_id']).single().execute()
+                profile = supabase.table('profiles').select('full_name').eq('user_id', conv['user_id']).single().execute()
             except Exception:
                 pass  # .single() might return no results
 

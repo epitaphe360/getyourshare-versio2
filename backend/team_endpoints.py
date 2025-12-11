@@ -655,7 +655,7 @@ async def get_team_stats(current_user: dict = Depends(get_current_user)):
             .select("plan_max_team_members") \
             .eq("user_id", company_id) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()

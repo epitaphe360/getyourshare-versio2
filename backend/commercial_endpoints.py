@@ -211,7 +211,7 @@ async def get_commercial_stats(current_user: dict = Depends(get_current_user_fro
         if not sales_rep_result.data:
             # Create profile if not exists (auto-provisioning)
             try:
-            user_data = supabase.table('users').select('email, first_name, last_name, phone').eq('id', user_id).single().execute()
+                user_data = supabase.table('users').select('email, first_name, last_name, phone').eq('id', user_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
             if user_data.data:
@@ -546,7 +546,7 @@ async def update_lead(
             .eq('id', lead_id) \
             .eq('commercial_id', user_id) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()
@@ -679,7 +679,7 @@ async def create_tracking_link(
         
         # Get product url
         try:
-        product = supabase.table('products').select('url').eq('id', link_data.product_id).single().execute()
+            product = supabase.table('products').select('url').eq('id', link_data.product_id).single().execute()
         except Exception:
             pass  # .single() might return no results
         original_url = product.data.get('url') if product.data else 'https://example.com'
@@ -702,7 +702,7 @@ async def create_tracking_link(
             .select('*, products(name)') \
             .eq('id', result.data[0]['id']) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()
@@ -1058,7 +1058,7 @@ async def get_quota(current_user: dict = Depends(get_current_user_from_cookie)):
         else:
             # Fallback basé sur subscription si pas de profil sales_rep
             try:
-            user_response = supabase.table("users").select("subscription_tier").eq("id", user_id).single().execute()
+                user_response = supabase.table("users").select("subscription_tier").eq("id", user_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
             subscription_tier = user_response.data.get("subscription_tier", "starter") if user_response.data else "starter"

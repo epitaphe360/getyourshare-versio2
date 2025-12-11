@@ -185,7 +185,7 @@ async def handle_invoice_payment_failed(invoice: dict):
             .select("user_id") \
             .eq("stripe_subscription_id", subscription_id) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()
@@ -217,7 +217,7 @@ async def handle_customer_subscription_trial_will_end(subscription: dict):
             .select("user_id") \
             .eq("stripe_subscription_id", subscription_id) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()

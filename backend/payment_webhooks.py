@@ -104,7 +104,7 @@ async def handle_payment_success(payment_data: dict, provider: str):
     
     # Récupérer facture fiscal
     try:
-    result = supabase.table('fiscal_invoices').select('*').eq('invoice_number', invoice_number).single().execute()
+        result = supabase.table('fiscal_invoices').select('*').eq('invoice_number', invoice_number).single().execute()
     except Exception:
         pass  # .single() might return no results
     
@@ -179,7 +179,7 @@ async def handle_refund(refund_data: dict, provider: str):
         
         # Trouver facture par payment_id
         try:
-        result = supabase.table('invoices').select('*').eq('payment_id', payment_id).single().execute()
+            result = supabase.table('invoices').select('*').eq('payment_id', payment_id).single().execute()
         except Exception:
             pass  # .single() might return no results
         
@@ -320,7 +320,7 @@ async def import_bank_statement(file: bytes, format: str = 'csv'):
             
             # Vérifier facture existe
             try:
-            result = supabase.table('invoices').select('*').eq('invoice_number', invoice_number).single().execute()
+                result = supabase.table('invoices').select('*').eq('invoice_number', invoice_number).single().execute()
             except Exception:
                 pass  # .single() might return no results
             
@@ -373,7 +373,7 @@ async def generate_payment_link(invoice_id: str, provider: str = 'stripe'):
     
     # Récupérer facture
     try:
-    result = supabase.table('invoices').select('*').eq('id', invoice_id).single().execute()
+        result = supabase.table('invoices').select('*').eq('id', invoice_id).single().execute()
     except Exception:
         pass  # .single() might return no results
     invoice = result.data

@@ -453,7 +453,7 @@ async def request_collaboration(
             .eq("is_public", True) \
             .eq("is_available", True) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()

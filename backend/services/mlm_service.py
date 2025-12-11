@@ -583,7 +583,7 @@ class MLMService:
                 sales = self._get_personal_sales(member_id, 'current_month')
 
                 try:
-                user_info = self.supabase.table('users').select('email').eq('id', member_id).single().execute()
+                    user_info = self.supabase.table('users').select('email').eq('id', member_id).single().execute()
                 except Exception:
                     pass  # .single() might return no results
 

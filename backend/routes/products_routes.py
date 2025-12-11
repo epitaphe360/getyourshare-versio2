@@ -171,7 +171,7 @@ async def get_trending_products(
         result = []
         for product_id, stats in sorted_products:
             try:
-            product = supabase.table('products').select('*').eq('id', product_id).single().execute()
+                product = supabase.table('products').select('*').eq('id', product_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
 
@@ -463,7 +463,7 @@ async def get_product_variants(
         except Exception:
             # Fallback: chercher dans metadata du produit
             try:
-            product = supabase.table('products').select('metadata').eq('id', product_id).single().execute()
+                product = supabase.table('products').select('metadata').eq('id', product_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
 
@@ -516,7 +516,7 @@ async def create_product_variant(
         except Exception:
             # Fallback: ajouter dans metadata
             try:
-            product = supabase.table('products').select('metadata').eq('id', product_id).single().execute()
+                product = supabase.table('products').select('metadata').eq('id', product_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
 
@@ -616,7 +616,7 @@ async def update_product_inventory(
             current_quantity = product.data.get('stock_quantity', 0) or 0
         else:
             try:
-            product = supabase.table("products").select("stock_quantity").eq("id", product_id).single().execute()
+                product = supabase.table("products").select("stock_quantity").eq("id", product_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
             if not product.data:

@@ -361,7 +361,7 @@ async def get_leaderboard(
 
                 # Enrichir avec infos utilisateur
                 try:
-                profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', user_id).single().execute()
+                    profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', user_id).single().execute()
                 except Exception:
                     pass  # .single() might return no results
 
@@ -404,7 +404,7 @@ async def get_leaderboard(
             rank = 1
             for user_id, sales_count in sorted_users:
                 try:
-                profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', user_id).single().execute()
+                    profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', user_id).single().execute()
                 except Exception:
                     pass  # .single() might return no results
 

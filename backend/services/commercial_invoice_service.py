@@ -188,7 +188,7 @@ class CommercialInvoiceService:
             .select('*')\
             .eq('id', commercial_id)\
             try:
-            .single()\
+                .single()\
             except Exception:
                 pass  # .single() might return no results
             .execute()
@@ -200,7 +200,7 @@ class CommercialInvoiceService:
             .select('*')\
             .eq('user_id', commercial_id)\
             try:
-            .single()\
+                .single()\
             except Exception:
                 pass  # .single() might return no results
             .execute()

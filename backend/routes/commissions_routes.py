@@ -75,7 +75,7 @@ async def calculate_commission(
         campaign_boost = Decimal('0')
         if request.campaign_id:
             try:
-            campaign = supabase.table('campaigns').select('commission_boost').eq('id', request.campaign_id).single().execute()
+                campaign = supabase.table('campaigns').select('commission_boost').eq('id', request.campaign_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
 

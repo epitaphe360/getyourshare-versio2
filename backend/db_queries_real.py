@@ -519,7 +519,7 @@ async def create_affiliate_link(
             .select("commission_rate, name") \
             .eq("id", product_id) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()
@@ -933,7 +933,7 @@ async def get_all_sales(
                 .select("id") \
                 .eq("user_id", user_id) \
                 try:
-                .single() \
+                    .single() \
                 except Exception:
                     pass  # .single() might return no results
                 .execute()
@@ -946,7 +946,7 @@ async def get_all_sales(
                 .select("id") \
                 .eq("user_id", user_id) \
                 try:
-                .single() \
+                    .single() \
                 except Exception:
                     pass  # .single() might return no results
                 .execute()
@@ -1154,7 +1154,7 @@ async def get_conversion_funnel(user_id: str, user_role: str) -> Dict[str, Any]:
                 .select("id, total_clicks, total_conversions") \
                 .eq("user_id", user_id) \
                 try:
-                .single() \
+                    .single() \
                 except Exception:
                     pass  # .single() might return no results
                 .execute()
@@ -1235,7 +1235,7 @@ async def get_all_commissions(
                 .select("id") \
                 .eq("user_id", user_id) \
                 try:
-                .single() \
+                    .single() \
                 except Exception:
                     pass  # .single() might return no results
                 .execute()
@@ -1418,7 +1418,7 @@ async def update_sale_status(
             .select("*") \
             .eq("id", sale_id) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()
@@ -1435,7 +1435,7 @@ async def update_sale_status(
                 .select("id") \
                 .eq("user_id", user_id) \
                 try:
-                .single() \
+                    .single() \
                 except Exception:
                     pass  # .single() might return no results
                 .execute()
@@ -1741,7 +1741,7 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
                 .select("*") \
                 .eq("user_id", user_id) \
                 try:
-                .single() \
+                    .single() \
                 except Exception:
                     pass  # .single() might return no results
                 .execute()
@@ -1758,7 +1758,7 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
                 .select("*") \
                 .eq("user_id", user_id) \
                 try:
-                .single() \
+                    .single() \
                 except Exception:
                     pass  # .single() might return no results
                 .execute()
@@ -1808,7 +1808,7 @@ async def update_user_profile(user_id: str, profile_data: Dict[str, Any]) -> Dic
             .select("role") \
             .eq("id", user_id) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()
