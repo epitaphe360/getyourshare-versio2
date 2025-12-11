@@ -3276,27 +3276,41 @@ async def get_admin_analytics_revenue(
     try:
         from datetime import datetime, timedelta
         start_date = (datetime.now() - timedelta(days=days)).isoformat()
-        
+
         result = supabase.table("sales")\
             .select("amount, created_at")\
             .gte("created_at", start_date)\
             .order("created_at", desc=False)\
             .execute()
-        
-        # Agréger par jour
+
+        # Agréger par jour avec protection contre les valeurs null
         daily_revenue = {}
-        for sale in result.data:
-            date = sale.get("created_at", "")[:10]
-            amount = float(sale.get("amount", 0))
-            daily_revenue[date] = daily_revenue.get(date, 0) + amount
-        
+        if result.data:
+            for sale in result.data:
+                created_at = sale.get("created_at")
+                if not created_at:
+                    continue
+
+                date = str(created_at)[:10]
+                amount_value = sale.get("amount")
+
+                # Convertir amount en float de manière sécurisée
+                try:
+                    amount = float(amount_value) if amount_value is not None else 0.0
+                except (ValueError, TypeError):
+                    amount = 0.0
+
+                daily_revenue[date] = daily_revenue.get(date, 0) + amount
+
         revenue_data = [{"date": date, "revenue": amount} for date, amount in daily_revenue.items()]
-        
+
         return {"revenue_data": revenue_data, "period_days": days}
     except HTTPException:
         raise
     except Exception as e:
         print(f"❌ Erreur get_admin_analytics_revenue: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
