@@ -386,10 +386,7 @@ async def get_request_details(
                 )
             """) \
             .eq("id", request_id) \
-            try:
                 .single() \
-            except Exception:
-                pass  # .single() might return no results
             .execute()
         
         if not result.data:

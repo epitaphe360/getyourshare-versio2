@@ -184,10 +184,7 @@ async def handle_invoice_payment_failed(invoice: dict):
         subscription_response = supabase.from_("subscriptions") \
             .select("user_id") \
             .eq("stripe_subscription_id", subscription_id) \
-            try:
                 .single() \
-            except Exception:
-                pass  # .single() might return no results
             .execute()
 
         if subscription_response.data:
@@ -216,10 +213,7 @@ async def handle_customer_subscription_trial_will_end(subscription: dict):
         subscription_response = supabase.from_("subscriptions") \
             .select("user_id") \
             .eq("stripe_subscription_id", subscription_id) \
-            try:
                 .single() \
-            except Exception:
-                pass  # .single() might return no results
             .execute()
 
         if subscription_response.data:
