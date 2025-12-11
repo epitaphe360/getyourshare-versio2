@@ -111,7 +111,7 @@ async def create_lead(
         if role == 'influencer':
             # Récupérer influencer_id depuis user_id
             try:
-            influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
+                influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
             if influencer.data:
@@ -172,14 +172,14 @@ async def get_lead(
                 query = query.eq('merchant_id', merchant.data['id'])
         elif role == 'influencer':
             try:
-            influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
+                influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
             if influencer.data:
                 query = query.eq('influencer_id', influencer.data['id'])
         
         try:
-        result = query.single().execute()
+            result = query.single().execute()
         except Exception:
             pass  # .single() might return no results
         
@@ -301,7 +301,7 @@ async def validate_lead(
         else:
             # Admin: récupérer merchant_id depuis le lead
             try:
-            lead = supabase.table('leads').select('merchant_id').eq('id', lead_id).single().execute()
+                lead = supabase.table('leads').select('merchant_id').eq('id', lead_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
             if not lead.data:
@@ -682,7 +682,7 @@ async def get_my_agreements(
             query = supabase.table('influencer_agreements').select('*, influencers(user_id), campaigns(name)').eq('merchant_id', merchant.data['id'])
         elif role == 'influencer':
             try:
-            influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
+                influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
             if not influencer.data:

@@ -236,7 +236,7 @@ async def reject_payout(
             .select('*')\
             .eq('id', payout_id)\
             try:
-            .single()\
+                .single()\
             except Exception:
                 pass  # .single() might return no results
             .execute()

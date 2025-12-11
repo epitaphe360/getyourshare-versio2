@@ -601,7 +601,7 @@ async def get_domain_stats(current_user: dict = Depends(get_current_user)):
             .select("plan_max_domains") \
             .eq("user_id", company_id) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()
@@ -667,7 +667,7 @@ async def validate_redirect_url(
             .eq("is_verified", True) \
             .eq("is_active", True) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()

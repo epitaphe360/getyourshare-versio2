@@ -516,7 +516,7 @@ async def complete_mission(
             .select('*')\
             .eq('user_id', user_id)\
             try:
-            .single()\
+                .single()\
             except Exception:
                 pass  # .single() might return no results
             .execute()

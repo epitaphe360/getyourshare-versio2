@@ -269,11 +269,11 @@ async def get_pending_kyc(
             user_id = kyc.get('user_id')
 
             try:
-            profile = supabase.table('profiles').select('full_name').eq('user_id', user_id).single().execute()
+                profile = supabase.table('profiles').select('full_name').eq('user_id', user_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
             try:
-            user = supabase.table('users').select('email').eq('id', user_id).single().execute()
+                user = supabase.table('users').select('email').eq('id', user_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
 

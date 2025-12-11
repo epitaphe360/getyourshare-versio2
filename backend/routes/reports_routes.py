@@ -195,7 +195,7 @@ async def get_reports_detailed(
             data = []
             for stats in sorted(product_stats.values(), key=lambda x: x['revenue'], reverse=True):
                 try:
-                product = supabase.table('products').select('name').eq('id', stats['product_id']).single().execute()
+                    product = supabase.table('products').select('name').eq('id', stats['product_id']).single().execute()
                 except Exception:
                     pass  # .single() might return no results
                 data.append({
@@ -238,7 +238,7 @@ async def get_reports_detailed(
             data = []
             for stats in sorted(influencer_stats.values(), key=lambda x: x['revenue'], reverse=True):
                 try:
-                profile = supabase.table('profiles').select('full_name').eq('user_id', stats['influencer_id']).single().execute()
+                    profile = supabase.table('profiles').select('full_name').eq('user_id', stats['influencer_id']).single().execute()
                 except Exception:
                     pass  # .single() might return no results
                 data.append({

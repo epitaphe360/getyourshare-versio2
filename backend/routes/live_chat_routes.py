@@ -362,7 +362,7 @@ async def get_room_participants(
         participants_info = []
         for user_id in all_participants:
             try:
-            profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', user_id).single().execute()
+                profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', user_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
 

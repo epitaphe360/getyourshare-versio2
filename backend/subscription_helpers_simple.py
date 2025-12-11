@@ -75,7 +75,7 @@ async def get_real_usage_counts(user_id: str, user_role: str) -> Dict[str, int]:
                 .select("id")\
                 .eq("user_id", user_id)\
                 try:
-                .single()\
+                    .single()\
                 except Exception:
                     pass  # .single() might return no results
                 .execute()
@@ -277,7 +277,7 @@ async def get_user_subscription_data(user_id: str, user_role: str) -> Optional[D
                 .select("*") \
                 .eq("user_id", user_id) \
                 try:
-                .single() \
+                    .single() \
                 except Exception:
                     pass  # .single() might return no results
                 .execute()

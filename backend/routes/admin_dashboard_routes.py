@@ -244,7 +244,7 @@ async def get_all_users(
 
             # Récupérer profile
             try:
-            profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', user_id).single().execute()
+                profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', user_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
 

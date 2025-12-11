@@ -184,7 +184,7 @@ class InfluencerInvoiceService:
             .select('*')\
             .eq('id', influencer_id)\
             try:
-            .single()\
+                .single()\
             except Exception:
                 pass  # .single() might return no results
             .execute()
@@ -196,7 +196,7 @@ class InfluencerInvoiceService:
             .select('*')\
             .eq('id', merchant_id)\
             try:
-            .single()\
+                .single()\
             except Exception:
                 pass  # .single() might return no results
             .execute()

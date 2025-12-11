@@ -230,7 +230,7 @@ async def get_top_products(
         result = []
         for stat in sorted_products:
             try:
-            product = supabase.table('products').select('id, name, price, image_url').eq('id', stat['product_id']).single().execute()
+                product = supabase.table('products').select('id, name, price, image_url').eq('id', stat['product_id']).single().execute()
             except Exception:
                 pass  # .single() might return no results
 

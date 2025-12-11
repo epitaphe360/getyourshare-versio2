@@ -481,7 +481,7 @@ def check_vat_declarations_monthly():
         deadline = (last_month_end + relativedelta(months=1)).replace(day=20)
         
         try:
-        user = supabase.table('users').select('email, name').eq('id', user_settings['user_id']).single().execute()
+            user = supabase.table('users').select('email, name').eq('id', user_settings['user_id']).single().execute()
         except Exception:
             pass  # .single() might return no results
         

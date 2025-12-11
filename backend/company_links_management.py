@@ -189,7 +189,7 @@ async def generate_company_affiliate_link(
             .select("commission_rate") \
             .eq("id", request.product_id) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()
@@ -350,7 +350,7 @@ async def assign_link_to_team_member(
             .eq("id", request.link_id) \
             .eq("merchant_id", company_id) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()
@@ -445,7 +445,7 @@ async def bulk_assign_links(
             .eq("id", link_id) \
             .eq("merchant_id", company_id) \
             try:
-            .single() \
+                .single() \
             except Exception:
                 pass  # .single() might return no results
             .execute()
