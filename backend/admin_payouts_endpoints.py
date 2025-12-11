@@ -235,10 +235,7 @@ async def reject_payout(
         payout_result = supabase.table('payouts')\
             .select('*')\
             .eq('id', payout_id)\
-            try:
                 .single()\
-            except Exception:
-                pass  # .single() might return no results
             .execute()
 
         if not payout_result.data:

@@ -188,10 +188,7 @@ async def generate_company_affiliate_link(
         product = supabase.from_("products") \
             .select("commission_rate") \
             .eq("id", request.product_id) \
-            try:
                 .single() \
-            except Exception:
-                pass  # .single() might return no results
             .execute()
 
         commission_rate = request.commission_rate or product.data.get("commission_rate", 15.0)
@@ -349,10 +346,7 @@ async def assign_link_to_team_member(
             .select("*") \
             .eq("id", request.link_id) \
             .eq("merchant_id", company_id) \
-            try:
                 .single() \
-            except Exception:
-                pass  # .single() might return no results
             .execute()
 
         if not link.data:
@@ -444,10 +438,7 @@ async def bulk_assign_links(
             .select("*") \
             .eq("id", link_id) \
             .eq("merchant_id", company_id) \
-            try:
                 .single() \
-            except Exception:
-                pass  # .single() might return no results
             .execute()
 
         if not link.data:

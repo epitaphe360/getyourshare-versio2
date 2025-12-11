@@ -187,10 +187,7 @@ class CommercialInvoiceService:
         commercial_result = self.supabase.table('users')\
             .select('*')\
             .eq('id', commercial_id)\
-            try:
                 .single()\
-            except Exception:
-                pass  # .single() might return no results
             .execute()
         
         commercial = commercial_result.data if commercial_result.data else {}
@@ -199,10 +196,7 @@ class CommercialInvoiceService:
         sales_rep_result = self.supabase.table('sales_representatives')\
             .select('*')\
             .eq('user_id', commercial_id)\
-            try:
                 .single()\
-            except Exception:
-                pass  # .single() might return no results
             .execute()
         
         sales_rep = sales_rep_result.data if sales_rep_result.data else {}

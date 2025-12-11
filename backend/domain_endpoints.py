@@ -600,10 +600,7 @@ async def get_domain_stats(current_user: dict = Depends(get_current_user)):
         subscription_response = supabase.from_("v_active_subscriptions") \
             .select("plan_max_domains") \
             .eq("user_id", company_id) \
-            try:
                 .single() \
-            except Exception:
-                pass  # .single() might return no results
             .execute()
 
         domain_limit = None
@@ -666,10 +663,7 @@ async def validate_redirect_url(
             .eq("domain", domain) \
             .eq("is_verified", True) \
             .eq("is_active", True) \
-            try:
                 .single() \
-            except Exception:
-                pass  # .single() might return no results
             .execute()
 
         if response.data:

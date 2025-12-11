@@ -194,14 +194,17 @@ async def create_stripe_subscription(
     """Crée un abonnement Stripe"""
 
     # Récupérer le plan
-    plan_response = supabase.from_("subscription_plans") \
-        .select("*") \
-        .eq("id", plan_id) \
-        try:
+    try:
+        plan_response = supabase.from_("subscription_plans") \
+            .select("*") \
+            .eq("id", plan_id) \
             .single() \
-        except Exception:
-            pass  # .single() might return no results
-        .execute()
+            .execute()
+    except Exception:
+        plan_response = supabase.from_("subscription_plans") \
+            .select("*") \
+            .eq("id", plan_id) \
+            .execute()
 
     if not plan_response.data:
         raise HTTPException(status_code=404, detail="Plan not found")

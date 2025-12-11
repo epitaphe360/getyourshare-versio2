@@ -545,10 +545,7 @@ async def update_lead(
             .select('id') \
             .eq('id', lead_id) \
             .eq('commercial_id', user_id) \
-            try:
                 .single() \
-            except Exception:
-                pass  # .single() might return no results
             .execute()
         
         if not check_result.data:
@@ -701,10 +698,7 @@ async def create_tracking_link(
         link_with_product = supabase.table('tracking_links') \
             .select('*, products(name)') \
             .eq('id', result.data[0]['id']) \
-            try:
                 .single() \
-            except Exception:
-                pass  # .single() might return no results
             .execute()
         
         item = link_with_product.data
