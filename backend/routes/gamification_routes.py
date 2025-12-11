@@ -360,7 +360,10 @@ async def get_leaderboard(
                 user_id = entry.get('user_id')
 
                 # Enrichir avec infos utilisateur
+                try:
                 profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', user_id).single().execute()
+                except Exception:
+                    pass  # .single() might return no results
 
                 result.append({
                     'rank': rank,
@@ -400,7 +403,10 @@ async def get_leaderboard(
             result = []
             rank = 1
             for user_id, sales_count in sorted_users:
+                try:
                 profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', user_id).single().execute()
+                except Exception:
+                    pass  # .single() might return no results
 
                 result.append({
                     'rank': rank,

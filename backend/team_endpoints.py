@@ -654,7 +654,10 @@ async def get_team_stats(current_user: dict = Depends(get_current_user)):
         subscription_response = supabase.from_("v_active_subscriptions") \
             .select("plan_max_team_members") \
             .eq("user_id", company_id) \
+            try:
             .single() \
+            except Exception:
+                pass  # .single() might return no results
             .execute()
 
         team_limit = None

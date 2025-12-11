@@ -194,7 +194,10 @@ async def get_reports_detailed(
             # Enrichir avec noms
             data = []
             for stats in sorted(product_stats.values(), key=lambda x: x['revenue'], reverse=True):
+                try:
                 product = supabase.table('products').select('name').eq('id', stats['product_id']).single().execute()
+                except Exception:
+                    pass  # .single() might return no results
                 data.append({
                     'product_id': stats['product_id'],
                     'product_name': product.data.get('name') if product.data else None,
@@ -234,7 +237,10 @@ async def get_reports_detailed(
             # Enrichir avec noms
             data = []
             for stats in sorted(influencer_stats.values(), key=lambda x: x['revenue'], reverse=True):
+                try:
                 profile = supabase.table('profiles').select('full_name').eq('user_id', stats['influencer_id']).single().execute()
+                except Exception:
+                    pass  # .single() might return no results
                 data.append({
                     'influencer_id': stats['influencer_id'],
                     'influencer_name': profile.data.get('full_name') if profile.data else None,

@@ -57,7 +57,10 @@ class GDPRService:
                 }
 
             # 2. Profil utilisateur
+            try:
             profile = self.supabase.table('profiles').select('*').eq('user_id', user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if profile.data:
                 export_data["data"]["profile"] = profile.data
 
@@ -385,7 +388,10 @@ class GDPRService:
             }
 
             # Vérifier si un consentement existe déjà
+            try:
             existing = self.supabase.table('user_consents').select('*').eq('user_id', user_id).eq('consent_type', 'cookies').single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             if existing.data:
                 # Mettre à jour

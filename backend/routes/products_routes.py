@@ -170,7 +170,10 @@ async def get_trending_products(
         # Récupérer les infos produits
         result = []
         for product_id, stats in sorted_products:
+            try:
             product = supabase.table('products').select('*').eq('id', product_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             if product.data:
                 result.append({
@@ -443,7 +446,10 @@ async def get_product_variants(
             variants = response.data or []
         except Exception:
             # Fallback: chercher dans metadata du produit
+            try:
             product = supabase.table('products').select('metadata').eq('id', product_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             if product.data and product.data.get('metadata'):
                 metadata = product.data['metadata']
@@ -493,7 +499,10 @@ async def create_product_variant(
             created_variant = response.data[0] if response.data else variant_data
         except Exception:
             # Fallback: ajouter dans metadata
+            try:
             product = supabase.table('products').select('metadata').eq('id', product_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             metadata = product.data.get('metadata', {}) if product.data else {}
             if not isinstance(metadata, dict):
@@ -590,7 +599,10 @@ async def update_product_inventory(
 
             current_quantity = product.data.get('stock_quantity', 0) or 0
         else:
+            try:
             product = supabase.table("products").select("stock_quantity").eq("id", product_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if not product.data:
                 raise HTTPException(status_code=404, detail="Produit non trouvé")
             current_quantity = product.data.get('stock_quantity', 0) or 0

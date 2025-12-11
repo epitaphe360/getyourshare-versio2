@@ -263,7 +263,10 @@ class AIBotService:
                     }
             
             elif context.user_role == "merchant":
+                try:
                 merchant = supabase.table('merchants').select('*').eq('user_id', context.user_id).single().execute()
+                except Exception:
+                    pass  # .single() might return no results
                 if merchant.data:
                     # Calculate stats
                     campaigns = supabase.table('campaigns').select('id').eq('merchant_id', merchant.data['id']).execute()

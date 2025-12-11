@@ -446,7 +446,10 @@ async def get_top_merchants(limit: int = Query(10, description="Nombre de marcha
         # Récupérer infos des merchants
         top_merchants = []
         for merchant_id, revenue in sorted(merchants_revenue.items(), key=lambda x: x[1], reverse=True)[:limit]:
+            try:
             user = supabase.table('users').select('id, company_name, email').eq('id', merchant_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if user.data:
                 top_merchants.append({
                     "merchant_id": merchant_id,
@@ -512,7 +515,10 @@ async def get_top_influencers(limit: int = Query(10, description="Nombre d'influ
         # Récupérer infos des influencers et construire le résultat
         top_influencers = []
         for influencer_id, data in sorted(influencers_data.items(), key=lambda x: x[1]['earnings'], reverse=True)[:limit]:
+            try:
             user = supabase.table('users').select('id, full_name, email').eq('id', influencer_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if user.data:
                 top_influencers.append({
                     "influencer_id": influencer_id,

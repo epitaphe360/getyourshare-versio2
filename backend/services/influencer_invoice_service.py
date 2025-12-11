@@ -183,7 +183,10 @@ class InfluencerInvoiceService:
         influencer_result = self.supabase.table('users')\
             .select('*')\
             .eq('id', influencer_id)\
+            try:
             .single()\
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         influencer = influencer_result.data if influencer_result.data else {}
@@ -192,7 +195,10 @@ class InfluencerInvoiceService:
         merchant_result = self.supabase.table('users')\
             .select('*')\
             .eq('id', merchant_id)\
+            try:
             .single()\
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         merchant = merchant_result.data if merchant_result.data else {}

@@ -515,7 +515,10 @@ async def complete_mission(
         gamification = supabase.table('user_gamification')\
             .select('*')\
             .eq('user_id', user_id)\
+            try:
             .single()\
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         if gamification.data:

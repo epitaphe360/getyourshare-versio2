@@ -197,7 +197,10 @@ async def create_stripe_subscription(
     plan_response = supabase.from_("subscription_plans") \
         .select("*") \
         .eq("id", plan_id) \
+        try:
         .single() \
+        except Exception:
+            pass  # .single() might return no results
         .execute()
 
     if not plan_response.data:
@@ -1610,7 +1613,10 @@ async def get_all_subscriptions_admin(
             plan = sub.get("subscription_plans") or {}
             
             # Récupérer les infos utilisateur
+            try:
             user_response = supabase.table("users").select("id, email, first_name, last_name").eq("id", sub.get("user_id")).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             user = user_response.data if user_response.data else {}
             
             subscriptions.append({
@@ -1693,7 +1699,10 @@ async def get_subscription_details_admin(
         plan = sub.get("subscription_plans") or {}
         
         # Infos utilisateur
+        try:
         user_response = supabase.table("users").select("*").eq("id", sub.get("user_id")).single().execute()
+        except Exception:
+            pass  # .single() might return no results
         user = user_response.data if user_response.data else {}
         
         return {

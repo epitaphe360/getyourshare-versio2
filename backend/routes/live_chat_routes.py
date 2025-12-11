@@ -361,7 +361,10 @@ async def get_room_participants(
         # Enrichir avec infos utilisateurs
         participants_info = []
         for user_id in all_participants:
+            try:
             profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             participants_info.append({
                 'user_id': user_id,

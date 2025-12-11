@@ -131,7 +131,10 @@ async def update_user_settings(
             result = response.data[0] if response.data else update_data
         except Exception:
             # Fallback: stocker dans metadata de profile
+            try:
             profile = supabase.table('profiles').select('metadata').eq('user_id', user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             metadata = profile.data.get('metadata', {}) if profile.data else {}
             if not isinstance(metadata, dict):
@@ -330,7 +333,10 @@ async def get_conversations(
         # Enrichir avec infos users
         result = []
         for conv in conversations.values():
+            try:
             profile = supabase.table('profiles').select('full_name').eq('user_id', conv['user_id']).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             result.append({
                 **conv,
