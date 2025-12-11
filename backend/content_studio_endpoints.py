@@ -276,7 +276,8 @@ async def add_watermark(request: AddWatermarkRequest):
             os.remove(tmp_path)
             if watermarked_path != tmp_path and os.path.exists(watermarked_path):
                 os.remove(watermarked_path)
-        except:
+        except Exception as e:
+            logger.debug(f"Error: {e}")
             pass
 
         return {

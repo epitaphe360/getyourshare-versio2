@@ -12,6 +12,9 @@ from utils.cache import cache
 import asyncio
 from fastapi.concurrency import run_in_threadpool
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 # ============================================
@@ -685,14 +688,16 @@ async def get_platform_metrics():
             if u.get('created_at'):
                 try:
                     created_at = datetime.fromisoformat(u['created_at'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             last_login = None
             if u.get('last_login'):
                 try:
                     last_login = datetime.fromisoformat(u['last_login'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             role = u.get('role')
@@ -723,7 +728,8 @@ async def get_platform_metrics():
             if p.get('created_at'):
                 try:
                     created_at = datetime.fromisoformat(p['created_at'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             if created_at:
@@ -740,7 +746,8 @@ async def get_platform_metrics():
             if s.get('created_at'):
                 try:
                     created_at = datetime.fromisoformat(s['created_at'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             if created_at:
@@ -759,7 +766,8 @@ async def get_platform_metrics():
             if c.get('created_at'):
                 try:
                     created_at = datetime.fromisoformat(c['created_at'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             if created_at:
@@ -776,7 +784,8 @@ async def get_platform_metrics():
             if s.get('created_at'):
                 try:
                     created_at = datetime.fromisoformat(s['created_at'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             amount = float(s.get('amount', 0))

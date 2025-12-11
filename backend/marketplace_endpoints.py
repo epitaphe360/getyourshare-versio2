@@ -25,6 +25,9 @@ from supabase_client import supabase
 from utils.db_safe import build_or_search
 from db_helpers import get_all_services, get_service_by_id
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/api/marketplace", tags=["Marketplace"])
 logger = structlog.get_logger()
 
@@ -271,7 +274,7 @@ async def get_product_detail(product_id: str):
                 'id', count='exact'
             ).eq('product_id', product_id).eq('status', 'approved').execute()
             product['active_affiliates_count'] = count_res.count or 0
-        except:
+        except Exception as e:
             product['active_affiliates_count'] = 0
 
         # Incrémenter vues (async)
@@ -472,7 +475,8 @@ async def get_product_reviews(
         # Essayer de filtrer par is_approved si la colonne existe
         try:
             query = query.eq('is_approved', True)
-        except:
+        except Exception as e:
+            logger.debug(f"Error: {e}")
             pass
 
         # Tri
@@ -481,7 +485,7 @@ async def get_product_reviews(
         elif sort_by == "helpful":
             try:
                 query = query.order('helpful_count', desc=True)
-            except:
+            except Exception as e:
                 query = query.order('created_at', desc=True)
         else:
             query = query.order('created_at', desc=True)
