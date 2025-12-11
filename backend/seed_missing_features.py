@@ -192,7 +192,7 @@ def seed_missing_features():
                         try:
                             supabase.table("product_reviews").insert(review_data).execute()
                             reviews_count += 1
-                        except:
+                        except Exception:
                             pass
         logger.info(f"  ✅ Created {reviews_count} reviews.")
         print()

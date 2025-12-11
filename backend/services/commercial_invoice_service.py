@@ -91,7 +91,7 @@ class CommercialInvoiceService:
                 seq = int(last_number.split('-')[-1]) + 1
             else:
                 seq = 1
-        except:
+        except Exception:
             seq = 1
         
         return f"COM-{year}-{seq:05d}"
@@ -187,7 +187,10 @@ class CommercialInvoiceService:
         commercial_result = self.supabase.table('users')\
             .select('*')\
             .eq('id', commercial_id)\
+            try:
             .single()\
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         commercial = commercial_result.data if commercial_result.data else {}
@@ -196,7 +199,10 @@ class CommercialInvoiceService:
         sales_rep_result = self.supabase.table('sales_representatives')\
             .select('*')\
             .eq('user_id', commercial_id)\
+            try:
             .single()\
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         sales_rep = sales_rep_result.data if sales_rep_result.data else {}
@@ -349,7 +355,7 @@ class CommercialInvoiceService:
         if isinstance(invoice_date, str):
             try:
                 invoice_date = datetime.fromisoformat(invoice_date.replace('Z', '+00:00'))
-            except:
+            except Exception:
                 invoice_date = datetime.now()
         
         info_data = [

@@ -123,9 +123,15 @@ async def get_team_members(
             member_user_id = member.get('user_id')
 
             # Récupérer profile
+            try:
             profile = supabase.table('profiles').select('full_name, avatar_url').eq('user_id', member_user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
+            try:
             user_info = supabase.table('users').select('email').eq('id', member_user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             result.append({
                 **member,

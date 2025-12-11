@@ -121,7 +121,7 @@ def create_invoices(count=30):
         try:
             last_invoice_num = existing_invoices.data[0]['invoice_number']
             last_num = int(last_invoice_num.split('-')[-1])
-        except:
+        except Exception:
             pass
     
     invoices_created = 0

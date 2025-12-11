@@ -344,7 +344,7 @@ async def schedule_post(
         try:
             response = supabase.table('scheduled_posts').insert(post_data).execute()
             scheduled_post = response.data[0] if response.data else post_data
-        except:
+        except Exception:
             # Fallback: stocker dans metadata de l'utilisateur
             logger.warning("scheduled_posts table not available, using fallback")
             # Générer un ID temporaire
@@ -390,7 +390,7 @@ async def get_scheduled_posts(
 
             response = query.execute()
             posts = response.data or []
-        except:
+        except Exception:
             posts = []
 
         return {
@@ -424,7 +424,7 @@ async def cancel_scheduled_post(
 
             # Supprimer ou marquer comme cancelled
             supabase.table('scheduled_posts').update({'status': 'cancelled'}).eq('id', post_id).execute()
-        except:
+        except Exception:
             # Fallback
             pass
 
@@ -470,7 +470,7 @@ async def get_content_analytics(
         try:
             posts = supabase.table('scheduled_posts').select('*').eq('user_id', user_id).eq('status', 'published').gte('created_at', start_date).execute()
             posts_data = posts.data or []
-        except:
+        except Exception:
             posts_data = []
 
         # Stats globales (simulées - à intégrer avec vraies APIs)

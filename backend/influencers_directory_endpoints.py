@@ -332,7 +332,10 @@ async def update_influencer_profile(
             current = supabase.from_("influencer_profiles") \
                 .select("*") \
                 .eq("user_id", user_id) \
+                try:
                 .single() \
+                except Exception:
+                    pass  # .single() might return no results
                 .execute()
 
             if current.data:
@@ -579,7 +582,10 @@ async def request_collaboration(
             .eq("user_id", user_id) \
             .eq("is_public", True) \
             .eq("is_available", True) \
+            try:
             .single() \
+            except Exception:
+                pass  # .single() might return no results
             .execute()
 
         if not influencer.data:

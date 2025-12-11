@@ -333,7 +333,7 @@ def test_performance_mini(session):
         try:
             r = session.get(endpoint)
             return r.status_code == 200
-        except:
+        except Exception:
             return False
 
     with ThreadPoolExecutor(max_workers=5) as executor:

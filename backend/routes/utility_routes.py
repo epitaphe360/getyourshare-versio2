@@ -66,7 +66,7 @@ async def get_user_settings(
                     "success": True,
                     **response.data
                 }
-        except:
+        except Exception:
             pass
 
         # Fallback: récupérer depuis profiles
@@ -81,7 +81,7 @@ async def get_user_settings(
                     settings = {}
             else:
                 settings = {}
-        except:
+        except Exception:
             settings = {}
 
         # Valeurs par défaut
@@ -129,9 +129,12 @@ async def update_user_settings(
                 response = supabase.table('user_settings').insert(update_data).execute()
 
             result = response.data[0] if response.data else update_data
-        except:
+        except Exception:
             # Fallback: stocker dans metadata de profile
+            try:
             profile = supabase.table('profiles').select('metadata').eq('user_id', user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             metadata = profile.data.get('metadata', {}) if profile.data else {}
             if not isinstance(metadata, dict):
@@ -178,7 +181,7 @@ async def get_notification_preferences(
                     "push": settings.data.get('push_notifications', False),
                     "sms": settings.data.get('sms_alerts', True)
                 }
-        except:
+        except Exception:
             pass
 
         # Valeurs par défaut
@@ -330,7 +333,10 @@ async def get_conversations(
         # Enrichir avec infos users
         result = []
         for conv in conversations.values():
+            try:
             profile = supabase.table('profiles').select('full_name').eq('user_id', conv['user_id']).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             result.append({
                 **conv,
@@ -478,14 +484,14 @@ async def get_referral_stats(
         try:
             referrals = supabase.table('mlm_relationships').select('*', count='exact').eq('upline_id', user_id).eq('level', 1).execute()
             total_referrals = referrals.count if hasattr(referrals, 'count') else len(referrals.data or [])
-        except:
+        except Exception:
             total_referrals = 0
 
         # Earnings des filleuls (MLM commissions niveau 1)
         try:
             commissions = supabase.table('mlm_commissions').select('amount').eq('upline_id', user_id).eq('level', 1).execute()
             earnings = sum(Decimal(str(c.get('amount', 0))) for c in (commissions.data or []))
-        except:
+        except Exception:
             earnings = Decimal('0')
 
         return {
@@ -625,7 +631,7 @@ async def system_health():
         supabase_status = "healthy"
         try:
             supabase.table('users').select('id').limit(1).execute()
-        except:
+        except Exception:
             supabase_status = "unhealthy"
 
         return {

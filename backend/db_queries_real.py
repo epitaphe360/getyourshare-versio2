@@ -518,7 +518,10 @@ async def create_affiliate_link(
         product_response = supabase.table("products") \
             .select("commission_rate, name") \
             .eq("id", product_id) \
+            try:
             .single() \
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         if not product_response.data:
@@ -929,7 +932,10 @@ async def get_all_sales(
             merchant_response = supabase.table("merchants") \
                 .select("id") \
                 .eq("user_id", user_id) \
+                try:
                 .single() \
+                except Exception:
+                    pass  # .single() might return no results
                 .execute()
             merchant_id = merchant_response.data["id"]
             query = query.eq("merchant_id", merchant_id)
@@ -939,7 +945,10 @@ async def get_all_sales(
             influencer_response = supabase.table("influencers") \
                 .select("id") \
                 .eq("user_id", user_id) \
+                try:
                 .single() \
+                except Exception:
+                    pass  # .single() might return no results
                 .execute()
             influencer_id = influencer_response.data["id"]
             query = query.eq("influencer_id", influencer_id)
@@ -1144,7 +1153,10 @@ async def get_conversion_funnel(user_id: str, user_role: str) -> Dict[str, Any]:
             influencer_response = supabase.table("influencers") \
                 .select("id, total_clicks, total_conversions") \
                 .eq("user_id", user_id) \
+                try:
                 .single() \
+                except Exception:
+                    pass  # .single() might return no results
                 .execute()
             
             total_clicks = influencer_response.data.get("total_clicks", 0)
@@ -1222,7 +1234,10 @@ async def get_all_commissions(
             merchant_response = supabase.table("merchants") \
                 .select("id") \
                 .eq("user_id", user_id) \
+                try:
                 .single() \
+                except Exception:
+                    pass  # .single() might return no results
                 .execute()
             merchant_id = merchant_response.data["id"]
             
@@ -1402,7 +1417,10 @@ async def update_sale_status(
         sale_response = supabase.table("sales") \
             .select("*") \
             .eq("id", sale_id) \
+            try:
             .single() \
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         if not sale_response.data:
@@ -1416,7 +1434,10 @@ async def update_sale_status(
             merchant_response = supabase.table("merchants") \
                 .select("id") \
                 .eq("user_id", user_id) \
+                try:
                 .single() \
+                except Exception:
+                    pass  # .single() might return no results
                 .execute()
             merchant_id = merchant_response.data["id"]
             
@@ -1719,7 +1740,10 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             merchant_response = supabase.table("merchants") \
                 .select("*") \
                 .eq("user_id", user_id) \
+                try:
                 .single() \
+                except Exception:
+                    pass  # .single() might return no results
                 .execute()
             
             profile["merchant_info"] = {
@@ -1733,7 +1757,10 @@ async def get_user_profile(user_id: str) -> Dict[str, Any]:
             influencer_response = supabase.table("influencers") \
                 .select("*") \
                 .eq("user_id", user_id) \
+                try:
                 .single() \
+                except Exception:
+                    pass  # .single() might return no results
                 .execute()
             
             profile["influencer_info"] = {
@@ -1780,7 +1807,10 @@ async def update_user_profile(user_id: str, profile_data: Dict[str, Any]) -> Dic
         user_response = supabase.table("users") \
             .select("role") \
             .eq("id", user_id) \
+            try:
             .single() \
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         role = user_response.data.get("role")

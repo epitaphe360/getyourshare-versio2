@@ -90,7 +90,7 @@ async def upload_kyc_documents(
                 )
 
                 back_url = supabase.storage.from_('kyc-documents').get_public_url(back_filename)
-            except:
+            except Exception:
                 back_url = f"/uploads/kyc/{doc_id}_back.jpg"
 
         # Upload selfie si fourni
@@ -107,7 +107,7 @@ async def upload_kyc_documents(
                 )
 
                 selfie_url = supabase.storage.from_('kyc-documents').get_public_url(selfie_filename)
-            except:
+            except Exception:
                 selfie_url = f"/uploads/kyc/{doc_id}_selfie.jpg"
 
         # Sauvegarder dans la DB
@@ -268,8 +268,14 @@ async def get_pending_kyc(
         for kyc in (kyc_list.data or []):
             user_id = kyc.get('user_id')
 
+            try:
             profile = supabase.table('profiles').select('full_name').eq('user_id', user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
+            try:
             user = supabase.table('users').select('email').eq('id', user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             result.append({
                 **kyc,

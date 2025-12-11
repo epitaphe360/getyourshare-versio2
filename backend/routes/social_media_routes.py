@@ -362,7 +362,7 @@ async def get_social_analytics(
                         followers = data.get('followers_count', 0)
                     else:
                         followers = 0
-                except:
+                except Exception:
                     followers = 0
 
                 analytics_data.append({

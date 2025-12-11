@@ -71,7 +71,7 @@ for email in emails:
             supabase.table('affiliate_requests').delete().eq('merchant_id', uid).execute()
             if iid: supabase.table('affiliate_requests').delete().eq('influencer_id', iid).execute()
             if mid: supabase.table('affiliate_requests').delete().eq('merchant_id', mid).execute()
-        except:
+        except Exception:
             pass
             
         try:
@@ -79,18 +79,18 @@ for email in emails:
             supabase.table('affiliation_requests').delete().eq('merchant_id', uid).execute()
             if iid: supabase.table('affiliation_requests').delete().eq('influencer_id', iid).execute()
             if mid: supabase.table('affiliation_requests').delete().eq('merchant_id', mid).execute()
-        except:
+        except Exception:
             pass
             
         # Delete Messages
         supabase.table('messages').delete().eq('sender_id', uid).execute()
         try:
             supabase.table('messages').delete().eq('receiver_id', uid).execute()
-        except:
+        except Exception:
             pass
         try:
             supabase.table('messages').delete().eq('recipient_id', uid).execute()
-        except:
+        except Exception:
             pass
         
         # Delete Conversations (participants)
@@ -100,13 +100,13 @@ for email in emails:
         try:
             supabase.table('conversations').delete().eq('user1_id', uid).execute()
             supabase.table('conversations').delete().eq('user2_id', uid).execute()
-        except:
+        except Exception:
             pass
 
         # Delete Product Reviews
         try:
             supabase.table('product_reviews').delete().eq('user_id', uid).execute()
-        except:
+        except Exception:
             pass
             
         # Delete Reviews for products of this merchant

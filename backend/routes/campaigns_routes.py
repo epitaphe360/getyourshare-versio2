@@ -183,6 +183,14 @@ async def create_campaign(
     """
     try:
         user_id = payload.get("id") or payload.get("user_id") or payload.get("sub")
+        role = payload.get("role")
+
+        # SECURITY: Only merchants can create campaigns
+        if role != "merchant":
+            raise HTTPException(
+                status_code=403,
+                detail="Only merchants can create campaigns. Influencers and commercials cannot create campaigns."
+            )
 
         campaign_data = campaign.dict()
         campaign_data['created_by'] = user_id
@@ -450,7 +458,10 @@ async def get_campaign_analytics(
 
         # Enrichir avec noms de produits
         for product in top_products:
+            try:
             product_data = supabase.table('products').select('name').eq('id', product['product_id']).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if product_data.data:
                 product['product_name'] = product_data.data.get('name')
             product['revenue'] = float(product['revenue'])
@@ -520,8 +531,14 @@ async def get_campaign_participants(
         # Enrichir avec infos influenceurs
         participants = []
         for influencer_id, stats in influencer_stats.items():
+            try:
             user_data = supabase.table('users').select('email').eq('id', influencer_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
+            try:
             profile_data = supabase.table('profiles').select('full_name').eq('user_id', influencer_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
 
             participants.append({
                 'influencer_id': influencer_id,

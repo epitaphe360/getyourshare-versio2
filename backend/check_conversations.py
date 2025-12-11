@@ -70,7 +70,7 @@ try:
             result = supabase.table(table).select('count', count='exact').execute()
             count = result.count if hasattr(result, 'count') else len(result.data)
             print(f"  ✅ {table}: {count} enregistrements")
-        except:
+        except Exception:
             print(f"  ⚠️ {table}: table non trouvée ou vide")
 except Exception as e:
     print(f"❌ Erreur: {e}")

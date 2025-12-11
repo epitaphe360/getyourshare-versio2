@@ -23,7 +23,7 @@ async def get_user_links(
     try:
         response = supabase.table("affiliate_links").select("*").eq("user_id", user_id).execute()
         return response.data if response.data else []
-    except:
+    except Exception as e:
         return []
 
 
@@ -36,7 +36,7 @@ async def get_link_details(
     try:
         response = supabase.table("affiliate_links").select("*").eq("id", link_id).single().execute()
         return response.data if response.data else {}
-    except:
+    except Exception as e:
         raise HTTPException(status_code=404, detail="Link not found")
 
 
@@ -152,7 +152,7 @@ async def get_products(
             "products": response.data if response.data else [],
             "total": len(response.data) if response.data else 0
         }
-    except:
+    except Exception as e:
         return {"products": [], "total": 0}
 
 
@@ -164,7 +164,7 @@ async def get_trending_products(
     try:
         response = supabase.table("products").select("*").limit(limit).execute()
         return response.data if response.data else []
-    except:
+    except Exception as e:
         return []
 
 
@@ -240,7 +240,7 @@ async def get_services(
             "services": response.data if response.data else [],
             "total": len(response.data) if response.data else 0
         }
-    except:
+    except Exception as e:
         return {"services": [], "total": 0}
 
 
@@ -265,7 +265,7 @@ async def get_user_conversions(
             response = supabase.table("conversions").select("*").eq("merchant_id", user_id).range(offset, offset + limit - 1).execute()
         
         return response.data if response.data else []
-    except:
+    except Exception as e:
         return []
 
 
@@ -347,7 +347,7 @@ async def get_notifications(
         
         response = query.execute()
         return response.data if response.data else []
-    except:
+    except Exception as e:
         return []
 
 
@@ -379,7 +379,7 @@ async def get_payouts(
         
         response = query.execute()
         return response.data if response.data else []
-    except:
+    except Exception as e:
         return []
 
 

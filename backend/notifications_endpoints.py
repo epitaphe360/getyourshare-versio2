@@ -134,7 +134,8 @@ async def websocket_notifications(websocket: WebSocket, token: str):
             manager.disconnect(websocket, user_id)
         try:
             await websocket.close()
-        except:
+        except Exception as e:
+            logger.debug(f"Error: {e}")
             pass
 
 # ============================================

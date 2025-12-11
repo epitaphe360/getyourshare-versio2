@@ -6071,7 +6071,10 @@ async def update_campaign_status(
             raise HTTPException(status_code=400, detail=f"Status invalide. Doit être: {', '.join(valid_statuses)}")
         
         # Vérifier que la campagne existe
+        try:
         campaign_response = supabase.table('campaigns').select('*').eq('id', campaign_id).single().execute()
+        except Exception:
+            pass  # .single() might return no results
         if not campaign_response.data:
             raise HTTPException(status_code=404, detail="Campagne non trouvée")
         
@@ -9905,7 +9908,10 @@ async def respond_to_invitation(
             raise HTTPException(status_code=400, detail="Action must be 'accept' or 'decline'")
         
         # Vérifier que l'invitation appartient à l'influenceur
+        try:
         invitation = supabase.table("invitations").select("*").eq("id", invitation_id).eq("influencer_id", user["id"]).single().execute()
+        except Exception:
+            pass  # .single() might return no results
         
         if not invitation.data:
             raise HTTPException(status_code=404, detail="Invitation not found")
@@ -10199,7 +10205,10 @@ async def calculate_lead_commission(
                 commission_amount = price * rate
         
         elif service_id:
+            try:
             service = supabase.table("services").select("price, commission_rate").eq("id", service_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if service.data:
                 price = service.data.get("price", 0)
                 rate = service.data.get("commission_rate", 10) / 100

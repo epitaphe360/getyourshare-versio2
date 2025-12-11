@@ -12,6 +12,9 @@ from utils.cache import cache
 import asyncio
 from fastapi.concurrency import run_in_threadpool
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 # ============================================
@@ -443,7 +446,10 @@ async def get_top_merchants(limit: int = Query(10, description="Nombre de marcha
         # Récupérer infos des merchants
         top_merchants = []
         for merchant_id, revenue in sorted(merchants_revenue.items(), key=lambda x: x[1], reverse=True)[:limit]:
+            try:
             user = supabase.table('users').select('id, company_name, email').eq('id', merchant_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if user.data:
                 top_merchants.append({
                     "merchant_id": merchant_id,
@@ -509,7 +515,10 @@ async def get_top_influencers(limit: int = Query(10, description="Nombre d'influ
         # Récupérer infos des influencers et construire le résultat
         top_influencers = []
         for influencer_id, data in sorted(influencers_data.items(), key=lambda x: x[1]['earnings'], reverse=True)[:limit]:
+            try:
             user = supabase.table('users').select('id, full_name, email').eq('id', influencer_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if user.data:
                 top_influencers.append({
                     "influencer_id": influencer_id,
@@ -685,14 +694,16 @@ async def get_platform_metrics():
             if u.get('created_at'):
                 try:
                     created_at = datetime.fromisoformat(u['created_at'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             last_login = None
             if u.get('last_login'):
                 try:
                     last_login = datetime.fromisoformat(u['last_login'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             role = u.get('role')
@@ -723,7 +734,8 @@ async def get_platform_metrics():
             if p.get('created_at'):
                 try:
                     created_at = datetime.fromisoformat(p['created_at'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             if created_at:
@@ -740,7 +752,8 @@ async def get_platform_metrics():
             if s.get('created_at'):
                 try:
                     created_at = datetime.fromisoformat(s['created_at'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             if created_at:
@@ -759,7 +772,8 @@ async def get_platform_metrics():
             if c.get('created_at'):
                 try:
                     created_at = datetime.fromisoformat(c['created_at'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             if created_at:
@@ -776,7 +790,8 @@ async def get_platform_metrics():
             if s.get('created_at'):
                 try:
                     created_at = datetime.fromisoformat(s['created_at'].replace('Z', '+00:00')).replace(tzinfo=None)
-                except:
+                except Exception as e:
+                    logger.debug(f"Error: {e}")
                     pass
             
             amount = float(s.get('amount', 0))

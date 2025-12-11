@@ -8,6 +8,9 @@ from pydantic import BaseModel
 from datetime import datetime
 from supabase_config import get_supabase_client
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 # ============================================
@@ -512,7 +515,10 @@ async def complete_mission(
         gamification = supabase.table('user_gamification')\
             .select('*')\
             .eq('user_id', user_id)\
+            try:
             .single()\
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         if gamification.data:

@@ -91,7 +91,7 @@ class InfluencerInvoiceService:
                 seq = int(last_number.split('-')[-1]) + 1
             else:
                 seq = 1
-        except:
+        except Exception:
             seq = 1
         
         return f"INV-{year}-{seq:05d}"
@@ -183,7 +183,10 @@ class InfluencerInvoiceService:
         influencer_result = self.supabase.table('users')\
             .select('*')\
             .eq('id', influencer_id)\
+            try:
             .single()\
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         influencer = influencer_result.data if influencer_result.data else {}
@@ -192,7 +195,10 @@ class InfluencerInvoiceService:
         merchant_result = self.supabase.table('users')\
             .select('*')\
             .eq('id', merchant_id)\
+            try:
             .single()\
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         merchant = merchant_result.data if merchant_result.data else {}
@@ -311,7 +317,7 @@ class InfluencerInvoiceService:
         if isinstance(invoice_date, str):
             try:
                 invoice_date = datetime.fromisoformat(invoice_date.replace('Z', '+00:00'))
-            except:
+            except Exception:
                 invoice_date = datetime.now()
         
         info_data = [

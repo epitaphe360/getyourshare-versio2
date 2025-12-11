@@ -210,7 +210,10 @@ async def get_commercial_stats(current_user: dict = Depends(get_current_user_fro
         
         if not sales_rep_result.data:
             # Create profile if not exists (auto-provisioning)
+            try:
             user_data = supabase.table('users').select('email, first_name, last_name, phone').eq('id', user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if user_data.data:
                 new_rep = {
                     'user_id': user_id,
@@ -542,7 +545,10 @@ async def update_lead(
             .select('id') \
             .eq('id', lead_id) \
             .eq('commercial_id', user_id) \
+            try:
             .single() \
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         if not check_result.data:
@@ -672,7 +678,10 @@ async def create_tracking_link(
         # full_url = f"https://tracknow.io/ref/{unique_code}" # Construct based on product URL
         
         # Get product url
+        try:
         product = supabase.table('products').select('url').eq('id', link_data.product_id).single().execute()
+        except Exception:
+            pass  # .single() might return no results
         original_url = product.data.get('url') if product.data else 'https://example.com'
 
         # Créer le lien
@@ -692,7 +701,10 @@ async def create_tracking_link(
         link_with_product = supabase.table('tracking_links') \
             .select('*, products(name)') \
             .eq('id', result.data[0]['id']) \
+            try:
             .single() \
+            except Exception:
+                pass  # .single() might return no results
             .execute()
         
         item = link_with_product.data
@@ -1045,7 +1057,10 @@ async def get_quota(current_user: dict = Depends(get_current_user_from_cookie)):
             target_deals = sales_rep_result.data.get('target_monthly_deals', 15)
         else:
             # Fallback basé sur subscription si pas de profil sales_rep
+            try:
             user_response = supabase.table("users").select("subscription_tier").eq("id", user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             subscription_tier = user_response.data.get("subscription_tier", "starter") if user_response.data else "starter"
             target_mapping = {"starter": 5000, "pro": 10000, "enterprise": 25000}
             target = target_mapping.get(subscription_tier, 10000)

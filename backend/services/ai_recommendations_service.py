@@ -76,7 +76,10 @@ class AIRecommendationsService:
             # Enrichir avec infos produits
             recommendations = []
             for product_id, frequency in sorted_products:
+                try:
                 product = self.supabase.table('products').select('*').eq('id', product_id).single().execute()
+                except Exception:
+                    pass  # .single() might return no results
 
                 if product.data:
                     recommendations.append({
@@ -279,7 +282,10 @@ class AIRecommendationsService:
             # Enrichir
             recommendations = []
             for product_id, stats in sorted_products:
+                try:
                 product = self.supabase.table('products').select('*').eq('id', product_id).single().execute()
+                except Exception:
+                    pass  # .single() might return no results
 
                 if product.data:
                     recommendations.append({
@@ -354,7 +360,10 @@ class AIRecommendationsService:
 
             recommendations = []
             for product_id, count in sorted_products:
+                try:
                 product = self.supabase.table('products').select('*').eq('id', product_id).single().execute()
+                except Exception:
+                    pass  # .single() might return no results
 
                 if product.data:
                     recommendations.append({
