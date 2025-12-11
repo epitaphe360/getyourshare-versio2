@@ -6072,7 +6072,7 @@ async def update_campaign_status(
         
         # Vérifier que la campagne existe
         try:
-        campaign_response = supabase.table('campaigns').select('*').eq('id', campaign_id).single().execute()
+            campaign_response = supabase.table('campaigns').select('*').eq('id', campaign_id).single().execute()
         except Exception:
             pass  # .single() might return no results
         if not campaign_response.data:
@@ -9909,7 +9909,7 @@ async def respond_to_invitation(
         
         # Vérifier que l'invitation appartient à l'influenceur
         try:
-        invitation = supabase.table("invitations").select("*").eq("id", invitation_id).eq("influencer_id", user["id"]).single().execute()
+            invitation = supabase.table("invitations").select("*").eq("id", invitation_id).eq("influencer_id", user["id"]).single().execute()
         except Exception:
             pass  # .single() might return no results
         
@@ -10206,7 +10206,7 @@ async def calculate_lead_commission(
         
         elif service_id:
             try:
-            service = supabase.table("services").select("price, commission_rate").eq("id", service_id).single().execute()
+                service = supabase.table("services").select("price, commission_rate").eq("id", service_id).single().execute()
             except Exception:
                 pass  # .single() might return no results
             if service.data:
