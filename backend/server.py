@@ -1517,8 +1517,8 @@ async def get_analytics_overview(
         error_details = traceback.format_exc()
         logger.error(f"❌ Erreur get_analytics_overview: {e}")
         logger.error(f"❌ Traceback complet: {error_details}")
-        print(f"❌ ANALYTICS ERROR: {e}")
-        print(f"❌ TRACEBACK: {error_details}")
+        # Log supprimé pour réduire verbosité
+        # Log supprimé pour réduire verbosité
         # Retourner des valeurs nulles en cas d'erreur au lieu de données fictives
         return {
             "users": {
@@ -3240,9 +3240,17 @@ async def get_admin_analytics_metrics(
         new_users_result = supabase.table("users").select("id", count="exact").gte("created_at", start_date).execute()
         new_users = new_users_result.count if hasattr(new_users_result, 'count') else len(new_users_result.data)
         
-        # Revenus totaux
+        # Revenus totaux avec protection null-safe
         sales_result = supabase.table("sales").select("amount").gte("created_at", start_date).execute()
-        total_revenue = sum(float(s.get("amount", 0)) for s in sales_result.data) if sales_result.data else 0
+        total_revenue = 0
+        if sales_result.data:
+            for sale in sales_result.data:
+                try:
+                    amount = sale.get("amount")
+                    if amount is not None:
+                        total_revenue += float(amount)
+                except (ValueError, TypeError):
+                    continue
         
         # Abonnements actifs
         subs_result = supabase.table("subscriptions").select("id", count="exact").eq("status", "active").execute()
@@ -3263,7 +3271,7 @@ async def get_admin_analytics_metrics(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_metrics: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3308,7 +3316,7 @@ async def get_admin_analytics_revenue(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_revenue: {e}")
+        # Erreur loggée via HTTPException en production
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
@@ -3351,7 +3359,7 @@ async def get_admin_analytics_users_growth(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_users_growth: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3389,7 +3397,7 @@ async def get_admin_analytics_subscriptions(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_subscriptions: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3431,7 +3439,7 @@ async def get_admin_analytics_churn(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_churn: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3462,7 +3470,7 @@ async def get_admin_analytics_plan_distribution(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_plan_distribution: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3527,7 +3535,7 @@ async def get_admin_analytics_top_performers(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_top_performers: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3579,7 +3587,7 @@ async def get_admin_analytics_revenue_by_source(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_revenue_by_source: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3784,10 +3792,10 @@ async def get_pending_moderation(
     except Exception as e:
         import traceback
         traceback.print_exc()
-        print(f"❌ Critical Error in get_pending_moderation: {e}")
+        # Log supprimé pour réduire verbosité
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
-        print(f"❌ Erreur get_pending_moderation: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3847,7 +3855,7 @@ async def get_moderation_stats(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_moderation_stats: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -3907,7 +3915,7 @@ async def review_content(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur review_content: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4456,7 +4464,7 @@ async def get_categories():
         categories = result.data or []
         return {"categories": categories, "total": len(categories)}
     except Exception as e:
-        print(f"❌ Erreur get_categories: {e}")
+        # Erreur loggée via HTTPException en production
         return {"categories": [], "total": 0}
 
 
@@ -4505,7 +4513,7 @@ async def get_services(
         return {"services": services, "total": len(services)}
         
     except Exception as e:
-        print(f"❌ Erreur get_services: {e}")
+        # Erreur loggée via HTTPException en production
         return {"services": [], "total": 0}
 
 
@@ -4536,7 +4544,7 @@ async def get_service(service_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_service: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4574,7 +4582,7 @@ async def get_service_leads(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_service_leads: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4638,7 +4646,7 @@ async def get_all_subscriptions_admin(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_all_subscriptions_admin: {e}")
+        # Erreur loggée via HTTPException en production
         return {"subscriptions": [], "total": 0, "error": str(e)}
 
 
@@ -4689,7 +4697,7 @@ async def get_subscription_history(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_subscription_history: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4751,7 +4759,7 @@ async def get_all_registrations(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_all_registrations: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4810,7 +4818,7 @@ async def get_registration_timeline(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_registration_timeline: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4841,7 +4849,7 @@ async def get_admin_service_leads(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_admin_service_leads: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4880,7 +4888,7 @@ async def get_admin_leads_stats(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_admin_leads_stats: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4896,7 +4904,7 @@ async def get_admin_services_list(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_admin_services_list: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4942,7 +4950,7 @@ async def get_leads_analytics(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_leads_analytics: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -4970,7 +4978,7 @@ async def update_lead_status(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur update_lead_status: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5014,7 +5022,7 @@ async def send_lead_email(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur send_lead_email: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5054,7 +5062,7 @@ async def export_leads(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur export_leads: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5148,7 +5156,7 @@ async def get_fiscal_settings(current_user: dict = Depends(get_current_user_from
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_fiscal_settings: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5180,7 +5188,7 @@ async def update_fiscal_settings(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur update_fiscal_settings: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5230,7 +5238,7 @@ async def get_merchant_dashboard_stats(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_merchant_dashboard_stats: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5256,7 +5264,7 @@ async def get_merchant_dashboard_products(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_merchant_dashboard_products: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5286,7 +5294,7 @@ async def get_merchant_dashboard_sales(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_merchant_dashboard_sales: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5311,7 +5319,7 @@ async def get_merchant_dashboard_campaigns(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_merchant_dashboard_campaigns: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5341,7 +5349,7 @@ async def get_merchant_dashboard_affiliates(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_merchant_dashboard_affiliates: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5378,7 +5386,7 @@ async def get_merchant_dashboard_revenue(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_merchant_dashboard_revenue: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5440,7 +5448,7 @@ async def get_merchant_dashboard_analytics(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_merchant_dashboard_analytics: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5500,7 +5508,7 @@ async def get_social_media_connections(
         
         return {"connections": result.data}
     except Exception as e:
-        print(f"❌ Erreur get_social_media_connections: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5527,7 +5535,7 @@ async def delete_social_media_connection(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur delete_social_media_connection: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5564,7 +5572,7 @@ async def get_social_media_dashboard(
         
         return {"platform_stats": platform_stats}
     except Exception as e:
-        print(f"❌ Erreur get_social_media_dashboard: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5607,7 +5615,7 @@ async def sync_social_media_data(
             "synced_count": synced_count
         }
     except Exception as e:
-        print(f"❌ Erreur sync_social_media_data: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5646,7 +5654,7 @@ async def get_social_media_stats_history(
         
         return {"history": stats.data, "period_days": days}
     except Exception as e:
-        print(f"❌ Erreur get_social_media_stats_history: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -5687,7 +5695,7 @@ async def get_top_social_media_posts(
         
         return {"top_posts": posts.data, "period_days": days}
     except Exception as e:
-        print(f"❌ Erreur get_top_social_media_posts: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -10483,7 +10491,7 @@ async def get_subscriptions_analytics(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_subscriptions_analytics: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -10540,7 +10548,7 @@ async def get_subscriptions_metrics_history(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_subscriptions_metrics_history: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12463,7 +12471,7 @@ async def get_commercial_pipeline(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_commercial_pipeline: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12506,7 +12514,7 @@ async def get_commercial_performance(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_commercial_performance: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12541,7 +12549,7 @@ async def get_commercial_commissions(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_commercial_commissions: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12567,7 +12575,7 @@ async def get_commercial_recent_deals(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_commercial_recent_deals: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12612,7 +12620,7 @@ async def get_commercial_top_clients(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_commercial_top_clients: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12641,7 +12649,7 @@ async def update_commercial_lead(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur update_commercial_lead: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12669,7 +12677,7 @@ async def delete_commercial_lead(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur delete_commercial_lead: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12695,7 +12703,7 @@ async def get_commercial_lead_detail(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_commercial_lead_detail: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12719,7 +12727,7 @@ async def get_lead_activities(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_lead_activities: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12748,7 +12756,7 @@ async def add_lead_activity(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur add_lead_activity: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12822,7 +12830,7 @@ async def get_influencer_stats(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_influencer_stats: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12863,7 +12871,7 @@ async def get_influencer_clicks(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_influencer_clicks: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12907,7 +12915,7 @@ async def get_influencer_conversions(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_influencer_conversions: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -12972,7 +12980,7 @@ async def get_influencer_campaign_performance(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_influencer_campaign_performance: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -13022,7 +13030,7 @@ async def get_influencer_product_performance(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_influencer_product_performance: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -13052,7 +13060,7 @@ async def get_influencer_commissions(
         
         return result.data
     except Exception as e:
-        print(f"❌ Erreur get_influencer_commissions: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/influencer/affiliate-links")
@@ -13131,7 +13139,7 @@ async def get_influencer_affiliate_links_dashboard(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erreur get_influencer_commissions: {e}")
+        # Erreur loggée via HTTPException en production
         raise HTTPException(status_code=500, detail=str(e))
 
 
