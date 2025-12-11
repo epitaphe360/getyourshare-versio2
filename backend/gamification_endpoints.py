@@ -8,6 +8,9 @@ from pydantic import BaseModel
 from datetime import datetime
 from supabase_config import get_supabase_client
 
+import logging
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 # ============================================

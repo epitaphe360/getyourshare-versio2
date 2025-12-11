@@ -85,7 +85,7 @@ async def get_metrics(
         # Récupérer les abonnements actifs (sans jointure)
         active_subs_response = supabase.table('subscriptions')\
             .select('id, plan_id, status')\
-            .eq('status', 'active')\
+            .eq('is_active', True)\
             .execute()
         
         active_subs = active_subs_response.data or []
@@ -109,7 +109,7 @@ async def get_metrics(
         # Utilisateurs actifs
         active_users_response = supabase.table('users')\
             .select('id', count='exact')\
-            .eq('status', 'active')\
+            .eq('is_active', True)\
             .execute()
         active_users = active_users_response.count or 0
 
@@ -135,7 +135,7 @@ async def get_metrics(
         # Croissance des revenus (comparaison avec période précédente)
         prev_subs_response = supabase.table('subscriptions')\
             .select('id, plan_id')\
-            .eq('status', 'active')\
+            .eq('is_active', True)\
             .lte('created_at', start_date.isoformat())\
             .execute()
         
@@ -185,7 +185,7 @@ async def get_revenue_data(
         # Récupérer tous les abonnements actifs créés avant la date de fin (sans jointure)
         subs_response = supabase.table('subscriptions')\
             .select('created_at, plan_id')\
-            .eq('status', 'active')\
+            .eq('is_active', True)\
             .lte('created_at', end_date.isoformat())\
             .execute()
         
@@ -366,7 +366,7 @@ async def get_churn_data(
         # 1. Tous les abonnements actifs créés avant la fin de la période
         active_subs_response = supabase.table('subscriptions')\
             .select('created_at')\
-            .eq('status', 'active')\
+            .eq('is_active', True)\
             .lte('created_at', end_date.isoformat())\
             .execute()
             
@@ -433,7 +433,7 @@ async def get_plan_distribution(
             count_response = supabase.table('subscriptions')\
                 .select('id', count='exact')\
                 .eq('plan_id', plan_id)\
-                .eq('status', 'active')\
+                .eq('is_active', True)\
                 .execute()
             
             count = count_response.count or 0
@@ -565,7 +565,7 @@ async def get_revenue_by_source(
         # Récupérer les abonnements actifs (sans jointure)
         subs_response = supabase.table('subscriptions')\
             .select('id, plan_id')\
-            .eq('status', 'active')\
+            .eq('is_active', True)\
             .gte('created_at', start_date.isoformat())\
             .execute()
 
