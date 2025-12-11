@@ -85,7 +85,7 @@ def validate_and_log(operation_name, validation_func, details=None):
         }
         try:
             supabase.table('operation_logs').insert(log_data).execute()
-        except:
+        except Exception:
             pass
         
         return result
@@ -101,7 +101,7 @@ def validate_and_log(operation_name, validation_func, details=None):
         }
         try:
             supabase.table('operation_logs').insert(log_data).execute()
-        except:
+        except Exception:
             pass
         
         raise
@@ -141,7 +141,7 @@ def log_activity(user_id: str, action: str, details: Dict[str, Any]):
     }
     try:
         supabase.table('activity_logs').insert(log_data).execute()
-    except:
+    except Exception:
         pass  # Table may not exist
 
 def create_notification(user_id: str, title: str, message: str, notification_type: str = "info"):
@@ -157,7 +157,7 @@ def create_notification(user_id: str, title: str, message: str, notification_typ
     try:
         supabase.table('notifications').insert(notif_data).execute()
         print_info(f"Notification envoyée: {title}")
-    except:
+    except Exception:
         pass
 
 # Système de tracking des phases
@@ -327,7 +327,7 @@ def update_analytics(entity_type: str, entity_id: str, metric: str, value: float
     }
     try:
         supabase.table('analytics').insert(analytics_data).execute()
-    except:
+    except Exception:
         pass
 
 def run_scenario():
@@ -360,105 +360,105 @@ def run_scenario():
             try:
                 # Delete invoices first (depends on subscriptions)
                 supabase.table('invoices').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('subscriptions').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('social_media_publications').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('payouts').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('tracking_events').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('conversions').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('affiliation_requests').delete().eq('influencer_id', uid).execute()
                 supabase.table('affiliation_requests').delete().eq('merchant_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('transactions').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('notifications').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('activity_logs').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('kyc_verifications').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('webhooks').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('api_keys').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('product_reviews').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('rate_limits').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('leads').delete().eq('influencer_id', uid).execute()
                 supabase.table('leads').delete().eq('merchant_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('trust_scores').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('sales_assignments').delete().eq('merchant_id', uid).execute()
                 supabase.table('sales_assignments').delete().eq('sales_agent_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('campaigns').delete().eq('merchant_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             try:
                 supabase.table('payment_accounts').delete().eq('user_id', uid).execute()
-            except:
+            except Exception:
                 pass
             
             # Products/Services (avec toutes les dépendances)
@@ -467,19 +467,19 @@ def run_scenario():
                 # 1. D'abord supprimer les tables qui référencent les produits ou les tracking links
                 try:
                     supabase.table('conversions').delete().eq('product_id', p['id']).execute()
-                except:
+                except Exception:
                     pass
                 try:
                     supabase.table('product_reviews').delete().eq('product_id', p['id']).execute()
-                except:
+                except Exception:
                     pass
                 try:
                     supabase.table('affiliation_requests').delete().eq('product_id', p['id']).execute()
-                except:
+                except Exception:
                     pass
                 try:
                     supabase.table('social_media_publications').delete().eq('product_id', p['id']).execute()
-                except:
+                except Exception:
                     pass
 
                 # 2. Ensuite nettoyer les tracking links et leurs dépendances directes
@@ -497,24 +497,24 @@ def run_scenario():
                         except: pass
                         
                     supabase.table('tracking_links').delete().eq('product_id', p['id']).execute()
-                except:
+                except Exception:
                     pass
 
                 # 3. Enfin supprimer le produit
                 try:
                     supabase.table('products').delete().eq('id', p['id']).execute()
-                except:
+                except Exception:
                     pass
 
             services = supabase.table('services').select('id').eq('merchant_id', uid).execute()
             for s in services.data:
                 try:
                     supabase.table('leads').delete().eq('service_id', s['id']).execute()
-                except:
+                except Exception:
                     pass
                 try:
                     supabase.table('services').delete().eq('id', s['id']).execute()
-                except:
+                except Exception:
                     pass
 
             # Tracking events (avant tracking_links à cause de la FK)
@@ -527,14 +527,14 @@ def run_scenario():
                 merch_links = supabase.table('tracking_links').select('id').eq('merchant_id', uid).execute()
                 for link in merch_links.data:
                     supabase.table('tracking_events').delete().eq('tracking_link_id', link['id']).execute()
-            except:
+            except Exception:
                 pass
             
             # Tracking links
             try:
                 supabase.table('tracking_links').delete().eq('influencer_id', uid).execute()
                 supabase.table('tracking_links').delete().eq('merchant_id', uid).execute()
-            except:
+            except Exception:
                 pass
 
             # Final user deletion
@@ -1269,7 +1269,7 @@ def run_scenario():
         res = supabase.table('transactions').insert(trans_admin).execute()
         if res.data: transactions.append(res.data[0]['id'])
         print_info(f"   Transaction enregistrée: {transaction_ref}-PLT")
-    except:
+    except Exception:
         pass
 
     # Transaction Merchant
@@ -1297,7 +1297,7 @@ def run_scenario():
         res = supabase.table('transactions').insert(trans_merch).execute()
         if res.data: transactions.append(res.data[0]['id'])
         print_info(f"   Transaction enregistrée: {transaction_ref}-MER")
-    except:
+    except Exception:
         pass
 
     print_success("✓ Balances et transactions enregistrées (Conv 1)")
@@ -1625,7 +1625,7 @@ def run_scenario():
             }).eq('id', link_id).execute()
             
             print_info(f"   Liens d'affiliation liés à la campagne")
-        except:
+        except Exception:
             print_info("   Table campaign_influencers non disponible")
         
         # Tracking budget
@@ -1867,7 +1867,7 @@ def run_scenario():
             supabase.table('payout_preferences').upsert(payout_prefs, on_conflict='user_id').execute()
             print_success("Préférences payout configurées")
             print_info(f"   Min: 50 EUR | Fréquence: hebdomadaire | Auto: Oui")
-        except:
+        except Exception:
             print_info("   Table payout_preferences non disponible")
         
     except Exception as e:
@@ -1923,7 +1923,7 @@ def run_scenario():
             try:
                 supabase.table('invoices').insert(invoice_data).execute()
                 print_success(f"Facture générée: {invoice_data['invoice_number']} (299.99 EUR)")
-            except:
+            except Exception:
                 print_info("   Table invoices non disponible")
             
             # Notification upgrade
@@ -1982,7 +1982,7 @@ def run_scenario():
             res = supabase.table('webhooks').insert(webhook).execute()
             webhook_ids.append(res.data[0]['id'])
             print_success(f"Webhook enregistré: {webhook['url']}")
-        except:
+        except Exception:
             print_info("Table webhooks non disponible - test ignoré")
     
     # Test envoi webhook
@@ -2003,7 +2003,7 @@ def run_scenario():
         try:
             supabase.table('webhook_logs').insert(webhook_log).execute()
             print_success("Webhook envoyé et enregistré dans les logs")
-        except:
+        except Exception:
             print_info("Table webhook_logs non disponible")
     
     # ===================================================================================
@@ -2032,7 +2032,7 @@ def run_scenario():
         print_success(f"Clé API générée: {api_key[:20]}...")
         print_info(f"   Permissions: read:products, write:conversions, read:analytics")
         print_info(f"   Expire le: {api_key_data['expires_at'][:10]}")
-    except:
+    except Exception:
         print_info("Table api_keys non disponible - test ignoré")
     
     # Test de rate limiting
@@ -2048,7 +2048,7 @@ def run_scenario():
     try:
         supabase.table('rate_limits').insert(rate_limit_data).execute()
         print_success("Rate limit enregistré: 45/100 requêtes")
-    except:
+    except Exception:
         print_info("Table rate_limits non disponible")
     
     # ===================================================================================
@@ -2134,7 +2134,7 @@ def run_scenario():
                     }
                     supabase.table('user_badges').insert(badge_data).execute()
                     print_info(f"   Badge débloqué: {event['badge']} 🏆")
-            except:
+            except Exception:
                 pass
         
         print_info("Gamification complétée")
@@ -2226,7 +2226,7 @@ def run_scenario():
             try:
                 supabase.table('exchange_rates').upsert(rate_data, 
                     on_conflict='currency_from,currency_to').execute()
-            except:
+            except Exception:
                 pass
         
         print_success("Taux de change mis à jour (EUR base)")
@@ -2265,7 +2265,7 @@ def run_scenario():
             try:
                 supabase.table('audit_logs').insert(log).execute()
                 print_success(f"Audit log: {log['action']}")
-            except:
+            except Exception:
                 pass
         
         # Export données RGPD
@@ -2282,7 +2282,7 @@ def run_scenario():
             
             supabase.table('data_exports').insert(user_data_export).execute()
             print_success("Export RGPD généré")
-        except:
+        except Exception:
             print_info("   Table data_exports non disponible")
         
     except Exception as e:
@@ -2375,7 +2375,7 @@ def run_scenario():
         try:
             supabase.table('security_events').insert(suspicious_login).execute()
             print_success("Activité suspecte bloquée (risk: 75/100)")
-        except:
+        except Exception:
             print_info("   Table security_events non disponible")
         
     except Exception as e:
@@ -3487,7 +3487,7 @@ def run_scenario():
     try:
         supabase.table('live_streams').insert(tiktok_live_data).execute()
         print_success("TikTok Live programmé pour dans 2h")
-    except:
+    except Exception:
         print_info(f"TikTok Live: table non disponible")
     
     # Live Shopping conversions
@@ -3515,7 +3515,7 @@ def run_scenario():
         try:
             supabase.table('conversions').insert(live_conv_data).execute()
             live_sales.append(live_conv_data['sale_amount'])
-        except:
+        except Exception:
             pass
     
     print_success(f"10 ventes générées pendant le live ({sum(live_sales):.2f} EUR)")
@@ -3570,7 +3570,7 @@ def run_scenario():
                 "user_title": level['title']
             }).eq('id', level['user']).execute()
             print_success(f"  Niveau {level['level']} - {level['title']} ({level['xp']} XP)")
-        except:
+        except Exception:
             print_info("  Colonnes level/xp non disponibles")
             break
     
@@ -3702,7 +3702,7 @@ def run_scenario():
     try:
         supabase.table('payment_integrations').insert(stripe_config).execute()
         print_success("Intégration Stripe configurée")
-    except:
+    except Exception:
         print_info("Table payment_integrations non disponible")
     
     print("\n[MAILCHIMP] Configuration emailing...")
@@ -3717,7 +3717,7 @@ def run_scenario():
     try:
         supabase.table('integrations').insert(mailchimp_config).execute()
         print_success("Intégration Mailchimp configurée")
-    except:
+    except Exception:
         print_info("Table integrations non disponible")
     
     print("\n[GOOGLE ANALYTICS] Configuration tracking...")
@@ -3732,7 +3732,7 @@ def run_scenario():
     try:
         supabase.table('integrations').insert(ga_config).execute()
         print_success("Google Analytics configuré")
-    except:
+    except Exception:
         pass
     
     # ===================================================================================
@@ -3791,7 +3791,7 @@ def run_scenario():
         try:
             supabase.table('sms_campaigns').insert(sms_data).execute()
             print_success(f"  SMS: {sms['recipients']} envoyés ({sms['cost']} EUR)")
-        except:
+        except Exception:
             print_info("Table sms_campaigns non disponible")
             break
     
@@ -3812,7 +3812,7 @@ def run_scenario():
         }
         try:
             supabase.table('search_index').insert(search_index).execute()
-        except:
+        except Exception:
             pass
     print_success("7 produits indexés pour recherche")
     
@@ -3846,7 +3846,7 @@ def run_scenario():
         try:
             supabase.table('product_collections').insert(collection_data).execute()
             print_success(f"  Collection '{collection['name']}': {len(collection['products'])} produits")
-        except:
+        except Exception:
             print_info("Table product_collections non disponible")
             break
     
@@ -3873,7 +3873,7 @@ def run_scenario():
         try:
             supabase.table('product_reviews').insert(review_data).execute()
             reviews_created += 1
-        except:
+        except Exception:
             pass
     print_success(f"{reviews_created} avis créés")
     
@@ -3888,7 +3888,7 @@ def run_scenario():
                     "rating": round(avg, 2),
                     "reviews_count": len(reviews.data)
                 }).eq('id', prod).execute()
-        except:
+        except Exception:
             pass
     print_success("Ratings moyens calculés")
     
@@ -3913,7 +3913,7 @@ def run_scenario():
             }
             try:
                 supabase.table('favorites').insert(fav_data).execute()
-            except:
+            except Exception:
                 pass
     print_success("8 produits ajoutés aux favoris")
     
@@ -3936,7 +3936,7 @@ def run_scenario():
         try:
             supabase.table('wishlists').insert(wl_data).execute()
             print_success(f"  Wishlist '{wl['name']}': {len(wl['products'])} produits")
-        except:
+        except Exception:
             print_info("Table wishlists non disponible")
             break
     
@@ -3995,7 +3995,7 @@ def run_scenario():
             res = supabase.table('warehouses').insert(wh_data).execute()
             warehouse_ids.append(res.data[0]['id'])
             print_success(f"  {wh['name']}: {wh['capacity']} unités")
-        except:
+        except Exception:
             print_info("Table warehouses non disponible")
             break
     
@@ -4013,7 +4013,7 @@ def run_scenario():
                 }
                 try:
                     supabase.table('warehouse_inventory').insert(stock_data).execute()
-                except:
+                except Exception:
                     break
         print_success("Stocks répartis sur 3 entrepôts")
     
@@ -4052,7 +4052,7 @@ def run_scenario():
         try:
             supabase.table('coupons').insert(coupon_data).execute()
             print_success(f"  {coupon['code']}: -{coupon['value']}{'%' if coupon['type']=='percentage' else 'EUR'}")
-        except:
+        except Exception:
             print_info("Table coupons non disponible")
             break
     
@@ -4114,7 +4114,7 @@ def run_scenario():
         try:
             supabase.table('invoices').insert(invoice_data).execute()
             print_success(f"  Facture {invoice_data['invoice_number']}: {invoice_data['total_amount']:.2f} EUR ({invoice_data['status']})")
-        except:
+        except Exception:
             print_info("Table invoices non disponible")
             break
     
@@ -4145,7 +4145,7 @@ def run_scenario():
             res = supabase.table('conversations').insert(conv_data).execute()
             conv_ids.append(res.data[0]['id'])
             print_success(f"  Conversation: {conv['subject']}")
-        except:
+        except Exception:
             print_info("Table conversations non disponible")
             break
     
@@ -4162,7 +4162,7 @@ def run_scenario():
             }
             try:
                 supabase.table('messages').insert(msg_data).execute()
-            except:
+            except Exception:
                 pass
         print_success("20 messages échangés")
     
@@ -4199,7 +4199,7 @@ def run_scenario():
         try:
             supabase.table('events').insert(event_data).execute()
             print_success(f"  {event['title']}: {event['date'].strftime('%d/%m/%Y')}")
-        except:
+        except Exception:
             print_info("Table events non disponible")
             break
     
@@ -4232,7 +4232,7 @@ def run_scenario():
         try:
             supabase.table('data_exports').insert(export_data).execute()
             print_success(f"  Export {exp['type']}: {exp['size']} ({exp['format']})")
-        except:
+        except Exception:
             print_info("Table data_exports non disponible")
             break
     

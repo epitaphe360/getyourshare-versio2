@@ -54,7 +54,7 @@ def mask_email(email: str) -> str:
         if len(user) > 1:
             return f"{user[0]}***@{domain}"
         return f"***@{domain}"
-    except:
+    except Exception:
         return "******"
 
 # ============================================

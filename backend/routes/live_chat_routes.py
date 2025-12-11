@@ -179,7 +179,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
                     try:
                         result = supabase.table('chat_messages').insert(message_record).execute()
                         message_id = result.data[0]['id'] if result.data else None
-                    except:
+                    except Exception:
                         message_id = None
 
                     # Broadcaster à la room
@@ -337,7 +337,7 @@ async def get_chat_history_internal(room_id: str, limit: int = 50, before: Optio
         messages = list(reversed(response.data or []))
 
         return messages
-    except:
+    except Exception:
         return []
 
 

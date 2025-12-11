@@ -92,7 +92,7 @@ def generate_users():
             '22222222-2222-2222-2222-222222222225',
             '22222222-2222-2222-2222-222222222226',
         ]).execute()
-    except:
+    except Exception:
         pass
     
     # Ins\u00e9rer par batch

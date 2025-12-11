@@ -247,7 +247,7 @@ Que souhaitez-vous savoir ?"""
 
         try:
             supabase.table('chatbot_history').insert(chat_entry).execute()
-        except:
+        except Exception:
             pass  # Table might not exist
 
         return {

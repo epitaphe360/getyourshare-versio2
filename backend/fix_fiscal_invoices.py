@@ -111,7 +111,7 @@ CREATE OR REPLACE VIEW fiscal_invoices AS SELECT * FROM invoices;
             try:
                 supabase.table('invoices').select(col).limit(1).execute()
                 existing_columns.append(col)
-            except:
+            except Exception:
                 missing_columns.append(col)
         
         print(f"   ✅ Colonnes existantes ({len(existing_columns)}): {', '.join(existing_columns[:5])}...")

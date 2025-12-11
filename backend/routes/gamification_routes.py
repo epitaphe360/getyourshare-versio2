@@ -284,7 +284,7 @@ async def get_points(
             else:
                 current_points = 0
                 current_level = 1
-        except:
+        except Exception:
             current_points = 0
             current_level = 1
 

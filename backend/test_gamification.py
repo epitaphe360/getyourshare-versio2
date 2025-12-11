@@ -54,7 +54,7 @@ def test_gamification_flow():
             if "access_token" in data:
                 access_token = data["access_token"]
                 print("Access token found in response body")
-        except:
+        except Exception:
             pass
             
     if not access_token:

@@ -90,7 +90,7 @@ async def upload_kyc_documents(
                 )
 
                 back_url = supabase.storage.from_('kyc-documents').get_public_url(back_filename)
-            except:
+            except Exception:
                 back_url = f"/uploads/kyc/{doc_id}_back.jpg"
 
         # Upload selfie si fourni
@@ -107,7 +107,7 @@ async def upload_kyc_documents(
                 )
 
                 selfie_url = supabase.storage.from_('kyc-documents').get_public_url(selfie_filename)
-            except:
+            except Exception:
                 selfie_url = f"/uploads/kyc/{doc_id}_selfie.jpg"
 
         # Sauvegarder dans la DB

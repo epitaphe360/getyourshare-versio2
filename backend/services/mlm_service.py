@@ -357,7 +357,7 @@ class MLMService:
                 # Insérer (ignore si existe déjà)
                 try:
                     self.supabase.table('mlm_relationships').insert(indirect_relationship).execute()
-                except:
+                except Exception:
                     pass  # Relation existe déjà
 
         except Exception as e:

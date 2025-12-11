@@ -441,7 +441,7 @@ async def get_product_variants(
         try:
             response = supabase.table('product_variants').select('*').eq('product_id', product_id).execute()
             variants = response.data or []
-        except:
+        except Exception:
             # Fallback: chercher dans metadata du produit
             product = supabase.table('products').select('metadata').eq('id', product_id).single().execute()
 
@@ -491,7 +491,7 @@ async def create_product_variant(
         try:
             response = supabase.table('product_variants').insert(variant_data).execute()
             created_variant = response.data[0] if response.data else variant_data
-        except:
+        except Exception:
             # Fallback: ajouter dans metadata
             product = supabase.table('products').select('metadata').eq('id', product_id).single().execute()
 
