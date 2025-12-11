@@ -541,12 +541,18 @@ async def update_lead(
             sales_rep_id = sales_rep_result.data[0]['id']
 
         # Vérifier que le lead appartient bien à l'utilisateur
-        check_result = supabase.table('services_leads') \
-            .select('id') \
-            .eq('id', lead_id) \
-            .eq('commercial_id', user_id) \
+        try:
+            check_result = supabase.table('services_leads') \
+                .select('id') \
+                .eq('id', lead_id) \
+                .eq('commercial_id', user_id) \
                 .single() \
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            check_result = MockResponse()
         
         if not check_result.data:
             raise HTTPException(
@@ -695,11 +701,17 @@ async def create_tracking_link(
             .execute()
         
         # Récupérer avec le nom du produit
-        link_with_product = supabase.table('tracking_links') \
-            .select('*, products(name)') \
-            .eq('id', result.data[0]['id']) \
+        try:
+            link_with_product = supabase.table('tracking_links') \
+                .select('*, products(name)') \
+                .eq('id', result.data[0]['id']) \
                 .single() \
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            link_with_product = MockResponse()
         
         item = link_with_product.data
         

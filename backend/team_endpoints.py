@@ -651,11 +651,17 @@ async def get_team_stats(current_user: dict = Depends(get_current_user)):
                 members_by_role[role] = members_by_role.get(role, 0) + 1
 
         # Récupérer la limite du plan
-        subscription_response = supabase.from_("v_active_subscriptions") \
-            .select("plan_max_team_members") \
-            .eq("user_id", company_id) \
+        try:
+            subscription_response = supabase.from_("v_active_subscriptions") \
+                .select("plan_max_team_members") \
+                .eq("user_id", company_id) \
                 .single() \
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            subscription_response = MockResponse()
 
         team_limit = None
         available_slots = None

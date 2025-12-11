@@ -185,11 +185,17 @@ async def generate_company_affiliate_link(
             short_code = generate_unique_short_code()
 
         # Obtenir le taux de commission du produit
-        product = supabase.from_("products") \
-            .select("commission_rate") \
-            .eq("id", request.product_id) \
+        try:
+            product = supabase.from_("products") \
+                .select("commission_rate") \
+                .eq("id", request.product_id) \
                 .single() \
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            product = MockResponse()
 
         commission_rate = request.commission_rate or product.data.get("commission_rate", 15.0)
 
@@ -342,12 +348,18 @@ async def assign_link_to_team_member(
         company_id = current_user["id"]
 
         # Vérifier que le lien appartient à l'entreprise
-        link = supabase.from_("tracking_links") \
-            .select("*") \
-            .eq("id", request.link_id) \
-            .eq("merchant_id", company_id) \
+        try:
+            link = supabase.from_("tracking_links") \
+                .select("*") \
+                .eq("id", request.link_id) \
+                .eq("merchant_id", company_id) \
                 .single() \
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            link = MockResponse()
 
         if not link.data:
             raise HTTPException(
@@ -434,12 +446,18 @@ async def bulk_assign_links(
         company_id = current_user["id"]
 
         # Vérifier que le lien existe
-        link = supabase.from_("tracking_links") \
-            .select("*") \
-            .eq("id", link_id) \
-            .eq("merchant_id", company_id) \
+        try:
+            link = supabase.from_("tracking_links") \
+                .select("*") \
+                .eq("id", link_id) \
+                .eq("merchant_id", company_id) \
                 .single() \
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            link = MockResponse()
 
         if not link.data:
             raise HTTPException(status_code=404, detail="Link not found")

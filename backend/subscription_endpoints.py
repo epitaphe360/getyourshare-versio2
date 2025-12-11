@@ -201,10 +201,10 @@ async def create_stripe_subscription(
             .single() \
             .execute()
     except Exception:
-        plan_response = supabase.from_("subscription_plans") \
-            .select("*") \
-            .eq("id", plan_id) \
-            .execute()
+        # Create a dummy response with no data to trigger the 404 check below
+        class MockResponse:
+            data = None
+        plan_response = MockResponse()
 
     if not plan_response.data:
         raise HTTPException(status_code=404, detail="Plan not found")

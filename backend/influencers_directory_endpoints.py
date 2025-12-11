@@ -329,11 +329,17 @@ async def update_influencer_profile(
         # Recalculer l'engagement moyen si nécessaire
         if any(k.endswith('_followers') or k.endswith('_engagement_rate') for k in update_data.keys()):
             # Récupérer le profil actuel
-            current = supabase.from_("influencer_profiles") \
-                .select("*") \
-                .eq("user_id", user_id) \
+            try:
+                current = supabase.from_("influencer_profiles") \
+                    .select("*") \
+                    .eq("user_id", user_id) \
                     .single() \
-                .execute()
+                    .execute()
+            except Exception:
+                # Create a dummy response
+                class MockResponse:
+                    data = None
+                current = MockResponse()
 
             if current.data:
                 # Fusionner avec les nouvelles données
@@ -574,13 +580,19 @@ async def request_collaboration(
         company_id = current_user["id"]
 
         # Vérifier que l'influenceur existe
-        influencer = supabase.from_("influencer_profiles") \
-            .select("*") \
-            .eq("user_id", user_id) \
-            .eq("is_public", True) \
-            .eq("is_available", True) \
+        try:
+            influencer = supabase.from_("influencer_profiles") \
+                .select("*") \
+                .eq("user_id", user_id) \
+                .eq("is_public", True) \
+                .eq("is_available", True) \
                 .single() \
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            influencer = MockResponse()
 
         if not influencer.data:
             raise HTTPException(

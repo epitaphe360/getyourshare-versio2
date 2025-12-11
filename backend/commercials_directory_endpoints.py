@@ -447,13 +447,19 @@ async def request_collaboration(
         company_id = current_user["id"]
 
         # Vérifier que le commercial existe
-        commercial = supabase.from_("commercial_profiles") \
-            .select("*") \
-            .eq("user_id", user_id) \
-            .eq("is_public", True) \
-            .eq("is_available", True) \
+        try:
+            commercial = supabase.from_("commercial_profiles") \
+                .select("*") \
+                .eq("user_id", user_id) \
+                .eq("is_public", True) \
+                .eq("is_available", True) \
                 .single() \
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            commercial = MockResponse()
 
         if not commercial.data:
             raise HTTPException(

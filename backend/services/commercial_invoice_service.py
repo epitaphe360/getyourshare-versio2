@@ -184,20 +184,32 @@ class CommercialInvoiceService:
             Dict avec les informations de la facture créée
         """
         # Récupérer les infos du commercial depuis users
-        commercial_result = self.supabase.table('users')\
-            .select('*')\
-            .eq('id', commercial_id)\
+        try:
+            commercial_result = self.supabase.table('users')\
+                .select('*')\
+                .eq('id', commercial_id)\
                 .single()\
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            commercial_result = MockResponse()
         
         commercial = commercial_result.data if commercial_result.data else {}
         
         # Récupérer les infos supplémentaires depuis sales_representatives
-        sales_rep_result = self.supabase.table('sales_representatives')\
-            .select('*')\
-            .eq('user_id', commercial_id)\
+        try:
+            sales_rep_result = self.supabase.table('sales_representatives')\
+                .select('*')\
+                .eq('user_id', commercial_id)\
                 .single()\
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            sales_rep_result = MockResponse()
         
         sales_rep = sales_rep_result.data if sales_rep_result.data else {}
         

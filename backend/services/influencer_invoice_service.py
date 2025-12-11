@@ -180,20 +180,32 @@ class InfluencerInvoiceService:
             Dict avec les informations de la facture créée
         """
         # Récupérer les infos de l'influenceur
-        influencer_result = self.supabase.table('users')\
-            .select('*')\
-            .eq('id', influencer_id)\
+        try:
+            influencer_result = self.supabase.table('users')\
+                .select('*')\
+                .eq('id', influencer_id)\
                 .single()\
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            influencer_result = MockResponse()
         
         influencer = influencer_result.data if influencer_result.data else {}
         
         # Récupérer les infos du marchand
-        merchant_result = self.supabase.table('users')\
-            .select('*')\
-            .eq('id', merchant_id)\
+        try:
+            merchant_result = self.supabase.table('users')\
+                .select('*')\
+                .eq('id', merchant_id)\
                 .single()\
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            merchant_result = MockResponse()
         
         merchant = merchant_result.data if merchant_result.data else {}
         

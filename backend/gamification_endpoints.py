@@ -512,11 +512,17 @@ async def complete_mission(
             .execute()
         
         # Mettre à jour user_gamification
-        gamification = supabase.table('user_gamification')\
-            .select('*')\
-            .eq('user_id', user_id)\
+        try:
+            gamification = supabase.table('user_gamification')\
+                .select('*')\
+                .eq('user_id', user_id)\
                 .single()\
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            gamification = MockResponse()
         
         if gamification.data:
             current_points = gamification.data['total_points']

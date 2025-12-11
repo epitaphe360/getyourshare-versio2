@@ -232,11 +232,17 @@ async def reject_payout(
         supabase = get_supabase_client()
 
         # Récupérer le paiement
-        payout_result = supabase.table('payouts')\
-            .select('*')\
-            .eq('id', payout_id)\
+        try:
+            payout_result = supabase.table('payouts')\
+                .select('*')\
+                .eq('id', payout_id)\
                 .single()\
-            .execute()
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            payout_result = MockResponse()
 
         if not payout_result.data:
             raise HTTPException(status_code=404, detail="Paiement non trouvé")
