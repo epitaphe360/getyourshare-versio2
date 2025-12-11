@@ -623,17 +623,17 @@ async def generate_invoice_pdf(invoice_id: str):
     
     # Récupérer facture + lignes
     try:
-    invoice = supabase.table('fiscal_invoices').select('*').eq('id', invoice_id).single().execute()
+        invoice = supabase.table('fiscal_invoices').select('*').eq('id', invoice_id).single().execute()
     except Exception:
         pass  # .single() might return no results
     if not invoice.data:
         raise HTTPException(status_code=404, detail="Facture non trouvée")
-    
+
     lines = supabase.table('fiscal_invoice_lines').select('*').eq('invoice_id', invoice_id).execute()
-    
+
     # Récupérer config fiscale
     try:
-    settings = supabase.table('fiscal_settings').select('*').eq('user_id', invoice.data['user_id']).single().execute()
+        settings = supabase.table('fiscal_settings').select('*').eq('user_id', invoice.data['user_id']).single().execute()
     except Exception:
         pass  # .single() might return no results
     
@@ -725,7 +725,7 @@ async def send_invoice_email(invoice_id: str, to_email: Optional[str] = None):
     
     # Récupérer facture
     try:
-    invoice = supabase.table('fiscal_invoices').select('*').eq('id', invoice_id).single().execute()
+        invoice = supabase.table('fiscal_invoices').select('*').eq('id', invoice_id).single().execute()
     except Exception:
         pass  # .single() might return no results
     if not invoice.data:
