@@ -183,6 +183,14 @@ async def create_campaign(
     """
     try:
         user_id = payload.get("id") or payload.get("user_id") or payload.get("sub")
+        role = payload.get("role")
+
+        # SECURITY: Only merchants can create campaigns
+        if role != "merchant":
+            raise HTTPException(
+                status_code=403,
+                detail="Only merchants can create campaigns. Influencers and commercials cannot create campaigns."
+            )
 
         campaign_data = campaign.dict()
         campaign_data['created_by'] = user_id

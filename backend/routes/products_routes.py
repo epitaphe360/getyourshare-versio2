@@ -243,6 +243,14 @@ async def create_product(
     """
     try:
         user_id = payload.get("id") or payload.get("user_id") or payload.get("sub")
+        role = payload.get("role")
+
+        # SECURITY: Only merchants can create products
+        if role != "merchant":
+            raise HTTPException(
+                status_code=403,
+                detail="Only merchants can create products. Influencers and commercials cannot add products."
+            )
 
         product_data = product.dict()
         product_data['merchant_id'] = user_id
@@ -362,6 +370,14 @@ async def bulk_import_products(
     """
     try:
         user_id = payload.get("id") or payload.get("user_id") or payload.get("sub")
+        role = payload.get("role")
+
+        # SECURITY: Only merchants can bulk import products
+        if role != "merchant":
+            raise HTTPException(
+                status_code=403,
+                detail="Only merchants can bulk import products"
+            )
 
         # Lire le fichier CSV
         contents = await file.read()
