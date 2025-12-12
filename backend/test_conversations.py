@@ -3,6 +3,7 @@ Test pour vérifier les conversations
 """
 
 from supabase_client import supabase
+from utils.logger import logger
 
 try:
     # Test 1: Compter les conversations
@@ -38,9 +39,8 @@ try:
             logger.info(f"   - {merchant.get('company_name', 'N/A')} ↔ {influencer.get('username', 'N/A')}")
     
     logger.info("\n✨ Tous les tests réussis !")
-    
 except Exception as e:
-    logger.info(f"\n❌ Erreur: {e}")
+    logger.info(f"❌ Erreur: {e}")
     import traceback
-from utils.logger import logger
+    traceback.print_exc()
     traceback.print_exc()

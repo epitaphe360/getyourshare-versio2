@@ -4,6 +4,7 @@ Script pour détecter les try: au milieu de chaînes de méthodes
 """
 import os
 import re
+from pathlib import Path
 
 def check_file_for_inline_try(filepath):
     """Vérifier un fichier pour des try au milieu de chaînes"""
@@ -36,7 +37,7 @@ def check_file_for_inline_try(filepath):
 
 def main():
     """Chercher dans tous les fichiers Python"""
-    backend_dir = '/home/user/getyourshare-versio2/backend'
+    backend_dir = Path(__file__).resolve().parent
     all_errors = []
 
     # Chercher tous les fichiers .py

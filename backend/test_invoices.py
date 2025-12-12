@@ -3,6 +3,7 @@ Test rapide pour vérifier si les factures sont accessibles
 """
 
 from supabase_client import supabase
+from utils.logger import logger
 
 try:
     # Test 1: Query simple sans JOIN
@@ -34,5 +35,4 @@ try:
 except Exception as e:
     logger.info(f"\n❌ Erreur: {e}")
     import traceback
-from utils.logger import logger
     traceback.print_exc()

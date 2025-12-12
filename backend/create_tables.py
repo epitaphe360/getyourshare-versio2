@@ -55,7 +55,7 @@ def create_tables():
     try:
         import psycopg2
         from urllib.parse import urlparse
-from utils.logger import logger
+        from utils.logger import logger
 
         # Construire l'URL PostgreSQL depuis l'URL Supabase
         # Format: postgres://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:5432/postgres

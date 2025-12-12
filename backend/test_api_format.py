@@ -4,6 +4,7 @@ Tester l'API conversations pour voir le format exact des données
 import os
 from supabase import create_client
 from dotenv import load_dotenv
+from utils.logger import logger
 
 load_dotenv()
 
@@ -17,8 +18,8 @@ try:
     
     result = supabase.from_("conversations").select("""
         *,
-        merchant:merchant_id(id, username, email, company_name),
-        influencer:influencer_id(id, username, email)
+        merchant:users!merchant_id(id, username, email, company_name),
+        influencer:users!influencer_id(id, username, email)
     """).order("last_message_at", desc=True).limit(3).execute()
     
     if result.data:
@@ -51,9 +52,8 @@ try:
             print()
     else:
         logger.info("⚠️ Aucune conversation trouvée")
-    
 except Exception as e:
     logger.info(f"❌ Erreur: {e}")
     import traceback
-from utils.logger import logger
+    traceback.print_exc()
     traceback.print_exc()

@@ -4,6 +4,7 @@ Script pour détecter les blocs try avec indentation incorrecte
 """
 import os
 import re
+from pathlib import Path
 
 def check_file(filepath):
     """Vérifier un fichier Python pour des erreurs d'indentation après try"""
@@ -48,7 +49,7 @@ def check_file(filepath):
 
 def main():
     """Chercher dans tous les fichiers Python"""
-    backend_dir = '/home/user/getyourshare-versio2/backend'
+    backend_dir = Path(__file__).resolve().parent
     all_errors = []
 
     # Chercher tous les fichiers .py

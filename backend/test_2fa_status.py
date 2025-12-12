@@ -4,6 +4,7 @@ sys.path.insert(0, "C:\\Users\\Admin\\Desktop\\shareyoursales\\Getyourshare1\\ba
 
 try:
     from supabase_client import supabase
+    from utils.logger import logger
 
     logger.info("🔍 Test du statut 2FA...")
     logger.info("=" * 60)
@@ -32,10 +33,8 @@ try:
             logger.info("✅ 2FA activée avec succès!")
     else:
         logger.info("❌ Utilisateur non trouvé")
-
 except Exception as e:
     logger.info(f"❌ Erreur: {e}")
     import traceback
-from utils.logger import logger
-
+    traceback.print_exc()
     traceback.print_exc()
