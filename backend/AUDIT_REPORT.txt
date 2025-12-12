@@ -1,0 +1,134 @@
+================================================================================
+RAPPORT D'AUDIT COMPLET DES ENDPOINTS
+================================================================================
+
+TOTAL BUGS TROUVÉS: 160
+
+
+================================================================================
+1. CONVERSIONS FLOAT() NON PROTÉGÉES
+================================================================================
+
+Ligne 1568:
+  users_balance = {u["id"]: float(u.get("balance", 0)) for u in (users_result.data or [])}
+
+Ligne 1598:
+  "total_spent": float(row.get("total_revenue", 0)),
+
+Ligne 1599:
+  "total_revenue": float(row.get("total_revenue", 0)),
+
+Ligne 1600:
+  "total_sales": float(row.get("total_revenue", 0)),
+
+Ligne 1639:
+  merchant_revenue[mid] = merchant_revenue.get(mid, 0) + float(sale.get('amount', 0))
+
+Ligne 1680:
+  "balance": float(user.get("balance", 0)),
+
+Ligne 1737:
+  "engagement_rate": float(row.get("engagement_rate", 0)),
+
+Ligne 1738:
+  "total_earnings": float(row.get("total_earnings", 0)),
+
+Ligne 1774:
+  influencer_earnings[iid] = influencer_earnings.get(iid, 0) + float(comm.get('amount', 0))
+
+Ligne 1861:
+  total_sales = sum(float(s.get('amount', 0)) for s in sales)
+
+Ligne 1938:
+  commission_earned = sum([float(s.get("commission_amount", 0)) for s in sales])
+
+Ligne 2050:
+  "price": float(plan.get("price", 0)),
+
+Ligne 2051:
+  "commission_rate": float(features.get("commission_rate", 5)),
+
+Ligne 2086:
+  requested_amount = float(body.get("amount", 0))
+
+Ligne 2108:
+  total_earned = sum([float(c.get("amount", 0)) for c in commissions])
+
+Ligne 2116:
+  total_withdrawn = sum([float(p.get("amount", 0)) for p in payouts if p.get("status") in ["paid", "pr
+
+Ligne 2273:
+  "product_price": float(product_data.get("price", 0)),
+
+Ligne 2274:
+  "commission_rate": float(inv.get("commission_rate", 0)),
+
+Ligne 2394:
+  total_revenue = sum([float(d.get("value", 0)) for d in deals])
+
+Ligne 2404:
+  pipeline_value = sum([float(d.get("value", 0)) for d in (pipeline_deals_result.data or [])])
+
+================================================================================
+2. ENDPOINTS SANS TRY/EXCEPT
+================================================================================
+
+Ligne 874: GET /
+  Fonction: root
+
+Ligne 883: GET /health
+  Fonction: health_check
+
+Ligne 893: GET /api/health
+  Fonction: api_health_check
+
+Ligne 1084: POST /api/auth/logout
+  Fonction: logout
+
+Ligne 1153: GET /api/auth/me
+  Fonction: get_current_user_endpoint
+
+Ligne 1180: GET /api/users/me
+  Fonction: get_current_user_alias
+
+Ligne 1698: GET /api/merchants/{merchant_id}
+  Fonction: get_merchant
+
+Ligne 1838: GET /api/influencers/{influencer_id}
+  Fonction: get_influencer
+
+Ligne 5073: GET /api/fiscal/countries
+  Fonction: get_fiscal_countries
+
+Ligne 5084: GET /api/fiscal/rates/{country_code}
+  Fonction: get_fiscal_rates
+
+Ligne 5461: POST /api/affiliate-links/generate
+  Fonction: generate_affiliate_link
+
+Ligne 5983: POST /api/campaigns
+  Fonction: create_campaign_endpoint
+
+Ligne 6556: GET /api/analytics/revenue-chart
+  Fonction: get_revenue_chart_alias
+
+Ligne 6661: GET /api/analytics/categories
+  Fonction: get_categories_alias
+
+Ligne 6670: GET /api/payouts
+  Fonction: get_payouts_endpoint
+
+Ligne 6676: PUT /api/payouts/{payout_id}/status
+  Fonction: update_payout_status_endpoint
+
+Ligne 6690: GET /api/settings
+  Fonction: get_settings
+
+Ligne 6700: PUT /api/settings
+  Fonction: update_settings
+
+Ligne 7439: GET /api/logs/postback
+  Fonction: get_postback_logs
+
+Ligne 7444: GET /api/logs/audit
+  Fonction: get_audit_logs

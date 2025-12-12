@@ -1565,7 +1565,7 @@ async def get_merchants(request: Request, payload: dict = Depends(get_current_us
             if view_result.data:
                 # Récupérer les balances, produits et campagnes depuis les tables
                 users_result = supabase.from_("users").select("id, balance").eq("role", "merchant").execute()
-                users_balance = {u["id"]: float(u.get("balance", 0)) for u in (users_result.data or [])}
+                users_balance = {u["id"]: (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(u.get("balance", 0)) for u in (users_result.data or [])}
                 
                 products_result = supabase.table('products').select('merchant_id').execute()
                 products_data = products_result.data if products_result.data else []
@@ -1585,7 +1585,7 @@ async def get_merchants(request: Request, payload: dict = Depends(get_current_us
                         merchant_campaigns_count[mid] = merchant_campaigns_count.get(mid, 0) + 1
                 
                 formatted_merchants = []
-                for row in view_result.data:
+                for row in (view_result.data or []):
                     user_id = row.get("user_id")
                     formatted_merchants.append({
                         "id": user_id,
@@ -1595,9 +1595,9 @@ async def get_merchants(request: Request, payload: dict = Depends(get_current_us
                         "email": row.get("email"),
                         "country": "Maroc", # Default
                         "balance": users_balance.get(user_id, 0),
-                        "total_spent": float(row.get("total_revenue", 0)),
-                        "total_revenue": float(row.get("total_revenue", 0)),
-                        "total_sales": float(row.get("total_revenue", 0)),
+                        "total_spent": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(row.get("total_revenue", 0)),
+                        "total_revenue": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(row.get("total_revenue", 0)),
+                        "total_sales": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(row.get("total_revenue", 0)),
                         "products_count": merchant_products_count.get(user_id, 0),
                         "campaigns_count": merchant_campaigns_count.get(user_id, 0),
                         "status": "active",
@@ -1677,7 +1677,7 @@ async def get_merchants(request: Request, payload: dict = Depends(get_current_us
                 "category": category,
                 "email": user.get("email"),
                 "country": detail.get("country") or user.get("country", ""),
-                "balance": float(user.get("balance", 0)),
+                "balance": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(user.get("balance", 0)),
                 "total_spent": real_revenue,
                 "total_revenue": real_revenue,
                 "total_sales": real_revenue, # Added for frontend compatibility
@@ -1726,7 +1726,7 @@ async def get_influencers(request: Request, payload: dict = Depends(get_current_
                         influencer_clicks[iid] = influencer_clicks.get(iid, 0) + 1
                 
                 formatted_influencers = []
-                for row in view_result.data:
+                for row in (view_result.data or []):
                     user_id = row.get("user_id")
                     formatted_influencers.append({
                         "id": user_id,
@@ -1734,8 +1734,8 @@ async def get_influencers(request: Request, payload: dict = Depends(get_current_
                         "username": str(row.get("username", "")).replace('@', ''),
                         "email": row.get("email"),
                         "audience_size": row.get("audience_size"),
-                        "engagement_rate": float(row.get("engagement_rate", 0)),
-                        "total_earnings": float(row.get("total_earnings", 0)),
+                        "engagement_rate": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(row.get("engagement_rate", 0)),
+                        "total_earnings": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(row.get("total_earnings", 0)),
                         "total_clicks": influencer_clicks.get(user_id, 0),
                         "influencer_type": row.get("influencer_type") or "micro",
                         "category": row.get("category"),
@@ -1935,7 +1935,7 @@ async def get_affiliate_links(request: Request, payload: dict = Depends(get_curr
             sales_result = supabase.table("conversions").select("commission_amount").eq("tracking_link_id", link_id).eq("status", "completed").execute()
             sales = sales_result.data if sales_result.data else []
             total_conversions = len(sales)
-            commission_earned = sum([float(s.get("commission_amount", 0)) for s in sales])
+            commission_earned = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(s.get("commission_amount", 0)) for s in sales])
             
             # Extraire les noms
             product_name = link.get("products", {}).get("name", "N/A") if link.get("products") else "N/A"
@@ -2047,7 +2047,7 @@ async def get_current_subscription(request: Request, payload: dict = Depends(get
         return {
             "id": subscription.get("id"),
             "plan_name": plan.get("name", "Free"),
-            "price": float(plan.get("price", 0)),
+            "price": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(plan.get("price", 0)),
             "commission_rate": float(features.get("commission_rate", 5)),
             "max_campaigns": plan.get("max_campaigns", 5),
             "max_tracking_links": plan.get("max_tracking_links", 10),
@@ -2083,7 +2083,7 @@ async def request_payout(request: Request, current_user: dict = Depends(get_curr
     try:
         # Récupérer les données de la requête
         body = await request.json()
-        requested_amount = float(body.get("amount", 0))
+        requested_amount = (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(body.get("amount", 0))
         payment_method = body.get("payment_method", "bank_transfer")
         currency = body.get("currency", "EUR")
         
@@ -2105,7 +2105,7 @@ async def request_payout(request: Request, current_user: dict = Depends(get_curr
         logger.info("Fetching commissions...")
         commissions_result = supabase.table("commissions").select("amount").eq("influencer_id", influencer_id).execute()
         commissions = commissions_result.data if commissions_result.data else []
-        total_earned = sum([float(c.get("amount", 0)) for c in commissions])
+        total_earned = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(c.get("amount", 0)) for c in commissions])
         logger.info(f"Total earned: {total_earned}")
         
         # 2. Total des payouts déjà effectués (paid) ou en cours (processing)
@@ -2113,7 +2113,7 @@ async def request_payout(request: Request, current_user: dict = Depends(get_curr
         try:
             payouts_result = supabase.table("payouts").select("amount, status").eq("influencer_id", influencer_id).execute()
             payouts = payouts_result.data if payouts_result.data else []
-            total_withdrawn = sum([float(p.get("amount", 0)) for p in payouts if p.get("status") in ["paid", "processing"]])
+            total_withdrawn = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(p.get("amount", 0)) for p in payouts if p.get("status") in ["paid", "processing"]])
         except Exception as e:
             logger.error(f"Error fetching payouts (table might be missing): {e}")
             # If table missing, assume 0 withdrawn? Or fail?
@@ -2270,8 +2270,8 @@ async def get_invitations(current_user: dict = Depends(get_current_user_from_coo
                 "merchant_email": merchant_data.get("email", ""),
                 "product_name": product_data.get("name", "N/A"),
                 "product_description": product_data.get("description", ""),
-                "product_price": float(product_data.get("price", 0)),
-                "commission_rate": float(inv.get("commission_rate", 0)),
+                "product_price": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(product_data.get("price", 0)),
+                "commission_rate": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(inv.get("commission_rate", 0)),
                 "status": inv.get("status", "pending"),
                 "message": inv.get("message", ""),
                 "created_at": inv.get("created_at"),
@@ -2391,7 +2391,7 @@ async def get_sales_dashboard(current_user: dict = Depends(get_current_user_from
         # Process data
         deals = deals_result.data if deals_result.data else []
         total_deals = len(deals)
-        total_revenue = sum([float(d.get("value", 0)) for d in deals])
+        total_revenue = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(d.get("value", 0)) for d in deals])
         
         # Commission (5% du revenu)
         commission_rate = float(sales_rep.get("commission_rate", 5.0) if isinstance(sales_rep, dict) else sales_rep[0].get("commission_rate", 5.0))
@@ -2401,7 +2401,7 @@ async def get_sales_dashboard(current_user: dict = Depends(get_current_user_from
         total_leads = total_leads_result.count or 0
         conversion_rate = (total_deals / total_leads * 100) if total_leads > 0 else 0
         
-        pipeline_value = sum([float(d.get("value", 0)) for d in (pipeline_deals_result.data or [])])
+        pipeline_value = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(d.get("value", 0)) for d in (pipeline_deals_result.data or [])])
         
         # Gamification
         points = total_deals * 100 + int(total_revenue * 0.01)
@@ -2532,9 +2532,9 @@ async def get_my_deals(current_user: dict = Depends(get_current_user_from_cookie
         deals = deals_result.data if deals_result.data else []
         
         # Calculer valeur totale par status
-        open_value = sum([float(d.get("value", 0)) for d in deals if d.get("status") == "open"])
-        won_value = sum([float(d.get("value", 0)) for d in deals if d.get("status") == "won"])
-        lost_value = sum([float(d.get("value", 0)) for d in deals if d.get("status") == "lost"])
+        open_value = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(d.get("value", 0)) for d in deals if d.get("status") == "open"])
+        won_value = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(d.get("value", 0)) for d in deals if d.get("status") == "won"])
+        lost_value = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(d.get("value", 0)) for d in deals if d.get("status") == "lost"])
         
         return {
             "deals": deals,
@@ -2578,7 +2578,7 @@ async def get_sales_leaderboard(current_user: dict = Depends(get_current_user_fr
             deals = deals_result.data if deals_result.data else []
             
             total_deals = len(deals)
-            total_revenue = sum([float(d.get("value", 0)) for d in deals])
+            total_revenue = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(d.get("value", 0)) for d in deals])
             
             # Calculer points
             points = total_deals * 100 + int(total_revenue * 0.01)
@@ -3244,7 +3244,7 @@ async def get_admin_analytics_metrics(
         sales_result = supabase.table("sales").select("amount").gte("created_at", start_date).execute()
         total_revenue = 0
         if sales_result.data:
-            for sale in sales_result.data:
+            for sale in (sales_result.data or []):
                 try:
                     amount = sale.get("amount")
                     if amount is not None:
@@ -3294,7 +3294,7 @@ async def get_admin_analytics_revenue(
         # Agréger par jour avec protection contre les valeurs null
         daily_revenue = {}
         if result.data:
-            for sale in result.data:
+            for sale in (result.data or []):
                 created_at = sale.get("created_at")
                 if not created_at:
                     continue
@@ -3340,7 +3340,7 @@ async def get_admin_analytics_users_growth(
         
         # Agréger par jour
         daily_users = {}
-        for user in result.data:
+        for user in (result.data or []):
             date = user.get("created_at", "")[:10]
             if date not in daily_users:
                 daily_users[date] = {"total": 0, "merchants": 0, "influencers": 0, "commercials": 0}
@@ -3381,7 +3381,7 @@ async def get_admin_analytics_subscriptions(
         
         # Agréger par jour
         daily_subs = {}
-        for sub in result.data:
+        for sub in (result.data or []):
             date = sub.get("created_at", "")[:10]
             if date not in daily_subs:
                 daily_subs[date] = {"new": 0, "active": 0, "cancelled": 0}
@@ -3456,7 +3456,7 @@ async def get_admin_analytics_plan_distribution(
         
         # Compter par plan
         plan_counts = {}
-        for sub in result.data:
+        for sub in (result.data or []):
             plan_id = sub.get("plan_id")
             plan_name = sub.get("subscription_plans", {}).get("name", "Unknown")
             if plan_id:
@@ -3492,7 +3492,7 @@ async def get_admin_analytics_top_performers(
             .execute()
         
         influencer_stats = {}
-        for sale in influencers_sales.data:
+        for sale in (influencers_sales.data or []):
             inf_id = sale.get("influencer_id")
             if inf_id:
                 if inf_id not in influencer_stats:
@@ -3501,7 +3501,7 @@ async def get_admin_analytics_top_performers(
                         "revenue": 0,
                         "sales_count": 0
                     }
-                influencer_stats[inf_id]["revenue"] += float(sale.get("amount", 0))
+                influencer_stats[inf_id]["revenue"] += (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(sale.get("amount", 0))
                 influencer_stats[inf_id]["sales_count"] += 1
         
         top_influencers = sorted(influencer_stats.values(), key=lambda x: x["revenue"], reverse=True)[:limit]
@@ -3513,7 +3513,7 @@ async def get_admin_analytics_top_performers(
             .execute()
         
         merchant_stats = {}
-        for sale in merchants_sales.data:
+        for sale in (merchants_sales.data or []):
             merch_id = sale.get("merchant_id")
             if merch_id:
                 if merch_id not in merchant_stats:
@@ -3522,7 +3522,7 @@ async def get_admin_analytics_top_performers(
                         "revenue": 0,
                         "sales_count": 0
                     }
-                merchant_stats[merch_id]["revenue"] += float(sale.get("amount", 0))
+                merchant_stats[merch_id]["revenue"] += (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(sale.get("amount", 0))
                 merchant_stats[merch_id]["sales_count"] += 1
         
         top_merchants = sorted(merchant_stats.values(), key=lambda x: x["revenue"], reverse=True)[:limit]
@@ -3556,7 +3556,7 @@ async def get_admin_analytics_revenue_by_source(
             .execute()
         
         campaign_revenue = {}
-        for sale in campaign_sales.data:
+        for sale in (campaign_sales.data or []):
             camp_id = sale.get("campaign_id")
             if camp_id:
                 if camp_id not in campaign_revenue:
@@ -3564,7 +3564,7 @@ async def get_admin_analytics_revenue_by_source(
                         "campaign_name": sale.get("campaigns", {}).get("name", ""),
                         "revenue": 0
                     }
-                campaign_revenue[camp_id]["revenue"] += float(sale.get("amount", 0))
+                campaign_revenue[camp_id]["revenue"] += (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(sale.get("amount", 0))
         
         # Revenus par catégorie de produit
         product_sales = supabase.table("sales")\
@@ -3573,11 +3573,11 @@ async def get_admin_analytics_revenue_by_source(
             .execute()
         
         category_revenue = {}
-        for sale in product_sales.data:
+        for sale in (product_sales.data or []):
             category = sale.get("products", {}).get("category", "Autre")
             if category not in category_revenue:
                 category_revenue[category] = {"category": category, "revenue": 0}
-            category_revenue[category]["revenue"] += float(sale.get("amount", 0))
+            category_revenue[category]["revenue"] += (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(sale.get("amount", 0))
         
         return {
             "revenue_by_campaign": list(campaign_revenue.values()),
@@ -4019,9 +4019,9 @@ async def get_invoices(
                 "merchant_id": inv.get("user_id"),  # Utiliser user_id comme merchant_id
                 "advertiser": user_data.get("company_name") or user_data.get("username", "Inconnu"),
                 "invoice_number": inv.get("invoice_number"),
-                "amount": float(inv.get("amount", 0)),
+                "amount": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(inv.get("amount", 0)),
                 "tax_amount": 0,  # Pas de tax_amount dans la table
-                "total_amount": float(inv.get("amount", 0)),  # Utiliser amount comme total
+                "total_amount": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(inv.get("amount", 0)),  # Utiliser amount comme total
                 "currency": "EUR",
                 "description": f"Abonnement - Facture {inv.get('invoice_number')}",
                 "notes": inv.get("stripe_invoice_id", ""),
@@ -4360,7 +4360,7 @@ async def get_products_stats(payload: dict = Depends(get_current_user_from_cooki
         in_stock = sum(1 for p in products if (p.get("stock") or 0) > 0)
         out_of_stock = sum(1 for p in products if (p.get("stock") or 0) == 0)
         low_stock = sum(1 for p in products if 0 < (p.get("stock") or 0) < 10)
-        total_value = sum(float(p.get("price", 0)) * int(p.get("stock", 0)) for p in products)
+        total_value = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(p.get("price", 0)) * int(p.get("stock", 0)) for p in products)
         
         return {
             "total": total,
@@ -4927,7 +4927,7 @@ async def get_leads_analytics(
         
         # Agréger par jour
         daily_leads = {}
-        for lead in result.data:
+        for lead in (result.data or []):
             date = lead.get("created_at", "")[:10]
             if date not in daily_leads:
                 daily_leads[date] = {"total": 0, "converted": 0}
@@ -5217,7 +5217,7 @@ async def get_merchant_dashboard_stats(
         # Total ventes
         sales_result = supabase.table("sales").select("amount", count="exact").eq("merchant_id", current_user["id"]).gte("created_at", start_date).execute()
         total_sales = sales_result.count if hasattr(sales_result, 'count') else len(sales_result.data)
-        revenue = sum(float(sale.get("amount", 0)) for sale in sales_result.data) if sales_result.data else 0
+        revenue = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(sale.get("amount", 0)) for sale in sales_result.data) if sales_result.data else 0
         
         # Affiliés actifs
         affiliates_result = supabase.table("affiliate_links").select("influencer_id").eq("product_id.merchant_id", current_user["id"]).execute()
@@ -5340,7 +5340,7 @@ async def get_merchant_dashboard_affiliates(
         
         # Dédupliquer par influencer_id
         affiliates_dict = {}
-        for link in result.data:
+        for link in (result.data or []):
             inf_id = link.get("influencer_id")
             if inf_id and inf_id not in affiliates_dict:
                 affiliates_dict[inf_id] = link.get("influencers")
@@ -5375,9 +5375,9 @@ async def get_merchant_dashboard_revenue(
         
         # Agréger par jour
         daily_revenue = {}
-        for sale in result.data:
+        for sale in (result.data or []):
             date = sale.get("created_at", "")[:10]  # YYYY-MM-DD
-            amount = float(sale.get("amount", 0))
+            amount = (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(sale.get("amount", 0))
             daily_revenue[date] = daily_revenue.get(date, 0) + amount
         
         revenue_data = [{"date": date, "revenue": amount} for date, amount in daily_revenue.items()]
@@ -5411,12 +5411,12 @@ async def get_merchant_dashboard_analytics(
             .execute()
         
         product_sales = {}
-        for sale in top_products.data:
+        for sale in (top_products.data or []):
             pid = sale.get("product_id")
             if pid:
                 if pid not in product_sales:
                     product_sales[pid] = {"product": sale.get("products"), "total": 0, "count": 0}
-                product_sales[pid]["total"] += float(sale.get("amount", 0))
+                product_sales[pid]["total"] += (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(sale.get("amount", 0))
                 product_sales[pid]["count"] += 1
         
         top_products_list = sorted(product_sales.values(), key=lambda x: x["total"], reverse=True)[:5]
@@ -5554,7 +5554,7 @@ async def get_social_media_dashboard(
         
         # Statistiques par plateforme
         platform_stats = {}
-        for conn in connections.data:
+        for conn in (connections.data or []):
             platform = conn.get("platform")
             if platform:
                 stats_result = supabase.table("social_media_stats")\
@@ -5599,7 +5599,7 @@ async def sync_social_media_data(
         connections = query.execute()
         
         synced_count = 0
-        for conn in connections.data:
+        for conn in (connections.data or []):
             # Simuler la synchronisation (à implémenter avec les APIs réelles)
             sync_log = {
                 "connection_id": conn["id"],
@@ -5901,7 +5901,7 @@ async def get_campaign_influencers(campaign_id: str, current_user: dict = Depend
         
         # Grouper par influencer_id
         influencer_stats = {}
-        for link in tracking_links_response.data:
+        for link in (tracking_links_response.data or []):
             inf_id = link.get('influencer_id')
             if not inf_id:
                 continue
@@ -6420,7 +6420,7 @@ async def get_clicks_endpoint(current_user: dict = Depends(get_current_user_from
 #         # Total des commissions gagnées
 #         conversions_result = supabase.table("conversions").select("commission_amount").eq("influencer_id", user_id).eq("status", "completed").execute()
 #         conversions = conversions_result.data if conversions_result.data else []
-#         total_earnings = sum([float(c.get("commission_amount", 0)) for c in conversions])
+#         total_earnings = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(c.get("commission_amount", 0)) for c in conversions])
         
 #         # Total des clics (conversions de tous statuts)
 #         clicks_result = supabase.table("conversions").select("id", count="exact").eq("influencer_id", user_id).execute()
@@ -6440,12 +6440,12 @@ async def get_clicks_endpoint(current_user: dict = Depends(get_current_user_from
 #         from datetime import datetime
 #         start_of_month = datetime.now().replace(day=1, hour=0, minute=0, second=0).isoformat()
 #         month_conversions = supabase.table("conversions").select("commission_amount").eq("influencer_id", user_id).eq("status", "completed").gte("created_at", start_of_month).execute()
-#         monthly_earnings = sum([float(c.get("commission_amount", 0)) for c in (month_conversions.data or [])])
+#         monthly_earnings = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(c.get("commission_amount", 0)) for c in (month_conversions.data or [])])
         
 #         # Balance disponible (gains - payouts)
 #         payouts_result = supabase.table("payouts").select("amount").eq("influencer_id", user_id).in_("status", ["paid", "processing"]).execute()
 #         payouts = payouts_result.data if payouts_result.data else []
-#         total_paid = sum([float(p.get("amount", 0)) for p in payouts])
+#         total_paid = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(p.get("amount", 0)) for p in payouts])
 #         available_balance = total_earnings - total_paid
         
 #         return {
@@ -7536,7 +7536,7 @@ async def get_coupons(current_user: dict = Depends(get_current_user_from_cookie)
 #         # Calculer best performing product
 #         best_product = None
 #         max_revenue = 0
-#         for link in links_result.data:
+#         for link in (links_result.data or []):
 #             revenue = (link.get("total_revenue") or 0)
 #             if revenue > max_revenue:
 #                 max_revenue = revenue
@@ -7668,7 +7668,7 @@ async def get_platform_revenue(
         
         # Grouper par merchant
         merchants_revenue = {}
-        for sale in sales.data:
+        for sale in (sales.data or []):
             merchant_id = sale.get('merchant_id')
             if not merchant_id:
                 continue
@@ -9193,7 +9193,7 @@ async def get_my_subscription(current_user: dict = Depends(get_current_user_from
                 "plan_name": plan.get("name", "Free"),
                 "plan_details": {
                     "name": plan.get("name", "Free"),
-                    "price": float(plan.get("price", 0)),
+                    "price": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(plan.get("price", 0)),
                     "commission_rate": float(features.get("commission_rate", 5)),
                     "max_campaigns": plan.get("max_campaigns", 5),
                     "max_tracking_links": plan.get("max_tracking_links", 10),
@@ -9480,12 +9480,12 @@ async def get_marketplace_categories(
         categories = set()
         
         if products_result.data:
-            for item in products_result.data:
+            for item in (products_result.data or []):
                 if item.get("category"):
                     categories.add(item["category"])
         
         if services_result.data:
-            for item in services_result.data:
+            for item in (services_result.data or []):
                 if item.get("category"):
                     categories.add(item["category"])
         
@@ -10463,7 +10463,7 @@ async def get_subscriptions_analytics(
         
         # Distribution par plan
         plan_distribution = {}
-        for sub in all_subs.data:
+        for sub in (all_subs.data or []):
             if sub.get("status") == "active":
                 plan_name = sub.get("subscription_plans", {}).get("name", "Unknown")
                 plan_distribution[plan_name] = plan_distribution.get(plan_name, 0) + 1
@@ -10530,7 +10530,7 @@ async def get_subscriptions_metrics_history(
             }
         
         # Calculer les métriques
-        for sub in subs_result.data:
+        for sub in (subs_result.data or []):
             created_month = sub.get("created_at", "")[:7]  # YYYY-MM
             if created_month in monthly_metrics:
                 monthly_metrics[created_month]["new_subscriptions"] += 1
@@ -10886,7 +10886,7 @@ async def get_commercials_directory(
                 # Try to get commissions
                 comm_res = supabase.table("commissions").select("amount").eq("user_id", commercial["id"]).execute()
                 if comm_res.data:
-                    total_commissions = sum(float(c.get("amount", 0)) for c in comm_res.data)
+                    total_commissions = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(c.get("amount", 0)) for c in comm_res.data)
                     total_sales = len(comm_res.data) # Approximation: 1 commission = 1 sale
             except Exception:
                 pass
@@ -11158,7 +11158,7 @@ async def get_gamification_status(
         # Calculer les points basés sur les conversions et clics
         conversions_result = supabase.table("conversions").select("commission_amount", count="exact").eq("influencer_id", user_id).eq("status", "completed").execute()
         total_conversions = conversions_result.count or 0
-        total_commission = sum([float(c.get("commission_amount", 0)) for c in (conversions_result.data or [])])
+        total_commission = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(c.get("commission_amount", 0)) for c in (conversions_result.data or [])])
         
         # Points: 10 points par conversion + 1 point par 10 MAD de commission
         points = (total_conversions * 10) + int(total_commission / 10)
@@ -12146,8 +12146,8 @@ async def get_commercial_stats(current_user: dict = Depends(get_current_user_fro
         leads = leads_result.data or []
         
         # Compter les deals gagnés
-        total_commission = sum([float(l.get("estimated_value", 0)) * 0.1 for l in leads if l.get("lead_status") == "won"])
-        pipeline_value = sum([float(l.get("estimated_value", 0)) for l in leads if l.get("lead_status") not in ["won", "lost"]])
+        total_commission = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(l.get("estimated_value", 0)) * 0.1 for l in leads if l.get("lead_status") == "won"])
+        pipeline_value = sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(l.get("estimated_value", 0)) for l in leads if l.get("lead_status") not in ["won", "lost"]])
         
         total_leads = len(leads)
         won_leads = len([l for l in leads if l.get("lead_status") == "won"])
@@ -12396,7 +12396,7 @@ async def get_commercial_performance(
                 leads_by_day[created] = leads_by_day.get(created, 0) + 1
                 # Revenue = commission sur leads gagnés
                 if lead.get("lead_status") == "won":
-                    revenue_by_day[created] = revenue_by_day.get(created, 0) + float(lead.get("estimated_value", 0)) * 0.1
+                    revenue_by_day[created] = revenue_by_day.get(created, 0) + (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(lead.get("estimated_value", 0)) * 0.1
         
         # Générer les données pour chaque jour
         data = []
@@ -12428,7 +12428,7 @@ async def get_commercial_funnel(current_user: dict = Depends(get_current_user_fr
             filtered = [l for l in leads if l.get("lead_status") == status]
             return {
                 "count": len(filtered),
-                "value": sum([float(l.get("estimated_value", 0)) for l in filtered])
+                "value": sum([(lambda v: float(v) if v not in [None, "", "null"] else 0.0)(l.get("estimated_value", 0)) for l in filtered])
             }
         
         return {
@@ -12499,7 +12499,7 @@ async def get_commercial_performance(
         # Leads gagnés
         won_leads = [l for l in leads_result.data if l.get("lead_status") == "won"]
         won_count = len(won_leads)
-        won_value = sum(float(l.get("estimated_value", 0)) for l in won_leads)
+        won_value = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(l.get("estimated_value", 0)) for l in won_leads)
         
         # Taux de conversion
         conversion_rate = (won_count / total_leads * 100) if total_leads > 0 else 0
@@ -12539,7 +12539,7 @@ async def get_commercial_commissions(
             .order("created_at", desc=True)\
             .execute()
         
-        total = sum(float(c.get("amount", 0)) for c in result.data) if result.data else 0
+        total = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(c.get("amount", 0)) for c in result.data) if result.data else 0
         
         return {
             "commissions": result.data,
@@ -12602,7 +12602,7 @@ async def get_commercial_top_clients(
             .execute()
         
         client_stats = {}
-        for lead in result.data:
+        for lead in (result.data or []):
             user_id = lead.get("user_id")
             if user_id:
                 if user_id not in client_stats:
@@ -12612,7 +12612,7 @@ async def get_commercial_top_clients(
                         "total_value": 0
                     }
                 client_stats[user_id]["deals_count"] += 1
-                client_stats[user_id]["total_value"] += float(lead.get("estimated_value", 0))
+                client_stats[user_id]["total_value"] += (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(lead.get("estimated_value", 0))
         
         top_clients = sorted(client_stats.values(), key=lambda x: x["total_value"], reverse=True)[:limit]
         
@@ -12798,7 +12798,7 @@ async def get_influencer_stats(
             .gte("created_at", start_date)\
             .execute()
         total_conversions = conversions_result.count if hasattr(conversions_result, 'count') else len(conversions_result.data)
-        total_revenue = sum(float(s.get("amount", 0)) for s in conversions_result.data) if conversions_result.data else 0
+        total_revenue = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(s.get("amount", 0)) for s in conversions_result.data) if conversions_result.data else 0
         
         # Commissions
         commissions_result = supabase.table("commissions")\
@@ -12806,7 +12806,7 @@ async def get_influencer_stats(
             .eq("influencer_id", influencer_id)\
             .gte("created_at", start_date)\
             .execute()
-        total_commissions = sum(float(c.get("amount", 0)) for c in commissions_result.data) if commissions_result.data else 0
+        total_commissions = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(c.get("amount", 0)) for c in commissions_result.data) if commissions_result.data else 0
         
         # Taux de conversion
         conversion_rate = (total_conversions / total_clicks * 100) if total_clicks > 0 else 0
@@ -12861,7 +12861,7 @@ async def get_influencer_clicks(
         
         # Agréger par jour
         daily_clicks = {}
-        for click in result.data:
+        for click in (result.data or []):
             date = click.get("created_at", "")[:10]
             daily_clicks[date] = daily_clicks.get(date, 0) + 1
         
@@ -12902,12 +12902,12 @@ async def get_influencer_conversions(
         
         # Agréger par jour
         daily_conversions = {}
-        for sale in result.data:
+        for sale in (result.data or []):
             date = sale.get("created_at", "")[:10]
             if date not in daily_conversions:
                 daily_conversions[date] = {"count": 0, "amount": 0}
             daily_conversions[date]["count"] += 1
-            daily_conversions[date]["amount"] += float(sale.get("amount", 0))
+            daily_conversions[date]["amount"] += (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(sale.get("amount", 0))
         
         conversions_data = [{"date": date, **data} for date, data in daily_conversions.items()]
         
@@ -12944,7 +12944,7 @@ async def get_influencer_campaign_performance(
             .execute()
         
         performance = []
-        for camp_inf in campaigns_result.data:
+        for camp_inf in (campaigns_result.data or []):
             campaign = camp_inf.get("campaigns", {})
             campaign_id = camp_inf.get("campaign_id")
             
@@ -12965,7 +12965,7 @@ async def get_influencer_campaign_performance(
                 .gte("created_at", start_date)\
                 .execute()
             conversions = sales_result.count if hasattr(sales_result, 'count') else len(sales_result.data)
-            revenue = sum(float(s.get("amount", 0)) for s in sales_result.data) if sales_result.data else 0
+            revenue = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(s.get("amount", 0)) for s in sales_result.data) if sales_result.data else 0
             
             performance.append({
                 "campaign_id": campaign_id,
@@ -13010,7 +13010,7 @@ async def get_influencer_product_performance(
             .execute()
         
         product_stats = {}
-        for sale in sales_result.data:
+        for sale in (sales_result.data or []):
             pid = sale.get("product_id")
             if pid:
                 if pid not in product_stats:
@@ -13021,7 +13021,7 @@ async def get_influencer_product_performance(
                         "revenue": 0
                     }
                 product_stats[pid]["sales_count"] += 1
-                product_stats[pid]["revenue"] += float(sale.get("amount", 0))
+                product_stats[pid]["revenue"] += (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(sale.get("amount", 0))
         
         # Trier par revenue
         performance = sorted(product_stats.values(), key=lambda x: x["revenue"], reverse=True)
@@ -13129,7 +13129,7 @@ async def get_influencer_affiliate_links_dashboard(
         
         result = query.order("created_at", desc=True).execute()
         
-        total = sum(float(c.get("amount", 0)) for c in result.data)
+        total = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(c.get("amount", 0)) for c in result.data)
         
         return {
             "commissions": result.data,
