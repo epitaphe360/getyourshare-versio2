@@ -7,7 +7,8 @@ logger.info("=== VÉRIFICATION DES COMPTES DE TEST ===\n")
 # 1. Admin
 logger.info("1. ADMIN:")
 admin = supabase.table("users").select("*").eq("email", "admin@getyourshare.com").execute()
-logger.info(f"   admin@getyourshare.com: {'✅ EXISTE' if admin.data else '❌ N\'EXISTE PAS'}")
+exists_msg = '✅ EXISTE' if admin.data else '❌ N' + "'" + 'EXISTE PAS'
+logger.info(f"   admin@getyourshare.com: {exists_msg}")
 if admin.data:
     logger.info(f"   Role: {admin.data[0].get('role')}, Tier: {admin.data[0].get('tier')}")
 
