@@ -1568,10 +1568,17 @@ async def get_merchants(request: Request, payload: dict = Depends(get_current_us
                 users_balance = {u["id"]: float(u.get("balance", 0)) for u in (users_result.data or [])}
                 
                 products_result = supabase.table('products').select('merchant_id').execute()
+                services_result = supabase.table('services').select('merchant_id').execute()
                 products_data = products_result.data if products_result.data else []
+                services_data = services_result.data if services_result.data else []
                 merchant_products_count = {}
                 for product in products_data:
                     mid = product.get('merchant_id')
+                    if mid:
+                        merchant_products_count[mid] = merchant_products_count.get(mid, 0) + 1
+
+                for service in services_data:
+                    mid = service.get('merchant_id')
                     if mid:
                         merchant_products_count[mid] = merchant_products_count.get(mid, 0) + 1
                 
@@ -1623,9 +1630,11 @@ async def get_merchants(request: Request, payload: dict = Depends(get_current_us
         sales_result = supabase.table('sales').select('merchant_id, amount').execute()
         sales_data = sales_result.data if sales_result.data else []
         
-        # 4. Récupérer le nombre de produits par merchant
+        # 4. Récupérer le nombre de produits par merchant (services inclus)
         products_result = supabase.table('products').select('merchant_id').execute()
+        services_result = supabase.table('services').select('merchant_id').execute()
         products_data = products_result.data if products_result.data else []
+        services_data = services_result.data if services_result.data else []
         
         # 5. Récupérer le nombre de campagnes par merchant
         campaigns_result = supabase.table('campaigns').select('merchant_id').execute()
@@ -1642,6 +1651,11 @@ async def get_merchants(request: Request, payload: dict = Depends(get_current_us
         merchant_products_count = {}
         for product in products_data:
             mid = product.get('merchant_id')
+            if mid:
+                merchant_products_count[mid] = merchant_products_count.get(mid, 0) + 1
+
+        for service in services_data:
+            mid = service.get('merchant_id')
             if mid:
                 merchant_products_count[mid] = merchant_products_count.get(mid, 0) + 1
         
@@ -2778,12 +2792,22 @@ async def update_user_status(
         if new_status not in ["active", "suspended", "pending"]:
             raise HTTPException(status_code=400, detail="Statut invalide")
         
-        result = supabase.from_("users").update({"status": new_status}).eq("id", user_id).execute()
-        
-        if result.data:
-            return {"success": True, "message": f"Statut mis à jour: {new_status}", "user": result.data[0]}
-        else:
+        # Supabase renvoie souvent une liste vide sur update sans select(); on force le retour des données
+        result = supabase.from_("users") \
+            .update({"status": new_status}) \
+            .eq("id", user_id) \
+            .select("*") \
+            .execute()
+
+        # Si l'utilisateur existe, même sans payload, considérer l'update comme réussie
+        if result.data is None:
+            raise HTTPException(status_code=500, detail="Réponse inattendue du service de données")
+
+        if len(result.data) == 0:
+            # Aucun enregistrement touché
             raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
+
+        return {"success": True, "message": f"Statut mis à jour: {new_status}", "user": result.data[0]}
             
     except HTTPException:
         raise
@@ -3223,352 +3247,12 @@ async def update_user_permissions(
 # ADMIN ANALYTICS ENDPOINTS
 # ============================================
 
-@app.get("/api/admin/analytics/metrics")
-async def get_admin_analytics_metrics(
-    days: int = 30,
-    current_user: dict = Depends(require_admin)
-):
-    """Métriques globales de la plateforme"""
-    try:
-        from datetime import datetime, timedelta
-        start_date = (datetime.now() - timedelta(days=days)).isoformat()
-        
-        # Utilisateurs totaux et nouveaux
-        total_users_result = supabase.table("users").select("id", count="exact").execute()
-        total_users = total_users_result.count if hasattr(total_users_result, 'count') else len(total_users_result.data)
-        
-        new_users_result = supabase.table("users").select("id", count="exact").gte("created_at", start_date).execute()
-        new_users = new_users_result.count if hasattr(new_users_result, 'count') else len(new_users_result.data)
-        
-        # Revenus totaux
-        sales_result = supabase.table("sales").select("amount").gte("created_at", start_date).execute()
-        total_revenue = sum(float(s.get("amount", 0)) for s in sales_result.data) if sales_result.data else 0
-        
-        # Abonnements actifs
-        subs_result = supabase.table("subscriptions").select("id", count="exact").eq("status", "active").execute()
-        active_subscriptions = subs_result.count if hasattr(subs_result, 'count') else len(subs_result.data)
-        
-        # Transactions
-        transactions_result = supabase.table("sales").select("id", count="exact").gte("created_at", start_date).execute()
-        total_transactions = transactions_result.count if hasattr(transactions_result, 'count') else len(transactions_result.data)
-        
-        return {
-            "total_users": total_users,
-            "new_users": new_users,
-            "total_revenue": total_revenue,
-            "active_subscriptions": active_subscriptions,
-            "total_transactions": total_transactions,
-            "period_days": days
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_metrics: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/analytics/revenue")
-async def get_admin_analytics_revenue(
-    days: int = 30,
-    current_user: dict = Depends(require_admin)
-):
-    """Évolution du chiffre d'affaires de la plateforme"""
-    try:
-        from datetime import datetime, timedelta
-        start_date = (datetime.now() - timedelta(days=days)).isoformat()
-
-        result = supabase.table("sales")\
-            .select("amount, created_at")\
-            .gte("created_at", start_date)\
-            .order("created_at", desc=False)\
-            .execute()
-
-        # Agréger par jour avec protection contre les valeurs null
-        daily_revenue = {}
-        if result.data:
-            for sale in result.data:
-                created_at = sale.get("created_at")
-                if not created_at:
-                    continue
-
-                date = str(created_at)[:10]
-                amount_value = sale.get("amount")
-
-                # Convertir amount en float de manière sécurisée
-                try:
-                    amount = float(amount_value) if amount_value is not None else 0.0
-                except (ValueError, TypeError):
-                    amount = 0.0
-
-                daily_revenue[date] = daily_revenue.get(date, 0) + amount
-
-        revenue_data = [{"date": date, "revenue": amount} for date, amount in daily_revenue.items()]
-
-        return {"revenue_data": revenue_data, "period_days": days}
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_revenue: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/analytics/users-growth")
-async def get_admin_analytics_users_growth(
-    days: int = 30,
-    current_user: dict = Depends(require_admin)
-):
-    """Croissance des utilisateurs"""
-    try:
-        from datetime import datetime, timedelta
-        start_date = (datetime.now() - timedelta(days=days)).isoformat()
-        
-        result = supabase.table("users")\
-            .select("created_at, role")\
-            .gte("created_at", start_date)\
-            .order("created_at", desc=False)\
-            .execute()
-        
-        # Agréger par jour
-        daily_users = {}
-        for user in result.data:
-            date = user.get("created_at", "")[:10]
-            if date not in daily_users:
-                daily_users[date] = {"total": 0, "merchants": 0, "influencers": 0, "commercials": 0}
-            daily_users[date]["total"] += 1
-            role = user.get("role", "")
-            if role == "merchant":
-                daily_users[date]["merchants"] += 1
-            elif role == "influencer":
-                daily_users[date]["influencers"] += 1
-            elif role in ["commercial", "sales_rep"]:
-                daily_users[date]["commercials"] += 1
-        
-        growth_data = [{"date": date, **data} for date, data in daily_users.items()]
-        
-        return {"growth_data": growth_data, "period_days": days}
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_users_growth: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/analytics/subscriptions")
-async def get_admin_analytics_subscriptions(
-    days: int = 30,
-    current_user: dict = Depends(require_admin)
-):
-    """Évolution des abonnements"""
-    try:
-        from datetime import datetime, timedelta
-        start_date = (datetime.now() - timedelta(days=days)).isoformat()
-        
-        result = supabase.table("subscriptions")\
-            .select("created_at, status, plan_id")\
-            .gte("created_at", start_date)\
-            .order("created_at", desc=False)\
-            .execute()
-        
-        # Agréger par jour
-        daily_subs = {}
-        for sub in result.data:
-            date = sub.get("created_at", "")[:10]
-            if date not in daily_subs:
-                daily_subs[date] = {"new": 0, "active": 0, "cancelled": 0}
-            daily_subs[date]["new"] += 1
-            if sub.get("status") == "active":
-                daily_subs[date]["active"] += 1
-            elif sub.get("status") == "cancelled":
-                daily_subs[date]["cancelled"] += 1
-        
-        subs_data = [{"date": date, **data} for date, data in daily_subs.items()]
-        
-        return {"subscriptions_data": subs_data, "period_days": days}
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_subscriptions: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/analytics/churn")
-async def get_admin_analytics_churn(
-    days: int = 30,
-    current_user: dict = Depends(require_admin)
-):
-    """Taux de churn (désabonnements)"""
-    try:
-        from datetime import datetime, timedelta
-        start_date = (datetime.now() - timedelta(days=days)).isoformat()
-        
-        # Abonnements actifs au début de la période
-        active_start = supabase.table("subscriptions")\
-            .select("id", count="exact")\
-            .eq("status", "active")\
-            .lt("created_at", start_date)\
-            .execute()
-        active_start_count = active_start.count if hasattr(active_start, 'count') else len(active_start.data)
-        
-        # Abonnements annulés pendant la période
-        cancelled = supabase.table("subscriptions")\
-            .select("id", count="exact")\
-            .eq("status", "cancelled")\
-            .gte("updated_at", start_date)\
-            .execute()
-        cancelled_count = cancelled.count if hasattr(cancelled, 'count') else len(cancelled.data)
-        
-        # Calcul du taux de churn
-        churn_rate = (cancelled_count / active_start_count * 100) if active_start_count > 0 else 0
-        
-        return {
-            "churn_rate": churn_rate,
-            "cancelled_count": cancelled_count,
-            "active_start_count": active_start_count,
-            "period_days": days
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_churn: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/analytics/plan-distribution")
-async def get_admin_analytics_plan_distribution(
-    current_user: dict = Depends(require_admin)
-):
-    """Distribution des abonnements par plan"""
-    try:
-        result = supabase.table("subscriptions")\
-            .select("plan_id, subscription_plans(name)")\
-            .eq("status", "active")\
-            .execute()
-        
-        # Compter par plan
-        plan_counts = {}
-        for sub in result.data:
-            plan_id = sub.get("plan_id")
-            plan_name = sub.get("subscription_plans", {}).get("name", "Unknown")
-            if plan_id:
-                if plan_id not in plan_counts:
-                    plan_counts[plan_id] = {"plan_name": plan_name, "count": 0}
-                plan_counts[plan_id]["count"] += 1
-        
-        distribution = [{"plan_id": pid, **data} for pid, data in plan_counts.items()]
-        
-        return {"plan_distribution": distribution}
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_plan_distribution: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/analytics/top-performers")
-async def get_admin_analytics_top_performers(
-    days: int = 30,
-    limit: int = 10,
-    current_user: dict = Depends(require_admin)
-):
-    """Top utilisateurs par performance"""
-    try:
-        from datetime import datetime, timedelta
-        start_date = (datetime.now() - timedelta(days=days)).isoformat()
-        
-        # Top influenceurs par revenus
-        influencers_sales = supabase.table("sales")\
-            .select("influencer_id, influencers(*, users(full_name, email)), amount")\
-            .gte("created_at", start_date)\
-            .execute()
-        
-        influencer_stats = {}
-        for sale in influencers_sales.data:
-            inf_id = sale.get("influencer_id")
-            if inf_id:
-                if inf_id not in influencer_stats:
-                    influencer_stats[inf_id] = {
-                        "influencer": sale.get("influencers"),
-                        "revenue": 0,
-                        "sales_count": 0
-                    }
-                influencer_stats[inf_id]["revenue"] += float(sale.get("amount", 0))
-                influencer_stats[inf_id]["sales_count"] += 1
-        
-        top_influencers = sorted(influencer_stats.values(), key=lambda x: x["revenue"], reverse=True)[:limit]
-        
-        # Top marchands par revenus
-        merchants_sales = supabase.table("sales")\
-            .select("merchant_id, users(full_name, email), amount")\
-            .gte("created_at", start_date)\
-            .execute()
-        
-        merchant_stats = {}
-        for sale in merchants_sales.data:
-            merch_id = sale.get("merchant_id")
-            if merch_id:
-                if merch_id not in merchant_stats:
-                    merchant_stats[merch_id] = {
-                        "merchant": sale.get("users"),
-                        "revenue": 0,
-                        "sales_count": 0
-                    }
-                merchant_stats[merch_id]["revenue"] += float(sale.get("amount", 0))
-                merchant_stats[merch_id]["sales_count"] += 1
-        
-        top_merchants = sorted(merchant_stats.values(), key=lambda x: x["revenue"], reverse=True)[:limit]
-        
-        return {
-            "top_influencers": top_influencers,
-            "top_merchants": top_merchants,
-            "period_days": days
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_top_performers: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/analytics/revenue-by-source")
-async def get_admin_analytics_revenue_by_source(
-    days: int = 30,
-    current_user: dict = Depends(require_admin)
-):
-    """Revenus par source (campagnes, produits, etc.)"""
-    try:
-        from datetime import datetime, timedelta
-        start_date = (datetime.now() - timedelta(days=days)).isoformat()
-        
-        # Revenus par campagne
-        campaign_sales = supabase.table("sales")\
-            .select("campaign_id, campaigns(name), amount")\
-            .gte("created_at", start_date)\
-            .execute()
-        
-        campaign_revenue = {}
-        for sale in campaign_sales.data:
-            camp_id = sale.get("campaign_id")
-            if camp_id:
-                if camp_id not in campaign_revenue:
-                    campaign_revenue[camp_id] = {
-                        "campaign_name": sale.get("campaigns", {}).get("name", ""),
-                        "revenue": 0
-                    }
-                campaign_revenue[camp_id]["revenue"] += float(sale.get("amount", 0))
-        
-        # Revenus par catégorie de produit
-        product_sales = supabase.table("sales")\
-            .select("product_id, products(category, name), amount")\
-            .gte("created_at", start_date)\
-            .execute()
-        
-        category_revenue = {}
-        for sale in product_sales.data:
-            category = sale.get("products", {}).get("category", "Autre")
-            if category not in category_revenue:
-                category_revenue[category] = {"category": category, "revenue": 0}
+# ============================================
+# ADMIN ANALYTICS ENDPOINTS
+# ============================================
+# Les endpoints sont gérés par admin_analytics_endpoints.py
+# et inclus via app.include_router(admin_analytics_router)
+# Voir: backend/admin_analytics_endpoints.py
             category_revenue[category]["revenue"] += float(sale.get("amount", 0))
         
         return {
@@ -9285,8 +8969,10 @@ async def get_subscription_usage(current_user: dict = Depends(get_current_user_f
         
         # Calculer l'utilisation selon le rôle
         if role == "merchant":
-            # Compter les produits
+            # Compter les produits et services pour refléter toutes les offres
             products_count = supabase.table("products").select("id", count="exact").eq("merchant_id", user["id"]).execute().count or 0
+            services_count = supabase.table("services").select("id", count="exact").eq("merchant_id", user["id"]).execute().count or 0
+            total_offers = products_count + services_count
             
             # Compter les leads ce mois
             from datetime import datetime
@@ -9309,13 +8995,13 @@ async def get_subscription_usage(current_user: dict = Depends(get_current_user_f
             return {
                 "plan": plan,
                 "usage": {
-                    "products": products_count,
+                    "products": total_offers,
                     "leads_this_month": leads_count,
                     "campaigns": campaigns_count
                 },
                 "limits": plan_limits,
                 "usage_percentage": {
-                    "products": (products_count / plan_limits["products"] * 100) if plan_limits["products"] > 0 else 0,
+                    "products": (total_offers / plan_limits["products"] * 100) if plan_limits["products"] > 0 else 0,
                     "leads": (leads_count / plan_limits["leads_per_month"] * 100) if plan_limits["leads_per_month"] > 0 else 0,
                     "campaigns": (campaigns_count / plan_limits["campaigns"] * 100) if plan_limits["campaigns"] > 0 else 0
                 }
@@ -11744,13 +11430,15 @@ async def get_merchant_profile(
         
         # Ajouter des stats
         products_count = supabase.table("products").select("id", count="exact").eq("merchant_id", user["id"]).execute().count or 0
+        services_count = supabase.table("services").select("id", count="exact").eq("merchant_id", user["id"]).execute().count or 0
+        total_offers = products_count + services_count
         links_count = supabase.table("tracking_links").select("id", count="exact").eq("merchant_id", user["id"]).execute().count or 0
         
         profile["stats"] = {
-            "total_products": products_count,
+            "total_products": total_offers,
             "total_links": links_count,
-            "total_sales": products_count * 25,  # Simulation
-            "revenue": products_count * 500
+            "total_sales": total_offers * 25,  # Simulation
+            "revenue": total_offers * 500
         }
         
         return profile

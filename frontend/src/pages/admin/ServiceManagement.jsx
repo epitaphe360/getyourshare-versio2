@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Package, Plus, Search, Filter, Edit2, Trash2, Eye,
   ChevronLeft, ChevronRight, AlertCircle, DollarSign,
@@ -12,6 +13,8 @@ import { useToast } from '../../context/ToastContext';
 
 const ServiceManagement = () => {
   const toast = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // État principal
   const [services, setServices] = useState([]);
@@ -86,6 +89,26 @@ const ServiceManagement = () => {
     }
   }, []);
 
+  // Ouvrir la modale d'édition depuis un paramètre de requête (?edit=<id>)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const editId = params.get('edit');
+
+    if (!editId || loading) return;
+
+    const found = services.find((s) => String(s.id) === String(editId));
+
+    if (found) {
+      setModalMode('edit');
+      setEditingService(found);
+      setShowFormModal(true);
+      navigate('/admin/services', { replace: true });
+    } else {
+      toast.error("Service introuvable");
+      navigate('/admin/services', { replace: true });
+    }
+  }, [location.search, services, loading, navigate, toast]);
+
   // Chargement initial
   useEffect(() => {
     const controller = new AbortController();
@@ -113,6 +136,15 @@ const ServiceManagement = () => {
     setSelectedService(service);
     setShowDetailsModal(true);
   };
+
+  const handleCloseForm = useCallback(() => {
+    setShowFormModal(false);
+    setEditingService(null);
+    setModalMode('create');
+    if (location.search) {
+      navigate('/admin/services', { replace: true });
+    }
+  }, [location.search, navigate]);
 
   // Supprimer un service
   const handleDeleteClick = (serviceId) => {
@@ -435,13 +467,9 @@ const ServiceManagement = () => {
       {showFormModal && (
         <ServiceFormModal
           show={showFormModal}
-          onClose={() => {
-            setShowFormModal(false);
-            setEditingService(null);
-          }}
+          onClose={handleCloseForm}
           onSuccess={() => {
-            setShowFormModal(false);
-            setEditingService(null);
+            handleCloseForm();
             loadServices();
             loadStats();
           }}

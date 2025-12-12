@@ -184,14 +184,19 @@ async def get_available_merchants(current_user: dict = Depends(get_current_user_
             .eq('is_active', True)\
             .execute()
         
-        # Pour chaque marchand, compter ses produits (info publique)
+        # Pour chaque marchand, compter ses produits et services actifs (info publique)
         for merchant in (merchants.data or []):
             products = supabase.table('products')\
                 .select('id', count='exact', head=True)\
                 .eq('merchant_id', merchant['id'])\
                 .eq('is_active', True)\
                 .execute()
-            merchant['products_count'] = products.count or 0
+            services = supabase.table('services')\
+                .select('id', count='exact', head=True)\
+                .eq('merchant_id', merchant['id'])\
+                .eq('statut', 'actif')\
+                .execute()
+            merchant['products_count'] = (products.count or 0) + (services.count or 0)
         
         return {
             "success": True,

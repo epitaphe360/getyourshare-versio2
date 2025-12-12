@@ -547,12 +547,13 @@ async def get_user_stats(
             'commission_total': 0.0
         }
 
-        # Products count
+        # Products + services count
         try:
             prod_res = supabase.table('products').select('id', count='exact').eq('merchant_id', user_id).execute()
-            stats['products_count'] = prod_res.count or 0
+            serv_res = supabase.table('services').select('id', count='exact').eq('merchant_id', user_id).execute()
+            stats['products_count'] = (prod_res.count or 0) + (serv_res.count or 0)
         except Exception as e:
-            logger.debug(f"Failed to get products count: {e}")
+            logger.debug(f"Failed to get products/services count: {e}")
             pass
 
         # Campaigns count

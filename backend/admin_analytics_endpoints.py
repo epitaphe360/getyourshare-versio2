@@ -35,6 +35,8 @@ class MetricsResponse(BaseModel):
     active_users: int
     new_users: int
     revenue_growth: float
+    total_revenue: float = 0.0
+    total_transactions: int = 0
 
 class DataPoint(BaseModel):
     """Point de données pour graphiques"""
@@ -147,6 +149,11 @@ async def get_metrics(
 
         revenue_growth = ((mrr - prev_mrr) / prev_mrr * 100) if prev_mrr > 0 else 0
 
+        # Calculer le revenu total et les transactions depuis la table sales
+        sales_result = supabase.table("sales").select("amount", count="exact").gte("created_at", start_date.isoformat()).execute()
+        total_revenue = sum(float(s.get("amount", 0)) for s in sales_result.data) if sales_result.data else 0
+        total_transactions = sales_result.count if hasattr(sales_result, 'count') else len(sales_result.data)
+
         return {
             'metrics': MetricsResponse(
                 mrr=mrr,
@@ -154,7 +161,9 @@ async def get_metrics(
                 churn_rate=round(churn_rate, 2),
                 active_users=active_users,
                 new_users=new_users,
-                revenue_growth=round(revenue_growth, 2)
+                revenue_growth=round(revenue_growth, 2),
+                total_revenue=total_revenue,
+                total_transactions=total_transactions
             )
         }
 
@@ -171,63 +180,56 @@ async def get_revenue_data(
     admin = Depends(get_current_admin)
 ):
     """
-    Récupère les données d'évolution des revenus
+    Récupère les données d'évolution des revenus (basé sur les ventes)
     """
     try:
-        start_date, end_date = get_date_range(days)
-
-        # Récupérer les plans d'abord
-        plans_response = supabase.table('subscription_plans')\
-            .select('id, price_mad, price')\
-            .execute()
-        plans_dict = {p['id']: p for p in (plans_response.data or [])}
-
-        # Récupérer tous les abonnements actifs créés avant la date de fin (sans jointure)
-        subs_response = supabase.table('subscriptions')\
-            .select('created_at, plan_id')\
-            .eq('is_active', True)\
-            .lte('created_at', end_date.isoformat())\
-            .execute()
+        start_date = (datetime.now() - timedelta(days=days)).isoformat()
         
-        subs = subs_response.data or []
-        
-        # Prétraitement des données
-        processed_subs = []
-        for sub in subs:
-            created_at = datetime.fromisoformat(sub['created_at'].replace('Z', '+00:00'))
-            plan = plans_dict.get(sub.get('plan_id'), {})
-            price = float(plan.get('price_mad') or plan.get('price') or 0)
-            processed_subs.append({
-                'created_at': created_at,
-                'daily_revenue': price / 30
-            })
+        # Utiliser la table sales pour le revenu réel
+        result = supabase.table("sales")\
+            .select("amount, created_at")\
+            .gte("created_at", start_date)\
+            .order("created_at", desc=False)\
+            .execute()
 
-        data = []
-        current_date = start_date
+        # Agréger par jour
+        daily_revenue = {}
+        if result.data:
+            for sale in result.data:
+                created_at = sale.get("created_at")
+                if not created_at:
+                    continue
+
+                date = str(created_at)[:10]
+                amount_value = sale.get("amount")
+
+                try:
+                    amount = float(amount_value) if amount_value is not None else 0.0
+                except (ValueError, TypeError):
+                    amount = 0.0
+
+                daily_revenue[date] = daily_revenue.get(date, 0) + amount
+
+        # Convertir en liste triée pour le graphique
+        revenue_data = []
+        current_date = datetime.now() - timedelta(days=days)
+        end_date = datetime.now()
         
         while current_date <= end_date:
-            # Filtrer en mémoire (beaucoup plus rapide que N requêtes DB)
-            # Un abonnement est actif ce jour s'il a été créé avant ou ce jour
-            # Note: C'est une simplification, idéalement on vérifierait aussi la date d'annulation/fin
-            current_date_aware = current_date.replace(tzinfo=None) # Simplification timezone
-            
-            daily_revenue = sum(
-                s['daily_revenue'] 
-                for s in processed_subs 
-                if s['created_at'].replace(tzinfo=None) <= current_date_aware + timedelta(days=1)
-            )
-            
-            data.append({
-                'date': current_date.strftime('%Y-%m-%d'),
-                'revenue': round(daily_revenue, 2)
+            date_str = current_date.strftime('%Y-%m-%d')
+            revenue_data.append({
+                "date": date_str,
+                "revenue": round(daily_revenue.get(date_str, 0), 2)
             })
-            
             current_date += timedelta(days=1)
 
-        return {'data': data}
+        return {'revenue_data': revenue_data, 'data': revenue_data}
 
     except Exception as e:
         logger.error(f"Error fetching revenue data: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch revenue data: {str(e)}"
@@ -483,21 +485,20 @@ async def get_top_performers(
             user_stats[uid]['revenue'] += float(comm.get('amount', 0))
             user_stats[uid]['transactions'] += 1
             
-        # 2. Récupérer les factures payées (Merchants)
-        invoices_res = supabase.table('invoices')\
-            .select('user_id, amount')\
-            .eq('status', 'paid')\
+        # 2. Récupérer les ventes (Merchants) - Utilisation de la table sales car invoices est vide
+        sales_res = supabase.table('sales')\
+            .select('merchant_id, amount')\
             .gte('created_at', start_date.isoformat())\
             .execute()
             
-        for inv in (invoices_res.data or []):
-            uid = inv.get('user_id')
+        for sale in (sales_res.data or []):
+            uid = sale.get('merchant_id')
             if not uid: continue
             
             if uid not in user_stats:
                 user_stats[uid] = {'revenue': 0.0, 'transactions': 0}
                 
-            user_stats[uid]['revenue'] += float(inv.get('amount', 0))
+            user_stats[uid]['revenue'] += float(sale.get('amount', 0))
             user_stats[uid]['transactions'] += 1
             
         # 3. Récupérer les infos utilisateurs
@@ -569,19 +570,37 @@ async def get_revenue_by_source(
             .gte('created_at', start_date.isoformat())\
             .execute()
 
-        # Grouper par type de plan
+        # Grouper par type de plan (Abonnements)
         sources = {}
         for sub in (subs_response.data or []):
             plan = plans_dict.get(sub.get('plan_id'), {})
             plan_type = plan.get('type', 'standard')
             price = plan.get('price_mad') or plan.get('price') or 0
             
-            if plan_type not in sources:
-                sources[plan_type] = 0.0
-            sources[plan_type] += float(price)
+            key = f"Abonnement {plan_type.capitalize()}"
+            if key not in sources:
+                sources[key] = 0.0
+            sources[key] += float(price)
+
+        # Ajouter les revenus des ventes (Sales)
+        sales_response = supabase.table('sales')\
+            .select('amount, campaign_id, product_id')\
+            .gte('created_at', start_date.isoformat())\
+            .execute()
+            
+        for sale in (sales_response.data or []):
+            amount = float(sale.get('amount', 0))
+            if sale.get('campaign_id'):
+                key = "Campagnes"
+            else:
+                key = "Ventes Directes"
+                
+            if key not in sources:
+                sources[key] = 0.0
+            sources[key] += amount
 
         # Formatter pour le PieChart
-        data = [{'name': k.capitalize(), 'value': v} for k, v in sources.items()]
+        data = [{'name': k, 'value': round(v, 2)} for k, v in sources.items() if v > 0]
 
         return {'data': data}
 

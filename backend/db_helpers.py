@@ -645,7 +645,19 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
                 .eq("merchant_id", merchant["id"])
                 .execute()
                 .count
+                or 0
             )
+
+            services_count = (
+                supabase.table("services")
+                .select("id", count="exact", head=True)
+                .eq("merchant_id", merchant["id"])
+                .execute()
+                .count
+                or 0
+            )
+
+            offers_count = products_count + services_count
 
             sales = (
                 supabase.table("sales")
@@ -685,7 +697,7 @@ def get_dashboard_stats(role: str, user_id: str) -> Dict:
 
             return {
                 "total_sales": total_sales,
-                "products_count": products_count,
+                "products_count": offers_count,
                 "affiliates_count": affiliates_count,
                 "roi": round(roi, 2),
             }

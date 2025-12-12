@@ -494,7 +494,7 @@ const ServicesTab = ({ stats, refreshKey, onRefresh }) => {
                             <Eye size={18} />
                           </button>
                           <button
-                            onClick={() => navigate(`/admin/services/edit/${service.id}`)}
+                            onClick={() => navigate(`/admin/services?edit=${service.id}`)}
                             className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                             title="Éditer"
                           >
@@ -667,7 +667,7 @@ const ServicesTab = ({ stats, refreshKey, onRefresh }) => {
               <button
                 onClick={() => {
                   setShowDetailModal(false);
-                  navigate(`/admin/services/edit/${selectedService.id}`);
+                  navigate(`/admin/services?edit=${selectedService.id}`);
                 }}
                 className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
               >
