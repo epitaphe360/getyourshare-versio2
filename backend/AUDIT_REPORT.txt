@@ -2,36 +2,15 @@
 RAPPORT D'AUDIT COMPLET DES ENDPOINTS
 ================================================================================
 
-TOTAL BUGS TROUVÉS: 160
+TOTAL BUGS TROUVÉS: 75
 
 
 ================================================================================
 1. CONVERSIONS FLOAT() NON PROTÉGÉES
 ================================================================================
 
-Ligne 1568:
-  users_balance = {u["id"]: float(u.get("balance", 0)) for u in (users_result.data or [])}
-
-Ligne 1598:
-  "total_spent": float(row.get("total_revenue", 0)),
-
-Ligne 1599:
-  "total_revenue": float(row.get("total_revenue", 0)),
-
-Ligne 1600:
-  "total_sales": float(row.get("total_revenue", 0)),
-
 Ligne 1639:
   merchant_revenue[mid] = merchant_revenue.get(mid, 0) + float(sale.get('amount', 0))
-
-Ligne 1680:
-  "balance": float(user.get("balance", 0)),
-
-Ligne 1737:
-  "engagement_rate": float(row.get("engagement_rate", 0)),
-
-Ligne 1738:
-  "total_earnings": float(row.get("total_earnings", 0)),
 
 Ligne 1774:
   influencer_earnings[iid] = influencer_earnings.get(iid, 0) + float(comm.get('amount', 0))
@@ -39,35 +18,56 @@ Ligne 1774:
 Ligne 1861:
   total_sales = sum(float(s.get('amount', 0)) for s in sales)
 
-Ligne 1938:
-  commission_earned = sum([float(s.get("commission_amount", 0)) for s in sales])
-
-Ligne 2050:
-  "price": float(plan.get("price", 0)),
-
 Ligne 2051:
   "commission_rate": float(features.get("commission_rate", 5)),
 
-Ligne 2086:
-  requested_amount = float(body.get("amount", 0))
+Ligne 5917:
+  influencer_stats[inf_id]['commission'] += float(link.get('commission_earned', 0))
 
-Ligne 2108:
-  total_earned = sum([float(c.get("amount", 0)) for c in commissions])
+Ligne 6214:
+  'amount': float(conv.get('sale_amount', 0)),
 
-Ligne 2116:
-  total_withdrawn = sum([float(p.get("amount", 0)) for p in payouts if p.get("status") in ["paid", "pr
+Ligne 6215:
+  'commission': float(conv.get('commission_amount', 0)),
 
-Ligne 2273:
-  "product_price": float(product_data.get("price", 0)),
+Ligne 6391:
+  #             revenus_total = sum(float(s.get('amount', 0)) for s in sales)
 
-Ligne 2274:
-  "commission_rate": float(inv.get("commission_rate", 0)),
+Ligne 6502:
+  #             gains_total = sum(float(s.get('commission', 0)) for s in sales)
 
-Ligne 2394:
-  total_revenue = sum([float(d.get("value", 0)) for d in deals])
+Ligne 6543:
+  revenus_total = sum(float(s.get('amount', 0)) for s in sales)
 
-Ligne 2404:
-  pipeline_value = sum([float(d.get("value", 0)) for d in (pipeline_deals_result.data or [])])
+Ligne 6869:
+  total_revenue = sum(float(s.get('amount', 0)) for s in sales)
+
+Ligne 7320:
+  spent_map[merchant_id] = spent_map.get(merchant_id, 0) + float(c.get('amount', 0))
+
+Ligne 7664:
+  total_platform_revenue = sum(float(sale.get('platform_commission', 0)) for sale in sales.data)
+
+Ligne 7665:
+  total_influencer_commission = sum(float(sale.get('influencer_commission', 0)) for sale in sales.data
+
+Ligne 7666:
+  total_merchant_revenue = sum(float(sale.get('merchant_revenue', 0)) for sale in sales.data)
+
+Ligne 7667:
+  total_amount = sum(float(sale.get('amount', 0)) for sale in sales.data)
+
+Ligne 7687:
+  merchants_revenue[merchant_id]['platform_commission'] += float(sale.get('platform_commission', 0))
+
+Ligne 7688:
+  merchants_revenue[merchant_id]['influencer_commission'] += float(sale.get('influencer_commission', 0
+
+Ligne 7689:
+  merchants_revenue[merchant_id]['merchant_revenue'] += float(sale.get('merchant_revenue', 0))
+
+Ligne 7690:
+  merchants_revenue[merchant_id]['total_sales_amount'] += float(sale.get('amount', 0))
 
 ================================================================================
 2. ENDPOINTS SANS TRY/EXCEPT

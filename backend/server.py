@@ -1636,7 +1636,7 @@ async def get_merchants(request: Request, payload: dict = Depends(get_current_us
         for sale in sales_data:
             mid = sale.get('merchant_id')
             if mid:
-                merchant_revenue[mid] = merchant_revenue.get(mid, 0) + float(sale.get('amount', 0))
+                merchant_revenue[mid] = merchant_revenue.get(mid, 0) + float(sale.get('amount', 0) or 0)
         
         # Compter les produits par merchant_id
         merchant_products_count = {}
@@ -1771,7 +1771,7 @@ async def get_influencers(request: Request, payload: dict = Depends(get_current_
         for comm in commissions_data:
             iid = comm.get('influencer_id')
             if iid:
-                influencer_earnings[iid] = influencer_earnings.get(iid, 0) + float(comm.get('amount', 0))
+                influencer_earnings[iid] = influencer_earnings.get(iid, 0) + float(comm.get('amount', 0) or 0)
         
         # Compter les clicks par influencer_id
         influencer_clicks = {}
@@ -1858,7 +1858,7 @@ async def get_influencer_stats(influencer_id: str, current_user: dict = Depends(
         # Récupérer toutes les ventes de cet influencer
         sales_response = supabase.table('sales').select('amount').eq('influencer_id', influencer_id).execute()
         sales = sales_response.data if sales_response.data else []
-        total_sales = sum(float(s.get('amount', 0)) for s in sales)
+        total_sales = sum(float(s.get('amount', 0) or 0) for s in sales)
         
         # Récupérer les clics (si table tracking_links existe)
         try:
@@ -1874,7 +1874,7 @@ async def get_influencer_stats(influencer_id: str, current_user: dict = Depends(
         
         # Compter campagnes complétées (approximation)
         campaigns_response = supabase.table('campaigns').select('id').eq('status', 'completed').execute()
-        campaigns_completed = len(campaigns_response.data) if campaigns_response.data else len(sales) // 3
+        campaigns_completed = len(campaigns_response.data or []) if campaigns_response.data else len(sales) // 3
         
         return {
             "total_sales": round(total_sales, 2),
@@ -2024,7 +2024,7 @@ async def get_current_subscription(request: Request, payload: dict = Depends(get
             )
         """).eq("user_id", user_id).eq("status", "active").order("created_at", desc=True).limit(1).execute()
         
-        if not sub_result.data or len(sub_result.data) == 0:
+        if not sub_result.data or len(sub_result.data or []) == 0:
             # Retourner le plan gratuit par défaut
             return {
                 "id": None,
@@ -2048,7 +2048,7 @@ async def get_current_subscription(request: Request, payload: dict = Depends(get
             "id": subscription.get("id"),
             "plan_name": plan.get("name", "Free"),
             "price": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(plan.get("price", 0)),
-            "commission_rate": float(features.get("commission_rate", 5)),
+            "commission_rate": float(features.get("commission_rate", 5) or 0),
             "max_campaigns": plan.get("max_campaigns", 5),
             "max_tracking_links": plan.get("max_tracking_links", 10),
             "instant_payout": features.get("instant_payout", False),
@@ -2744,7 +2744,7 @@ async def update_admin_user(
         }
         
         # Si un nouveau mot de passe est fourni
-        if user_data.get("password"):
+        if user_data and user_data.get("password"):
             update_data["password_hash"] = hash_password(user_data.get("password"))
         
         # Retirer les valeurs None
@@ -3056,7 +3056,7 @@ async def approve_registration(
         }
         
         # Ajouter une note si fournie
-        if approval_data.get("note"):
+        if approval_data and approval_data.get("note"):
             metadata = approval_data.get("metadata", {})
             metadata["approval_note"] = approval_data.get("note")
             update_data["metadata"] = metadata
@@ -3235,10 +3235,10 @@ async def get_admin_analytics_metrics(
         
         # Utilisateurs totaux et nouveaux
         total_users_result = supabase.table("users").select("id", count="exact").execute()
-        total_users = total_users_result.count if hasattr(total_users_result, 'count') else len(total_users_result.data)
+        total_users = total_users_result.count if hasattr(total_users_result, 'count') else len(total_users_result.data or [])
         
         new_users_result = supabase.table("users").select("id", count="exact").gte("created_at", start_date).execute()
-        new_users = new_users_result.count if hasattr(new_users_result, 'count') else len(new_users_result.data)
+        new_users = new_users_result.count if hasattr(new_users_result, 'count') else len(new_users_result.data or [])
         
         # Revenus totaux avec protection null-safe
         sales_result = supabase.table("sales").select("amount").gte("created_at", start_date).execute()
@@ -3254,11 +3254,11 @@ async def get_admin_analytics_metrics(
         
         # Abonnements actifs
         subs_result = supabase.table("subscriptions").select("id", count="exact").eq("status", "active").execute()
-        active_subscriptions = subs_result.count if hasattr(subs_result, 'count') else len(subs_result.data)
+        active_subscriptions = subs_result.count if hasattr(subs_result, 'count') else len(subs_result.data or [])
         
         # Transactions
         transactions_result = supabase.table("sales").select("id", count="exact").gte("created_at", start_date).execute()
-        total_transactions = transactions_result.count if hasattr(transactions_result, 'count') else len(transactions_result.data)
+        total_transactions = transactions_result.count if hasattr(transactions_result, 'count') else len(transactions_result.data or [])
         
         return {
             "total_users": total_users,
@@ -3417,7 +3417,7 @@ async def get_admin_analytics_churn(
             .eq("status", "active")\
             .lt("created_at", start_date)\
             .execute()
-        active_start_count = active_start.count if hasattr(active_start, 'count') else len(active_start.data)
+        active_start_count = active_start.count if hasattr(active_start, 'count') else len(active_start.data or [])
         
         # Abonnements annulés pendant la période
         cancelled = supabase.table("subscriptions")\
@@ -3425,7 +3425,7 @@ async def get_admin_analytics_churn(
             .eq("status", "cancelled")\
             .gte("updated_at", start_date)\
             .execute()
-        cancelled_count = cancelled.count if hasattr(cancelled, 'count') else len(cancelled.data)
+        cancelled_count = cancelled.count if hasattr(cancelled, 'count') else len(cancelled.data or [])
         
         # Calcul du taux de churn
         churn_rate = (cancelled_count / active_start_count * 100) if active_start_count > 0 else 0
@@ -3823,14 +3823,14 @@ async def get_moderation_stats(
             .select("id", count="exact")\
             .eq("status", "pending")\
             .execute()
-        pending_products_count = pending_products.count if hasattr(pending_products, 'count') else len(pending_products.data)
+        pending_products_count = pending_products.count if hasattr(pending_products, 'count') else len(pending_products.data or [])
         
         # Reviews en attente
         pending_reviews = supabase.table("reviews")\
             .select("id", count="exact")\
             .eq("status", "pending")\
             .execute()
-        pending_reviews_count = pending_reviews.count if hasattr(pending_reviews, 'count') else len(pending_reviews.data)
+        pending_reviews_count = pending_reviews.count if hasattr(pending_reviews, 'count') else len(pending_reviews.data or [])
         
         # Items modérés dans la période
         moderated_products = supabase.table("products")\
@@ -3838,7 +3838,7 @@ async def get_moderation_stats(
             .in_("status", ["approved", "rejected"])\
             .gte("updated_at", start_date)\
             .execute()
-        moderated_products_count = moderated_products.count if hasattr(moderated_products, 'count') else len(moderated_products.data)
+        moderated_products_count = moderated_products.count if hasattr(moderated_products, 'count') else len(moderated_products.data or [])
         
         return {
             "pending": {
@@ -4011,7 +4011,7 @@ async def get_invoices(
             
             if user_id:
                 user_result = supabase.from_("users").select("id, email, company_name, username").eq("id", user_id).execute()
-                if user_result.data and len(user_result.data) > 0:
+                if user_result.data and len(user_result.data or []) > 0:
                     user_data = user_result.data[0]
             
             formatted_invoices.append({
@@ -4360,7 +4360,7 @@ async def get_products_stats(payload: dict = Depends(get_current_user_from_cooki
         in_stock = sum(1 for p in products if (p.get("stock") or 0) > 0)
         out_of_stock = sum(1 for p in products if (p.get("stock") or 0) == 0)
         low_stock = sum(1 for p in products if 0 < (p.get("stock") or 0) < 10)
-        total_value = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(p.get("price", 0)) * int(p.get("stock", 0)) for p in products)
+        total_value = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(p.get("price", 0)) * (lambda v: int(v) if v not in [None, "", "null"] else 0)(p.get("stock", 0)) for p in products)
         
         return {
             "total": total,
@@ -4389,7 +4389,7 @@ async def get_product(product_id: str):
             categories:category_id(id, name)
         """).eq("id", product_id).execute()
         
-        if not result.data or len(result.data) == 0:
+        if not result.data or len(result.data or []) == 0:
             raise HTTPException(status_code=404, detail="Produit non trouvé")
         
         product = result.data[0]
@@ -4526,7 +4526,7 @@ async def get_service(service_id: str):
             users!services_merchant_id_fkey(id, email, full_name, company_name)
         """).eq("id", service_id).execute()
         
-        if not result.data or len(result.data) == 0:
+        if not result.data or len(result.data or []) == 0:
             raise HTTPException(status_code=404, detail="Service non trouvé")
         
         service = result.data[0]
@@ -4557,7 +4557,7 @@ async def get_service_leads(
     try:
         # Vérifier que le service existe
         service_result = supabase.table("services").select("*").eq("id", service_id).execute()
-        if not service_result.data or len(service_result.data) == 0:
+        if not service_result.data or len(service_result.data or []) == 0:
             raise HTTPException(status_code=404, detail="Service non trouvé")
         
         service = service_result.data[0]
@@ -4627,14 +4627,14 @@ async def get_all_subscriptions_admin(
         
         # Enrichir avec les données utilisateur et plan
         for sub in subscriptions:
-            if sub.get("users"):
+            if sub and sub.get("users"):
                 user_data = sub.pop("users")
                 sub["user_email"] = user_data.get("email", "N/A")
                 sub["user_name"] = user_data.get("full_name", "N/A")
                 sub["user_role"] = user_data.get("role", "N/A")
                 sub["company_name"] = user_data.get("company_name")
             
-            if sub.get("subscription_plans"):
+            if sub and sub.get("subscription_plans"):
                 plan_data = sub.pop("subscription_plans")
                 sub["plan_name"] = plan_data.get("name", "Free")
                 sub["plan_price"] = plan_data.get("price", 0)
@@ -4805,7 +4805,7 @@ async def get_registration_timeline(
             }
         ]
         
-        if u.get("is_active"):
+        if u and u.get("is_active"):
             timeline.append({
                 "date": u.get("created_at"), # Même date car auto-approuvé
                 "type": "approved",
@@ -4845,7 +4845,7 @@ async def get_admin_service_leads(
         
         result = query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
         
-        return {"leads": result.data, "total": len(result.data)}
+        return {"leads": result.data, "total": len(result.data or [])}
     except HTTPException:
         raise
     except Exception as e:
@@ -4861,20 +4861,20 @@ async def get_admin_leads_stats(
     try:
         # Total leads
         total_result = supabase.table("service_leads").select("id", count="exact").execute()
-        total = total_result.count if hasattr(total_result, 'count') else len(total_result.data)
+        total = total_result.count if hasattr(total_result, 'count') else len(total_result.data or [])
         
         # Par statut
         new_result = supabase.table("service_leads").select("id", count="exact").eq("status", "new").execute()
-        new_count = new_result.count if hasattr(new_result, 'count') else len(new_result.data)
+        new_count = new_result.count if hasattr(new_result, 'count') else len(new_result.data or [])
         
         contacted_result = supabase.table("service_leads").select("id", count="exact").eq("status", "contacted").execute()
-        contacted_count = contacted_result.count if hasattr(contacted_result, 'count') else len(contacted_result.data)
+        contacted_count = contacted_result.count if hasattr(contacted_result, 'count') else len(contacted_result.data or [])
         
         qualified_result = supabase.table("service_leads").select("id", count="exact").eq("status", "qualified").execute()
-        qualified_count = qualified_result.count if hasattr(qualified_result, 'count') else len(qualified_result.data)
+        qualified_count = qualified_result.count if hasattr(qualified_result, 'count') else len(qualified_result.data or [])
         
         converted_result = supabase.table("service_leads").select("id", count="exact").eq("status", "converted").execute()
-        converted_count = converted_result.count if hasattr(converted_result, 'count') else len(converted_result.data)
+        converted_count = converted_result.count if hasattr(converted_result, 'count') else len(converted_result.data or [])
         
         return {
             "total": total,
@@ -4938,7 +4938,7 @@ async def get_leads_analytics(
         analytics = [{"date": date, **data} for date, data in daily_leads.items()]
         
         # Taux de conversion global
-        total = len(result.data)
+        total = len(result.data or [])
         converted = len([l for l in result.data if l.get("status") == "converted"])
         conversion_rate = (converted / total * 100) if total > 0 else 0
         
@@ -5212,11 +5212,11 @@ async def get_merchant_dashboard_stats(
         
         # Total produits
         products_result = supabase.table("products").select("id", count="exact").eq("merchant_id", current_user["id"]).execute()
-        total_products = products_result.count if hasattr(products_result, 'count') else len(products_result.data)
+        total_products = products_result.count if hasattr(products_result, 'count') else len(products_result.data or [])
         
         # Total ventes
         sales_result = supabase.table("sales").select("amount", count="exact").eq("merchant_id", current_user["id"]).gte("created_at", start_date).execute()
-        total_sales = sales_result.count if hasattr(sales_result, 'count') else len(sales_result.data)
+        total_sales = sales_result.count if hasattr(sales_result, 'count') else len(sales_result.data or [])
         revenue = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(sale.get("amount", 0)) for sale in sales_result.data) if sales_result.data else 0
         
         # Affiliés actifs
@@ -5225,7 +5225,7 @@ async def get_merchant_dashboard_stats(
         
         # Campagnes actives
         campaigns_result = supabase.table("campaigns").select("id", count="exact").eq("merchant_id", current_user["id"]).eq("status", "active").execute()
-        active_campaigns = campaigns_result.count if hasattr(campaigns_result, 'count') else len(campaigns_result.data)
+        active_campaigns = campaigns_result.count if hasattr(campaigns_result, 'count') else len(campaigns_result.data or [])
         
         return {
             "total_products": total_products,
@@ -5260,7 +5260,7 @@ async def get_merchant_dashboard_products(
             .range(offset, offset + limit - 1)\
             .execute()
         
-        return {"products": result.data, "total": len(result.data)}
+        return {"products": result.data, "total": len(result.data or [])}
     except HTTPException:
         raise
     except Exception as e:
@@ -5427,14 +5427,14 @@ async def get_merchant_dashboard_analytics(
             .eq("merchant_id", current_user["id"])\
             .gte("created_at", start_date)\
             .execute()
-        total_clicks = clicks_result.count if hasattr(clicks_result, 'count') else len(clicks_result.data)
+        total_clicks = clicks_result.count if hasattr(clicks_result, 'count') else len(clicks_result.data or [])
         
         sales_result = supabase.table("sales")\
             .select("id", count="exact")\
             .eq("merchant_id", current_user["id"])\
             .gte("created_at", start_date)\
             .execute()
-        total_conversions = sales_result.count if hasattr(sales_result, 'count') else len(sales_result.data)
+        total_conversions = sales_result.count if hasattr(sales_result, 'count') else len(sales_result.data or [])
         
         conversion_rate = (total_conversions / total_clicks * 100) if total_clicks > 0 else 0
         
@@ -5803,7 +5803,7 @@ async def get_campaign_stats(campaign_id: str, current_user: dict = Depends(get_
         # Vérifier que la campagne existe et que l'utilisateur a accès
         campaign_response = supabase.table('campaigns').select('*').eq('id', campaign_id).execute()
         
-        if not campaign_response.data or len(campaign_response.data) == 0:
+        if not campaign_response.data or len(campaign_response.data or []) == 0:
             raise HTTPException(status_code=404, detail="Campagne non trouvée")
         
         campaign = campaign_response.data[0]
@@ -5880,7 +5880,7 @@ async def get_campaign_influencers(campaign_id: str, current_user: dict = Depend
         # Vérifier que la campagne existe et que l'utilisateur a accès
         campaign_response = supabase.table('campaigns').select('*').eq('id', campaign_id).execute()
         
-        if not campaign_response.data or len(campaign_response.data) == 0:
+        if not campaign_response.data or len(campaign_response.data or []) == 0:
             raise HTTPException(status_code=404, detail="Campagne non trouvée")
         
         campaign = campaign_response.data[0]
@@ -5914,7 +5914,7 @@ async def get_campaign_influencers(campaign_id: str, current_user: dict = Depend
                 }
             
             influencer_stats[inf_id]['sales'] += link.get('conversions', 0)
-            influencer_stats[inf_id]['commission'] += float(link.get('commission_earned', 0))
+            influencer_stats[inf_id]['commission'] += float(link.get('commission_earned', 0) or 0)
             influencer_stats[inf_id]['clicks'] += link.get('clicks', 0)
         
         # Récupérer les détails des influenceurs
@@ -5951,7 +5951,7 @@ async def get_campaign_detail(campaign_id: str, current_user: dict = Depends(get
         # Récupérer la campagne
         campaign_response = supabase.table('campaigns').select('*').eq('id', campaign_id).execute()
         
-        if not campaign_response.data or len(campaign_response.data) == 0:
+        if not campaign_response.data or len(campaign_response.data or []) == 0:
             raise HTTPException(status_code=404, detail="Campagne non trouvée")
         
         campaign = campaign_response.data[0]
@@ -6027,7 +6027,7 @@ async def update_campaign(
         
         # Vérifier que la campagne existe
         campaign_response = supabase.table('campaigns').select('*').eq('id', campaign_id).execute()
-        if not campaign_response.data or len(campaign_response.data) == 0:
+        if not campaign_response.data or len(campaign_response.data or []) == 0:
             raise HTTPException(status_code=404, detail="Campagne non trouvée")
         
         campaign = campaign_response.data[0]
@@ -6061,7 +6061,7 @@ async def update_campaign(
         # Mettre à jour la campagne
         update_response = supabase.table('campaigns').update(update_data).eq('id', campaign_id).execute()
         
-        if not update_response.data or len(update_response.data) == 0:
+        if not update_response.data or len(update_response.data or []) == 0:
             raise HTTPException(status_code=500, detail="Erreur lors de la mise à jour")
         
         return update_response.data[0]
@@ -6211,8 +6211,8 @@ async def get_conversions_endpoint(current_user: dict = Depends(get_current_user
                 'order_id': conv.get('id'), # Use ID as order_id since order_id column is missing
                 'campaign_id': campaign_name,
                 'affiliate_id': influencer_name,
-                'amount': float(conv.get('sale_amount', 0)),
-                'commission': float(conv.get('commission_amount', 0)),
+                'amount': float(conv.get('sale_amount', 0) or 0),
+                'commission': float(conv.get('commission_amount', 0) or 0),
                 'status': conv.get('status', 'pending'),
                 'created_at': conv.get('conversion_date'),
             })
@@ -6388,7 +6388,7 @@ async def get_clicks_endpoint(current_user: dict = Depends(get_current_user_from
             
 #             # Calculer les totaux
 #             ventes_count = len(sales)
-#             revenus_total = sum(float(s.get('amount', 0)) for s in sales)
+#             revenus_total = sum(float(s.get('amount', 0) or 0) for s in sales)
             
 #             days_data.append({
 #                 'date': target_date.strftime('%d/%m'),
@@ -6499,7 +6499,7 @@ async def get_clicks_endpoint(current_user: dict = Depends(get_current_user_from
 #             response = query.execute()
 #             sales = response.data if response.data else []
             
-#             gains_total = sum(float(s.get('commission', 0)) for s in sales)
+#             gains_total = sum(float(s.get('commission', 0) or 0) for s in sales)
             
 #             days_data.append({
 #                 'date': target_date.strftime('%d/%m'),
@@ -6540,7 +6540,7 @@ async def get_admin_revenue_chart(current_user: dict = Depends(get_current_user_
             response = query.execute()
             sales = response.data if response.data else []
             
-            revenus_total = sum(float(s.get('amount', 0)) for s in sales)
+            revenus_total = sum(float(s.get('amount', 0) or 0) for s in sales)
             
             days_data.append({
                 'date': target_date.strftime('%d/%m'),
@@ -6712,7 +6712,7 @@ async def get_company_settings(current_user: dict = Depends(get_current_user_fro
         # Chercher les paramètres de l'entreprise
         response = supabase.table('company_settings').select('*').eq('user_id', user_id).execute()
         
-        if response.data and len(response.data) > 0:
+        if response.data and len(response.data or []) > 0:
             return response.data[0]
         else:
             # Retourner des valeurs par défaut si aucun paramètre n'existe
@@ -6745,7 +6745,7 @@ async def update_company_settings(settings: CompanySettingsUpdate, current_user:
         # Vérifier si les paramètres existent déjà
         check_response = supabase.table('company_settings').select('id').eq('user_id', user_id).execute()
         
-        if check_response.data and len(check_response.data) > 0:
+        if check_response.data and len(check_response.data or []) > 0:
             # Update
             response = supabase.table('company_settings').update(update_data).eq('user_id', user_id).execute()
         else:
@@ -6866,7 +6866,7 @@ async def get_ai_predictions(current_user: dict = Depends(get_current_user_from_
         
         # Calculer les statistiques
         total_sales = len(sales)
-        total_revenue = sum(float(s.get('amount', 0)) for s in sales)
+        total_revenue = sum(float(s.get('amount', 0) or 0) for s in sales)
         avg_per_day = total_sales / 30 if total_sales > 0 else 0
         
         # Prédictions simples basées sur la tendance
@@ -6921,7 +6921,7 @@ async def send_message(message_data: MessageCreate, current_user: dict = Depends
         conv_response = supabase.table('conversations').select('*').contains('participant_ids', [user_id, message_data.recipient_id]).execute()
         
         conversation_id = None
-        if conv_response.data and len(conv_response.data) > 0:
+        if conv_response.data and len(conv_response.data or []) > 0:
             # Prendre la première conversation trouvée (ou filtrer plus si nécessaire)
             conversation_id = conv_response.data[0]['id']
         else:
@@ -7317,7 +7317,7 @@ async def get_advertisers(current_user: dict = Depends(get_current_user_from_coo
             sale_id = c.get('sale_id')
             merchant_id = sales_map.get(sale_id)
             if merchant_id:
-                spent_map[merchant_id] = spent_map.get(merchant_id, 0) + float(c.get('amount', 0))
+                spent_map[merchant_id] = spent_map.get(merchant_id, 0) + float(c.get('amount', 0) or 0)
                 
         # Enrichir les marchands
         for merchant in merchants:
@@ -7544,7 +7544,7 @@ async def get_coupons(current_user: dict = Depends(get_current_user_from_cookie)
         
 #         # Calculer taux de commission moyen
 #         total_commission = sum(link.get("total_commission", 0) for link in links_result.data)
-#         avg_commission = (total_commission / len(links_result.data)) if links_result.data else 0
+#         avg_commission = (total_commission / len(links_result.data or [])) if links_result.data else 0
         
 #         return {
 #             "best_product": best_product,
@@ -7661,10 +7661,10 @@ async def get_platform_revenue(
             }
         
         # Calculer statistiques globales
-        total_platform_revenue = sum(float(sale.get('platform_commission', 0)) for sale in sales.data)
-        total_influencer_commission = sum(float(sale.get('influencer_commission', 0)) for sale in sales.data)
-        total_merchant_revenue = sum(float(sale.get('merchant_revenue', 0)) for sale in sales.data)
-        total_amount = sum(float(sale.get('amount', 0)) for sale in sales.data)
+        total_platform_revenue = sum(float(sale.get('platform_commission', 0) or 0) for sale in sales.data)
+        total_influencer_commission = sum(float(sale.get('influencer_commission', 0) or 0) for sale in sales.data)
+        total_merchant_revenue = sum(float(sale.get('merchant_revenue', 0) or 0) for sale in sales.data)
+        total_amount = sum(float(sale.get('amount', 0) or 0) for sale in sales.data)
         
         # Grouper par merchant
         merchants_revenue = {}
@@ -7684,10 +7684,10 @@ async def get_platform_revenue(
                     'sales_count': 0
                 }
             
-            merchants_revenue[merchant_id]['platform_commission'] += float(sale.get('platform_commission', 0))
-            merchants_revenue[merchant_id]['influencer_commission'] += float(sale.get('influencer_commission', 0))
-            merchants_revenue[merchant_id]['merchant_revenue'] += float(sale.get('merchant_revenue', 0))
-            merchants_revenue[merchant_id]['total_sales_amount'] += float(sale.get('amount', 0))
+            merchants_revenue[merchant_id]['platform_commission'] += float(sale.get('platform_commission', 0) or 0)
+            merchants_revenue[merchant_id]['influencer_commission'] += float(sale.get('influencer_commission', 0) or 0)
+            merchants_revenue[merchant_id]['merchant_revenue'] += float(sale.get('merchant_revenue', 0) or 0)
+            merchants_revenue[merchant_id]['total_sales_amount'] += float(sale.get('amount', 0) or 0)
             merchants_revenue[merchant_id]['sales_count'] += 1
         
         # Trier par commission décroissante
@@ -7703,10 +7703,10 @@ async def get_platform_revenue(
             recent_commissions.append({
                 'merchant_id': sale.get('merchant_id'),
                 'company_name': sale.get('merchants', {}).get('company_name', 'Unknown') if sale.get('merchants') else 'Unknown',
-                'amount': float(sale.get('amount', 0)),
-                'platform_commission': float(sale.get('platform_commission', 0)),
-                'influencer_commission': float(sale.get('influencer_commission', 0)),
-                'merchant_revenue': float(sale.get('merchant_revenue', 0)),
+                'amount': float(sale.get('amount', 0) or 0),
+                'platform_commission': float(sale.get('platform_commission', 0) or 0),
+                'influencer_commission': float(sale.get('influencer_commission', 0) or 0),
+                'merchant_revenue': float(sale.get('merchant_revenue', 0) or 0),
                 'created_at': sale.get('created_at')
             })
         
@@ -7716,8 +7716,8 @@ async def get_platform_revenue(
                 'total_influencer_commission': round(total_influencer_commission, 2),
                 'total_merchant_revenue': round(total_merchant_revenue, 2),
                 'total_sales_amount': round(total_amount, 2),
-                'total_sales': len(sales.data),
-                'average_commission_per_sale': round(total_platform_revenue / len(sales.data), 2) if sales.data else 0,
+                'total_sales': len(sales.data or []),
+                'average_commission_per_sale': round(total_platform_revenue / len(sales.data or []), 2) if sales.data else 0,
                 'platform_commission_rate': round((total_platform_revenue / total_amount * 100), 2) if total_amount > 0 else 0
             },
             'by_merchant': merchants_list,
@@ -7895,7 +7895,7 @@ async def get_payment_status(current_user: dict = Depends(get_current_user_from_
         'influencer_id', influencer["id"]
     ).eq('status', 'pending').execute()
     
-    pending_amount = sum(float(sale.get('influencer_commission', 0)) for sale in (pending_sales.data or []))
+    pending_amount = sum(float(sale.get('influencer_commission', 0) or 0) for sale in (pending_sales.data or []))
     
     # Récupérer le prochain paiement prévu
     next_payout = None
@@ -9161,7 +9161,7 @@ async def get_my_subscription(current_user: dict = Depends(get_current_user_from
                 )
             """).eq("user_id", user_id).eq("status", "active").order("created_at", desc=True).limit(1).execute()
             
-            if not sub_result.data or len(sub_result.data) == 0:
+            if not sub_result.data or len(sub_result.data or []) == 0:
                 # Retourner le plan Free par défaut
                 return {
                     "id": None,
@@ -9194,7 +9194,7 @@ async def get_my_subscription(current_user: dict = Depends(get_current_user_from
                 "plan_details": {
                     "name": plan.get("name", "Free"),
                     "price": (lambda v: float(v) if v not in [None, "", "null"] else 0.0)(plan.get("price", 0)),
-                    "commission_rate": float(features.get("commission_rate", 5)),
+                    "commission_rate": float(features.get("commission_rate", 5) or 0),
                     "max_campaigns": plan.get("max_campaigns", 5),
                     "max_tracking_links": plan.get("max_tracking_links", 10),
                     "instant_payout": features.get("instant_payout", False),
@@ -9341,7 +9341,7 @@ async def get_subscription_usage(current_user: dict = Depends(get_current_user_f
             """).eq("user_id", user["id"]).eq("status", "active").order("created_at", desc=True).limit(1).execute()
             
             # Définir les limites selon l'abonnement
-            if sub_result.data and len(sub_result.data) > 0:
+            if sub_result.data and len(sub_result.data or []) > 0:
                 plan_data = sub_result.data[0].get("subscription_plans", {})
                 plan_name = plan_data.get("name", "Free")
                 features = plan_data.get("features", {}) or {}
@@ -9455,7 +9455,7 @@ async def get_marketplace_products(
         
         return {
             "products": result.data or [],
-            "total": len(result.data) if result.data else 0,
+            "total": len(result.data or []) if result.data else 0,
             "limit": limit,
             "offset": offset
         }
@@ -9481,12 +9481,12 @@ async def get_marketplace_categories(
         
         if products_result.data:
             for item in (products_result.data or []):
-                if item.get("category"):
+                if item and item.get("category"):
                     categories.add(item["category"])
         
         if services_result.data:
             for item in (services_result.data or []):
-                if item.get("category"):
+                if item and item.get("category"):
                     categories.add(item["category"])
         
         # Liste par défaut si aucune catégorie
@@ -9965,7 +9965,7 @@ async def respond_to_invitation(
             # Prepare affiliate link response for frontend
             if link_result.data:
                 product_name = "Produit"
-                if invitation_data.get("product_id"):
+                if invitation_data and invitation_data.get("product_id"):
                     prod_res = supabase.table("products").select("name").eq("id", invitation_data["product_id"]).execute()
                     if prod_res.data:
                         product_name = prod_res.data[0].get("name", "Produit")
@@ -10007,7 +10007,7 @@ async def get_sent_collaboration_requests(
         
         return {
             "requests": result.data or [],
-            "total": len(result.data) if result.data else 0
+            "total": len(result.data or []) if result.data else 0
         }
     
     except Exception as e:
@@ -10157,7 +10157,7 @@ async def get_deposit_transactions(
         
         return {
             "transactions": result.data or [],
-            "total": len(result.data) if result.data else 0
+            "total": len(result.data or []) if result.data else 0
         }
     
     except Exception as e:
@@ -10319,7 +10319,7 @@ async def get_merchant_leads(
         
         return {
             "leads": result.data or [],
-            "total": len(result.data) if result.data else 0
+            "total": len(result.data or []) if result.data else 0
         }
     
     except Exception as e:
@@ -10454,7 +10454,7 @@ async def get_subscriptions_analytics(
             .execute()
         
         # Statistiques globales
-        total_subs = len(all_subs.data)
+        total_subs = len(all_subs.data or [])
         active_subs = len([s for s in all_subs.data if s.get("status") == "active"])
         cancelled_subs = len([s for s in all_subs.data if s.get("status") == "cancelled"])
         
@@ -10477,7 +10477,7 @@ async def get_subscriptions_analytics(
             .select("id", count="exact")\
             .gte("created_at", thirty_days_ago)\
             .execute()
-        new_subs_count = new_subs_30d.count if hasattr(new_subs_30d, 'count') else len(new_subs_30d.data)
+        new_subs_count = new_subs_30d.count if hasattr(new_subs_30d, 'count') else len(new_subs_30d.data or [])
         
         return {
             "total_subscriptions": total_subs,
@@ -10887,7 +10887,7 @@ async def get_commercials_directory(
                 comm_res = supabase.table("commissions").select("amount").eq("user_id", commercial["id"]).execute()
                 if comm_res.data:
                     total_commissions = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(c.get("amount", 0)) for c in comm_res.data)
-                    total_sales = len(comm_res.data) # Approximation: 1 commission = 1 sale
+                    total_sales = len(comm_res.data or []) # Approximation: 1 commission = 1 sale
             except Exception:
                 pass
 
@@ -10943,7 +10943,7 @@ async def get_team_members(
         
         return {
             "members": result.data,
-            "total": len(result.data)
+            "total": len(result.data or [])
         }
     
     except Exception as e:
@@ -11028,7 +11028,7 @@ async def get_my_products(
         
         return {
             "products": result.data or [],
-            "total": len(result.data) if result.data else 0
+            "total": len(result.data or []) if result.data else 0
         }
     
     except Exception as e:
@@ -12494,7 +12494,7 @@ async def get_commercial_performance(
             .eq("created_by", current_user["id"])\
             .gte("created_at", start_date)\
             .execute()
-        total_leads = leads_result.count if hasattr(leads_result, 'count') else len(leads_result.data)
+        total_leads = leads_result.count if hasattr(leads_result, 'count') else len(leads_result.data or [])
         
         # Leads gagnés
         won_leads = [l for l in leads_result.data if l.get("lead_status") == "won"]
@@ -12789,7 +12789,7 @@ async def get_influencer_stats(
             .eq("influencer_id", influencer_id)\
             .gte("created_at", start_date)\
             .execute()
-        total_clicks = clicks_result.count if hasattr(clicks_result, 'count') else len(clicks_result.data)
+        total_clicks = clicks_result.count if hasattr(clicks_result, 'count') else len(clicks_result.data or [])
         
         # Total conversions
         conversions_result = supabase.table("sales")\
@@ -12797,7 +12797,7 @@ async def get_influencer_stats(
             .eq("influencer_id", influencer_id)\
             .gte("created_at", start_date)\
             .execute()
-        total_conversions = conversions_result.count if hasattr(conversions_result, 'count') else len(conversions_result.data)
+        total_conversions = conversions_result.count if hasattr(conversions_result, 'count') else len(conversions_result.data or [])
         total_revenue = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(s.get("amount", 0)) for s in conversions_result.data) if conversions_result.data else 0
         
         # Commissions
@@ -12816,7 +12816,7 @@ async def get_influencer_stats(
             .select("campaign_id", count="exact")\
             .eq("influencer_id", influencer_id)\
             .execute()
-        active_campaigns = campaigns_result.count if hasattr(campaigns_result, 'count') else len(campaigns_result.data)
+        active_campaigns = campaigns_result.count if hasattr(campaigns_result, 'count') else len(campaigns_result.data or [])
         
         return {
             "total_clicks": total_clicks,
@@ -12955,7 +12955,7 @@ async def get_influencer_campaign_performance(
                 .eq("campaign_id", campaign_id)\
                 .gte("created_at", start_date)\
                 .execute()
-            clicks = clicks_result.count if hasattr(clicks_result, 'count') else len(clicks_result.data)
+            clicks = clicks_result.count if hasattr(clicks_result, 'count') else len(clicks_result.data or [])
             
             # Ventes pour cette campagne
             sales_result = supabase.table("sales")\
@@ -12964,7 +12964,7 @@ async def get_influencer_campaign_performance(
                 .eq("campaign_id", campaign_id)\
                 .gte("created_at", start_date)\
                 .execute()
-            conversions = sales_result.count if hasattr(sales_result, 'count') else len(sales_result.data)
+            conversions = sales_result.count if hasattr(sales_result, 'count') else len(sales_result.data or [])
             revenue = sum((lambda v: float(v) if v not in [None, "", "null"] else 0.0)(s.get("amount", 0)) for s in sales_result.data) if sales_result.data else 0
             
             performance.append({
