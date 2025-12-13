@@ -84,10 +84,10 @@ async def get_metrics(
         start_date, end_date = get_date_range(days)
         prev_start_date = start_date - timedelta(days=days)
 
-        # Récupérer les abonnements actifs (sans jointure)
+        # Récupérer les abonnements actifs (statuts actifs/trial)
         active_subs_response = supabase.table('subscriptions')\
             .select('id, plan_id, status')\
-            .eq('is_active', True)\
+            .in_('status', ['active', 'trialing'])\
             .execute()
         
         active_subs = active_subs_response.data or []
@@ -137,7 +137,7 @@ async def get_metrics(
         # Croissance des revenus (comparaison avec période précédente)
         prev_subs_response = supabase.table('subscriptions')\
             .select('id, plan_id')\
-            .eq('is_active', True)\
+            .in_('status', ['active', 'trialing'])\
             .lte('created_at', start_date.isoformat())\
             .execute()
         

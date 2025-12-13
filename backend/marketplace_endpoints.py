@@ -469,15 +469,8 @@ async def get_product_reviews(
     try:
         offset = (page - 1) * limit
 
-        # Récupérer reviews approuvés (ou tous si pas de colonne is_approved)
+        # Récupérer les reviews; filtrage is_approved géré après fetch pour éviter l'erreur colonne manquante
         query = supabase.table('product_reviews').select('*').eq('product_id', product_id)
-        
-        # Essayer de filtrer par is_approved si la colonne existe
-        try:
-            query = query.eq('is_approved', True)
-        except Exception as e:
-            logger.debug(f"Error: {e}")
-            pass
 
         # Tri
         if sort_by == "rating":
@@ -495,6 +488,8 @@ async def get_product_reviews(
         result = query.execute()
         
         reviews = result.data or []
+        # Filtrer côté application si le champ existe
+        reviews = [r for r in reviews if r.get('is_approved', True)]
         
         # Enrichir avec les infos utilisateurs
         for review in reviews:
