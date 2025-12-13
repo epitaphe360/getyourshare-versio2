@@ -3246,25 +3246,9 @@ async def update_user_permissions(
 # ============================================
 # ADMIN ANALYTICS ENDPOINTS
 # ============================================
-
-# ============================================
-# ADMIN ANALYTICS ENDPOINTS
-# ============================================
 # Les endpoints sont gérés par admin_analytics_endpoints.py
 # et inclus via app.include_router(admin_analytics_router)
 # Voir: backend/admin_analytics_endpoints.py
-            category_revenue[category]["revenue"] += float(sale.get("amount", 0))
-        
-        return {
-            "revenue_by_campaign": list(campaign_revenue.values()),
-            "revenue_by_category": list(category_revenue.values()),
-            "period_days": days
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"❌ Erreur get_admin_analytics_revenue_by_source: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================
