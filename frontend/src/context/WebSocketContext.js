@@ -4,6 +4,7 @@ import { useNotification } from '../hooks/useNotification';
 import { useAuth } from '../hooks/useAuth';
 import { queryClient } from '../config/queryClient';
 import { QUERY_KEYS } from '../hooks/useQueries';
+import { API_URL, getWebSocketUrl as getWsUrlFromConfig } from '../config/api.config';
 
 /**
  * WebSocket Context
@@ -12,9 +13,9 @@ const WebSocketContext = createContext(null);
 
 /**
  * WebSocket Provider Component
- * 
+ *
  * Manages global WebSocket connection and event handlers
- * 
+ *
  * @param {Object} props - Component props
  * @param {React.ReactNode} props.children - Child components
  * @returns {JSX.Element}
@@ -23,36 +24,10 @@ export const WebSocketProvider = ({ children }) => {
   const { user } = useAuth();
   const { success, info, warning } = useNotification();
 
-  // Construire l'URL WebSocket à partir de l'URL backend
+  // Construire l'URL WebSocket à partir de l'URL backend centralisée
   const getWebSocketUrl = () => {
-    let backendUrl = process.env.REACT_APP_API_URL;
-
-    // Si l'URL n'est pas définie, utiliser localhost:8000 par défaut
-    if (!backendUrl) {
-      backendUrl = 'http://localhost:8000';
-    }
-
-    // Si l'URL pointe vers le port frontend (3000, 3001, etc.), rediriger vers 8000
-    // Cela arrive souvent quand l'API URL est relative ou mal configurée
-    const currentPort = window.location.port;
-    if (backendUrl.includes(`:${currentPort}`) || backendUrl.includes(':3000') || backendUrl.includes(':3001')) {
-      console.warn(`⚠️ REACT_APP_API_URL points to frontend port. Redirecting WebSocket to port 8000.`);
-      // Remplacer le port par 8000
-      backendUrl = backendUrl.replace(/:\d+/, ':8000');
-    }
-
-    // Si on est sur une IP réseau (ex: 192.168.x.x ou 10.x.x.x) et que backendUrl est localhost
-    // On essaie d'utiliser l'IP courante pour le backend aussi (suppose que backend tourne sur la même machine)
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && backendUrl.includes('localhost')) {
-       backendUrl = backendUrl.replace('localhost', window.location.hostname);
-       backendUrl = backendUrl.replace('127.0.0.1', window.location.hostname);
-    }
-
-    // Convertir http(s) en ws(s)
-    const wsProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
-    const wsBase = backendUrl.replace(/^https?:\/\//, '');
-    
-    const url = `${wsProtocol}://${wsBase}/ws`;
+    const wsBaseUrl = getWsUrlFromConfig();
+    const url = `${wsBaseUrl}/ws`;
     console.log('🔌 WebSocket URL:', url);
     return url;
   };

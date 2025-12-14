@@ -24,6 +24,7 @@ from services.ai_bot_service import (
     create_conversation_context
 )
 from auth import get_current_user
+from supabase_client import supabase
 
 router = APIRouter(prefix="/api/bot", tags=["AI Bot"])
 logger = structlog.get_logger()
@@ -73,11 +74,57 @@ class SuggestionResponse(BaseModel):
 
 
 # ============================================
-# STOCKAGE EN MÉMOIRE (temporaire)
+# FONCTIONS DE STOCKAGE SUPABASE
 # ============================================
 
-# TODO: Remplacer par base de données
-conversations_store = {}
+async def get_conversation_from_db(session_id: str) -> Optional[dict]:
+    """Récupère une conversation depuis Supabase"""
+    try:
+        result = supabase.table("bot_conversations")\
+            .select("*")\
+            .eq("session_id", session_id)\
+            .single()\
+            .execute()
+        return result.data
+    except Exception:
+        return None
+
+async def save_conversation_to_db(session_id: str, user_id: str, messages: List[dict], language: str = "fr"):
+    """Sauvegarde une conversation dans Supabase"""
+    try:
+        existing = await get_conversation_from_db(session_id)
+
+        data = {
+            "session_id": session_id,
+            "user_id": user_id,
+            "messages": messages,
+            "language": language,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+
+        if existing:
+            supabase.table("bot_conversations")\
+                .update(data)\
+                .eq("session_id", session_id)\
+                .execute()
+        else:
+            data["created_at"] = datetime.utcnow().isoformat()
+            supabase.table("bot_conversations").insert(data).execute()
+    except Exception as e:
+        logger.error("save_conversation_error", error=str(e), session_id=session_id)
+
+async def delete_conversation_from_db(session_id: str):
+    """Supprime une conversation de Supabase"""
+    try:
+        supabase.table("bot_conversations")\
+            .delete()\
+            .eq("session_id", session_id)\
+            .execute()
+    except Exception as e:
+        logger.error("delete_conversation_error", error=str(e), session_id=session_id)
+
+# Cache en mémoire pour les sessions actives (optimisation)
+conversations_cache = {}
 
 
 # ============================================
@@ -105,22 +152,54 @@ async def chat_with_bot(
         # Récupérer ou créer contexte
         session_id = request.session_id or f"{user_id}_{datetime.utcnow().timestamp()}"
 
-        if session_id in conversations_store:
-            context = conversations_store[session_id]
+        # Essayer de récupérer du cache, sinon de la DB
+        context = None
+        if session_id in conversations_cache:
+            context = conversations_cache[session_id]
         else:
+            # Chercher dans Supabase
+            db_conv = await get_conversation_from_db(session_id)
+            if db_conv:
+                context = create_conversation_context(
+                    user_id=user_id,
+                    user_role=user_role,
+                    language=db_conv.get("language", request.language)
+                )
+                context.session_id = session_id
+                # Restaurer les messages
+                for msg in db_conv.get("messages", []):
+                    context.messages.append(Message(
+                        role=MessageRole(msg["role"]),
+                        content=msg["content"],
+                        timestamp=datetime.fromisoformat(msg["timestamp"]) if msg.get("timestamp") else datetime.utcnow()
+                    ))
+
+        if not context:
             context = create_conversation_context(
                 user_id=user_id,
                 user_role=user_role,
                 language=request.language
             )
             context.session_id = session_id
-            conversations_store[session_id] = context
+
+        conversations_cache[session_id] = context
 
         # Créer le service bot
         bot = AIBotService()
 
         # Envoyer le message
         bot_response, action = await bot.chat(request.message, context)
+
+        # Sauvegarder dans Supabase
+        messages_to_save = [
+            {
+                "role": msg.role.value,
+                "content": msg.content,
+                "timestamp": msg.timestamp.isoformat()
+            }
+            for msg in context.messages
+        ]
+        await save_conversation_to_db(session_id, user_id, messages_to_save, request.language)
 
         # Générer suggestions contextuelles
         suggestions = _generate_suggestions(context, current_user)
@@ -160,40 +239,29 @@ async def get_conversations(
     try:
         user_id = current_user["id"]
 
-        # Filtrer les conversations de l'utilisateur
-        user_conversations = [
-            conv for session_id, conv in conversations_store.items()
-            if conv.user_id == user_id
-        ]
+        # Récupérer depuis Supabase
+        result = supabase.table("bot_conversations")\
+            .select("*")\
+            .eq("user_id", user_id)\
+            .order("updated_at", desc=True)\
+            .limit(limit)\
+            .execute()
 
-        # Trier par date (plus récentes en premier)
-        user_conversations.sort(
-            key=lambda x: x.messages[-1].timestamp if x.messages else datetime.min,
-            reverse=True
-        )
-
-        # Limiter
-        user_conversations = user_conversations[:limit]
+        conversations = result.data or []
 
         # Formater réponse
         response = []
-        for conv in user_conversations:
-            if not conv.messages:
+        for conv in conversations:
+            messages = conv.get("messages", [])
+            if not messages:
                 continue
 
             response.append(ConversationHistoryResponse(
-                session_id=conv.session_id,
-                created_at=conv.messages[0].timestamp,
-                updated_at=conv.messages[-1].timestamp,
-                message_count=len(conv.messages),
-                messages=[
-                    {
-                        "role": msg.role.value,
-                        "content": msg.content,
-                        "timestamp": msg.timestamp.isoformat()
-                    }
-                    for msg in conv.messages
-                ]
+                session_id=conv.get("session_id"),
+                created_at=datetime.fromisoformat(conv.get("created_at", datetime.utcnow().isoformat())),
+                updated_at=datetime.fromisoformat(conv.get("updated_at", datetime.utcnow().isoformat())),
+                message_count=len(messages),
+                messages=messages
             ))
 
         return response
@@ -215,34 +283,30 @@ async def get_conversation(
     Récupérer une conversation spécifique
     """
     try:
-        if session_id not in conversations_store:
+        # Récupérer depuis Supabase
+        conv = await get_conversation_from_db(session_id)
+
+        if not conv:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Conversation non trouvée"
             )
 
-        conv = conversations_store[session_id]
-
         # Vérifier que la conversation appartient à l'utilisateur
-        if conv.user_id != current_user["id"]:
+        if conv.get("user_id") != current_user["id"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Accès non autorisé à cette conversation"
             )
 
+        messages = conv.get("messages", [])
+
         return ConversationHistoryResponse(
-            session_id=conv.session_id,
-            created_at=conv.messages[0].timestamp if conv.messages else datetime.utcnow(),
-            updated_at=conv.messages[-1].timestamp if conv.messages else datetime.utcnow(),
-            message_count=len(conv.messages),
-            messages=[
-                {
-                    "role": msg.role.value,
-                    "content": msg.content,
-                    "timestamp": msg.timestamp.isoformat()
-                }
-                for msg in conv.messages
-            ]
+            session_id=conv.get("session_id"),
+            created_at=datetime.fromisoformat(conv.get("created_at", datetime.utcnow().isoformat())),
+            updated_at=datetime.fromisoformat(conv.get("updated_at", datetime.utcnow().isoformat())),
+            message_count=len(messages),
+            messages=messages
         )
 
     except HTTPException:
@@ -264,22 +328,28 @@ async def delete_conversation(
     Supprimer une conversation
     """
     try:
-        if session_id not in conversations_store:
+        # Vérifier que la conversation existe et appartient à l'utilisateur
+        conv = await get_conversation_from_db(session_id)
+
+        if not conv:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Conversation non trouvée"
             )
 
-        conv = conversations_store[session_id]
-
         # Vérifier propriété
-        if conv.user_id != current_user["id"]:
+        if conv.get("user_id") != current_user["id"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Accès non autorisé"
             )
 
-        del conversations_store[session_id]
+        # Supprimer de Supabase
+        await delete_conversation_from_db(session_id)
+
+        # Supprimer du cache si présent
+        if session_id in conversations_cache:
+            del conversations_cache[session_id]
 
         logger.info("conversation_deleted", session_id=session_id, user_id=current_user["id"])
 
@@ -306,7 +376,17 @@ async def submit_feedback(
     Utilisé pour améliorer le bot via fine-tuning
     """
     try:
-        # TODO: Sauvegarder feedback en DB pour analyse et fine-tuning
+        # Sauvegarder feedback dans Supabase
+        feedback_data = {
+            "user_id": current_user["id"],
+            "session_id": feedback.session_id,
+            "message_id": feedback.message_id,
+            "rating": feedback.rating,
+            "comment": feedback.comment,
+            "created_at": datetime.utcnow().isoformat()
+        }
+
+        supabase.table("bot_feedback").insert(feedback_data).execute()
 
         logger.info(
             "bot_feedback_received",

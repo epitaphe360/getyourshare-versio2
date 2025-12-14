@@ -47,16 +47,8 @@ const AnalyticsDashboard = () => {
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
-      const [
-        metricsRes,
-        revenueRes,
-        usersRes,
-        subscriptionsRes,
-        churnRes,
-        distributionRes,
-        performersRes,
-        sourceRes
-      ] = await Promise.all([
+      // Utiliser Promise.allSettled pour gérer les erreurs individuellement
+      const results = await Promise.allSettled([
         api.get(`/api/admin/analytics/metrics?days=${timeRange}`),
         api.get(`/api/admin/analytics/revenue?days=${timeRange}`),
         api.get(`/api/admin/analytics/users-growth?days=${timeRange}`),
@@ -67,14 +59,52 @@ const AnalyticsDashboard = () => {
         api.get(`/api/admin/analytics/revenue-by-source?days=${timeRange}`)
       ]);
 
-      setMetrics(metricsRes.data.metrics);
-      setRevenueData(revenueRes.data.data);
-      setUsersGrowthData(usersRes.data.data);
-      setSubscriptionsData(subscriptionsRes.data.data);
-      setChurnData(churnRes.data.data);
-      setPlanDistribution(distributionRes.data.data);
-      setTopPerformers(performersRes.data.data);
-      setRevenueBySource(sourceRes.data.data);
+      const [
+        metricsRes,
+        revenueRes,
+        usersRes,
+        subscriptionsRes,
+        churnRes,
+        distributionRes,
+        performersRes,
+        sourceRes
+      ] = results;
+
+      if (metricsRes.status === 'fulfilled') {
+        setMetrics(metricsRes.value.data.metrics || {});
+      }
+      if (revenueRes.status === 'fulfilled') {
+        setRevenueData(revenueRes.value.data.data || []);
+      }
+      if (usersRes.status === 'fulfilled') {
+        setUsersGrowthData(usersRes.value.data.data || []);
+      }
+      if (subscriptionsRes.status === 'fulfilled') {
+        setSubscriptionsData(subscriptionsRes.value.data.data || []);
+      }
+      if (churnRes.status === 'fulfilled') {
+        setChurnData(churnRes.value.data.data || []);
+      }
+      if (distributionRes.status === 'fulfilled') {
+        setPlanDistribution(distributionRes.value.data.data || []);
+      }
+      if (performersRes.status === 'fulfilled') {
+        setTopPerformers(performersRes.value.data.data || []);
+      }
+      if (sourceRes.status === 'fulfilled') {
+        setRevenueBySource(sourceRes.value.data.data || []);
+      }
+
+      // Notifier si certaines données n'ont pas pu être chargées
+      const failedRequests = results.filter(r => r.status === 'rejected');
+      if (failedRequests.length > 0) {
+        console.error('Certaines analytics n\'ont pas pu être chargées:', failedRequests);
+        if (failedRequests.length === results.length) {
+          message.error('Erreur lors du chargement des analytics');
+        } else {
+          message.warning('Certaines données sont temporairement indisponibles');
+        }
+      }
     } catch (error) {
       console.error('Erreur chargement analytics:', error);
       message.error('Erreur lors du chargement des analytics');

@@ -57,8 +57,7 @@ import {
   FolderArchive,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_URL } from '../../config/api.config';
 
 const CURRENCY_SYMBOLS = {
   MAD: 'DH',

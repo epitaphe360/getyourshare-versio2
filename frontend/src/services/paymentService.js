@@ -1,7 +1,9 @@
 // Service de paiement pour ShareYourSales
 // Supporte CMI (Maroc), Stripe et PayPal
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import { API_URL } from '../config/api.config';
+
+const API_BASE_URL = API_URL;
 
 class PaymentService {
   constructor() {

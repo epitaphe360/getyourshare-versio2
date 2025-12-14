@@ -34,14 +34,13 @@ import {
   Rocket
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../config/api.config';
 
 const HomePage = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
   useEffect(() => {
     fetch(`${API_URL}/products`)

@@ -48,7 +48,8 @@ const InfluencerDashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statsRes, clicksRes, conversionsRes, campaignsRes, productsRes, linksRes, commissionsRes] = await Promise.all([
+      // Utiliser Promise.allSettled pour gérer les erreurs individuellement
+      const results = await Promise.allSettled([
         api.get(`/api/influencer/stats?days=${timeRange}`),
         api.get(`/api/influencer/clicks?days=${timeRange}`),
         api.get(`/api/influencer/conversions?days=${timeRange}`),
@@ -58,13 +59,40 @@ const InfluencerDashboard = () => {
         api.get(`/api/influencer/commissions?days=${timeRange}`)
       ]);
 
-      setStats(statsRes.data.stats || {});
-      setClicksData(clicksRes.data.clicks || []);
-      setConversionsData(conversionsRes.data.conversions || []);
-      setCampaignPerformance(campaignsRes.data.campaigns || []);
-      setProductPerformance(productsRes.data.products || []);
-      setAffiliateLinks(linksRes.data.links || []);
-      setCommissionHistory(commissionsRes.data.history || []);
+      const [statsRes, clicksRes, conversionsRes, campaignsRes, productsRes, linksRes, commissionsRes] = results;
+
+      if (statsRes.status === 'fulfilled') {
+        setStats(statsRes.value.data.stats || {});
+      }
+      if (clicksRes.status === 'fulfilled') {
+        setClicksData(clicksRes.value.data.clicks || []);
+      }
+      if (conversionsRes.status === 'fulfilled') {
+        setConversionsData(conversionsRes.value.data.conversions || []);
+      }
+      if (campaignsRes.status === 'fulfilled') {
+        setCampaignPerformance(campaignsRes.value.data.campaigns || []);
+      }
+      if (productsRes.status === 'fulfilled') {
+        setProductPerformance(productsRes.value.data.products || []);
+      }
+      if (linksRes.status === 'fulfilled') {
+        setAffiliateLinks(linksRes.value.data.links || []);
+      }
+      if (commissionsRes.status === 'fulfilled') {
+        setCommissionHistory(commissionsRes.value.data.history || []);
+      }
+
+      // Notifier si certaines données n'ont pas pu être chargées
+      const failedRequests = results.filter(r => r.status === 'rejected');
+      if (failedRequests.length > 0) {
+        console.error('Certaines données n\'ont pas pu être chargées:', failedRequests);
+        if (failedRequests.length === results.length) {
+          message.error('Erreur lors du chargement des données');
+        } else {
+          message.warning('Certaines données sont temporairement indisponibles');
+        }
+      }
     } catch (error) {
       console.error('Erreur chargement données:', error);
       message.error('Erreur lors du chargement');

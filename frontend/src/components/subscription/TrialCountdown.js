@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../../config/api.config';
 import './TrialCountdown.css';
 
 function TrialCountdown() {
@@ -8,8 +9,6 @@ function TrialCountdown() {
   const [subscription, setSubscription] = useState(null);
   const [daysLeft, setDaysLeft] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
   useEffect(() => {
     fetchSubscription();

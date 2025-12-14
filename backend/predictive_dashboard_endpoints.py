@@ -186,26 +186,94 @@ async def get_all_leaderboards(
     """
 
     try:
-        # TODO: Implémenter avec vraies données
+        from datetime import datetime, timedelta
+
+        # Calculer le début du mois
+        now = datetime.utcnow()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # Top Earners - Récupérer les meilleurs revenus ce mois
+        top_earners_result = supabase.table("commissions")\
+            .select("user_id, amount, users(username, avatar_url)")\
+            .gte("created_at", month_start.isoformat())\
+            .order("amount", desc=True)\
+            .limit(10)\
+            .execute()
+
+        # Agréger par utilisateur
+        earners_by_user = {}
+        for record in (top_earners_result.data or []):
+            user_id = record.get("user_id")
+            if user_id not in earners_by_user:
+                earners_by_user[user_id] = {
+                    "username": record.get("users", {}).get("username", "Anonyme"),
+                    "avatar": record.get("users", {}).get("avatar_url"),
+                    "value": 0
+                }
+            earners_by_user[user_id]["value"] += record.get("amount", 0)
+
+        # Trier et formater
+        sorted_earners = sorted(earners_by_user.values(), key=lambda x: x["value"], reverse=True)[:3]
+        top_earners = [
+            {"rank": i+1, "username": e["username"], "value": round(e["value"], 2), "avatar": e["avatar"]}
+            for i, e in enumerate(sorted_earners)
+        ]
+
+        # Calculer le rang de l'utilisateur actuel
+        user_earnings = earners_by_user.get(current_user["id"], {}).get("value", 0)
+        user_rank_earners = sum(1 for e in earners_by_user.values() if e["value"] > user_earnings) + 1
+
+        # Top Conversion Rates - Récupérer les meilleurs taux
+        conversion_result = supabase.table("campaign_stats")\
+            .select("user_id, clicks, conversions, users(username, avatar_url)")\
+            .gte("created_at", month_start.isoformat())\
+            .gt("clicks", 0)\
+            .execute()
+
+        # Calculer les taux par utilisateur
+        rates_by_user = {}
+        for record in (conversion_result.data or []):
+            user_id = record.get("user_id")
+            clicks = record.get("clicks", 0)
+            conversions = record.get("conversions", 0)
+            if clicks > 0:
+                rate = (conversions / clicks) * 100
+                if user_id not in rates_by_user or rate > rates_by_user[user_id]["value"]:
+                    rates_by_user[user_id] = {
+                        "username": record.get("users", {}).get("username", "Anonyme"),
+                        "avatar": record.get("users", {}).get("avatar_url"),
+                        "value": round(rate, 2)
+                    }
+
+        sorted_rates = sorted(rates_by_user.values(), key=lambda x: x["value"], reverse=True)[:3]
+        top_converters = [
+            {"rank": i+1, "username": r["username"], "value": r["value"], "avatar": r["avatar"]}
+            for i, r in enumerate(sorted_rates)
+        ]
+
+        # Rang utilisateur pour conversions
+        user_rate = rates_by_user.get(current_user["id"], {}).get("value", 0)
+        user_rank_conversion = sum(1 for r in rates_by_user.values() if r["value"] > user_rate) + 1
+
+        # Compter le total d'utilisateurs
+        total_users_result = supabase.table("users").select("id", count="exact").execute()
+        total_users = total_users_result.count or len(earners_by_user) or 100
+
         leaderboards = [
             {
                 "category": "Top Earners (Ce mois)",
-                "user_rank": 45,
-                "total_users": 500,
-                "top_users": [
-                    {"rank": 1, "username": "TopInfluencer1", "value": 25000, "avatar": None},
-                    {"rank": 2, "username": "ProMarketer", "value": 22000, "avatar": None},
-                    {"rank": 3, "username": "EliteAffiliate", "value": 20000, "avatar": None}
+                "user_rank": user_rank_earners,
+                "total_users": total_users,
+                "top_users": top_earners if top_earners else [
+                    {"rank": 1, "username": "Pas encore de données", "value": 0, "avatar": None}
                 ]
             },
             {
                 "category": "Meilleurs Taux de Conversion",
-                "user_rank": 23,
-                "total_users": 500,
-                "top_users": [
-                    {"rank": 1, "username": "ConversionKing", "value": 8.5, "avatar": None},
-                    {"rank": 2, "username": "SalesPro", "value": 7.2, "avatar": None},
-                    {"rank": 3, "username": "MarketingGuru", "value": 6.8, "avatar": None}
+                "user_rank": user_rank_conversion,
+                "total_users": total_users,
+                "top_users": top_converters if top_converters else [
+                    {"rank": 1, "username": "Pas encore de données", "value": 0, "avatar": None}
                 ]
             }
         ]

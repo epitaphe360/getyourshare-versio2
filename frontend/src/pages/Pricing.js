@@ -9,9 +9,8 @@ import { useCurrency } from '../context/CurrencyContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../utils/api';
+import { API_URL } from '../config/api.config';
 import '../pages/MarketplaceAnimations.css';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 // Plans par défaut si l'API échoue
 const DEFAULT_PLANS = {

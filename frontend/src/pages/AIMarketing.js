@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Card from '../components/common/Card';
-import { 
-  Sparkles, Wand2, TrendingUp, Target, 
+import {
+  Sparkles, Wand2, TrendingUp, Target,
   MessageSquare, Mail, BarChart3, Zap,
   Instagram, Facebook, Youtube, Play
 } from 'lucide-react';
 import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_URL } from '../config/api.config';
 
 const AIMarketing = () => {
   const { user } = useAuth();

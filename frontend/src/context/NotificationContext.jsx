@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import api from '../utils/api';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
+import { API_URL } from '../config/api.config';
 
 const NotificationContext = createContext();
 
@@ -28,8 +29,8 @@ export const NotificationProvider = ({ children }) => {
   const socketRef = useRef(null);
   const audioRef = useRef(null);
 
-  // Configuration
-  const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
+  // Configuration - utiliser l'URL centralisée
+  const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || API_URL;
   const ENABLE_SOUND = localStorage.getItem('notification_sound') !== 'false';
   const ENABLE_BROWSER_NOTIF = Notification.permission === 'granted';
 

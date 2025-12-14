@@ -20,9 +20,12 @@ from services.commercial_invoice_service import CommercialInvoiceService
 
 router = APIRouter(prefix="/api/invoices/commercials", tags=["Commercial Invoices"])
 
-# Configuration Supabase
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://iamezkmapbhlhhvvsits.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", os.getenv("SUPABASE_KEY", ""))
+# Configuration Supabase - SANS credentials hardcodées
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("Missing required environment variables: SUPABASE_URL and SUPABASE_KEY")
 
 def get_supabase() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)

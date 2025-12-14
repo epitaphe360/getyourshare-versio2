@@ -192,8 +192,33 @@ const Subscription = () => {
     },
   ];
 
-  // Choisir les plans selon le rôle
-  const availablePlans = user?.role === 'merchant' ? merchantPlans : influencerPlans;
+  // Utiliser les plans de l'API si disponibles, sinon fallback sur les plans hardcodés
+  const getAvailablePlans = () => {
+    // Si on a des plans de l'API, les utiliser
+    if (plans && plans.length > 0) {
+      // Filtrer par rôle si nécessaire
+      const rolePlans = plans.filter(p =>
+        !p.role || p.role === user?.role || p.role === 'all'
+      );
+      if (rolePlans.length > 0) {
+        return rolePlans.map(plan => ({
+          ...plan,
+          icon: plan.name?.toLowerCase().includes('enterprise') ? <Shield className="w-8 h-8" /> :
+                plan.name?.toLowerCase().includes('pro') ? <Crown className="w-8 h-8" /> :
+                plan.name?.toLowerCase().includes('starter') ? <Star className="w-8 h-8" /> :
+                <Gift className="w-8 h-8" />,
+          color: plan.name?.toLowerCase().includes('enterprise') ? 'yellow' :
+                 plan.name?.toLowerCase().includes('pro') ? 'purple' :
+                 plan.name?.toLowerCase().includes('starter') ? 'indigo' : 'gray',
+          features: plan.features?.map(f => ({ text: f, included: true })) || []
+        }));
+      }
+    }
+    // Fallback sur les plans hardcodés
+    return user?.role === 'merchant' ? merchantPlans : influencerPlans;
+  };
+
+  const availablePlans = getAvailablePlans();
 
   const getColorClasses = (color, variant = 'bg') => {
     const colors = {

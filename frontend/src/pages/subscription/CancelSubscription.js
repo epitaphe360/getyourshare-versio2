@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_URL } from '../../config/api.config';
 import './CancelSubscription.css';
 
 function CancelSubscription() {
@@ -13,8 +14,6 @@ function CancelSubscription() {
   const [cancelFeedback, setCancelFeedback] = useState('');
   const [cancelType, setCancelType] = useState('end_of_period'); // 'immediate' or 'end_of_period'
   const [error, setError] = useState(null);
-  
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
   const cancelReasons = [
     { value: 'too_expensive', label: 'Trop cher' },

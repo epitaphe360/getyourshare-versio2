@@ -3,11 +3,13 @@
  * Connexion frontend → backend fiscal endpoints
  */
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8003/api';
+import { API_URL } from '../config/api.config';
+
+const API_BASE_URL = API_URL;
 
 class FiscalService {
   constructor() {
-    this.baseURL = `${API_BASE_URL}/fiscal`;
+    this.baseURL = `${API_BASE_URL}/api/fiscal`;
   }
 
   /**
@@ -456,7 +458,7 @@ class FiscalService {
    */
   async generatePaymentLink(invoice_id, payment_provider = 'stripe') {
     try {
-      const response = await fetch(`${API_BASE_URL}/payment-links/generate`, {
+      const response = await fetch(`${API_BASE_URL}/api/payment-links/generate`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
         body: JSON.stringify({ invoice_id, payment_provider })

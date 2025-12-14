@@ -7,8 +7,7 @@ import {
   ChevronDown, RefreshCw, Download, Calendar,
   Building2, Wallet, PieChart, BarChart3, X, FileCheck, Clock
 } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+import { API_URL } from '../../config/api.config';
 
 const TaxDashboard = () => {
   const { user } = useAuth();

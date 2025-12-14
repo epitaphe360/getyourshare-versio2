@@ -47,7 +47,8 @@ const CommercialDashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statsRes, pipelineRes, perfRes, commissionRes, dealsRes, clientsRes] = await Promise.all([
+      // Utiliser Promise.allSettled pour gérer les erreurs individuellement
+      const results = await Promise.allSettled([
         api.get(`/api/commercial/stats?days=${timeRange}`),
         api.get(`/api/commercial/pipeline?days=${timeRange}`),
         api.get(`/api/commercial/performance?days=${timeRange}`),
@@ -56,12 +57,38 @@ const CommercialDashboard = () => {
         api.get(`/api/commercial/top-clients?days=${timeRange}`)
       ]);
 
-      setStats(statsRes.data.stats || {});
-      setPipelineData(pipelineRes.data.pipeline || []);
-      setPerformanceData(perfRes.data.performance || []);
-      setCommissionHistory(commissionRes.data.history || []);
-      setRecentDeals(dealsRes.data.deals || []);
-      setTopClients(clientsRes.data.clients || []);
+      // Extraire les données de chaque résultat, avec fallback sur valeur par défaut
+      const [statsRes, pipelineRes, perfRes, commissionRes, dealsRes, clientsRes] = results;
+
+      if (statsRes.status === 'fulfilled') {
+        setStats(statsRes.value.data.stats || {});
+      }
+      if (pipelineRes.status === 'fulfilled') {
+        setPipelineData(pipelineRes.value.data.pipeline || []);
+      }
+      if (perfRes.status === 'fulfilled') {
+        setPerformanceData(perfRes.value.data.performance || []);
+      }
+      if (commissionRes.status === 'fulfilled') {
+        setCommissionHistory(commissionRes.value.data.history || []);
+      }
+      if (dealsRes.status === 'fulfilled') {
+        setRecentDeals(dealsRes.value.data.deals || []);
+      }
+      if (clientsRes.status === 'fulfilled') {
+        setTopClients(clientsRes.value.data.clients || []);
+      }
+
+      // Vérifier s'il y a des erreurs et notifier l'utilisateur
+      const failedRequests = results.filter(r => r.status === 'rejected');
+      if (failedRequests.length > 0) {
+        console.error('Certaines données n\'ont pas pu être chargées:', failedRequests);
+        if (failedRequests.length === results.length) {
+          message.error('Erreur lors du chargement des données');
+        } else {
+          message.warning('Certaines données sont temporairement indisponibles');
+        }
+      }
     } catch (error) {
       console.error('Erreur chargement données:', error);
       message.error('Erreur lors du chargement');
