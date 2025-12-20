@@ -11,7 +11,10 @@
 ALTER TABLE users 
 ADD COLUMN IF NOT EXISTS referral_code VARCHAR(20) UNIQUE,
 ADD COLUMN IF NOT EXISTS referred_by UUID REFERENCES users(id),
-ADD COLUMN IF NOT EXISTS referral_earnings DECIMAL(10,2) DEFAULT 0;
+ADD COLUMN IF NOT EXISTS referral_earnings DECIMAL(10,2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS ice_number VARCHAR(50), -- Identifiant Commun de l'Entreprise
+ADD COLUMN IF NOT EXISTS vat_number VARCHAR(50), -- Numéro de TVA
+ADD COLUMN IF NOT EXISTS tax_rate DECIMAL(5,2) DEFAULT 20.00; -- Taux de TVA par défaut
 
 COMMENT ON COLUMN users.referral_code IS 'Code de parrainage unique';
 COMMENT ON COLUMN users.referred_by IS 'Utilisateur qui a parrainé';
@@ -52,13 +55,37 @@ BEGIN
         ADD COLUMN IF NOT EXISTS influencer_id UUID,
         ADD COLUMN IF NOT EXISTS merchant_id UUID,
         ADD COLUMN IF NOT EXISTS customer_email VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS email VARCHAR(255), -- Alias pour automation
+        ADD COLUMN IF NOT EXISTS first_name VARCHAR(100), -- Alias pour automation
+        ADD COLUMN IF NOT EXISTS last_name VARCHAR(100), -- Alias pour automation
         ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(50),
         ADD COLUMN IF NOT EXISTS budget DECIMAL(10,2),
         ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'new',
+        ADD COLUMN IF NOT EXISTS score INTEGER, -- Alias pour quality_score
         ADD COLUMN IF NOT EXISTS source VARCHAR(100),
         ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
         
         COMMENT ON COLUMN leads.customer_email IS 'Email du prospect';
+
+        -- Rendre colonnes d'origine optionnelles pour l'automation
+        ALTER TABLE leads ALTER COLUMN customer_email DROP NOT NULL;
+        ALTER TABLE leads ALTER COLUMN customer_name DROP NOT NULL;
+    END IF;
+END $$;
+
+-- 1.4.1 Ajouter colonnes dans SERVICES (si existe)
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'services') THEN
+        ALTER TABLE services 
+        ADD COLUMN IF NOT EXISTS price DECIMAL(10,2), -- Alias pour price_per_lead
+        ADD COLUMN IF NOT EXISTS title VARCHAR(255), -- Alias pour name
+        ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'MAD',
+        ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'active';
+
+        -- Rendre name et price_per_lead optionnels si title/price sont utilisés
+        ALTER TABLE services ALTER COLUMN name DROP NOT NULL;
+        ALTER TABLE services ALTER COLUMN price_per_lead DROP NOT NULL;
     END IF;
 END $$;
 
@@ -116,6 +143,9 @@ END $$;
 
 -- 1.8 Ajouter colonnes dans TRACKING_LINKS
 ALTER TABLE tracking_links
+ADD COLUMN IF NOT EXISTS product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+ADD COLUMN IF NOT EXISTS influencer_id UUID REFERENCES users(id) ON DELETE CASCADE,
+ADD COLUMN IF NOT EXISTS merchant_id UUID REFERENCES users(id) ON DELETE CASCADE,
 ADD COLUMN IF NOT EXISTS campaign_name VARCHAR(255),
 ADD COLUMN IF NOT EXISTS utm_source VARCHAR(100),
 ADD COLUMN IF NOT EXISTS utm_medium VARCHAR(100),
@@ -168,43 +198,105 @@ END $$;
 -- 2.1 Table USER_2FA (Two-Factor Authentication)
 CREATE TABLE IF NOT EXISTS user_2fa (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    method VARCHAR(50) NOT NULL CHECK (method IN ('sms', 'email', 'authenticator')),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    method VARCHAR(50) NOT NULL DEFAULT 'totp',
     is_enabled BOOLEAN DEFAULT FALSE,
+    enabled BOOLEAN DEFAULT FALSE, -- Alias
     secret_key VARCHAR(255),
+    secret VARCHAR(255), -- Alias
     backup_codes TEXT[],
     verified_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id)
 );
 
--- Ajouter colonne user_id si elle n'existe pas
+-- Nettoyer les doublons avant d'ajouter la contrainte UNIQUE (si id existe)
 DO $$
 BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'user_2fa' AND column_name = 'user_id'
-    ) THEN
-        ALTER TABLE user_2fa ADD COLUMN user_id UUID;
-        RAISE NOTICE 'Colonne user_id ajoutée à user_2fa';
-    END IF;
-END $$;
-
--- Nettoyer les doublons avant d'ajouter la contrainte UNIQUE
-DO $$
-BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'user_2fa') THEN
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'user_2fa' AND column_name = 'id') THEN
         DELETE FROM user_2fa 
         WHERE id IN (
             SELECT id FROM (
-                SELECT id, ROW_NUMBER() OVER (PARTITION BY user_id, method ORDER BY created_at DESC) as rn
+                SELECT id, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at DESC) as rn
                 FROM user_2fa
             ) t
             WHERE rn > 1
         );
-        
-        RAISE NOTICE 'Doublons supprimés dans user_2fa';
+    ELSE
+        -- Si pas d'id, on utilise ctid (interne postgres)
+        DELETE FROM user_2fa 
+        WHERE ctid IN (
+            SELECT ctid FROM (
+                SELECT ctid, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY created_at DESC) as rn
+                FROM user_2fa
+            ) t
+            WHERE rn > 1
+        );
     END IF;
 END $$;
+
+-- 2.1.1 Tables additionnelles pour l'automation
+CREATE TABLE IF NOT EXISTS service_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_id UUID REFERENCES services(id) ON DELETE CASCADE,
+    amount DECIMAL(10,2) NOT NULL,
+    type VARCHAR(50) DEFAULT 'recharge',
+    status VARCHAR(50) DEFAULT 'completed',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS service_extras (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_id UUID REFERENCES services(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS lead_activities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    lead_id UUID REFERENCES leads(id) ON DELETE CASCADE,
+    action_type VARCHAR(50),
+    description TEXT,
+    performed_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS user_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    session_token TEXT UNIQUE NOT NULL,
+    ip_address VARCHAR(45),
+    expires_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS security_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    event_type VARCHAR(100),
+    risk_score INTEGER DEFAULT 0,
+    reason TEXT,
+    ip_address VARCHAR(45),
+    blocked BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    amount DECIMAL(10,2) NOT NULL,
+    type VARCHAR(50),
+    status VARCHAR(50) DEFAULT 'completed',
+    description TEXT,
+    reference VARCHAR(100), -- Ajout de la colonne reference
+    metadata JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- S'assurer que la colonne reference existe si la table existait déjà
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS reference VARCHAR(100);
 
 -- Ajouter contrainte UNIQUE si elle n'existe pas
 DO $$
@@ -381,6 +473,18 @@ END $$;
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'integrations') THEN
+        -- Supprimer d'abord les logs liés aux doublons pour éviter les erreurs de FK
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'integration_sync_logs') THEN
+            DELETE FROM integration_sync_logs 
+            WHERE integration_id IN (
+                SELECT id FROM (
+                    SELECT id, ROW_NUMBER() OVER (PARTITION BY user_id, platform ORDER BY created_at DESC) as rn
+                    FROM integrations
+                ) t
+                WHERE rn > 1
+            );
+        END IF;
+
         DELETE FROM integrations 
         WHERE id IN (
             SELECT id FROM (
@@ -434,7 +538,12 @@ CREATE TABLE IF NOT EXISTS qr_scan_events (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- S'assurer que les colonnes existent si la table existait déjà
+ALTER TABLE qr_scan_events ADD COLUMN IF NOT EXISTS tracking_link_id UUID REFERENCES tracking_links(id) ON DELETE CASCADE;
+ALTER TABLE qr_scan_events ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE;
+
 CREATE INDEX IF NOT EXISTS idx_qr_scan_events_link ON qr_scan_events(tracking_link_id);
+CREATE INDEX IF NOT EXISTS idx_qr_scan_events_user ON qr_scan_events(user_id);
 CREATE INDEX IF NOT EXISTS idx_qr_scan_events_date ON qr_scan_events(scanned_at);
 COMMENT ON TABLE qr_scan_events IS 'Événements de scan de QR codes';
 
@@ -976,7 +1085,7 @@ ALTER TABLE workspace_members ADD COLUMN IF NOT EXISTS invited_at TIMESTAMP;
 ALTER TABLE integrations ADD COLUMN IF NOT EXISTS access_token TEXT;
 ALTER TABLE integrations ADD COLUMN IF NOT EXISTS shop_url TEXT;
 ALTER TABLE qr_scan_events ADD COLUMN IF NOT EXISTS device_info JSONB DEFAULT '{}';
-ALTER TABLE qr_scan_events ADD COLUMN IF NOT EXISTS link_id UUID REFERENCES tracking_links(id);
+-- tracking_link_id déjà géré plus haut
 ALTER TABLE custom_reports ADD COLUMN IF NOT EXISTS recipients JSONB DEFAULT '[]';
 ALTER TABLE custom_reports ADD COLUMN IF NOT EXISTS report_type VARCHAR(50);
 ALTER TABLE content_templates ADD COLUMN IF NOT EXISTS subject VARCHAR(255);
@@ -1004,6 +1113,9 @@ CREATE TABLE IF NOT EXISTS invoices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id),
     amount DECIMAL(10,2),
+    tax_amount DECIMAL(10,2) DEFAULT 0, -- Ajout TVA
+    net_amount DECIMAL(10,2) DEFAULT 0, -- Ajout Net
+    tax_rate DECIMAL(5,2) DEFAULT 20.00, -- Ajout Taux
     status VARCHAR(50),
     issued_at TIMESTAMP DEFAULT NOW(),
     paid_at TIMESTAMP,
@@ -1012,6 +1124,13 @@ CREATE TABLE IF NOT EXISTS invoices (
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
+
+-- S'assurer que les colonnes existent si la table existait déjà
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id);
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS amount DECIMAL(10,2);
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS tax_amount DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS net_amount DECIMAL(10,2) DEFAULT 0;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS tax_rate DECIMAL(5,2) DEFAULT 20.00;
 
 -- Table WEBHOOKS
 CREATE TABLE IF NOT EXISTS webhooks (
@@ -1052,8 +1171,30 @@ CREATE TABLE IF NOT EXISTS data_exports (
     user_id UUID REFERENCES users(id),
     status VARCHAR(50),
     file_url TEXT,
+    export_type VARCHAR(100), -- Ajout pour automation
+    format VARCHAR(20), -- Ajout pour automation
+    filters JSONB DEFAULT '{}', -- Ajout pour automation
+    row_count INTEGER DEFAULT 0, -- Ajout pour automation
     requested_at TIMESTAMP DEFAULT NOW(),
     completed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- S'assurer que les colonnes existent si la table existait déjà
+ALTER TABLE data_exports ADD COLUMN IF NOT EXISTS file_url TEXT;
+ALTER TABLE data_exports ADD COLUMN IF NOT EXISTS export_type VARCHAR(100);
+ALTER TABLE data_exports ADD COLUMN IF NOT EXISTS format VARCHAR(20);
+ALTER TABLE data_exports ADD COLUMN IF NOT EXISTS filters JSONB DEFAULT '{}';
+ALTER TABLE data_exports ADD COLUMN IF NOT EXISTS row_count INTEGER DEFAULT 0;
+
+-- Table REPORT_RUNS (Manquante dans Phase 5)
+CREATE TABLE IF NOT EXISTS report_runs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    report_id UUID REFERENCES custom_reports(id) ON DELETE CASCADE,
+    status VARCHAR(50),
+    file_url TEXT,
+    data JSONB DEFAULT '{}',
+    generated_at TIMESTAMP DEFAULT NOW(),
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -1080,10 +1221,387 @@ CREATE TABLE IF NOT EXISTS webhook_logs (
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Table SERVICE_REQUESTS (Manquante dans Phase 39)
+CREATE TABLE IF NOT EXISTS service_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_id UUID REFERENCES services(id) ON DELETE CASCADE,
+    customer_name VARCHAR(255),
+    customer_email VARCHAR(255),
+    description TEXT,
+    status VARCHAR(50) DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Table SERVICE_STATS (Manquante dans Phase 40)
+CREATE TABLE IF NOT EXISTS service_stats (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    service_id UUID REFERENCES services(id) ON DELETE CASCADE,
+    total_leads INTEGER DEFAULT 0,
+    total_revenue DECIMAL(10,2) DEFAULT 0,
+    conversion_rate DECIMAL(5,2) DEFAULT 0,
+    last_updated TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================
+-- 7. LOGISTIQUE & EXPÉDITIONS (PHASES 46-50)
+-- ============================================
+
+-- Table WAREHOUSES
+CREATE TABLE IF NOT EXISTS warehouses (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    location VARCHAR(255),
+    capacity INTEGER,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- S'assurer que les colonnes existent si la table existait déjà
+ALTER TABLE warehouses ADD COLUMN IF NOT EXISTS name VARCHAR(255);
+ALTER TABLE warehouses ADD COLUMN IF NOT EXISTS location VARCHAR(255);
+ALTER TABLE warehouses ADD COLUMN IF NOT EXISTS capacity INTEGER;
+ALTER TABLE warehouses ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
+-- Table SHIPMENTS
+CREATE TABLE IF NOT EXISTS shipments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id VARCHAR(100), -- Référence à conversions.order_id
+    carrier VARCHAR(100),
+    tracking_number VARCHAR(100),
+    status VARCHAR(50) DEFAULT 'pending',
+    warehouse_id UUID REFERENCES warehouses(id),
+    estimated_delivery TIMESTAMP,
+    shipped_at TIMESTAMP,
+    delivered_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- S'assurer que les colonnes existent si la table existait déjà
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS order_id VARCHAR(100);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS carrier VARCHAR(100);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS tracking_number VARCHAR(100);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending';
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS warehouse_id UUID REFERENCES warehouses(id);
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS estimated_delivery TIMESTAMP;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMP;
+ALTER TABLE shipments ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP;
+
+-- Table INVENTORY_LOGS
+CREATE TABLE IF NOT EXISTS inventory_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+    warehouse_id UUID REFERENCES warehouses(id) ON DELETE CASCADE,
+    quantity_change INTEGER NOT NULL,
+    type VARCHAR(50), -- 'restock', 'sale', 'return', 'adjustment'
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Table RETURNS (RMA)
+CREATE TABLE IF NOT EXISTS returns (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id VARCHAR(100),
+    reason TEXT,
+    status VARCHAR(50) DEFAULT 'requested',
+    received_at TIMESTAMP,
+    refund_amount DECIMAL(10,2),
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================
+-- 8. ÉVÉNEMENTS & CALENDRIER (PHASES 51-55)
+-- ============================================
+
+-- Table PLATFORM_EVENTS
+CREATE TABLE IF NOT EXISTS platform_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    type VARCHAR(50), -- 'webinar', 'live', 'training', 'sale'
+    status VARCHAR(50) DEFAULT 'scheduled',
+    organizer_id UUID REFERENCES users(id),
+    start_at TIMESTAMP NOT NULL,
+    end_at TIMESTAMP,
+    location_url TEXT,
+    max_participants INTEGER,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Table EVENT_PARTICIPANTS
+CREATE TABLE IF NOT EXISTS event_participants (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID REFERENCES platform_events(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(50) DEFAULT 'registered', -- 'registered', 'cancelled', 'attended'
+    registered_at TIMESTAMP DEFAULT NOW(),
+    attended BOOLEAN DEFAULT FALSE,
+    UNIQUE(event_id, user_id)
+);
+
+-- Table EVENT_FEEDBACK
+CREATE TABLE IF NOT EXISTS event_feedback (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    event_id UUID REFERENCES platform_events(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================
+-- 9. SUPPORT & LITIGES (PHASES 56-60)
+-- ============================================
+
+-- Table SUPPORT_TICKETS
+CREATE TABLE IF NOT EXISTS support_tickets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    subject VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(50) DEFAULT 'open', -- 'open', 'pending', 'resolved', 'closed'
+    priority VARCHAR(20) DEFAULT 'medium', -- 'low', 'medium', 'high', 'urgent'
+    assigned_to UUID REFERENCES users(id),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Table TICKET_MESSAGES
+CREATE TABLE IF NOT EXISTS ticket_messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ticket_id UUID REFERENCES support_tickets(id) ON DELETE CASCADE,
+    sender_id UUID REFERENCES users(id),
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- S'assurer que les colonnes existent si la table existait déjà
+ALTER TABLE ticket_messages ADD COLUMN IF NOT EXISTS ticket_id UUID REFERENCES support_tickets(id) ON DELETE CASCADE;
+ALTER TABLE ticket_messages ADD COLUMN IF NOT EXISTS sender_id UUID REFERENCES users(id);
+ALTER TABLE ticket_messages ADD COLUMN IF NOT EXISTS message TEXT;
+
+-- Table DISPUTES
+CREATE TABLE IF NOT EXISTS disputes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversion_id UUID REFERENCES conversions(id) ON DELETE CASCADE,
+    reason TEXT NOT NULL,
+    status VARCHAR(50) DEFAULT 'open', -- 'open', 'under_review', 'resolved', 'rejected'
+    resolution TEXT,
+    evidence_url TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- S'assurer que les colonnes existent si la table existait déjà
+ALTER TABLE disputes ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE disputes ADD COLUMN IF NOT EXISTS conversion_id UUID REFERENCES conversions(id) ON DELETE CASCADE;
+ALTER TABLE disputes ADD COLUMN IF NOT EXISTS reason TEXT;
+ALTER TABLE disputes ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'open';
+ALTER TABLE disputes ADD COLUMN IF NOT EXISTS resolution TEXT;
+ALTER TABLE disputes ADD COLUMN IF NOT EXISTS evidence_url TEXT;
+
+-- ============================================
+-- 10. GAMIFICATION & RÉCOMPENSES (PHASES 61-65)
+-- ============================================
+
+-- Table USER_GAMIFICATION
+CREATE TABLE IF NOT EXISTS user_gamification (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    points INTEGER DEFAULT 0,
+    level INTEGER DEFAULT 1,
+    xp INTEGER DEFAULT 0,
+    next_level_xp INTEGER DEFAULT 1000,
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id)
+);
+
+-- S'assurer que les colonnes existent si la table existait déjà
+ALTER TABLE user_gamification ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE user_gamification ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0;
+ALTER TABLE user_gamification ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1;
+ALTER TABLE user_gamification ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0;
+ALTER TABLE user_gamification ADD COLUMN IF NOT EXISTS next_level_xp INTEGER DEFAULT 1000;
+
+-- Table BADGES
+CREATE TABLE IF NOT EXISTS badges (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    icon_url TEXT,
+    criteria JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- S'assurer que les colonnes existent si la table existait déjà
+ALTER TABLE badges ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE badges ADD COLUMN IF NOT EXISTS name VARCHAR(255);
+ALTER TABLE badges ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE badges ADD COLUMN IF NOT EXISTS icon_url TEXT;
+ALTER TABLE badges ADD COLUMN IF NOT EXISTS criteria JSONB DEFAULT '{}';
+
+-- Table USER_BADGES
+CREATE TABLE IF NOT EXISTS user_badges (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    badge_id UUID REFERENCES badges(id) ON DELETE CASCADE,
+    earned_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id, badge_id)
+);
+
+-- S'assurer que les colonnes existent si la table existait déjà
+ALTER TABLE user_badges ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE user_badges ADD COLUMN IF NOT EXISTS badge_id UUID REFERENCES badges(id) ON DELETE CASCADE;
+ALTER TABLE user_badges ADD COLUMN IF NOT EXISTS earned_at TIMESTAMP DEFAULT NOW();
+
+-- ============================================
+-- 11. MARKETING & CAMPAGNES AVANCÉES (PHASES 66-70)
+-- ============================================
+
+-- Table AUDIENCE_SEGMENTS
+CREATE TABLE IF NOT EXISTS audience_segments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    filters JSONB DEFAULT '{}',
+    member_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Table CAMPAIGN_STATS
+CREATE TABLE IF NOT EXISTS campaign_stats (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
+    impressions INTEGER DEFAULT 0,
+    clicks INTEGER DEFAULT 0,
+    conversions INTEGER DEFAULT 0,
+    revenue DECIMAL(10,2) DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(campaign_id)
+);
+
+-- ============================================
+-- 12. SÉCURITÉ & AUDIT FINAL (PHASES 71-75)
+-- ============================================
+
+-- Table AUDIT_LOGS
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(100),
+    entity_id UUID,
+    old_value JSONB,
+    new_value JSONB,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- S'assurer que les colonnes existent si la table existait déjà
+ALTER TABLE audit_logs ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id);
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS action VARCHAR(100);
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS entity_type VARCHAR(100);
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS entity_id UUID;
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS old_value JSONB;
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS new_value JSONB;
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS ip_address VARCHAR(45);
+ALTER TABLE audit_logs ADD COLUMN IF NOT EXISTS user_agent TEXT;
+
+-- Activer RLS pour l'audit
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'audit_logs') THEN
+        ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+        DROP POLICY IF EXISTS "Enable all for audit_logs" ON audit_logs;
+        CREATE POLICY "Enable all for audit_logs" ON audit_logs FOR ALL USING (true);
+    END IF;
+END $$;
+
+-- Activer RLS pour le marketing avancé
+DO $$
+DECLARE
+    marketing_tables text[] := ARRAY['audience_segments', 'campaign_stats'];
+    tbl text;
+BEGIN
+    FOREACH tbl IN ARRAY marketing_tables
+    LOOP
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = tbl) THEN
+            EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+            EXECUTE format('DROP POLICY IF EXISTS "Enable all for %I" ON %I', tbl, tbl);
+            EXECUTE format('CREATE POLICY "Enable all for %I" ON %I FOR ALL USING (true)', tbl, tbl);
+        END IF;
+    END LOOP;
+END $$;
+
+-- Activer RLS pour la gamification
+DO $$
+DECLARE
+    gamification_tables text[] := ARRAY['user_gamification', 'badges', 'user_badges'];
+    tbl text;
+BEGIN
+    FOREACH tbl IN ARRAY gamification_tables
+    LOOP
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = tbl) THEN
+            EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+            EXECUTE format('DROP POLICY IF EXISTS "Enable all for %I" ON %I', tbl, tbl);
+            EXECUTE format('CREATE POLICY "Enable all for %I" ON %I FOR ALL USING (true)', tbl, tbl);
+        END IF;
+    END LOOP;
+END $$;
+
+-- Activer RLS pour le support
+DO $$
+DECLARE
+    support_tables text[] := ARRAY['support_tickets', 'ticket_messages', 'disputes'];
+    tbl text;
+BEGIN
+    FOREACH tbl IN ARRAY support_tables
+    LOOP
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = tbl) THEN
+            EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+            EXECUTE format('DROP POLICY IF EXISTS "Enable all for %I" ON %I', tbl, tbl);
+            EXECUTE format('CREATE POLICY "Enable all for %I" ON %I FOR ALL USING (true)', tbl, tbl);
+        END IF;
+    END LOOP;
+END $$;
+
+-- Activer RLS pour les événements
+DO $$
+DECLARE
+    event_tables text[] := ARRAY['platform_events', 'event_participants', 'event_feedback'];
+    tbl text;
+BEGIN
+    FOREACH tbl IN ARRAY event_tables
+    LOOP
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = tbl) THEN
+            EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+            EXECUTE format('DROP POLICY IF EXISTS "Enable all for %I" ON %I', tbl, tbl);
+            EXECUTE format('CREATE POLICY "Enable all for %I" ON %I FOR ALL USING (true)', tbl, tbl);
+        END IF;
+    END LOOP;
+END $$;
+
+-- Activer RLS pour la logistique
+DO $$
+DECLARE
+    logistics_tables text[] := ARRAY['warehouses', 'shipments', 'inventory_logs', 'returns'];
+    tbl text;
+BEGIN
+    FOREACH tbl IN ARRAY logistics_tables
+    LOOP
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = tbl) THEN
+            EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+            EXECUTE format('DROP POLICY IF EXISTS "Enable all for %I" ON %I', tbl, tbl);
+            EXECUTE format('CREATE POLICY "Enable all for %I" ON %I FOR ALL USING (true)', tbl, tbl);
+        END IF;
+    END LOOP;
+END $$;
+
 -- Activer RLS pour les nouvelles tables
 DO $$
 DECLARE
-    new_tables text[] := ARRAY['invoices', 'webhooks', 'webhook_logs', 'api_keys', 'rate_limits', 'data_exports', 'campaign_influencers'];
+    new_tables text[] := ARRAY['invoices', 'webhooks', 'webhook_logs', 'api_keys', 'rate_limits', 'data_exports', 'campaign_influencers', 'report_runs', 'service_requests', 'service_stats'];
     tbl text;
 BEGIN
     FOREACH tbl IN ARRAY new_tables

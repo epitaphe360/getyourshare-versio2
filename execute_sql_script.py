@@ -10,7 +10,7 @@ os.chdir(os.path.dirname(__file__))
 from dotenv import load_dotenv
 load_dotenv("backend/.env")
 
-SQL_FILE = 'FIX_ALL_CRITICAL_TRACKING_SYSTEM.sql'
+SQL_FILE = 'ADD_MISSING_TABLES_AND_COLUMNS.sql'
 
 def run_with_psycopg2():
     try:
