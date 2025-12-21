@@ -599,7 +599,7 @@ const MerchantDashboard = () => {
         >
           <StatCard
             title="ROI Marketing"
-            value={<CountUp end={typeof stats?.roi === 'number' && !isNaN(stats.roi) ? stats.roi : 0} duration={2} decimals={1} suffix="%" />}
+            value={<CountUp end={!isNaN(Number(stats?.roi)) ? Number(stats?.roi) : 0} duration={2} decimals={1} suffix="%" />}
             icon={<TrendingUp className="text-orange-600" size={24} />}
             trend={stats?.roi_growth || 0}
           />

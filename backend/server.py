@@ -1564,50 +1564,21 @@ async def get_merchants(request: Request, payload: dict = Depends(get_current_us
         try:
             view_result = supabase.table("merchants_stats_view").select("*").execute()
             if view_result.data:
-                # Récupérer les balances, produits et campagnes depuis les tables
-                users_result = supabase.from_("users").select("id, balance").eq("role", "merchant").execute()
-                users_balance = {u["id"]: float(u.get("balance", 0)) for u in (users_result.data or [])}
-                
-                products_result = supabase.table('products').select('merchant_id').execute()
-                services_result = supabase.table('services').select('merchant_id').execute()
-                products_data = products_result.data if products_result.data else []
-                services_data = services_result.data if services_result.data else []
-                merchant_products_count = {}
-                for product in products_data:
-                    mid = product.get('merchant_id')
-                    if mid:
-                        merchant_products_count[mid] = merchant_products_count.get(mid, 0) + 1
-
-                for service in services_data:
-                    mid = service.get('merchant_id')
-                    if mid:
-                        merchant_products_count[mid] = merchant_products_count.get(mid, 0) + 1
-                
-                # Récupérer le nombre de campagnes par merchant
-                campaigns_result = supabase.table('campaigns').select('merchant_id').execute()
-                campaigns_data = campaigns_result.data if campaigns_result.data else []
-                merchant_campaigns_count = {}
-                for campaign in campaigns_data:
-                    mid = campaign.get('merchant_id')
-                    if mid:
-                        merchant_campaigns_count[mid] = merchant_campaigns_count.get(mid, 0) + 1
-                
                 formatted_merchants = []
                 for row in view_result.data:
-                    user_id = row.get("user_id")
                     formatted_merchants.append({
-                        "id": user_id,
+                        "id": row.get("user_id"),
                         "full_name": row.get("company_name"),
                         "company_name": row.get("company_name"),
                         "category": row.get("category"),
                         "email": row.get("email"),
                         "country": "Maroc", # Default
-                        "balance": users_balance.get(user_id, 0),
-                        "total_spent": float(row.get("total_revenue", 0)),
-                        "total_revenue": float(row.get("total_revenue", 0)),
-                        "total_sales": float(row.get("total_revenue", 0)),
-                        "products_count": merchant_products_count.get(user_id, 0),
-                        "campaigns_count": merchant_campaigns_count.get(user_id, 0),
+                        "balance": float(row.get("balance", 0) or 0),
+                        "total_spent": float(row.get("total_revenue", 0) or 0),
+                        "total_revenue": float(row.get("total_revenue", 0) or 0),
+                        "total_sales": float(row.get("total_revenue", 0) or 0),
+                        "products_count": int(row.get("total_catalog_items", 0) or 0),
+                        "campaigns_count": int(row.get("campaigns_count", 0) or 0),
                         "status": "active",
                         "created_at": row.get("created_at")
                     })
@@ -1731,27 +1702,17 @@ async def get_influencers(request: Request, payload: dict = Depends(get_current_
         try:
             view_result = supabase.table("influencers_stats_view").select("*").execute()
             if view_result.data:
-                # Récupérer le nombre réel de clicks depuis la table clicks
-                clicks_result = supabase.table('clicks').select('influencer_id').execute()
-                clicks_data = clicks_result.data if clicks_result.data else []
-                influencer_clicks = {}
-                for click in clicks_data:
-                    iid = click.get('influencer_id')
-                    if iid:
-                        influencer_clicks[iid] = influencer_clicks.get(iid, 0) + 1
-                
                 formatted_influencers = []
                 for row in view_result.data:
-                    user_id = row.get("user_id")
                     formatted_influencers.append({
-                        "id": user_id,
+                        "id": row.get("user_id"),
                         "full_name": row.get("full_name"),
                         "username": str(row.get("username", "")).replace('@', ''),
                         "email": row.get("email"),
                         "audience_size": row.get("audience_size"),
-                        "engagement_rate": float(row.get("engagement_rate", 0)),
-                        "total_earnings": float(row.get("total_earnings", 0)),
-                        "total_clicks": influencer_clicks.get(user_id, 0),
+                        "engagement_rate": float(row.get("engagement_rate", 0) or 0),
+                        "total_earnings": float(row.get("total_earnings", 0) or 0),
+                        "total_clicks": int(row.get("total_clicks", 0) or 0),
                         "influencer_type": row.get("influencer_type") or "micro",
                         "category": row.get("category"),
                         "profile_picture_url": row.get("profile_picture_url"),

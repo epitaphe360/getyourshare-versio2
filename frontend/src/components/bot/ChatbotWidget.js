@@ -32,6 +32,38 @@ const ChatbotWidget = ({ user, language = 'fr' }) => {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  // Charger l'historique local au démarrage
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('chat_history');
+    const savedSessionId = localStorage.getItem('chat_session_id');
+    
+    if (savedMessages) {
+      try {
+        setMessages(JSON.parse(savedMessages));
+      } catch (e) {
+        console.error('Error parsing chat history', e);
+      }
+    }
+    
+    if (savedSessionId) {
+      setSessionId(savedSessionId);
+    }
+  }, []);
+
+  // Sauvegarder les messages dans localStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('chat_history', JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Sauvegarder session ID
+  useEffect(() => {
+    if (sessionId) {
+      localStorage.setItem('chat_session_id', sessionId);
+    }
+  }, [sessionId]);
+
   // Scroll vers le bas quand nouveau message
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -53,7 +85,7 @@ const ChatbotWidget = ({ user, language = 'fr' }) => {
     }
   }, [isOpen]);
 
-  // Message de bienvenue
+  // Message de bienvenue (seulement si pas de messages)
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       setMessages([
@@ -64,7 +96,7 @@ const ChatbotWidget = ({ user, language = 'fr' }) => {
         },
       ]);
     }
-  }, [isOpen]);
+  }, [isOpen, messages.length]);
 
   const getWelcomeMessage = () => {
     const welcomeMessages = {

@@ -36,6 +36,7 @@ const ROICalculator = lazy(() => import('./pages/ROICalculator'));
 // ---------- Legal Pages ----------
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Terms = lazy(() => import('./pages/Terms'));
+const Legal = lazy(() => import('./pages/Legal'));
 const About = lazy(() => import('./pages/About'));
 
 // ---------- Dashboard & Core ----------
@@ -301,6 +302,7 @@ function App() {
             }}
           >
             <Suspense fallback={<LoadingFallback />}>
+              <CookieConsent />
               <Routes>
                 {/* ========================================
                     PUBLIC ROUTES (No Authentication)
@@ -329,6 +331,7 @@ function App() {
                 {/* Legal Pages */}
                 <Route path="/privacy" element={<PublicLayout><Privacy /></PublicLayout>} />
                 <Route path="/terms" element={<PublicLayout><Terms /></PublicLayout>} />
+                <Route path="/legal" element={<PublicLayout><Legal /></PublicLayout>} />
                 <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
 
                 {/* ========================================
