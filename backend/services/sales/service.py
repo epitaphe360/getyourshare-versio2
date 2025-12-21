@@ -8,7 +8,7 @@ from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
-from supabase_client import get_supabase_client
+import supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class SalesService:
     """Service pour gérer les ventes et appeler les fonctions transactionnelles."""
 
     def __init__(self):
-        self.supabase = get_supabase_client()
+        self.supabase = supabase_client.get_supabase_client()
 
     async def create_sale(
         self,
@@ -97,6 +97,8 @@ class SalesService:
                 raise ValueError(f"Ressource introuvable: {error_msg}")
             elif "ne correspond pas" in error_msg:
                 raise ValueError(f"Incohérence des données: {error_msg}")
+            elif "Invalid trackable link" in error_msg:
+                raise ValueError("Lien de tracking invalide")
             else:
                 raise RuntimeError(f"Erreur lors de la création de la vente: {error_msg}")
 

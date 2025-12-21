@@ -385,5 +385,266 @@ class ResendEmailService:
         )
 
 
+    def send_rejection_email(
+        self,
+        to_email: str,
+        user_name: str,
+        reason: str
+    ) -> Dict[str, Any]:
+        """Email de notification de rejet"""
+        subject = "❌ Mise à jour concernant votre demande"
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); padding: 40px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">❌ Demande refusée</h1>
+            </div>
+
+            <div style="background: white; padding: 40px 30px; border: 1px solid #e0e0e0; border-top: none;">
+                <p>Bonjour {{user_name}},</p>
+
+                <p>Nous avons examiné votre demande et nous sommes au regret de vous informer qu'elle n'a pas été retenue pour le moment.</p>
+
+                <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+                    <strong>Raison du refus:</strong><br>
+                    {{reason}}
+                </div>
+
+                <p>Vous pouvez soumettre une nouvelle demande une fois que vous aurez adressé les points mentionnés ci-dessus.</p>
+
+                <p style="color: #666; font-size: 14px;">Si vous pensez qu'il s'agit d'une erreur, n'hésitez pas à contacter notre support.</p>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; color: #666;">
+                <p style="margin: 5px 0;">© {{datetime.now().year}} ShareYourSales - Tous droits réservés</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        return self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content,
+            tags={{"type": "rejection"}}
+        )
+
+    def send_payment_failure_email(
+        self,
+        to_email: str,
+        user_name: str,
+        amount: float,
+        currency: str,
+        error_message: str
+    ) -> Dict[str, Any]:
+        """Email d'échec de paiement"""
+        subject = "⚠️ Échec de votre paiement"
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 40px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">⚠️ Paiement échoué</h1>
+            </div>
+
+            <div style="background: white; padding: 40px 30px; border: 1px solid #e0e0e0; border-top: none;">
+                <p>Bonjour {{user_name}},</p>
+
+                <p>Nous avons tenté de traiter votre paiement de <strong>{{amount}} {{currency}}</strong>, mais la transaction a échoué.</p>
+
+                <div style="background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+                    <strong>Détail de l'erreur:</strong><br>
+                    {{error_message}}
+                </div>
+
+                <p>Veuillez vérifier vos informations de paiement ou essayer un autre moyen de paiement.</p>
+
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="http://localhost:3000/billing" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Gérer mes paiements</a>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; color: #666;">
+                <p style="margin: 5px 0;">© {{datetime.now().year}} ShareYourSales - Tous droits réservés</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        return self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content,
+            tags={{"type": "payment_failure"}}
+        )
+
+    def send_affiliation_approved_email(
+        self,
+        to_email: str,
+        user_name: str,
+        product_name: str,
+        commission_rate: float,
+        affiliate_link: str
+    ) -> Dict[str, Any]:
+        """Email d'approbation d'affiliation"""
+        subject = f"🎉 Affiliation approuvée pour {{product_name}}!"
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Félicitations!</h1>
+            </div>
+
+            <div style="background: white; padding: 40px 30px; border: 1px solid #e0e0e0; border-top: none;">
+                <p>Bonjour {{user_name}},</p>
+
+                <p>Bonne nouvelle! Votre demande d'affiliation pour <strong>{{product_name}}</strong> a été approuvée.</p>
+
+                <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+                    <strong>💰 Votre commission:</strong> {{commission_rate}}% par vente<br>
+                    <strong>🔗 Votre lien unique:</strong><br>
+                    <a href="{{affiliate_link}}" style="color: #10b981; font-weight: bold; word-break: break-all;">{{affiliate_link}}</a>
+                </div>
+
+                <p>Commencez à partager ce lien dès maintenant pour gagner vos premières commissions!</p>
+
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="http://localhost:3000/dashboard" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Accéder à mon tableau de bord</a>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; color: #666;">
+                <p style="margin: 5px 0;">© {{datetime.now().year}} ShareYourSales - Tous droits réservés</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        return self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content,
+            tags={{"type": "affiliation_approved"}}
+        )
+
+    def send_invoice_email(
+        self,
+        to_email: str,
+        user_name: str,
+        invoice_number: str,
+        amount: float,
+        currency: str,
+        pdf_url: str
+    ) -> Dict[str, Any]:
+        """Email avec facture"""
+        subject = f"📄 Votre facture {{invoice_number}}"
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">📄 Facture disponible</h1>
+            </div>
+
+            <div style="background: white; padding: 40px 30px; border: 1px solid #e0e0e0; border-top: none;">
+                <p>Bonjour {{user_name}},</p>
+
+                <p>Votre facture <strong>{{invoice_number}}</strong> d'un montant de <strong>{{amount}} {{currency}}</strong> est disponible.</p>
+
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{{pdf_url}}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Télécharger la facture</a>
+                </div>
+
+                <p>Vous pouvez également retrouver toutes vos factures dans votre espace client.</p>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; color: #666;">
+                <p style="margin: 5px 0;">© {{datetime.now().year}} ShareYourSales - Tous droits réservés</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        return self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content,
+            tags={{"type": "invoice"}}
+        )
+
+
+    def send_new_affiliation_request_email(
+        self,
+        to_email: str,
+        merchant_name: str,
+        influencer_name: str,
+        product_name: str,
+        dashboard_link: str
+    ) -> Dict[str, Any]:
+        """Email de nouvelle demande d'affiliation pour le marchand"""
+        subject = f"📬 Nouvelle demande d'affiliation de {influencer_name}"
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); padding: 40px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">📬 Nouvelle demande</h1>
+            </div>
+
+            <div style="background: white; padding: 40px 30px; border: 1px solid #e0e0e0; border-top: none;">
+                <p>Bonjour {{merchant_name}},</p>
+
+                <p>Vous avez reçu une nouvelle demande d'affiliation de <strong>{{influencer_name}}</strong> pour le produit <strong>{{product_name}}</strong>.</p>
+
+                <div style="background: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+                    <p style="margin: 0;">Connectez-vous à votre tableau de bord pour examiner le profil de l'influenceur et approuver ou refuser la demande.</p>
+                </div>
+
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{{dashboard_link}}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Gérer la demande</a>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px; color: #666;">
+                <p style="margin: 5px 0;">© {{datetime.now().year}} ShareYourSales - Tous droits réservés</p>
+            </div>
+        </body>
+        </html>
+        """
+
+        return self.send_email(
+            to_email=to_email,
+            subject=subject,
+            html_content=html_content,
+            tags={{"type": "new_affiliation_request"}}
+        )
+
 # Instance globale du service
 resend_service = ResendEmailService()

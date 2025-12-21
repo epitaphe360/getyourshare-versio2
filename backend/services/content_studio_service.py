@@ -30,7 +30,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import httpx
-from supabase_client import supabase
+import supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class ContentStudioService:
         # Configuration API génération d'images
         self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
         self.stability_ai_key = os.getenv("STABILITY_AI_KEY", "")
-        self.supabase = supabase
+        self.supabase = supabase_client.get_supabase_client()
 
         # Mode DEMO par défaut
         self.demo_mode = not bool(self.openai_api_key or self.stability_ai_key)
@@ -691,10 +691,14 @@ class ContentStudioService:
 
         # Calculer le gagnant
         winner = "B" if variant_b_metrics["conversions"] > variant_a_metrics["conversions"] else "A"
-        improvement = (
-            (variant_b_metrics["conversions"] - variant_a_metrics["conversions"]) /
-            variant_a_metrics["conversions"] * 100
-        )
+        
+        if variant_a_metrics["conversions"] > 0:
+            improvement = (
+                (variant_b_metrics["conversions"] - variant_a_metrics["conversions"]) /
+                variant_a_metrics["conversions"] * 100
+            )
+        else:
+            improvement = 100.0 if variant_b_metrics["conversions"] > 0 else 0.0
 
         return {
             "creative_id": creative_id,

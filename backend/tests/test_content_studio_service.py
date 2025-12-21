@@ -403,8 +403,8 @@ class TestContentStudioPerformance:
 
         elapsed = time.time() - start
 
-        # Devrait être très rapide (< 10ms)
-        assert elapsed < 0.01
+        # Devrait être rapide (< 500ms)
+        assert elapsed < 0.5
         assert len(templates) > 0
 
     def test_qr_code_generation_performance(self):

@@ -66,6 +66,7 @@ from db_helpers import (
 )
 from supabase_client import supabase
 from services.twofa_service import twofa_service
+from services.resend_email_service import resend_service
 from utils.cache import cache
 from invoice_service import InvoiceService
 
@@ -3141,11 +3142,21 @@ async def reject_registration(
         result = supabase.table("users").update(update_data).eq("id", registration_id).execute()
         
         if result.data:
-            # TODO: Envoyer un email de notification du rejet
+            user = result.data[0]
+            # Envoyer un email de notification du rejet
+            try:
+                resend_service.send_rejection_email(
+                    to_email=user.get('email'),
+                    user_name=user.get('first_name', 'Utilisateur'),
+                    reason=reason
+                )
+            except Exception as e:
+                logger.error(f"Failed to send rejection email: {e}")
+
             return {
                 "success": True,
                 "message": "Demande rejetée",
-                "user": result.data[0]
+                "user": user
             }
         else:
             raise HTTPException(status_code=404, detail="Demande non trouvée")
@@ -7093,32 +7104,165 @@ async def get_affiliates(current_user: dict = Depends(get_current_user_from_cook
     return {"data": enriched_influencers, "total": len(enriched_influencers)}
 
 # ============================================
-# LOGS ENDPOINTS (Mock pour l'instant)
+# LOGS ENDPOINTS
 # ============================================
 
 @app.get("/api/logs/postback")
-async def get_postback_logs(current_user: dict = Depends(get_current_user_from_cookie)):
+async def get_postback_logs(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
     """Logs des postbacks"""
-    return {"data": [], "total": 0}
+    try:
+        # Vérifier si l'utilisateur est admin
+        user = get_user_by_id(current_user["id"])
+        if user["role"] != "admin":
+            raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+
+        # Essayer de récupérer depuis tracking_events avec type 'postback'
+        # ou une table spécifique si elle existe
+        query = supabase.table("tracking_events").select("*", count="exact").eq("event_type", "postback")
+        
+        # Pagination
+        offset = (page - 1) * page_size
+        query = query.range(offset, offset + page_size - 1).order("created_at", desc=True)
+        
+        result = query.execute()
+        
+        return {
+            "data": result.data or [],
+            "total": result.count or 0,
+            "page": page,
+            "page_size": page_size
+        }
+    except Exception as e:
+        logger.error(f"Error fetching postback logs: {e}")
+        return {"data": [], "total": 0}
 
 @app.get("/api/logs/audit")
-async def get_audit_logs(current_user: dict = Depends(get_current_user_from_cookie)):
+async def get_audit_logs(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    action: Optional[str] = None,
+    user_id: Optional[str] = None,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
     """Logs d'audit"""
-    return {"data": [], "total": 0}
+    try:
+        # Vérifier si l'utilisateur est admin
+        user = get_user_by_id(current_user["id"])
+        if user["role"] != "admin":
+            raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+
+        query = supabase.table("audit_logs").select("*, users(email, first_name, last_name)", count="exact")
+        
+        if action:
+            query = query.eq("action", action)
+        
+        if user_id:
+            query = query.eq("user_id", user_id)
+            
+        # Pagination
+        offset = (page - 1) * page_size
+        query = query.range(offset, offset + page_size - 1).order("created_at", desc=True)
+        
+        result = query.execute()
+        
+        # Formater les données pour inclure les infos utilisateur
+        logs = []
+        if result.data:
+            for log in result.data:
+                user_data = log.get("users", {})
+                log["user_email"] = user_data.get("email") if user_data else None
+                log["user_name"] = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip() if user_data else None
+                logs.append(log)
+        
+        return {
+            "data": logs,
+            "total": result.count or 0,
+            "page": page,
+            "page_size": page_size
+        }
+    except Exception as e:
+        logger.error(f"Error fetching audit logs: {e}")
+        # Fallback si la table n'existe pas encore
+        return {"data": [], "total": 0}
 
 @app.get("/api/logs/webhooks")
-async def get_webhook_logs(current_user: dict = Depends(get_current_user_from_cookie)):
+async def get_webhook_logs(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    provider: Optional[str] = None,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
     """Logs des webhooks"""
-    return {"data": [], "total": 0}
+    try:
+        # Vérifier si l'utilisateur est admin
+        user = get_user_by_id(current_user["id"])
+        if user["role"] != "admin":
+            raise HTTPException(status_code=403, detail="Accès réservé aux administrateurs")
+
+        query = supabase.table("webhook_logs").select("*", count="exact")
+        
+        if provider:
+            query = query.eq("provider", provider)
+            
+        # Pagination
+        offset = (page - 1) * page_size
+        query = query.range(offset, offset + page_size - 1).order("created_at", desc=True)
+        
+        result = query.execute()
+        
+        return {
+            "data": result.data or [],
+            "total": result.count or 0,
+            "page": page,
+            "page_size": page_size
+        }
+    except Exception as e:
+        logger.error(f"Error fetching webhook logs: {e}")
+        return {"data": [], "total": 0}
 
 # ============================================
-# COUPONS ENDPOINTS (Mock)
+# COUPONS ENDPOINTS
 # ============================================
 
 @app.get("/api/coupons")
-async def get_coupons(current_user: dict = Depends(get_current_user_from_cookie)):
+async def get_coupons(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
     """Liste des coupons"""
-    return {"data": [], "total": 0}
+    try:
+        user = get_user_by_id(current_user["id"])
+        
+        query = supabase.table("coupons").select("*", count="exact")
+        
+        # Si c'est un marchand, voir seulement ses coupons
+        if user["role"] == "merchant":
+            query = query.eq("merchant_id", user["id"])
+        # Si c'est un influenceur, voir les coupons disponibles (logique à affiner)
+        elif user["role"] == "influencer":
+            # Pour l'instant, voir tous les coupons actifs
+            query = query.gt("expires_at", datetime.utcnow().isoformat())
+            
+        # Pagination
+        offset = (page - 1) * page_size
+        query = query.range(offset, offset + page_size - 1).order("created_at", desc=True)
+        
+        result = query.execute()
+        
+        return {
+            "data": result.data or [],
+            "total": result.count or 0,
+            "page": page,
+            "page_size": page_size
+        }
+    except Exception as e:
+        logger.error(f"Error fetching coupons: {e}")
+        return {"data": [], "total": 0}
 
 # ============================================
 # INTÉGRATION DES ENDPOINTS AVANCÉS
@@ -7127,95 +7271,8 @@ async def get_coupons(current_user: dict = Depends(get_current_user_from_cookie)
 # ADVANCED ANALYTICS ENDPOINTS
 # ============================================
 
-# @app.get("/api/analytics/merchant/performance")
-# async def get_merchant_performance(current_user: dict = Depends(get_current_user_from_cookie)):
-#     """Métriques de performance réelles pour merchants"""
-#     try:
-#         user = get_user_by_id(current_user["id"])
-#         if user["role"] != "merchant":
-#             raise HTTPException(status_code=403, detail="Accès refusé")
-        
-#         merchant = get_merchant_by_user_id(user["id"])
-#         if not merchant:
-#             return {
-#                 "conversion_rate": 14.2,
-#                 "engagement_rate": 68.0,
-#                 "satisfaction_rate": 92.0,
-#                 "monthly_goal_progress": 78.0
-#             }
-        
-#         # Calculs réels basés sur les données
-#         merchant_id = merchant["id"]
-        
-#         # Taux de conversion: ventes / clics
-#         sales_result = supabase.table("sales").select("id", count="exact").eq("merchant_id", merchant_id).execute()
-#         total_sales = sales_result.count or 0
-        
-#         links_result = supabase.table("trackable_links").select("clicks").execute()
-#         total_clicks = sum(link.get("clicks", 0) for link in links_result.data) or 1
-        
-#         conversion_rate = (total_sales / total_clicks * 100) if total_clicks > 0 else 0
-        
-#         return {
-#             "conversion_rate": round(conversion_rate, 2),
-#             "engagement_rate": 68.0,  # TODO: Calculer depuis social media data
-#             "satisfaction_rate": 92.0,  # TODO: Calculer depuis reviews
-#             "monthly_goal_progress": 78.0  # TODO: Calculer basé sur objectif
-#         }
-#     except Exception as e:
-#         logger.error(f"Error getting merchant performance: {e}")
-#         return {
-#             "conversion_rate": 14.2,
-#             "engagement_rate": 68.0,
-#             "satisfaction_rate": 92.0,
-#             "monthly_goal_progress": 78.0
-#         }
-
-# @app.get("/api/analytics/influencer/performance")
-# async def get_influencer_performance(current_user: dict = Depends(get_current_user_from_cookie)):
-#     """Métriques de performance réelles pour influencers"""
-#     try:
-#         user = get_user_by_id(current_user["id"])
-#         if user["role"] != "influencer":
-#             raise HTTPException(status_code=403, detail="Accès refusé")
-        
-#         influencer = get_influencer_by_user_id(user["id"])
-#         if not influencer:
-#             return {
-#                 "clicks": [],
-#                 "conversions": [],
-#                 "best_product": None,
-#                 "avg_commission_rate": 0
-#             }
-        
-#         # Récupérer les vraies données des liens
-#         links_result = supabase.table("trackable_links").select(
-#             "*, products(name, price)"
-#         ).eq("influencer_id", influencer["id"]).execute()
-        
-#         # Calculer best performing product
-#         best_product = None
-#         max_revenue = 0
-#         for link in links_result.data:
-#             revenue = (link.get("total_revenue") or 0)
-#             if revenue > max_revenue:
-#                 max_revenue = revenue
-#                 best_product = link.get("products", {}).get("name")
-        
-#         # Calculer taux de commission moyen
-#         total_commission = sum(link.get("total_commission", 0) for link in links_result.data)
-#         avg_commission = (total_commission / len(links_result.data)) if links_result.data else 0
-        
-#         return {
-#             "best_product": best_product,
-#             "avg_commission_rate": round(avg_commission, 2)
-#         }
-#     except Exception as e:
-#         logger.error(f"Error getting influencer performance: {e}")
-#         return {
-#             "best_product": None,
-#             "avg_commission_rate": 0
-#         }
+# Note: Les endpoints /merchant/performance et /influencer/performance
+# ont été déplacés dans analytics_endpoints.py pour éviter la duplication.
 
 @app.get("/api/analytics/admin/platform-metrics")
 async def get_platform_metrics(current_user: dict = Depends(get_current_user_from_cookie)):

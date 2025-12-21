@@ -14,7 +14,7 @@ from utils.logger import logger
 load_dotenv()
 
 
-class TestDatabase:
+class DatabaseSetup:
     """Gestionnaire de base de donnees de test"""
     
     def __init__(self):
@@ -47,7 +47,7 @@ class TestDatabase:
 
 
 # Instance globale
-test_db = TestDatabase()
+test_db = DatabaseSetup()
 
 
 def get_supabase_for_tests():

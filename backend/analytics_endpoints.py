@@ -7,7 +7,7 @@ from typing import Optional
 from datetime import datetime, timedelta
 from supabase_config import get_supabase_client
 from auth import get_current_user_from_cookie
-from db_helpers import get_user_by_id
+from db_helpers import get_user_by_id, get_influencer_by_user_id
 from utils.cache import cache
 import asyncio
 from fastapi.concurrency import run_in_threadpool
@@ -1242,3 +1242,87 @@ async def get_influencer_overview(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+
+# ============================================
+# GET /api/analytics/influencer/performance
+# Performance réelle pour influenceurs
+# ============================================
+@router.get("/influencer/performance")
+async def get_influencer_performance(current_user: dict = Depends(get_current_user_from_cookie)):
+    """Métriques de performance réelles pour influencers"""
+    try:
+        supabase = get_supabase_client()
+        user = get_user_by_id(current_user["id"])
+        if user["role"] != "influencer":
+            raise HTTPException(status_code=403, detail="Accès refusé")
+        
+        influencer = get_influencer_by_user_id(user["id"])
+        if not influencer:
+            return {
+                "clicks": [],
+                "conversions": [],
+                "best_product": None,
+                "avg_commission_rate": 0
+            }
+        
+        # Récupérer les vraies données des liens
+        try:
+            links_result = supabase.table("affiliate_links").select(
+                "*, products(name, price, commission_rate)"
+            ).eq("influencer_id", influencer["id"]).execute()
+        except:
+            links_result = None
+        
+        if not links_result or not links_result.data:
+             return {
+                "best_product": None,
+                "avg_commission_rate": 0
+            }
+
+        # Calculer best performing product
+        best_product = None
+        max_revenue = 0
+        
+        for link in links_result.data:
+            # Try to get revenue for this link
+            try:
+                comm_res = supabase.table("commissions").select("amount").eq("link_id", link["id"]).eq("status", "approved").execute()
+                revenue = sum(float(c["amount"]) for c in comm_res.data) if comm_res.data else 0
+            except:
+                revenue = 0
+                
+            if revenue > max_revenue:
+                max_revenue = revenue
+                prod = link.get("products")
+                if isinstance(prod, dict):
+                    best_product = prod.get("name")
+                else:
+                    best_product = "Produit inconnu"
+        
+        # Calculer taux de commission moyen
+        total_rate = 0
+        count = 0
+        for link in links_result.data:
+            prod = link.get("products")
+            rate = 0
+            if isinstance(prod, dict):
+                rate = prod.get("commission_rate")
+            
+            if rate:
+                total_rate += float(rate)
+                count += 1
+                
+        avg_commission = (total_rate / count) if count > 0 else 0
+        
+        return {
+            "best_product": best_product,
+            "avg_commission_rate": round(avg_commission, 2)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting influencer performance: {e}")
+        return {
+            "best_product": None,
+            "avg_commission_rate": 0
+        }

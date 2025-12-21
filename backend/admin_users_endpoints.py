@@ -20,6 +20,7 @@ import bcrypt
 from auth import get_current_admin
 from supabase_client import supabase
 from utils.logger import logger
+from services.resend_email_service import resend_service
 
 router = APIRouter(prefix="/api/admin/users", tags=["Admin Users"])
 
@@ -332,7 +333,17 @@ async def create_user(
                 detail="Failed to create user"
             )
 
-        # TODO: Envoyer email de bienvenue si request.send_welcome_email
+        # Envoyer email de bienvenue si demandé
+        if request.send_welcome_email:
+            try:
+                resend_service.send_welcome_email(
+                    to_email=request.email,
+                    user_name=request.first_name or "Utilisateur",
+                    login_url="http://localhost:3000/login"
+                )
+            except Exception as e:
+                logger.error(f"Failed to send welcome email to {request.email}: {e}")
+                # On ne bloque pas la création si l'email échoue, mais on log l'erreur
 
         return UserListItem(**response.data[0])
 
@@ -469,9 +480,22 @@ async def reset_user_password(
             )
 
         user_email = response.data[0]['email']
+        user_name = response.data[0].get('first_name', 'Utilisateur')
 
-        # TODO: Implémenter l'envoi d'email de réinitialisation
-        # Pour l'instant, on log juste l'action
+        # Générer un token de réinitialisation (simulation)
+        import secrets
+        reset_token = secrets.token_urlsafe(32)
+        reset_link = f"http://localhost:3000/reset-password?token={reset_token}"
+
+        try:
+            resend_service.send_password_reset_email(
+                to_email=user_email,
+                user_name=user_name,
+                reset_link=reset_link
+            )
+        except Exception as e:
+            logger.error(f"Failed to send password reset email to {user_email}: {e}")
+
         logger.info(f"Password reset requested for user {user_id} ({user_email})")
 
         return {
@@ -610,11 +634,23 @@ async def get_user_activity(
     Récupère l'activité récente d'un utilisateur
     """
     try:
-        # TODO: Implémenter une vraie table d'audit/logs
-        # Pour l'instant, retourner vide plutôt que des fausses données
         activity = []
         
-        # Try to fetch from click_logs if relevant
+        # 1. Récupérer depuis audit_logs
+        try:
+            audit_res = supabase.table('audit_logs').select('*').eq('user_id', user_id).order('created_at', desc=True).limit(limit).execute()
+            if audit_res.data:
+                for log in audit_res.data:
+                    activity.append({
+                        'action': log.get('action', 'Unknown'),
+                        'type': 'info', # ou mapper selon l'action
+                        'details': log.get('reason') or str(log.get('metadata', '')),
+                        'created_at': log.get('created_at')
+                    })
+        except Exception as e:
+            logger.debug(f"Failed to get audit logs: {e}")
+
+        # 2. Try to fetch from click_logs if relevant
         try:
              logs_res = supabase.table('click_logs').select('*').eq('user_id', user_id).order('created_at', desc=True).limit(limit).execute()
              if logs_res.data:
@@ -628,8 +664,11 @@ async def get_user_activity(
         except Exception as e:
             logger.debug(f"Failed to get click logs: {e}")
             pass
-
-        return {'activity': activity}
+            
+        # Trier par date
+        activity.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        return {'activity': activity[:limit]}
 
     except Exception as e:
         logger.error(f"Error fetching activity for user {user_id}: {e}")

@@ -12,6 +12,7 @@ from datetime import datetime
 import os
 from supabase_client import supabase
 from fiscal_email_service import FiscalEmailService
+from services.resend_email_service import resend_service
 
 
 router = APIRouter()
@@ -167,7 +168,21 @@ async def handle_payment_failed(payment_data: dict, provider: str):
     
     print(f"❌ Échec paiement facture {invoice_number}: {error_message}")
     
-    # TODO: Envoyer email notification échec
+    # Envoyer email notification échec
+    try:
+        # Récupérer infos client depuis la facture
+        result = supabase.table('fiscal_invoices').select('client_email, client_name, amount_ttc, currency').eq('invoice_number', invoice_number).single().execute()
+        if result.data:
+            inv = result.data
+            resend_service.send_payment_failure_email(
+                to_email=inv.get('client_email'),
+                user_name=inv.get('client_name', 'Client'),
+                amount=inv.get('amount_ttc', 0),
+                currency=inv.get('currency', 'USD'),
+                error_message=error_message
+            )
+    except Exception as e:
+        print(f"❌ Erreur envoi email échec paiement: {e}")
 
 
 async def handle_refund(refund_data: dict, provider: str):

@@ -10,6 +10,7 @@ from datetime import datetime
 from supabase_client import supabase
 from tracking_service import tracking_service
 from auth import get_current_user_from_cookie
+from services.resend_email_service import resend_service
 import logging
 
 logger = logging.getLogger(__name__)
@@ -449,30 +450,17 @@ async def send_merchant_notifications(merchant_id: str, influencer: dict, produc
         merchant = supabase.table('merchants').select('*, users(email, phone)').eq('id', merchant_id).execute().data[0]
 
         # EMAIL
-        email_data = {
-            'to': merchant['users']['email'],
-            'subject': f"📬 Nouvelle demande d'affiliation - {influencer['username']}",
-            'body': f"""
-            Bonjour {merchant['company_name']},
-
-            Vous avez reçu une nouvelle demande d'affiliation !
-
-            Influenceur: {influencer['full_name']} (@{influencer['username']})
-            Produit: {product['name']}
-            Abonnés: {influencer.get('audience_size', 0):,}
-            Taux d'engagement: {influencer.get('engagement_rate', 0)}%
-
-            Consultez la demande complète et approuvez-la en 1 clic:
-            https://shareyoursales.ma/merchant/affiliation-requests/{request_id}
-
-            Vous avez 48h pour répondre.
-
-            ShareYourSales Team
-            """
-        }
-
-        # TODO: Envoyer l'email via service SMTP
-        logger.info(f"📧 Email envoyé à {merchant['users']['email']}")
+        try:
+            resend_service.send_new_affiliation_request_email(
+                to_email=merchant['users']['email'],
+                merchant_name=merchant['company_name'],
+                influencer_name=influencer.get('full_name') or influencer['username'],
+                product_name=product['name'],
+                dashboard_link=f"https://shareyoursales.ma/merchant/affiliation-requests/{request_id}"
+            )
+            logger.info(f"📧 Email envoyé à {merchant['users']['email']}")
+        except Exception as e:
+            logger.error(f"Erreur envoi email demande affiliation: {e}")
 
         # SMS
         sms_data = {
@@ -506,38 +494,20 @@ async def send_influencer_approval_notification(influencer_id: str, product: dic
     """
     try:
         # Récupérer l'influenceur
-        influencer = supabase.table('influencers').select('*, users(email, phone)').eq('id', influencer_id).execute().data[0]
+        influencer = supabase.table('influencers').select('*, users(email, phone, first_name)').eq('id', influencer_id).execute().data[0]
 
         # EMAIL
-        email_data = {
-            'to': influencer['users']['email'],
-            'subject': f"🎉 Demande approuvée - {product['name']}",
-            'body': f"""
-            Félicitations {influencer['full_name']} !
-
-            Votre demande d'affiliation a été APPROUVÉE !
-
-            Produit: {product['name']}
-            Commission: {product['commission_rate']}% par vente
-
-            Votre lien personnel:
-            {tracking_url}
-
-            Code court: {short_code}
-
-            Message du marchand:
-            {merchant_message or "Bienvenue ! Hâte de travailler avec vous."}
-
-            Téléchargez votre kit marketing:
-            https://shareyoursales.ma/influencer/my-links/{short_code}/kit
-
-            Commencez à promouvoir dès maintenant !
-
-            ShareYourSales Team
-            """
-        }
-
-        logger.info(f"📧 Email d'approbation envoyé à {influencer['users']['email']}")
+        try:
+            resend_service.send_affiliation_approved_email(
+                to_email=influencer['users']['email'],
+                user_name=influencer['users'].get('first_name', 'Influenceur'),
+                product_name=product['name'],
+                commission_rate=product.get('commission_rate', 0),
+                affiliate_link=tracking_url
+            )
+            logger.info(f"📧 Email d'approbation envoyé à {influencer['users']['email']}")
+        except Exception as e:
+            logger.error(f"Erreur envoi email approbation: {e}")
 
         # NOTIFICATION DASHBOARD
         notification = {
