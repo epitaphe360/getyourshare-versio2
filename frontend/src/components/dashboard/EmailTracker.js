@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Mail, Eye, Click, TrendingUp, BarChart3, Download, Send } from 'lucide-react';
+import { Mail, Eye, MousePointerClick as Click, TrendingUp, BarChart3, Download, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './EmailTracker.css';
 

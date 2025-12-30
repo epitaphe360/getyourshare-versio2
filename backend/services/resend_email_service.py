@@ -172,6 +172,12 @@ class ResendEmailService:
         """Email de bienvenue après inscription"""
         subject = f"🎉 Bienvenue sur ShareYourSales, {user_name}!"
 
+        # Définir le contenu de la liste selon le rôle
+        if role in ['influencer', 'commercial']:
+            list_items = "<li>Parcourir notre marketplace de produits et services</li><li>Générer vos liens d'affiliation personnalisés</li><li>Gagner des commissions sur chaque vente (15% produits, 20% services)</li><li>Suivre vos performances en temps réel</li>"
+        else:
+            list_items = "<li>Créer et gérer vos produits/services</li><li>Recruter des affiliés (influenceurs/commerciaux)</li><li>Suivre les performances de vos affiliés</li><li>Gérer vos paiements de commissions</li>"
+
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -193,7 +199,7 @@ class ResendEmailService:
                 <p>En tant que <strong>{role}</strong>, vous pouvez maintenant:</p>
 
                 <ul style="background: #f8f9fa; padding: 20px 20px 20px 40px; border-left: 4px solid #667eea; margin: 20px 0;">
-                    {'<li>Parcourir notre marketplace de produits et services</li><li>Générer vos liens d\'affiliation personnalisés</li><li>Gagner des commissions sur chaque vente (15% produits, 20% services)</li><li>Suivre vos performances en temps réel</li>' if role in ['influencer', 'commercial'] else '<li>Créer et gérer vos produits/services</li><li>Recruter des affiliés (influenceurs/commerciaux)</li><li>Suivre les performances de vos affiliés</li><li>Gérer vos paiements de commissions</li>'}
+                    {list_items}
                 </ul>
 
                 <div style="text-align: center; margin: 30px 0;">
