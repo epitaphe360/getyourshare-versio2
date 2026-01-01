@@ -169,7 +169,9 @@ async def check_subscription_limit(user_id: str, limit_type: str, user_role: str
             result = supabase.table("campaigns").select("id", count="exact").eq("merchant_id", user_id).execute()
             current_count = result.count or 0
         elif limit_type == "affiliates":
-            result = supabase.table("affiliate_links").select("user_id", count="exact").eq("product_id", user_id).execute()
+            # Correction: Compter les affiliés qui suivent ce merchant, pas par product_id
+            # On compte les liens d'affiliation créés par l'influenceur (user_id)
+            result = supabase.table("affiliate_links").select("id", count="exact").eq("user_id", user_id).execute()
             current_count = result.count or 0
         elif limit_type == "leads":
             # Leads du mois en cours
