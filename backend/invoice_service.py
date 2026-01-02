@@ -10,12 +10,16 @@ from reportlab.lib.units import cm
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from reportlab.lib.enums import TA_CENTER
 import io
 import os
+import logging
 
 from subscription_helpers import get_invoice_by_id
 from db_helpers import get_user_by_id
+
+# Logger configuration
+logger = logging.getLogger(__name__)
 
 
 class InvoiceService:
@@ -229,7 +233,6 @@ class InvoiceService:
         except Exception as e:
             logger.error(f"Error generating invoice PDF: {e}")
             import traceback
-from utils.logger import logger
             traceback.print_exc()
             return None
 

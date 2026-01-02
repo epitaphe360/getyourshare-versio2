@@ -9,7 +9,9 @@ from typing import List, Optional, Dict
 from datetime import datetime, timedelta
 import os
 from utils.logger import logger
-from db_helpers import get_supabase_client
+from supabase_client import supabase, get_supabase_client
+
+from auth import get_current_user_from_cookie
 
 router = APIRouter(prefix="/api/ai", tags=["AI Features"])
 
@@ -32,7 +34,9 @@ class ProductRecommendation(BaseModel):
     estimated_commission: float
 
 class ContentGenerationRequest(BaseModel):
-    product_id: str
+    product_id: Optional[str] = None
+    product_name: Optional[str] = None
+    features: Optional[str] = None
     platform: str  # instagram, tiktok, facebook
     content_type: str  # post, story, reel, caption
     language: str = "fr"
@@ -92,6 +96,17 @@ async def generate_product_recommendations(influencer_id: str, force_refresh: bo
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/product-recommendations")
+async def get_my_product_recommendations(
+    limit: int = 10,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
+    """
+    Récupérer les recommandations de produits pour l'utilisateur connecté
+    """
+    return await get_product_recommendations(current_user["id"], limit)
+
+
 @router.get("/product-recommendations/{influencer_id}")
 async def get_product_recommendations(influencer_id: str, limit: int = 10):
     """
@@ -109,7 +124,7 @@ async def get_product_recommendations(influencer_id: str, limit: int = 10):
                 category,
                 image_url,
                 commission_rate,
-                users:merchant_id(username)
+                merchants:merchant_id(company_name)
             )
         ''').eq('influencer_id', influencer_id)\
             .eq('is_active', True)\
@@ -121,7 +136,7 @@ async def get_product_recommendations(influencer_id: str, limit: int = 10):
         results = []
         for rec in recommendations.data:
             product = rec.get('products', {})
-            merchant = product.get('users', {})
+            merchant = product.get('merchants', {})
 
             # Calculer commission estimée
             estimated_commission = float(product.get('price', 0)) * float(product.get('commission_rate', 0)) / 100
@@ -129,7 +144,7 @@ async def get_product_recommendations(influencer_id: str, limit: int = 10):
             results.append({
                 "product_id": rec['product_id'],
                 "product_name": product.get('name', 'N/A'),
-                "merchant_name": merchant.get('username', 'N/A'),
+                "merchant_name": merchant.get('company_name', 'N/A'),
                 "price": float(product.get('price', 0)),
                 "category": product.get('category', 'N/A'),
                 "image_url": product.get('image_url'),
@@ -137,7 +152,8 @@ async def get_product_recommendations(influencer_id: str, limit: int = 10):
                 "match_reasons": rec.get('match_reasons', []),
                 "estimated_commission": estimated_commission,
                 "commission_rate": float(product.get('commission_rate', 0)),
-                "expires_at": rec['expires_at']
+                "expires_at": rec['expires_at'],
+                "product_url": f"/marketplace/product/{rec['product_id']}"
             })
 
         return {
@@ -176,20 +192,35 @@ async def track_recommendation_click(recommendation_id: str):
 # ============================================
 
 @router.post("/generate-content")
-async def generate_content_template(request: ContentGenerationRequest, influencer_id: str):
+async def generate_content_template(
+    request: ContentGenerationRequest,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
     """
     Générer un template de contenu avec IA
     """
     try:
+        influencer_id = current_user["id"]
         supabase = get_supabase_client()
 
-        # Récupérer info produit
-        product = supabase.table('products').select('*').eq('id', request.product_id).execute()
-
-        if not product.data:
-            raise HTTPException(status_code=404, detail="Produit non trouvé")
-
-        product_data = product.data[0]
+        product_data = {}
+        
+        if request.product_id:
+            # Récupérer info produit
+            product = supabase.table('products').select('*').eq('id', request.product_id).execute()
+            if not product.data:
+                raise HTTPException(status_code=404, detail="Produit non trouvé")
+            product_data = product.data[0]
+        else:
+            # Utiliser les données manuelles
+            if not request.product_name:
+                 raise HTTPException(status_code=400, detail="Product name required if product_id is missing")
+            product_data = {
+                'name': request.product_name,
+                'description': request.features,
+                'price': 'N/A',
+                'category': 'General'
+            }
 
         # Générer contenu selon plateforme et type
         content = await _generate_content_with_ai(
@@ -217,12 +248,17 @@ async def generate_content_template(request: ContentGenerationRequest, influence
             'generated_by': 'gpt-4' if OPENAI_API_KEY else 'template'
         }
 
-        result = supabase.table('ai_content_templates').insert(template_data).execute()
+        try:
+            result = supabase.table('ai_content_templates').insert(template_data).execute()
+            template_id = result.data[0]['id']
+        except Exception as e:
+            logger.warning(f"Could not save template (likely missing product_id FK): {e}")
+            template_id = "temp_" + datetime.now().strftime("%Y%m%d%H%M%S")
 
         logger.info(f"✅ Contenu généré pour {influencer_id} - {request.platform}")
 
         return {
-            "template_id": result.data[0]['id'],
+            "template_id": template_id,
             "content": content,
             "message": "Contenu généré avec succès"
         }
@@ -305,6 +341,17 @@ Réponds en JSON avec: title, content, hashtags (array), cta, best_time, best_da
 
     key = f"{platform}_{content_type}"
     return templates.get(key, templates['instagram_post'])
+
+
+@router.get("/content-templates")
+async def get_my_content_templates(
+    limit: int = 20,
+    current_user: dict = Depends(get_current_user_from_cookie)
+):
+    """
+    Récupérer les templates de contenu pour l'utilisateur connecté
+    """
+    return await get_content_templates(current_user["id"], limit)
 
 
 @router.get("/content-templates/{influencer_id}")
@@ -476,7 +523,7 @@ async def get_upcoming_live_sessions(limit: int = 10):
 
         sessions = supabase.table('live_shopping_sessions').select('''
             *,
-            users:host_id(username, role)
+            users:host_id(full_name, role)
         ''').eq('status', 'scheduled')\
             .gte('scheduled_at', datetime.utcnow().isoformat())\
             .order('scheduled_at')\
@@ -489,7 +536,7 @@ async def get_upcoming_live_sessions(limit: int = 10):
             results.append({
                 "session_id": session['id'],
                 "title": session['title'],
-                "host_username": host.get('username', 'N/A'),
+                "host_username": host.get('full_name', 'N/A'),
                 "platform": session['platform'],
                 "scheduled_at": session['scheduled_at'],
                 "featured_products_count": len(session.get('featured_products', [])),

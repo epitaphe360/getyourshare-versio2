@@ -8,12 +8,13 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 from uuid import uuid4
 from dotenv import load_dotenv
+from utils.logger import logger
 
 # Charger les variables d environnement
 load_dotenv()
 
 
-class TestDatabase:
+class DatabaseSetup:
     """Gestionnaire de base de donnees de test"""
     
     def __init__(self):
@@ -26,7 +27,6 @@ class TestDatabase:
         if self.supabase_client is None:
             try:
                 from supabase import create_client
-from utils.logger import logger
                 supabase_url = os.getenv("SUPABASE_URL")
                 supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
                 
@@ -47,7 +47,7 @@ from utils.logger import logger
 
 
 # Instance globale
-test_db = TestDatabase()
+test_db = DatabaseSetup()
 
 
 def get_supabase_for_tests():

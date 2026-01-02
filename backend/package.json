@@ -1,5 +1,5 @@
 {
-  "dependencies": {
-    "react-countup": "^6.5.3"
+  "devDependencies": {
+    "@playwright/test": "^1.57.0"
   }
 }

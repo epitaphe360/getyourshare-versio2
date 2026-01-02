@@ -23,6 +23,8 @@ from supabase import create_client, Client
 import os
 import secrets
 from auth import get_current_user
+import asyncio
+from fastapi.concurrency import run_in_threadpool
 
 router = APIRouter(prefix="/api/company/links", tags=["Company Links Management"])
 
@@ -72,9 +74,9 @@ def generate_unique_short_code() -> str:
     """Générer un code court unique"""
     while True:
         short_code = secrets.token_urlsafe(6)[:8]
-        existing = supabase.from_("affiliate_links") \
+        existing = supabase.from_("tracking_links") \
             .select("id") \
-            .eq("short_code", short_code) \
+            .eq("unique_code", short_code) \
             .execute()
 
         if not existing.data:
@@ -122,15 +124,6 @@ async def generate_company_affiliate_link(
 ):
     """
     [ENTREPRISE UNIQUEMENT] Générer un lien d'affiliation pour un produit
-
-    Workflow:
-    1. Vérifier que c'est une entreprise
-    2. Vérifier que le produit appartient à l'entreprise
-    3. Générer le lien court unique
-    4. Le lien peut ensuite être attribué à des membres d'équipe
-
-    IMPORTANT: Seules les entreprises peuvent générer des liens.
-    Les commerciaux/influenceurs reçoivent des liens attribués par les entreprises.
     """
     try:
         # Vérifier que c'est une entreprise
@@ -151,7 +144,7 @@ async def generate_company_affiliate_link(
             )
 
         # Vérifier si un lien existe déjà pour ce produit
-        existing = supabase.from_("affiliate_links") \
+        existing = supabase.from_("tracking_links") \
             .select("*") \
             .eq("merchant_id", company_id) \
             .eq("product_id", request.product_id) \
@@ -167,17 +160,18 @@ async def generate_company_affiliate_link(
                 "message": "Company link already exists for this product",
                 "link": {
                     **link,
-                    "full_url": f"https://shareyoursales.ma/r/{link['short_code']}",
-                    "qr_code_url": f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://shareyoursales.ma/r/{link['short_code']}"
+                    "short_code": link['unique_code'],
+                    "full_url": link['full_url'],
+                    "qr_code_url": f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={link['full_url']}"
                 }
             }
 
         # Générer le code court
         if request.custom_slug:
             # Vérifier disponibilité
-            slug_check = supabase.from_("affiliate_links") \
+            slug_check = supabase.from_("tracking_links") \
                 .select("id") \
-                .eq("short_code", request.custom_slug) \
+                .eq("unique_code", request.custom_slug) \
                 .execute()
 
             if slug_check.data:
@@ -191,25 +185,36 @@ async def generate_company_affiliate_link(
             short_code = generate_unique_short_code()
 
         # Obtenir le taux de commission du produit
-        product = supabase.from_("products") \
-            .select("commission_rate") \
-            .eq("id", request.product_id) \
-            .single() \
-            .execute()
+        try:
+            product = supabase.from_("products") \
+                .select("commission_rate") \
+                .eq("id", request.product_id) \
+                .single() \
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            product = MockResponse()
 
         commission_rate = request.commission_rate or product.data.get("commission_rate", 15.0)
 
         # Créer le lien de base (pas encore attribué à un membre)
+        full_url = f"https://shareyoursales.ma/r/{short_code}"
         link_data = {
             "merchant_id": company_id,
             "product_id": request.product_id,
-            "short_code": short_code,
-            "commission_rate": commission_rate,
+            "unique_code": short_code,
+            "full_url": full_url,
+            "short_url": full_url,
             "is_active": True,
-            "metadata": {"notes": request.notes} if request.notes else {}
+            "metadata": {
+                "notes": request.notes,
+                "commission_rate": commission_rate
+            }
         }
 
-        result = supabase.from_("affiliate_links") \
+        result = supabase.from_("tracking_links") \
             .insert(link_data) \
             .execute()
 
@@ -226,8 +231,9 @@ async def generate_company_affiliate_link(
             "message": "Affiliate link generated successfully",
             "link": {
                 **link,
-                "full_url": f"https://shareyoursales.ma/r/{short_code}",
-                "qr_code_url": f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://shareyoursales.ma/r/{short_code}"
+                "short_code": short_code,
+                "full_url": full_url,
+                "qr_code_url": f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={full_url}"
             }
         }
 
@@ -267,7 +273,7 @@ async def bulk_generate_links(
                     continue
 
                 # Vérifier si existe déjà
-                existing = supabase.from_("affiliate_links") \
+                existing = supabase.from_("tracking_links") \
                     .select("*") \
                     .eq("merchant_id", company_id) \
                     .eq("product_id", product_id) \
@@ -281,16 +287,21 @@ async def bulk_generate_links(
 
                 # Créer nouveau lien
                 short_code = generate_unique_short_code()
+                full_url = f"https://shareyoursales.ma/r/{short_code}"
 
                 link_data = {
                     "merchant_id": company_id,
                     "product_id": product_id,
-                    "short_code": short_code,
-                    "commission_rate": request.commission_rate or 15.0,
-                    "is_active": True
+                    "unique_code": short_code,
+                    "full_url": full_url,
+                    "short_url": full_url,
+                    "is_active": True,
+                    "metadata": {
+                        "commission_rate": request.commission_rate or 15.0
+                    }
                 }
 
-                result = supabase.from_("affiliate_links") \
+                result = supabase.from_("tracking_links") \
                     .insert(link_data) \
                     .execute()
 
@@ -326,17 +337,6 @@ async def assign_link_to_team_member(
 ):
     """
     [ENTREPRISE] Attribuer un lien d'affiliation à un membre d'équipe
-
-    Workflow:
-    1. Vérifier que le lien appartient à l'entreprise
-    2. Vérifier que le membre fait partie de l'équipe
-    3. Créer une attribution (ou mettre à jour influencer_id)
-    4. Le membre peut maintenant utiliser ce lien
-
-    Cette approche garantit que:
-    - Les entreprises contrôlent quels produits chaque membre peut promouvoir
-    - Les statistiques sont tracées par membre
-    - Les commissions sont calculées correctement
     """
     try:
         if current_user.get("role") != "merchant":
@@ -348,12 +348,18 @@ async def assign_link_to_team_member(
         company_id = current_user["id"]
 
         # Vérifier que le lien appartient à l'entreprise
-        link = supabase.from_("affiliate_links") \
-            .select("*") \
-            .eq("id", request.link_id) \
-            .eq("merchant_id", company_id) \
-            .single() \
-            .execute()
+        try:
+            link = supabase.from_("tracking_links") \
+                .select("*") \
+                .eq("id", request.link_id) \
+                .eq("merchant_id", company_id) \
+                .single() \
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            link = MockResponse()
 
         if not link.data:
             raise HTTPException(
@@ -371,22 +377,28 @@ async def assign_link_to_team_member(
 
         # Créer un nouveau lien pour ce membre (clone du lien de base)
         short_code = generate_unique_short_code()
+        full_url = f"https://shareyoursales.ma/r/{short_code}"
+        
+        # Get commission rate from metadata or default
+        base_commission = link.data.get("metadata", {}).get("commission_rate", 15.0)
 
         member_link_data = {
             "merchant_id": company_id,
             "influencer_id": request.member_id,
             "product_id": link.data["product_id"],
-            "short_code": short_code,
-            "commission_rate": request.custom_commission_rate or link.data["commission_rate"],
+            "unique_code": short_code,
+            "full_url": full_url,
+            "short_url": full_url,
             "is_active": True,
             "metadata": {
                 "assigned_by": company_id,
                 "parent_link_id": request.link_id,
-                "assigned_at": datetime.now().isoformat()
+                "assigned_at": datetime.now().isoformat(),
+                "commission_rate": request.custom_commission_rate or base_commission
             }
         }
 
-        result = supabase.from_("affiliate_links") \
+        result = supabase.from_("tracking_links") \
             .insert(member_link_data) \
             .execute()
 
@@ -403,8 +415,9 @@ async def assign_link_to_team_member(
             "message": f"Link assigned to team member successfully",
             "assigned_link": {
                 **assigned_link,
-                "full_url": f"https://shareyoursales.ma/r/{short_code}",
-                "qr_code_url": f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://shareyoursales.ma/r/{short_code}"
+                "short_code": short_code,
+                "full_url": full_url,
+                "qr_code_url": f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={full_url}"
             }
         }
 
@@ -433,18 +446,26 @@ async def bulk_assign_links(
         company_id = current_user["id"]
 
         # Vérifier que le lien existe
-        link = supabase.from_("affiliate_links") \
-            .select("*") \
-            .eq("id", link_id) \
-            .eq("merchant_id", company_id) \
-            .single() \
-            .execute()
+        try:
+            link = supabase.from_("tracking_links") \
+                .select("*") \
+                .eq("id", link_id) \
+                .eq("merchant_id", company_id) \
+                .single() \
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            link = MockResponse()
 
         if not link.data:
             raise HTTPException(status_code=404, detail="Link not found")
 
         assigned = []
         errors = []
+        
+        base_commission = link.data.get("metadata", {}).get("commission_rate", 15.0)
 
         for member_id in member_ids:
             try:
@@ -454,22 +475,25 @@ async def bulk_assign_links(
                     continue
 
                 short_code = generate_unique_short_code()
+                full_url = f"https://shareyoursales.ma/r/{short_code}"
 
                 member_link_data = {
                     "merchant_id": company_id,
                     "influencer_id": member_id,
                     "product_id": link.data["product_id"],
-                    "short_code": short_code,
-                    "commission_rate": link.data["commission_rate"],
+                    "unique_code": short_code,
+                    "full_url": full_url,
+                    "short_url": full_url,
                     "is_active": True,
                     "metadata": {
                         "assigned_by": company_id,
                         "parent_link_id": link_id,
-                        "assigned_at": datetime.now().isoformat()
+                        "assigned_at": datetime.now().isoformat(),
+                        "commission_rate": base_commission
                     }
                 }
 
-                result = supabase.from_("affiliate_links") \
+                result = supabase.from_("tracking_links") \
                     .insert(member_link_data) \
                     .execute()
 
@@ -508,8 +532,8 @@ async def get_company_links(
     try:
         company_id = current_user["id"]
 
-        query = supabase.from_("affiliate_links") \
-            .select("*, product:products(name, price), member:influencer_id(first_name, last_name, email)") \
+        query = supabase.from_("tracking_links") \
+            .select("*") \
             .eq("merchant_id", company_id)
 
         if product_id:
@@ -518,21 +542,45 @@ async def get_company_links(
         if assigned_only:
             query = query.not_.is_("influencer_id", "null")
 
-        response = query.order("created_at", desc=True).execute()
+        response = await run_in_threadpool(lambda: query.order("created_at", desc=True).execute())
+        links = response.data or []
 
-        # Enrichir avec URLs
-        links = []
-        for link in response.data:
-            links.append({
-                **link,
-                "full_url": f"https://shareyoursales.ma/r/{link['short_code']}",
-                "qr_code_url": f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://shareyoursales.ma/r/{link['short_code']}"
-            })
+        # Manually fetch related data to avoid PGRST200 errors
+        product_ids = list(set(l['product_id'] for l in links if l.get('product_id')))
+        member_ids = list(set(l['influencer_id'] for l in links if l.get('influencer_id')))
+
+        async def fetch_products():
+            if not product_ids: return {}
+            p_res = await run_in_threadpool(lambda: supabase.from_("products").select("id, name, price").in_("id", product_ids).execute())
+            return {p['id']: p for p in p_res.data} if p_res.data else {}
+
+        async def fetch_members():
+            if not member_ids: return {}
+            m_res = await run_in_threadpool(lambda: supabase.from_("users").select("id, first_name, last_name, email").in_("id", member_ids).execute())
+            return {m['id']: m for m in m_res.data} if m_res.data else {}
+
+        products_map, members_map = await asyncio.gather(fetch_products(), fetch_members())
+
+        # Enrich links
+        enriched_links = []
+        for link in links:
+            link_data = link.copy()
+            link_data['product'] = products_map.get(link['product_id'])
+            link_data['member'] = members_map.get(link['influencer_id'])
+            link_data['short_code'] = link['unique_code'] # Map for frontend
+            
+            # Ensure URLs are present
+            if not link_data.get("full_url"):
+                link_data["full_url"] = f"https://shareyoursales.ma/r/{link['unique_code']}"
+            
+            link_data["qr_code_url"] = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={link_data['full_url']}"
+            
+            enriched_links.append(link_data)
 
         return {
             "success": True,
-            "links": links,
-            "total": len(links)
+            "links": enriched_links,
+            "total": len(enriched_links)
         }
 
     except Exception as e:
@@ -551,7 +599,7 @@ async def deactivate_link(
         company_id = current_user["id"]
 
         # Désactiver le lien
-        result = supabase.from_("affiliate_links") \
+        result = supabase.from_("tracking_links") \
             .update({"is_active": False}) \
             .eq("id", link_id) \
             .eq("merchant_id", company_id) \
@@ -581,35 +629,57 @@ async def deactivate_link(
 async def get_my_assigned_links(current_user: dict = Depends(get_current_user)):
     """
     [MEMBRE D'ÉQUIPE] Voir les liens qui m'ont été attribués
-
-    Les commerciaux/influenceurs voient UNIQUEMENT les liens
-    que leur entreprise leur a attribués.
-    Ils NE PEUVENT PAS générer de nouveaux liens.
     """
     try:
         member_id = current_user["id"]
 
-        response = supabase.from_("affiliate_links") \
-            .select("*, product:products(name, description, price, images), company:merchant_id(first_name, last_name)") \
+        response = await run_in_threadpool(
+            lambda: supabase.from_("tracking_links") \
+            .select("*") \
             .eq("influencer_id", member_id) \
             .eq("is_active", True) \
             .order("created_at", desc=True) \
             .execute()
+        )
+            
+        links = response.data or []
+
+        # Manually fetch related data
+        product_ids = list(set(l['product_id'] for l in links if l.get('product_id')))
+        merchant_ids = list(set(l['merchant_id'] for l in links if l.get('merchant_id')))
+
+        async def fetch_products():
+            if not product_ids: return {}
+            p_res = await run_in_threadpool(lambda: supabase.from_("products").select("id, name, description, price, images").in_("id", product_ids).execute())
+            return {p['id']: p for p in p_res.data} if p_res.data else {}
+
+        async def fetch_companies():
+            if not merchant_ids: return {}
+            c_res = await run_in_threadpool(lambda: supabase.from_("users").select("id, first_name, last_name, company_name").in_("id", merchant_ids).execute())
+            return {c['id']: c for c in c_res.data} if c_res.data else {}
+
+        products_map, companies_map = await asyncio.gather(fetch_products(), fetch_companies())
 
         # Enrichir avec URLs et stats
-        links = []
-        for link in response.data:
-            links.append({
-                **link,
-                "full_url": f"https://shareyoursales.ma/r/{link['short_code']}",
-                "qr_code_url": f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://shareyoursales.ma/r/{link['short_code']}"
-            })
+        enriched_links = []
+        for link in links:
+            link_data = link.copy()
+            link_data['product'] = products_map.get(link['product_id'])
+            link_data['company'] = companies_map.get(link['merchant_id'])
+            link_data['short_code'] = link['unique_code']
+            
+            if not link_data.get("full_url"):
+                link_data["full_url"] = f"https://shareyoursales.ma/r/{link['unique_code']}"
+            
+            link_data["qr_code_url"] = f"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={link_data['full_url']}"
+            
+            enriched_links.append(link_data)
 
         return {
             "success": True,
             "message": "These are the links assigned to you by your companies",
-            "links": links,
-            "total": len(links)
+            "links": enriched_links,
+            "total": len(enriched_links)
         }
 
     except Exception as e:

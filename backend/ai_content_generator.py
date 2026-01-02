@@ -21,6 +21,9 @@ class SocialPlatform(str, Enum):
     YOUTUBE_SHORTS = "youtube_shorts"
     FACEBOOK = "facebook"
     TWITTER = "twitter"
+    LINKEDIN = "linkedin"
+    EMAIL = "email"
+    BLOG = "blog"
 
 class ContentType(str, Enum):
     VIDEO_SCRIPT = "video_script"
@@ -28,6 +31,8 @@ class ContentType(str, Enum):
     STORY = "story"
     POST_CAPTION = "post_caption"
     REEL_SCRIPT = "reel_script"
+    EMAIL_NEWSLETTER = "email_newsletter"
+    BLOG_ARTICLE = "blog_article"
 
 class TrendingTopic(BaseModel):
     keyword: str
@@ -42,9 +47,12 @@ class ContentRequest(BaseModel):
     product_description: str
     target_audience: str
     tone: str = "engaging"  # engaging, professional, funny, inspiring
-    language: str = "fr"  # fr, ar, en
+    language: str = "fr"  # fr, ar, en, es
     include_trends: bool = True
     duration_seconds: Optional[int] = None  # Pour les vidéos
+    emoji_intensity: str = "standard" # none, minimal, standard, heavy
+    hashtag_strategy: str = "mixed" # niche, broad, mixed
+    content_length: str = "medium" # short, medium, long
 
 class GeneratedContent(BaseModel):
     platform: SocialPlatform
@@ -87,6 +95,12 @@ class AIContentGeneratorService:
             return await self._generate_instagram_content(request)
         elif request.platform == SocialPlatform.YOUTUBE_SHORTS:
             return await self._generate_youtube_shorts_content(request)
+        elif request.platform == SocialPlatform.LINKEDIN:
+            return await self._generate_linkedin_content(request)
+        elif request.platform == SocialPlatform.EMAIL:
+            return await self._generate_email_content(request)
+        elif request.platform == SocialPlatform.BLOG:
+            return await self._generate_blog_content(request)
         else:
             return await self._generate_generic_content(request)
 
@@ -102,6 +116,8 @@ Description: {request.product_description}
 Audience: {request.target_audience}
 Ton: {request.tone}
 Durée: {request.duration_seconds or 30} secondes
+Longueur du contenu: {request.content_length}
+Intensité Emojis: {request.emoji_intensity}
 
 Le script doit:
 1. Commencer avec un HOOK puissant (3 premières secondes)
@@ -126,7 +142,7 @@ CTA (25-30s): [appel à l'action clair]
         script = ai_response
 
         # Générer des hashtags optimisés
-        hashtags = await self._generate_hashtags(request.product_name, "tiktok", request.language)
+        hashtags = await self._generate_hashtags(request.product_name, "tiktok", request.language, request.hashtag_strategy)
 
         # Hooks spécifiques TikTok
         hooks = [
@@ -174,6 +190,7 @@ SLIDE 10: CTA fort + code promo
 
 Langue: {request.language}
 Ton: {request.tone}
+Intensité Emojis: {request.emoji_intensity}
 """
         elif request.content_type == ContentType.REEL_SCRIPT:
             prompt = f"""
@@ -181,6 +198,7 @@ Crée un script Reel Instagram de 15-30 secondes:
 
 Produit: {request.product_name}
 Description: {request.product_description}
+Intensité Emojis: {request.emoji_intensity}
 
 Format:
 - Hook visuel puissant (0-2s)
@@ -196,6 +214,8 @@ Crée une caption Instagram engageante pour:
 
 Produit: {request.product_name}
 Description: {request.product_description}
+Longueur: {request.content_length}
+Intensité Emojis: {request.emoji_intensity}
 
 La caption doit:
 1. Commencer par une question ou un fait surprenant
@@ -208,7 +228,7 @@ Max 2200 caractères.
 """
 
         ai_response = await self._call_ai_api(prompt)
-        hashtags = await self._generate_hashtags(request.product_name, "instagram", request.language)
+        hashtags = await self._generate_hashtags(request.product_name, "instagram", request.language, request.hashtag_strategy)
 
         return GeneratedContent(
             platform=SocialPlatform.INSTAGRAM,
@@ -241,6 +261,7 @@ Crée un script YouTube Shorts (60 secondes max):
 
 Produit: {request.product_name}
 Description: {request.product_description}
+Intensité Emojis: {request.emoji_intensity}
 
 Structure:
 - Hook (0-5s): Question provocante
@@ -256,7 +277,7 @@ Inclus:
 """
 
         ai_response = await self._call_ai_api(prompt)
-        hashtags = await self._generate_hashtags(request.product_name, "youtube", request.language)
+        hashtags = await self._generate_hashtags(request.product_name, "youtube", request.language, request.hashtag_strategy)
 
         return GeneratedContent(
             platform=SocialPlatform.YOUTUBE_SHORTS,
@@ -278,6 +299,154 @@ Inclus:
                 "🔔 Demande les abonnements et likes",
                 "💬 Pin ton meilleur commentaire",
                 "⏱️ Les Shorts de 30-45s performent mieux"
+            ]
+        )
+
+    async def _generate_linkedin_content(self, request: ContentRequest) -> GeneratedContent:
+        """Génère un post LinkedIn professionnel et engageant"""
+
+        prompt = f"""
+Crée un post LinkedIn viral pour:
+
+Produit/Service: {request.product_name}
+Description: {request.product_description}
+Audience Cible: {request.target_audience}
+Ton: {request.tone} (mais professionnel)
+Longueur: {request.content_length}
+Intensité Emojis: {request.emoji_intensity}
+
+Structure:
+1. Hook (Question ou Statistique surprenante)
+2. Le Problème (Storytelling court)
+3. L'Insight/Solution (Valeur ajoutée)
+4. Présentation de {request.product_name}
+5. Preuve sociale ou Résultat
+6. CTA (Question pour engager les commentaires)
+
+Formatage:
+- Utilise des sauts de ligne pour aérer
+- Utilise des bullet points si nécessaire
+- Emojis professionnels (pas trop)
+"""
+
+        ai_response = await self._call_ai_api(prompt)
+        hashtags = await self._generate_hashtags(request.product_name, "linkedin", request.language, request.hashtag_strategy)
+
+        return GeneratedContent(
+            platform=SocialPlatform.LINKEDIN,
+            content_type=request.content_type,
+            script=ai_response,
+            hooks=[
+                "J'ai appris une leçon importante aujourd'hui...",
+                "Arrêtez de faire cette erreur dans votre business 🛑",
+                "Le secret que personne ne vous dit sur..."
+            ],
+            hashtags=hashtags,
+            call_to_action="👇 Dites-moi en commentaire ce que vous en pensez !",
+            estimated_engagement=self._predict_engagement(ai_response, "linkedin"),
+            trending_keywords=self._get_trending_keywords("MA"),
+            best_posting_time="Mardi-Jeudi, 8h-10h",
+            tips=[
+                "👔 Garde un ton professionnel mais authentique",
+                "📝 Les posts longs (storytelling) fonctionnent bien",
+                "💬 Réponds à tous les commentaires pour l'algo",
+                "🏷️ Tag des personnes pertinentes (avec modération)",
+                "📄 Ajoute un PDF/Carrousel pour plus de portée"
+            ]
+        )
+
+    async def _generate_email_content(self, request: ContentRequest) -> GeneratedContent:
+        """Génère un email marketing ou newsletter"""
+
+        prompt = f"""
+Rédige un email marketing performant pour:
+
+Produit: {request.product_name}
+Description: {request.product_description}
+Audience: {request.target_audience}
+Ton: {request.tone}
+Longueur: {request.content_length}
+Intensité Emojis: {request.emoji_intensity}
+
+Éléments requis:
+1. Objet (Subject Line) : Court, intrigant, < 50 caractères
+2. Preheader : Complément de l'objet
+3. Corps de l'email :
+   - Salutation personnalisée
+   - Hook (Pourquoi je reçois ça ?)
+   - Storytelling / Problème
+   - Solution ({request.product_name})
+   - Bénéfices (Bullet points)
+   - CTA Principal (Bouton)
+   - P.S. (Urgence ou Bonus)
+
+Langue: {request.language}
+"""
+
+        ai_response = await self._call_ai_api(prompt)
+        
+        return GeneratedContent(
+            platform=SocialPlatform.EMAIL,
+            content_type=ContentType.EMAIL_NEWSLETTER,
+            script=ai_response,
+            hooks=["Objet: Vous avez oublié ça ?", "Objet: Invitation exclusive ✉️"],
+            hashtags=[],
+            call_to_action="Cliquez ici pour profiter de l'offre",
+            estimated_engagement=25.0, # Open rate estimé
+            trending_keywords=[],
+            best_posting_time="Mardi ou Jeudi, 10h",
+            tips=[
+                "📧 Personnalise avec le prénom",
+                "📱 Vérifie l'affichage mobile",
+                "A/B Test tes objets",
+                "Nettoie ta liste régulièrement"
+            ]
+        )
+
+    async def _generate_blog_content(self, request: ContentRequest) -> GeneratedContent:
+        """Génère un article de blog optimisé SEO"""
+
+        prompt = f"""
+Écris un article de blog optimisé SEO pour:
+
+Sujet/Produit: {request.product_name}
+Description: {request.product_description}
+Audience: {request.target_audience}
+Ton: {request.tone}
+Longueur: {request.content_length}
+
+Structure SEO:
+1. Titre H1 (avec mot-clé principal)
+2. Introduction (Hook + Problématique)
+3. H2 (Premier sous-titre)
+4. Paragraphes
+5. H2 (Deuxième sous-titre)
+6. Liste à puces
+7. H2 (Troisième sous-titre)
+8. Conclusion
+9. CTA
+
+Mots-clés à inclure: {request.product_name}, avis, prix, bienfaits, Maroc.
+Langue: {request.language}
+"""
+
+        ai_response = await self._call_ai_api(prompt)
+        
+        return GeneratedContent(
+            platform=SocialPlatform.BLOG,
+            content_type=ContentType.BLOG_ARTICLE,
+            script=ai_response,
+            hooks=[],
+            hashtags=[],
+            call_to_action="Laissez un commentaire ci-dessous",
+            estimated_engagement=15.0, # Temps de lecture / partage
+            trending_keywords=self._get_trending_keywords("MA"),
+            best_posting_time="Lundi matin",
+            tips=[
+                "🔍 Utilise des mots-clés longue traîne",
+                "🖼️ Ajoute des images avec balises ALT",
+                "🔗 Fais des liens internes",
+                "📱 Optimise pour la lecture mobile"
             ]
         )
 
@@ -417,7 +586,7 @@ Découvrez [produit] - la solution parfaite qui va transformer votre quotidien.
 Cliquez sur le lien en bio pour profiter de -20% aujourd'hui !
 """
 
-    async def _generate_hashtags(self, product: str, platform: str, language: str) -> List[str]:
+    async def _generate_hashtags(self, product: str, platform: str, language: str, strategy: str = "mixed") -> List[str]:
         """Génère des hashtags pertinents et tendances"""
 
         base_hashtags = {
@@ -431,6 +600,9 @@ Cliquez sur le lien en bio pour profiter de -20% aujourd'hui !
             ],
             "youtube": [
                 "#Shorts", "#YouTubeShorts", "#Morocco", "#Maroc"
+            ],
+            "linkedin": [
+                "#Maroc", "#BusinessMaroc", "#Entrepreneuriat", "#MarketingDigital", "#Innovation"
             ]
         }
 
@@ -439,9 +611,19 @@ Cliquez sur le lien en bio pour profiter de -20% aujourd'hui !
         product_hashtags = [f"#{word.capitalize()}" for word in product_words if len(word) > 3]
 
         platform_hashtags = base_hashtags.get(platform, [])
-        all_hashtags = platform_hashtags[:5] + product_hashtags[:3]
+        
+        # Stratégie de hashtags
+        if strategy == "niche":
+            # Focus sur le produit spécifique
+            selected_hashtags = product_hashtags + platform_hashtags[:2]
+        elif strategy == "broad":
+            # Focus sur la portée large
+            selected_hashtags = platform_hashtags[:7] + product_hashtags[:1]
+        else: # mixed
+            # Mélange équilibré
+            selected_hashtags = platform_hashtags[:5] + product_hashtags[:3]
 
-        return all_hashtags[:10]  # Max 10 hashtags
+        return selected_hashtags[:15]  # Max 15 hashtags
 
     def _predict_engagement(self, script: str, platform: str) -> float:
         """Prédit le taux d'engagement basé sur le contenu (ML simple)"""

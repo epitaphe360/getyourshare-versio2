@@ -7,12 +7,14 @@ from fastapi import HTTPException, Header, Depends
 from typing import Optional
 import jwt
 import os
+from utils.logger import logger
 
 from subscription_helpers import (
     get_user_subscription,
     has_feature_access,
     check_usage_limit,
-    is_subscription_active
+    is_subscription_active,
+    increment_usage
 )
 
 # Configuration JWT
@@ -313,8 +315,6 @@ def increment_feature_usage(user_id: str, feature: str) -> bool:
         if not subscription:
             return False
 
-        from subscription_helpers import increment_usage
-from utils.logger import logger
         return increment_usage(subscription["id"], f"{feature}_count")
 
     except Exception as e:

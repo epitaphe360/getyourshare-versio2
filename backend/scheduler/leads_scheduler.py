@@ -15,7 +15,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from services.deposit_service import DepositService
 from services.notification_service import NotificationService
 from services.lead_service import LeadService
+from services.email_service import email_service
 from supabase_client import supabase
+from utils.logger import logger
 
 # Delayed initialization of services and scheduler to avoid import-time side-effects
 deposit_service = None
@@ -192,9 +194,6 @@ def cleanup_expired_leads():
     
     try:
         # Récupérer les leads en attente depuis plus de 72h
-        from datetime import timedelta
-from utils.logger import logger
-        
         expiration_date = (datetime.now() - timedelta(hours=72)).isoformat()
         
         response = supabase.table('leads')\
@@ -289,6 +288,7 @@ def generate_daily_report():
             .gte('updated_at', yesterday)\
             .eq('status', 'rejected')\
             .execute()
+        rejected_count = leads_rejected.count if hasattr(leads_rejected, 'count') else 0
         
         # Dépôts bas
         low_deposits = supabase.table('company_deposits')\
@@ -303,7 +303,7 @@ def generate_daily_report():
             'date': datetime.now().strftime('%Y-%m-%d'),
             'leads_created_24h': leads_created.count if hasattr(leads_created, 'count') else 0,
             'leads_validated_24h': leads_validated.count if hasattr(leads_validated, 'count') else 0,
-            'leads_rejected_24h': leads_rejected.count if hasattr(leads_rejected, 'count') else 0,
+            'leads_rejected_24h': rejected_count,
             'deposits_below_50_percent': deposits_below_50,
             'timestamp': datetime.now().isoformat()
         }
@@ -315,7 +315,25 @@ def generate_daily_report():
         logger.info(f"   ⚠️  Dépôts < 50%: {report['deposits_below_50_percent']}")
         
         # Envoyer le rapport aux admins
-        # TODO: Implémenter l'envoi email du rapport
+        try:
+            admins = supabase.table('users').select('email').eq('role', 'admin').execute()
+            if admins.data:
+                for admin in admins.data:
+                    email_service.send_email(
+                        to_email=admin['email'],
+                        subject=f"Rapport quotidien ShareYourSales - {report['date']}",
+                        html_content=email_service._fallback_template({'content': f"""
+                            <h2>Rapport quotidien {report['date']}</h2>
+                            <ul>
+                                <li>📦 Leads créés: {report['leads_created_24h']}</li>
+                                <li>✅ Leads validés: {report['leads_validated_24h']}</li>
+                                <li>❌ Leads rejetés: {report['leads_rejected_24h']}</li>
+                                <li>⚠️ Dépôts < 50%: {report['deposits_below_50_percent']}</li>
+                            </ul>
+                        """})
+                    )
+        except Exception as e:
+            logger.error(f"Failed to send daily report email: {e}")
         
         return report
     

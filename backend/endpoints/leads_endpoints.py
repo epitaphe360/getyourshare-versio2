@@ -110,7 +110,10 @@ async def create_lead(
         
         if role == 'influencer':
             # Récupérer influencer_id depuis user_id
-            influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
+            try:
+                influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if influencer.data:
                 influencer_id = influencer.data['id']
         elif role == 'commercial' or role == 'admin':
@@ -168,11 +171,17 @@ async def get_lead(
             if merchant.data:
                 query = query.eq('merchant_id', merchant.data['id'])
         elif role == 'influencer':
-            influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
+            try:
+                influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if influencer.data:
                 query = query.eq('influencer_id', influencer.data['id'])
         
-        result = query.single().execute()
+        try:
+            result = query.single().execute()
+        except Exception:
+            pass  # .single() might return no results
         
         if not result.data:
             raise HTTPException(status_code=404, detail="Lead non trouvé")
@@ -291,7 +300,10 @@ async def validate_lead(
             merchant_id = merchant.data['id']
         else:
             # Admin: récupérer merchant_id depuis le lead
-            lead = supabase.table('leads').select('merchant_id').eq('id', lead_id).single().execute()
+            try:
+                lead = supabase.table('leads').select('merchant_id').eq('id', lead_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if not lead.data:
                 raise HTTPException(status_code=404, detail="Lead non trouvé")
             merchant_id = lead.data['merchant_id']
@@ -669,7 +681,10 @@ async def get_my_agreements(
             
             query = supabase.table('influencer_agreements').select('*, influencers(user_id), campaigns(name)').eq('merchant_id', merchant.data['id'])
         elif role == 'influencer':
-            influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
+            try:
+                influencer = supabase.table('influencers').select('id').eq('user_id', user_id).single().execute()
+            except Exception:
+                pass  # .single() might return no results
             if not influencer.data:
                 return {"agreements": [], "total": 0}
             
@@ -697,7 +712,7 @@ async def get_my_agreements(
 # EXPORTER LE ROUTER
 # ============================================
 
-def add_leads_endpoints(app, verify_token_func):
+def add_leads_endpoints(app):
     """Ajouter tous les endpoints LEADS à l'application"""
     app.include_router(router)
     logger.info("✅ Endpoints LEADS système intégrés")

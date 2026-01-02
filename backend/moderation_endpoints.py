@@ -13,6 +13,8 @@ import os
 
 from auth import get_current_user, get_current_admin, require_role
 from moderation_service import moderate_product, ModerationStats
+from services.email_service import email_service
+from services.notification_service import NotificationService
 
 # Configuration Supabase
 from supabase import create_client, Client
@@ -24,8 +26,10 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
     logger.warning("⚠️ Warning: Supabase not configured for moderation")
     supabase = None
+    notification_service = None
 else:
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+    notification_service = NotificationService(supabase)
 
 router = APIRouter(prefix="/api/admin/moderation", tags=["Admin Moderation"])
 
@@ -76,24 +80,120 @@ async def get_pending_moderation(
         raise HTTPException(status_code=503, detail="Database not configured")
     
     try:
-        # Construire la requête
-        query = supabase.from_("v_pending_moderation").select("*")
+        # 1. Fetch pending items from moderation_queue
+        query = supabase.from_("moderation_queue").select("*").eq("status", "pending")
         
-        # Filtrer par risk_level si fourni
         if risk_level:
             query = query.eq("ai_risk_level", risk_level)
-        
-        # Pagination
-        query = query.range(offset, offset + limit - 1)
-        
-        # Exécuter
+            
+        # Fetch all pending items to sort and paginate in memory
         response = query.execute()
+        items = response.data
         
-        # Compter le total
-        count_response = supabase.from_("moderation_queue")\
-            .select("id", count="exact")\
-            .eq("status", "pending")\
-            .execute()
+        if not items:
+            return {"data": [], "count": 0}
+
+        # 2. Collect IDs
+        merchant_ids = set()
+        user_ids = set()
+        
+        for item in items:
+            if item.get('merchant_id'):
+                merchant_ids.add(item['merchant_id'])
+            if item.get('user_id'):
+                user_ids.add(item['user_id'])
+                
+        # 3. Fetch Merchants
+        merchants_map = {}
+        if merchant_ids:
+            merchants_response = supabase.from_("merchants")\
+                .select("id, company_name, user_id")\
+                .in_("id", list(merchant_ids))\
+                .execute()
+            for m in merchants_response.data:
+                merchants_map[m['id']] = m
+                if m.get('user_id'):
+                    user_ids.add(m['user_id'])
+                    
+        # 4. Fetch Users
+        users_map = {}
+        if user_ids:
+            users_response = supabase.from_("users")\
+                .select("id, email")\
+                .in_("id", list(user_ids))\
+                .execute()
+            for u in users_response.data:
+                users_map[u['id']] = u
+                
+        # 5. Enrich Data
+        enriched_data = []
+        for item in items:
+            # Calculate hours_pending
+            created_at_str = item.get('created_at')
+            hours_pending = 0
+            if created_at_str:
+                try:
+                    # Handle potential Z or +00:00
+                    created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
+                    # Ensure timezone awareness for subtraction
+                    now = datetime.now(created_at.tzinfo)
+                    hours_pending = (now - created_at).total_seconds() / 3600
+                except Exception:
+                    pass
+            
+            # Calculate risk_priority
+            risk = item.get('ai_risk_level', 'low')
+            if risk == 'critical': priority = 1
+            elif risk == 'high': priority = 2
+            elif risk == 'medium': priority = 3
+            else: priority = 4
+            
+            # Get related data
+            merchant = merchants_map.get(item.get('merchant_id'))
+            merchant_name = merchant.get('company_name') if merchant else None
+            
+            # Merchant email (from merchant -> user)
+            merchant_email = None
+            if merchant and merchant.get('user_id'):
+                merchant_user = users_map.get(merchant['user_id'])
+                if merchant_user:
+                    merchant_email = merchant_user.get('email')
+            
+            # Submitter email
+            user_email = None
+            if item.get('user_id'):
+                user = users_map.get(item['user_id'])
+                if user:
+                    user_email = user.get('email')
+
+            flat_item = {
+                **item,
+                'merchant_name': merchant_name,
+                'merchant_email': merchant_email,
+                'user_email': user_email,
+                'hours_pending': hours_pending,
+                'risk_priority': priority
+            }
+            enriched_data.append(flat_item)
+            
+        # 6. Sort
+        # Sort by risk_priority ASC, then created_at ASC
+        enriched_data.sort(key=lambda x: (x['risk_priority'], x.get('created_at', '')))
+        
+        # 7. Paginate
+        total_count = len(enriched_data)
+        paginated_data = enriched_data[offset : offset + limit]
+        
+        return {
+            "data": paginated_data,
+            "count": total_count
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching pending moderation: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
         
         return {
             "data": response.data or [],
@@ -181,6 +281,18 @@ async def review_moderation(
     try:
         admin_user_id = current_user.get("id")
         
+        # Fetch moderation details first to get user info
+        mod_result = supabase.from_("moderation_queue").select("*, users(email, full_name)").eq("id", request.moderation_id).single().execute()
+        if not mod_result.data:
+             raise HTTPException(status_code=404, detail="Moderation not found")
+        
+        moderation_item = mod_result.data
+        user_data = moderation_item.get("users") or {}
+        user_email = user_data.get("email")
+        user_name = user_data.get("full_name") or "Merchant"
+        user_id = moderation_item.get("user_id")
+        product_name = moderation_item.get("product_name")
+        
         if request.decision == "approve":
             # Appeler la fonction SQL pour approuver
             response = supabase.rpc(
@@ -195,8 +307,27 @@ async def review_moderation(
             if not response.data:
                 raise HTTPException(status_code=404, detail="Moderation not found or already reviewed")
             
-            # Si approuvé, créer le produit dans la table products
-            # (TODO: implémenter la création automatique du produit)
+            # Send Email
+            if user_email:
+                subject = f"✅ Votre produit '{product_name}' a été approuvé!"
+                html_content = f"""
+                <h2>Félicitations {user_name}!</h2>
+                <p>Votre produit <strong>{product_name}</strong> a été approuvé par notre équipe de modération.</p>
+                <p>Il est maintenant visible sur la marketplace et prêt à être promu par nos influenceurs.</p>
+                <p><a href="https://shareyoursales.ma/dashboard/products" style="background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Voir mon produit</a></p>
+                """
+                email_service.send_email(user_email, subject, email_service._fallback_template({'content': html_content}))
+
+            # Send Notification
+            if notification_service and user_id:
+                notification_service.send_notification(
+                    user_id=user_id,
+                    title="Produit approuvé ✅",
+                    message=f"Votre produit '{product_name}' a été validé et est maintenant en ligne.",
+                    type="product_approved",
+                    level="success",
+                    action_url="/dashboard/products"
+                )
             
             return {
                 "success": True,
@@ -217,7 +348,29 @@ async def review_moderation(
             if not response.data:
                 raise HTTPException(status_code=404, detail="Moderation not found or already reviewed")
             
-            # TODO: Notifier le merchant du rejet
+            # Send Email
+            if user_email:
+                subject = f"❌ Votre produit '{product_name}' a été refusé"
+                html_content = f"""
+                <h2>Bonjour {user_name},</h2>
+                <p>Malheureusement, votre produit <strong>{product_name}</strong> a été refusé pour la raison suivante:</p>
+                <div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+                    <strong>Raison:</strong> {request.comment or "Non-respect des conditions d'utilisation"}
+                </div>
+                <p>Vous pouvez modifier votre produit et le soumettre à nouveau.</p>
+                """
+                email_service.send_email(user_email, subject, email_service._fallback_template({'content': html_content}))
+
+            # Send Notification
+            if notification_service and user_id:
+                notification_service.send_notification(
+                    user_id=user_id,
+                    title="Produit refusé ❌",
+                    message=f"Votre produit '{product_name}' a été refusé. Raison: {request.comment or 'Non spécifiée'}",
+                    type="product_rejected",
+                    level="error",
+                    action_url="/dashboard/products"
+                )
             
             return {
                 "success": True,
@@ -287,6 +440,38 @@ async def bulk_review_moderation(
         
     except Exception as e:
         logger.error(f"❌ Error in bulk review: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/my-pending")
+async def get_my_pending_products(
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Permet aux merchants de voir leurs produits en attente de modération
+    """
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database not configured")
+    
+    if current_user.get("role") != "merchant":
+        raise HTTPException(status_code=403, detail="Only merchants can access this endpoint")
+    
+    try:
+        user_id = current_user.get("id")
+        
+        response = supabase.from_("moderation_queue")\
+            .select("id, product_name, status, ai_risk_level, ai_reason, created_at")\
+            .eq("user_id", user_id)\
+            .eq("status", "pending")\
+            .order("created_at", desc=True)\
+            .execute()
+        
+        return {
+            "pending_products": response.data or [],
+            "count": len(response.data or [])
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error fetching merchant pending: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{moderation_id}")
@@ -375,42 +560,6 @@ async def get_merchant_moderation_history(
         
     except Exception as e:
         logger.error(f"❌ Error fetching merchant history: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ============================================
-# ENDPOINTS MERCHANT (voir leur propre statut)
-# ============================================
-
-@router.get("/my-pending")
-async def get_my_pending_products(
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Permet aux merchants de voir leurs produits en attente de modération
-    """
-    if not supabase:
-        raise HTTPException(status_code=503, detail="Database not configured")
-    
-    if current_user.get("role") != "merchant":
-        raise HTTPException(status_code=403, detail="Only merchants can access this endpoint")
-    
-    try:
-        user_id = current_user.get("id")
-        
-        response = supabase.from_("moderation_queue")\
-            .select("id, product_name, status, ai_risk_level, ai_reason, created_at")\
-            .eq("user_id", user_id)\
-            .eq("status", "pending")\
-            .order("created_at", desc=True)\
-            .execute()
-        
-        return {
-            "pending_products": response.data or [],
-            "count": len(response.data or [])
-        }
-        
-    except Exception as e:
-        logger.error(f"❌ Error fetching merchant pending: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================

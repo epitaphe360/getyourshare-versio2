@@ -1,6 +1,7 @@
 import requests
 import json
 from datetime import datetime
+from utils.logger import logger
 
 logger.info("\n" + "=" * 60)
 logger.info("TEST 1: PAGINATION - /api/products")
@@ -88,11 +89,8 @@ for i in range(1, 7):
     except requests.exceptions.RequestException as e:
         logger.info(f"   ❌ Erreur: {e}")
         break
-
     # Petite pause entre les requêtes
     import time
-from utils.logger import logger
-
     time.sleep(0.2)
 
 logger.info("\n" + "=" * 60)

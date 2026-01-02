@@ -21,6 +21,8 @@ import httpx
 import structlog
 from dataclasses import dataclass, asdict
 import re
+from supabase_client import supabase
+from openai import OpenAI
 
 logger = structlog.get_logger()
 
@@ -96,12 +98,13 @@ class AIBotService:
     def __init__(
         self,
         api_key: str = None,
-        model: str = "claude-3-5-sonnet-20241022",
+        model: str = "gpt-4-turbo-preview",
         max_context_messages: int = 20
     ):
         self.api_key = api_key
         self.model = model
         self.max_context_messages = max_context_messages
+        self.client = OpenAI(api_key=api_key) if api_key else None
 
         # Intent patterns (regex)
         self.intent_patterns = {
@@ -239,34 +242,52 @@ class AIBotService:
     async def _enrich_context(self, context: ConversationContext) -> ConversationContext:
         """
         Enrichit le contexte avec données de la base de données
-
-        Récupère:
-        - Profil utilisateur
-        - Statistiques récentes
-        - Dernières affiliations
-        - Solde/paiements
         """
-        # TODO: Implémenter récupération DB
-        # Pour l'instant, retourner contexte inchangé
-
-        # Exemple de ce qu'il faut récupérer:
-        # if context.user_role == "influencer":
-        #     context.user_data = {
-        #         "total_sales": 1250,
-        #         "commission_earned": 375.50,
-        #         "active_links": 5,
-        #         "followers": 25000,
-        #         "engagement_rate": 4.2,
-        #         "pending_affiliations": 2
-        #     }
-        # elif context.user_role == "merchant":
-        #     context.user_data = {
-        #         "total_products": 15,
-        #         "active_influencers": 8,
-        #         "total_sales": 5600,
-        #         "pending_requests": 3
-        #     }
-
+        try:
+            if context.user_role == "influencer":
+                # Fetch influencer stats
+                influencer = supabase.table('influencers').select('*').eq('user_id', context.user_id).single().execute()
+                if influencer.data:
+                    # Calculate stats from leads
+                    leads = supabase.table('leads').select('commission_amount, status').eq('influencer_id', influencer.data['id']).execute()
+                    
+                    total_commission = sum(l['commission_amount'] for l in leads.data if l['status'] in ['validated', 'paid'])
+                    total_sales = len([l for l in leads.data if l['status'] in ['validated', 'paid']])
+                    
+                    context.user_data = {
+                        "commission_earned": total_commission,
+                        "total_sales": total_sales,
+                        "active_links": 0, 
+                        "followers": influencer.data.get('followers_count', 0),
+                        "engagement_rate": influencer.data.get('engagement_rate', 0)
+                    }
+            
+            elif context.user_role == "merchant":
+                try:
+                    merchant = supabase.table('merchants').select('*').eq('user_id', context.user_id).single().execute()
+                except Exception:
+                    pass  # .single() might return no results
+                if merchant.data:
+                    # Calculate stats
+                    campaigns = supabase.table('campaigns').select('id').eq('merchant_id', merchant.data['id']).execute()
+                    campaign_ids = [c['id'] for c in campaigns.data]
+                    
+                    if campaign_ids:
+                        leads = supabase.table('leads').select('amount').in_('campaign_id', campaign_ids).eq('status', 'validated').execute()
+                        total_sales_amount = sum(l['amount'] for l in leads.data)
+                    else:
+                        total_sales_amount = 0
+                    
+                    context.user_data = {
+                        "total_products": len(campaigns.data),
+                        "active_influencers": 0,
+                        "total_sales": total_sales_amount,
+                        "pending_requests": 0
+                    }
+                    
+        except Exception as e:
+            logger.error(f"Error enriching context: {e}")
+            
         return context
 
     async def _generate_response(
@@ -275,11 +296,11 @@ class AIBotService:
         intent: IntentType
     ) -> str:
         """
-        Génère la réponse via LLM (Claude/GPT-4)
+        Génère la réponse via LLM (GPT-4)
 
         Si pas d'API key, utilise réponses pré-définies
         """
-        if not self.api_key:
+        if not self.client:
             # Fallback: réponses pré-définies
             return self._get_predefined_response(intent, context)
 
@@ -295,30 +316,15 @@ class AIBotService:
             })
 
         try:
-            # Appel à l'API Claude (ou GPT-4)
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={
-                        "x-api-key": self.api_key,
-                        "anthropic-version": "2023-06-01",
-                        "content-type": "application/json"
-                    },
-                    json={
-                        "model": self.model,
-                        "max_tokens": 1024,
-                        "system": system_prompt,
-                        "messages": messages
-                    },
-                    timeout=30.0
-                )
+            # Appel à l'API OpenAI
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "system", "content": system_prompt}] + messages,
+                max_tokens=1024,
+                temperature=0.7
+            )
 
-                if response.status_code == 200:
-                    data = response.json()
-                    return data["content"][0]["text"]
-                else:
-                    logger.error("llm_api_error", status=response.status_code)
-                    return self._get_predefined_response(intent, context)
+            return response.choices[0].message.content
 
         except Exception as e:
             logger.error("llm_generation_error", error=str(e))
@@ -519,8 +525,72 @@ Available platforms:
         """
         Sauvegarde la conversation en base de données
         """
-        # TODO: Implémenter sauvegarde DB
-        pass
+        try:
+            if context.messages:
+                # Save the last message (assistant response)
+                last_msg = context.messages[-1]
+                if last_msg.role == MessageRole.ASSISTANT:
+                    supabase.table('bot_conversations').insert({
+                        'user_id': context.user_id,
+                        'role': last_msg.role.value,
+                        'content': last_msg.content,
+                        'created_at': last_msg.timestamp.isoformat()
+                    }).execute()
+                    
+                    # Also save the user message before it if it exists and wasn't saved
+                    if len(context.messages) >= 2:
+                        prev_msg = context.messages[-2]
+                        if prev_msg.role == MessageRole.USER:
+                             supabase.table('bot_conversations').insert({
+                                'user_id': context.user_id,
+                                'role': prev_msg.role.value,
+                                'content': prev_msg.content,
+                                'created_at': prev_msg.timestamp.isoformat()
+                            }).execute()
+
+        except Exception as e:
+            logger.error(f"Error saving conversation: {e}")
+
+    async def get_conversations(self, user_id: str, limit: int = 10) -> List[Dict]:
+        """Récupérer l'historique des conversations"""
+        try:
+            # Récupérer les messages groupés par session (si session_id existe) ou juste les derniers messages
+            # Pour simplifier, on retourne les derniers messages
+            result = supabase.table('bot_conversations')\
+                .select('*')\
+                .eq('user_id', user_id)\
+                .order('created_at', desc=True)\
+                .limit(limit)\
+                .execute()
+            
+            return result.data or []
+        except Exception as e:
+            logger.error(f"Error fetching conversations: {e}")
+            return []
+
+    async def get_suggestions(self, context: ConversationContext) -> List[str]:
+        """Générer des suggestions basées sur le contexte"""
+        # Suggestions par défaut selon le rôle
+        if context.user_role == "influencer":
+            return [
+                "Comment créer mon premier lien?",
+                "Comment vérifier mes commissions?",
+                "Comment connecter Instagram?",
+                "Quels produits sont populaires?"
+            ]
+        elif context.user_role == "merchant":
+            return [
+                "Comment ajouter une campagne?",
+                "Comment trouver des influenceurs?",
+                "Quelles sont mes ventes du mois?",
+                "Comment valider les leads?"
+            ]
+        else:
+            return [
+                "Comment utiliser la plateforme?",
+                "Contacter le support",
+                "Voir les nouveautés"
+            ]
 
     def _get_error_response(self, language: BotLanguage) -> str:
         """Réponse en cas d'erreur"""
@@ -592,5 +662,4 @@ async def example_usage():
 
 if __name__ == "__main__":
     import asyncio
-from utils.logger import logger
     asyncio.run(example_usage())

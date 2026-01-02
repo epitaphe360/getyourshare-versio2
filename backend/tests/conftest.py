@@ -231,12 +231,14 @@ def sample_sale_request():
     """Requête de création de vente"""
     return {
         "link_id": str(uuid4()),
+        "product_id": str(uuid4()),
+        "influencer_id": str(uuid4()),
+        "merchant_id": str(uuid4()),
         "amount": 99.99,
         "currency": "EUR",
         "customer_email": "customer@test.com",
         "order_id": "ORDER-123",
         "customer_name": "John Doe",
-        "customer_phone": "+33612345678",
     }
 
 

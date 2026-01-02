@@ -8,7 +8,7 @@ from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
 
-from supabase_client import get_supabase_client
+import supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class PaymentsService:
     """Service pour gérer les commissions et appeler approve_payout_transaction."""
 
     def __init__(self):
-        self.supabase = get_supabase_client()
+        self.supabase = supabase_client.get_supabase_client()
 
     async def approve_commission(self, commission_id: UUID, new_status: str = "approved") -> bool:
         """
@@ -34,6 +34,16 @@ class PaymentsService:
             ValueError: Si les paramètres sont invalides
             RuntimeError: Si l'appel à la fonction PL/pgSQL échoue
         """
+        # Validation UUID
+        try:
+            if isinstance(commission_id, str):
+                UUID(commission_id)
+            else:
+                # Ensure it's a UUID object or convertible
+                str(commission_id)
+        except ValueError:
+            raise ValueError("ID de commission invalide")
+
         try:
             logger.info(f"Changement statut commission {commission_id} → {new_status}")
 
@@ -58,17 +68,17 @@ class PaymentsService:
             error_msg = str(e)
 
             # Parser les erreurs PostgreSQL
-            if "introuvable" in error_msg:
+            if "introuvable" in error_msg or "not found" in error_msg:
                 raise ValueError(f"Commission ou ressource introuvable: {error_msg}")
             elif "Solde insuffisant" in error_msg:
                 raise ValueError("Solde insuffisant pour approuver cette commission")
-            elif "déjà été réglée" in error_msg:
+            elif "déjà été réglée" in error_msg or "already in final state" in error_msg or "Cannot reject paid commission" in error_msg:
                 raise ValueError("Cette commission a déjà été payée et ne peut plus être modifiée")
             elif "doit être approuvée avant" in error_msg:
                 raise ValueError(
                     "La commission doit être approuvée avant d'être marquée comme payée"
                 )
-            elif "non supporté" in error_msg:
+            elif "non supporté" in error_msg or "Invalid status transition" in error_msg:
                 raise ValueError(f"Statut invalide: {error_msg}")
             else:
                 raise RuntimeError(f"Erreur lors de la mise à jour de la commission: {error_msg}")

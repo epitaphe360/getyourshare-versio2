@@ -299,7 +299,7 @@ SELECT
     pr.match_score,
     pr.match_reasons,
     pr.created_at,
-    m.username as merchant_name
+    COALESCE(m.company_name, m.full_name, m.email) as merchant_name
 FROM public.product_recommendations pr
 JOIN public.products p ON pr.product_id = p.id
 JOIN public.users m ON p.merchant_id = m.id

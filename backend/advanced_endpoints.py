@@ -7,6 +7,7 @@ from fastapi import HTTPException, Depends, status
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from datetime import datetime
+from utils.logger import logger
 
 # Imports depuis db_helpers
 from db_helpers import (
@@ -18,8 +19,6 @@ from db_helpers import (
 
 # Imports depuis advanced_helpers
 from advanced_helpers import (
-    generate_verification_token,
-    send_verification_email,
     create_product,
     update_product,
     delete_product,
@@ -36,6 +35,9 @@ from advanced_helpers import (
     get_platform_settings,
     update_platform_setting,
 )
+
+from moderation_service import moderate_product
+from supabase_client import supabase
 
 # ============================================
 # NOUVEAUX MODÈLES PYDANTIC
@@ -141,7 +143,7 @@ def add_products_endpoints(app, verify_token):
             raise HTTPException(status_code=404, detail="Profil merchant non trouvé")
 
         product = create_product(
-            merchant_id=merchant["id"],
+            merchant_id=merchant["user_id"],
             name=product_data.name,
             price=product_data.price,
             commission_rate=product_data.commission_rate,
@@ -155,6 +157,33 @@ def add_products_endpoints(app, verify_token):
 
         if not product:
             raise HTTPException(status_code=500, detail="Erreur lors de la création du produit")
+
+        # --- MODERATION TRIGGER ---
+        try:
+            # Run AI Moderation
+            mod_result = await moderate_product(
+                product_name=product["name"],
+                description=product.get("description", ""),
+                category=product.get("category"),
+                price=float(product.get("price", 0)),
+                use_ai=True
+            )
+            
+            # Submit to queue via RPC
+            supabase.rpc("submit_product_for_moderation", {
+                "p_product_id": product["id"],
+                "p_merchant_id": merchant["id"],
+                "p_user_id": user["id"],
+                "p_product_name": product["name"],
+                "p_product_description": product.get("description", ""),
+                "p_product_category": product.get("category"),
+                "p_product_price": float(product.get("price", 0)),
+                "p_product_images": [product.get("image_url")] if product.get("image_url") else [],
+                "p_ai_result": mod_result
+            }).execute()
+            
+        except Exception as e:
+            logger.error(f"Error in moderation trigger: {e}")
 
         return {"message": "Produit créé avec succès", "product": product}
 
@@ -235,9 +264,7 @@ def add_campaigns_endpoints(app, verify_token):
         if not merchant:
             raise HTTPException(status_code=404, detail="Profil merchant non trouvé")
 
-        from db_helpers import get_supabase_client
-
-        supabase = get_supabase_client()
+        from supabase_client import supabase
 
         # Créer la campagne
         campaign_dict = {
@@ -264,7 +291,7 @@ def add_campaigns_endpoints(app, verify_token):
         # Assigner les produits si fournis
         if campaign_data.product_ids:
             for product_id in campaign_data.product_ids:
-                assign_products_to_campaign(campaign["id"], [product_id])
+                assign_products_to_campaign(campaign["id"], [str(product_id)])
 
         return {"message": "Campagne créée avec succès", "campaign": campaign}
 
@@ -580,8 +607,6 @@ def integrate_all_endpoints(app, verify_token):
     # Ajouter les endpoints de recherche d'influenceurs
     try:
         from influencer_search_endpoints import add_influencer_search_endpoints
-from utils.logger import logger
-
         add_influencer_search_endpoints(app, verify_token)
         logger.info("✅ Endpoints de recherche d'influenceurs intégrés")
     except ImportError:

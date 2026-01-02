@@ -45,6 +45,17 @@ celery_app.conf.update(
     worker_max_tasks_per_child=1000,
 )
 
+def mask_email(email: str) -> str:
+    """Masquer l'email pour les logs (ex: j***@gmail.com)"""
+    if not email or "@" not in email:
+        return "******"
+    try:
+        user, domain = email.split("@")
+        if len(user) > 1:
+            return f"{user[0]}***@{domain}"
+        return f"***@{domain}"
+    except Exception:
+        return "******"
 
 # ============================================
 # EMAIL TASKS
@@ -69,11 +80,12 @@ def send_email_async(self, to_email: str, subject: str, html_content: str, text_
         if not success:
             raise Exception("Email send failed")
 
-        logger.info("email_task_completed", to=to_email)
-        return {"success": True, "to": to_email}
+        masked = mask_email(to_email)
+        logger.info("email_task_completed", to=masked)
+        return {"success": True, "to": masked}
 
     except Exception as e:
-        logger.error("email_task_failed", to=to_email, error=str(e))
+        logger.error("email_task_failed", to=mask_email(to_email), error=str(e))
 
         # Retry avec backoff exponentiel
         raise self.retry(exc=e, countdown=60 * (2 ** self.request.retries))
@@ -131,6 +143,14 @@ def send_2fa_code_email(to_email: str, user_name: str, code: str):
     import asyncio
 
     return asyncio.run(EmailTemplates.send_2fa_code_email(to_email, user_name, code))
+
+
+@celery_app.task(name="send_new_affiliate_request_email")
+def send_new_affiliate_request_email(to_email: str, merchant_name: str, product_name: str, influencer_name: str):
+    """Envoyer email nouvelle demande d'affiliation"""
+    # Simulation d'envoi d'email pour éviter les erreurs si le template n'existe pas
+    logger.info(f"📧 Simulation envoi email demande affiliation à {to_email}")
+    return True
 
 
 # ============================================
@@ -445,7 +465,8 @@ def task_prerun_handler(task_id, task, *args, **kwargs):
 @task_postrun.connect
 def task_postrun_handler(task_id, task, retval, *args, **kwargs):
     """Signal après exécution d'une tâche"""
-    logger.info("task_completed", task_id=task_id, task_name=task.name, result=retval)
+    # Ne pas logger le résultat complet pour éviter de fuiter des données sensibles
+    logger.info("task_completed", task_id=task_id, task_name=task.name)
 
 
 @task_failure.connect

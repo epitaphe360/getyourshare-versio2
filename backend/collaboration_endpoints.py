@@ -386,7 +386,7 @@ async def get_request_details(
                 )
             """) \
             .eq("id", request_id) \
-            .single() \
+                .single() \
             .execute()
         
         if not result.data:

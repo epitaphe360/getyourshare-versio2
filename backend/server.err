@@ -1,0 +1,487 @@
+INFO:     Will watch for changes in these directories: ['C:\\Users\\samye\\OneDrive\\Desktop\\getyoursharelivrable\\getyourshare-versio2\\backend']
+INFO:     Uvicorn running on http://0.0.0.0:5000 (Press CTRL+C to quit)
+INFO:     Started reloader process [47468] using WatchFiles
+INFO:server:✅ LEADS scheduler loaded successfully (but disabled)
+INFO:server:CORS allowed origins: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:3002', 'http://127.0.0.1:3003', 'https://getyourshare.com', 'https://www.getyourshare.com', 'http://localhost:8000', 'http://127.0.0.1:8000']
+INFO:server:CORS regex updated for local development: .*
+C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pydantic\_internal\_config.py:383: UserWarning: Valid config keys have changed in V2:
+* 'allow_population_by_field_name' has been renamed to 'validate_by_name'
+  warnings.warn(message, UserWarning)
+WARNING:GetYourShare:Firebase credentials not found at firebase-key.json
+WARNING:services.instagram_live_service:⚠️ Instagram Live Service en mode DEMO (pas de credentials)
+WARNING:services.tiktok_live_service:⚠️ TikTok Live Service en mode DEMO (pas de credentials)
+WARNING:services.youtube_live_service:⚠️ YouTube Live Service en mode DEMO (pas de credentials)
+WARNING:services.facebook_live_service:⚠️ Facebook Live Service en mode DEMO (pas de credentials)
+WARNING:services.whatsapp_business_service:⚠️ WhatsApp Business Service en mode DEMO (pas de token configuré)
+WARNING:services.tiktok_shop_service:⚠️ TikTok Shop Service en mode DEMO (pas de clés configurées)
+INFO:server:✅ Influencer Invoices router loaded
+INFO:server:✅ Commercial Invoices router loaded
+INFO:server:✅ Balance Report router loaded
+INFO:GetYourShare:✅ Endpoints d'upload intégrés
+INFO:GetYourShare:✅ Endpoints de recherche d'influenceurs intégrés
+INFO:GetYourShare:✅ Tous les endpoints avancés ont été intégrés
+INFO:server:✅ Endpoints avancés chargés avec succès
+INFO:server:✅ Système d'abonnement SaaS chargé avec succès
+INFO:server:   📦 Plans d'abonnement disponibles
+INFO:server:   💳 Paiements récurrents activés
+INFO:server:   📄 Facturation automatique configurée
+INFO:GetYourShare:✅ Endpoints LEADS système intégrés
+INFO:     Started server process [55388]
+INFO:     Waiting for application startup.
+INFO:server:🚀 Démarrage du serveur...
+INFO:server:📊 Base de données: Supabase PostgreSQL
+INFO:server:🔌 WebSocket listener disabled temporarily
+ERROR:server:⏰ Scheduler non disponible (import failed or disabled)
+INFO:server:✅ Serveur prêt
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 59998) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 62538) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 63738) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 64323) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 62152) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 49463) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 62413) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 58657) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 59456) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 64588) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 65338) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 60180) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 53462) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 60718) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/register
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.boutique.maroc%40getyourshare.com "HTTP/2 200 OK"
+INFO:GetYourShare:Using temp role 'influencer' for 'merchant' to bypass broken trigger
+INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users "HTTP/2 201 Created"
+INFO:GetYourShare:Updating user 1ec66e83-1893-4928-9a24-d2064c66d741 role from 'influencer' to 'merchant'
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.1ec66e83-1893-4928-9a24-d2064c66d741 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/merchants "HTTP/2 201 Created"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/register
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.hassan.oudrhiri%40getyourshare.com "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users "HTTP/2 201 Created"
+INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/influencers "HTTP/2 400 Bad Request"
+WARNING:server:Warning: Could not create profile for influencer: {'message': "Could not find the 'niche' column of 'influencers' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for boutique.maroc@getyourshare.com
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.boutique.maroc%40getyourshare.com "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.1ec66e83-1893-4928-9a24-d2064c66d741 "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for hassan.oudrhiri@getyourshare.com
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.hassan.oudrhiri%40getyourshare.com "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.392d3540-fed4-4af9-a9f4-ca857becdbcf "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/marketplace/products/ad68f8f9-7158-4a57-bee2-af1dc8f702b4/request-affiliate
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=%2A&id=eq.ad68f8f9-7158-4a57-bee2-af1dc8f702b4&is_active=eq.True "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/affiliate_requests?select=%2A&influencer_id=eq.392d3540-fed4-4af9-a9f4-ca857becdbcf&product_id=eq.ad68f8f9-7158-4a57-bee2-af1dc8f702b4 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/affiliate_requests "HTTP/2 201 Created"
+INFO:server:🌍 Incoming request from Origin: None -> PUT /api/affiliation-requests/2e053766-3115-4ac1-9fce-d7e2d47f437e/respond
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/affiliate_requests?select=%2A&id=eq.2e053766-3115-4ac1-9fce-d7e2d47f437e "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/merchants?select=id&user_id=eq.1ec66e83-1893-4928-9a24-d2064c66d741 "HTTP/2 200 OK"
+WARNING:  WatchFiles detected changes in 'test_campaign_simulation.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:server:🛑 Arrêt du serveur...
+INFO:server:✅ Arrêt propre
+INFO:     Application shutdown complete.
+INFO:     Finished server process [55388]
+INFO:server:✅ LEADS scheduler loaded successfully (but disabled)
+INFO:server:CORS allowed origins: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:3002', 'http://127.0.0.1:3003', 'https://getyourshare.com', 'https://www.getyourshare.com', 'http://localhost:8000', 'http://127.0.0.1:8000']
+INFO:server:CORS regex updated for local development: .*
+C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pydantic\_internal\_config.py:383: UserWarning: Valid config keys have changed in V2:
+* 'allow_population_by_field_name' has been renamed to 'validate_by_name'
+  warnings.warn(message, UserWarning)
+WARNING:GetYourShare:Firebase credentials not found at firebase-key.json
+WARNING:services.instagram_live_service:⚠️ Instagram Live Service en mode DEMO (pas de credentials)
+WARNING:services.tiktok_live_service:⚠️ TikTok Live Service en mode DEMO (pas de credentials)
+WARNING:services.youtube_live_service:⚠️ YouTube Live Service en mode DEMO (pas de credentials)
+WARNING:services.facebook_live_service:⚠️ Facebook Live Service en mode DEMO (pas de credentials)
+WARNING:services.whatsapp_business_service:⚠️ WhatsApp Business Service en mode DEMO (pas de token configuré)
+WARNING:services.tiktok_shop_service:⚠️ TikTok Shop Service en mode DEMO (pas de clés configurées)
+INFO:server:✅ Influencer Invoices router loaded
+INFO:server:✅ Commercial Invoices router loaded
+INFO:server:✅ Balance Report router loaded
+INFO:GetYourShare:✅ Endpoints d'upload intégrés
+INFO:GetYourShare:✅ Endpoints de recherche d'influenceurs intégrés
+INFO:GetYourShare:✅ Tous les endpoints avancés ont été intégrés
+INFO:server:✅ Endpoints avancés chargés avec succès
+INFO:server:✅ Système d'abonnement SaaS chargé avec succès
+INFO:server:   📦 Plans d'abonnement disponibles
+INFO:server:   💳 Paiements récurrents activés
+INFO:server:   📄 Facturation automatique configurée
+INFO:GetYourShare:✅ Endpoints LEADS système intégrés
+INFO:     Started server process [48176]
+INFO:     Waiting for application startup.
+INFO:server:🚀 Démarrage du serveur...
+INFO:server:📊 Base de données: Supabase PostgreSQL
+INFO:server:🔌 WebSocket listener disabled temporarily
+ERROR:server:⏰ Scheduler non disponible (import failed or disabled)
+INFO:server:✅ Serveur prêt
+INFO:     Application startup complete.
+INFO:     ('127.0.0.1', 50485) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 64380) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 60852) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 55860) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 58878) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 51031) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 54302) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 61521) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 62012) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 55890) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 53727) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 62809) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 64732) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 53272) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/register
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.boutique.maroc%40getyourshare.com "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/register
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.hassan.oudrhiri%40getyourshare.com "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for boutique.maroc@getyourshare.com
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.boutique.maroc%40getyourshare.com "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.1ec66e83-1893-4928-9a24-d2064c66d741 "HTTP/2 200 OK"
+WARNING:  WatchFiles detected changes in 'test_campaign_simulation.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:server:🛑 Arrêt du serveur...
+INFO:server:✅ Arrêt propre
+INFO:     Application shutdown complete.
+INFO:     Finished server process [48176]
+WARNING:  WatchFiles detected changes in 'affiliation_requests_endpoints.py'. Reloading...
+INFO:server:✅ LEADS scheduler loaded successfully (but disabled)
+INFO:server:CORS allowed origins: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:3002', 'http://127.0.0.1:3003', 'https://getyourshare.com', 'https://www.getyourshare.com', 'http://localhost:8000', 'http://127.0.0.1:8000']
+INFO:server:CORS regex updated for local development: .*
+C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pydantic\_internal\_config.py:383: UserWarning: Valid config keys have changed in V2:
+* 'allow_population_by_field_name' has been renamed to 'validate_by_name'
+  warnings.warn(message, UserWarning)
+WARNING:GetYourShare:Firebase credentials not found at firebase-key.json
+WARNING:services.instagram_live_service:⚠️ Instagram Live Service en mode DEMO (pas de credentials)
+WARNING:services.tiktok_live_service:⚠️ TikTok Live Service en mode DEMO (pas de credentials)
+WARNING:services.youtube_live_service:⚠️ YouTube Live Service en mode DEMO (pas de credentials)
+WARNING:services.facebook_live_service:⚠️ Facebook Live Service en mode DEMO (pas de credentials)
+WARNING:services.whatsapp_business_service:⚠️ WhatsApp Business Service en mode DEMO (pas de token configuré)
+WARNING:services.tiktok_shop_service:⚠️ TikTok Shop Service en mode DEMO (pas de clés configurées)
+INFO:server:✅ Influencer Invoices router loaded
+INFO:server:✅ Commercial Invoices router loaded
+INFO:server:✅ Balance Report router loaded
+INFO:GetYourShare:✅ Endpoints d'upload intégrés
+INFO:GetYourShare:✅ Endpoints de recherche d'influenceurs intégrés
+INFO:GetYourShare:✅ Tous les endpoints avancés ont été intégrés
+INFO:server:✅ Endpoints avancés chargés avec succès
+INFO:server:✅ Système d'abonnement SaaS chargé avec succès
+INFO:server:   📦 Plans d'abonnement disponibles
+INFO:server:   💳 Paiements récurrents activés
+INFO:server:   📄 Facturation automatique configurée
+INFO:GetYourShare:✅ Endpoints LEADS système intégrés
+INFO:     Started server process [57224]
+INFO:     Waiting for application startup.
+INFO:server:🚀 Démarrage du serveur...
+INFO:server:📊 Base de données: Supabase PostgreSQL
+INFO:server:🔌 WebSocket listener disabled temporarily
+ERROR:server:⏰ Scheduler non disponible (import failed or disabled)
+INFO:server:✅ Serveur prêt
+INFO:server:🛑 Arrêt du serveur...
+INFO:server:✅ Arrêt propre
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 127, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\base_events.py", line 719, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\server.py", line 78, in serve
+    await self.startup(sockets=sockets)
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\server.py", line 89, in startup
+    await self.lifespan.startup()
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\lifespan\on.py", line 54, in startup
+    await self.startup_event.wait()
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 204, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 132, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\starlette\routing.py", line 747, in lifespan
+    await receive()
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\lifespan\on.py", line 137, in receive
+    return await self.receive_queue.get()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\queues.py", line 186, in get
+    await getter
+asyncio.exceptions.CancelledError
+
+Process SpawnProcess-3:
+Traceback (most recent call last):
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 127, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\base_events.py", line 719, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\server.py", line 78, in serve
+    await self.startup(sockets=sockets)
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\server.py", line 89, in startup
+    await self.lifespan.startup()
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\lifespan\on.py", line 54, in startup
+    await self.startup_event.wait()
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\locks.py", line 213, in wait
+    await fut
+asyncio.exceptions.CancelledError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\multiprocessing\process.py", line 320, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\_subprocess.py", line 76, in subprocess_started
+    target(sockets=sockets)
+    ~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\uvicorn\server.py", line 61, in run
+    return asyncio.run(self.serve(sockets=sockets))
+           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 204, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 132, in run
+    raise KeyboardInterrupt()
+KeyboardInterrupt
+INFO:server:✅ LEADS scheduler loaded successfully (but disabled)
+INFO:server:CORS allowed origins: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://127.0.0.1:3000', 'http://127.0.0.1:3001', 'http://127.0.0.1:3002', 'http://127.0.0.1:3003', 'https://getyourshare.com', 'https://www.getyourshare.com', 'http://localhost:8000', 'http://127.0.0.1:8000']
+INFO:server:CORS regex updated for local development: .*
+C:\Users\samye\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pydantic\_internal\_config.py:383: UserWarning: Valid config keys have changed in V2:
+* 'allow_population_by_field_name' has been renamed to 'validate_by_name'
+  warnings.warn(message, UserWarning)
+WARNING:GetYourShare:Firebase credentials not found at firebase-key.json
+WARNING:services.instagram_live_service:⚠️ Instagram Live Service en mode DEMO (pas de credentials)
+WARNING:services.tiktok_live_service:⚠️ TikTok Live Service en mode DEMO (pas de credentials)
+WARNING:services.youtube_live_service:⚠️ YouTube Live Service en mode DEMO (pas de credentials)
+WARNING:services.facebook_live_service:⚠️ Facebook Live Service en mode DEMO (pas de credentials)
+WARNING:services.whatsapp_business_service:⚠️ WhatsApp Business Service en mode DEMO (pas de token configuré)
+WARNING:services.tiktok_shop_service:⚠️ TikTok Shop Service en mode DEMO (pas de clés configurées)
+INFO:server:✅ Influencer Invoices router loaded
+INFO:server:✅ Commercial Invoices router loaded
+INFO:server:✅ Balance Report router loaded
+INFO:GetYourShare:✅ Endpoints d'upload intégrés
+INFO:GetYourShare:✅ Endpoints de recherche d'influenceurs intégrés
+INFO:GetYourShare:✅ Tous les endpoints avancés ont été intégrés
+INFO:server:✅ Endpoints avancés chargés avec succès
+INFO:server:✅ Système d'abonnement SaaS chargé avec succès
+INFO:server:   📦 Plans d'abonnement disponibles
+INFO:server:   💳 Paiements récurrents activés
+INFO:server:   📄 Facturation automatique configurée
+INFO:GetYourShare:✅ Endpoints LEADS système intégrés
+INFO:     Started server process [54420]
+INFO:     Waiting for application startup.
+INFO:server:🚀 Démarrage du serveur...
+INFO:server:📊 Base de données: Supabase PostgreSQL
+INFO:server:🔌 WebSocket listener disabled temporarily
+ERROR:server:⏰ Scheduler non disponible (import failed or disabled)
+INFO:server:✅ Serveur prêt
+INFO:     Application startup complete.
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/register
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.boutique.maroc%40getyourshare.com "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/register
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.hassan.oudrhiri%40getyourshare.com "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for boutique.maroc@getyourshare.com
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.boutique.maroc%40getyourshare.com "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.1ec66e83-1893-4928-9a24-d2064c66d741 "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for hassan.oudrhiri@getyourshare.com
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.hassan.oudrhiri%40getyourshare.com "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.392d3540-fed4-4af9-a9f4-ca857becdbcf "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/marketplace/products/cf730001-c6e0-4700-9d5d-6be64ed3ad1d/request-affiliate
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=%2A&id=eq.cf730001-c6e0-4700-9d5d-6be64ed3ad1d&is_active=eq.True "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/affiliate_requests?select=%2A&influencer_id=eq.392d3540-fed4-4af9-a9f4-ca857becdbcf&product_id=eq.cf730001-c6e0-4700-9d5d-6be64ed3ad1d "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/affiliate_requests "HTTP/2 201 Created"
+INFO:server:🌍 Incoming request from Origin: None -> PUT /api/affiliation-requests/3526ffae-9342-4ccd-812a-8dbde5ab4338/respond
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/affiliate_requests?select=%2A&id=eq.3526ffae-9342-4ccd-812a-8dbde5ab4338 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/merchants?select=id&user_id=eq.1ec66e83-1893-4928-9a24-d2064c66d741 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=%2A&id=eq.cf730001-c6e0-4700-9d5d-6be64ed3ad1d "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/tracking_links "HTTP/2 201 Created"
+INFO:tracking_service:✅ Lien créé: http://localhost:8000/r/0914043A → https://merchant.com/product/cf730001-c6e0-4700-9d5d-6be64ed3ad1d
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/affiliate_requests?id=eq.3526ffae-9342-4ccd-812a-8dbde5ab4338 "HTTP/2 400 Bad Request"
+ERROR:affiliation_requests_endpoints:Erreur réponse à la demande: {'message': "Could not find the 'generated_link_id' column of 'affiliate_requests' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+INFO:     ('127.0.0.1', 61925) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 55617) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 50760) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 58762) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 58036) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 57459) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 58876) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 52950) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 58199) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 53513) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 52450) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 65490) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 59633) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+INFO:     ('127.0.0.1', 49944) - "WebSocket /ws" [accepted]
+INFO:     connection open
+ERROR:websocket_endpoints:WebSocket error: Expected ASGI message "websocket.send" or "websocket.close", but got 'websocket.accept'
+WARNING:  WatchFiles detected changes in 'affiliation_requests_endpoints.py'. Reloading...
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/register
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.boutique.maroc%40getyourshare.com "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/register
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=%2A&email=eq.hassan.oudrhiri%40getyourshare.com "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for boutique.maroc@getyourshare.com
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.boutique.maroc%40getyourshare.com "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.1ec66e83-1893-4928-9a24-d2064c66d741 "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for hassan.oudrhiri@getyourshare.com
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.hassan.oudrhiri%40getyourshare.com "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.392d3540-fed4-4af9-a9f4-ca857becdbcf "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/marketplace/products/5e72b221-5e2d-417d-a494-d7146a478361/request-affiliate
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=%2A&id=eq.5e72b221-5e2d-417d-a494-d7146a478361&is_active=eq.True "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/affiliate_requests?select=%2A&influencer_id=eq.392d3540-fed4-4af9-a9f4-ca857becdbcf&product_id=eq.5e72b221-5e2d-417d-a494-d7146a478361 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/affiliate_requests "HTTP/2 201 Created"
+INFO:server:🌍 Incoming request from Origin: None -> PUT /api/affiliation-requests/0402c2eb-398a-47d8-8bb7-bd470e7bd45a/respond
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/affiliate_requests?select=%2A&id=eq.0402c2eb-398a-47d8-8bb7-bd470e7bd45a "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/merchants?select=id&user_id=eq.1ec66e83-1893-4928-9a24-d2064c66d741 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=%2A&id=eq.5e72b221-5e2d-417d-a494-d7146a478361 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: POST https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/tracking_links "HTTP/2 201 Created"
+INFO:tracking_service:✅ Lien créé: http://localhost:8000/r/FE66741A → https://merchant.com/product/5e72b221-5e2d-417d-a494-d7146a478361
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/affiliate_requests?id=eq.0402c2eb-398a-47d8-8bb7-bd470e7bd45a "HTTP/2 400 Bad Request"
+ERROR:affiliation_requests_endpoints:Erreur réponse à la demande: {'message': "Could not find the 'generated_link_id' column of 'affiliate_requests' in the schema cache", 'code': 'PGRST204', 'hint': None, 'details': None}
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Waiting for application shutdown.
+INFO:server:🛑 Arrêt du serveur...
+INFO:server:✅ Arrêt propre
+INFO:     Application shutdown complete.
+INFO:     Finished server process [54420]

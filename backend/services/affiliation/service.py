@@ -21,12 +21,6 @@ from supabase_client import supabase
 
 from .schemas import AffiliationRequestCreate, AffiliationDecision
 
-# Import optimiseur DB
-try:
-    from utils.db_optimized import DBOptimizer
-except ImportError:
-    DBOptimizer = None
-
 logger = logging.getLogger(__name__)
 
 AFFILIATION_STATUS_APP_TO_DB = {

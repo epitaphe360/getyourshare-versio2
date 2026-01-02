@@ -104,15 +104,23 @@ RETURNS TEXT AS $$
 DECLARE
     v_code TEXT;
     v_exists BOOLEAN;
-    v_username TEXT;
+    v_base TEXT;
 BEGIN
-    -- Récupérer nom utilisateur
-    SELECT UPPER(SUBSTRING(username FROM 1 FOR 3)) INTO v_username
+    -- Récupérer base pour le code (email ou full_name)
+    -- On utilise email car c'est plus robuste (toujours présent)
+    SELECT UPPER(SUBSTRING(email FROM 1 FOR 3)) INTO v_base
     FROM public.users WHERE id = p_user_id;
+
+    -- Nettoyer v_base (garder seulement lettres et chiffres)
+    v_base := REGEXP_REPLACE(v_base, '[^A-Z0-9]', 'X', 'g');
+    
+    IF LENGTH(v_base) < 3 THEN
+        v_base := RPAD(v_base, 3, 'X');
+    END IF;
 
     -- Générer code unique
     LOOP
-        v_code := v_username || LPAD(FLOOR(RANDOM() * 10000)::TEXT, 4, '0');
+        v_code := v_base || LPAD(FLOOR(RANDOM() * 10000)::TEXT, 4, '0');
 
         SELECT EXISTS(SELECT 1 FROM public.referral_codes WHERE code = v_code) INTO v_exists;
 
@@ -229,7 +237,7 @@ CREATE OR REPLACE VIEW public.v_referral_dashboard AS
 SELECT
     u.id as user_id,
     u.email,
-    u.username,
+    COALESCE(u.full_name, u.email) as username,
     rc.code as referral_code,
     rr.total_referrals,
     rr.active_referrals,
@@ -244,7 +252,7 @@ LEFT JOIN public.referral_codes rc ON u.id = rc.user_id
 LEFT JOIN public.referral_rewards rr ON u.id = rr.user_id
 LEFT JOIN public.referrals r ON u.id = r.referrer_id
 LEFT JOIN public.referral_earnings re ON u.id = re.referrer_id
-GROUP BY u.id, u.email, u.username, rc.code, rr.total_referrals,
+GROUP BY u.id, u.email, u.full_name, rc.code, rr.total_referrals,
          rr.active_referrals, rr.total_earnings, rr.badge_level, rr.tier;
 
 -- Commentaires

@@ -6,18 +6,19 @@ Service complet pour exports de données
 import os
 import csv
 import json
-from io import BytesIO, StringIO
+from io import BytesIO
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from enum import Enum
+from utils.logger import logger
 
 try:
     from reportlab.lib import colors
-    from reportlab.lib.pagesizes import letter, A4
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image as RLImage
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
-    from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+    from reportlab.lib.enums import TA_CENTER
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
@@ -25,9 +26,7 @@ except ImportError:
 
 try:
     import openpyxl
-    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-    from openpyxl.chart import BarChart, Reference, LineChart
-from utils.logger import logger
+    from openpyxl.styles import Font, PatternFill
     OPENPYXL_AVAILABLE = True
 except ImportError:
     OPENPYXL_AVAILABLE = False

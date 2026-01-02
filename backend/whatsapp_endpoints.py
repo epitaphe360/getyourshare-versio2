@@ -9,12 +9,13 @@ Endpoints pour gérer l'intégration WhatsApp:
 - Catalogues produits
 """
 
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks, Query
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+import os
 
-from services.whatsapp_business_service import whatsapp_service, WhatsAppMessageType
+from services.whatsapp_business_service import whatsapp_service
 
 router = APIRouter(prefix="/api/whatsapp", tags=["WhatsApp Business"])
 
@@ -381,17 +382,28 @@ async def process_webhook_event(event: WhatsAppWebhookEvent):
                     from_number = message.get("from")
                     message_type = message.get("type")
                     timestamp = message.get("timestamp")
+                    
+                    text_body = ""
+                    if message_type == "text":
+                        text_body = message.get("text", {}).get("body", "")
 
-                    logger.info(f"📱 Message WhatsApp reçu de {from_number}: {message_type}")
+                    logger.info(f"📱 Message WhatsApp reçu de {from_number}: {message_type} - {text_body}")
 
-                    # Ici: sauvegarder en DB, envoyer notification, etc.
-                    # TODO: Implémenter la logique métier
+                    # Sauvegarder en DB (Exemple avec Supabase si table existe)
+                    # supabase.table("whatsapp_messages").insert({
+                    #     "message_id": message_id,
+                    #     "from_number": from_number,
+                    #     "type": message_type,
+                    #     "content": text_body,
+                    #     "raw_data": message
+                    # }).execute()
+                    
+                    # Auto-réponse simple (Echo)
+                    if message_type == "text":
+                        await whatsapp_service.send_text_message(
+                            to_phone=from_number,
+                            message=f"Merci pour votre message: '{text_body}'. Nous vous répondrons bientôt."
+                        )
 
     except Exception as e:
         logger.error(f"❌ Erreur traitement webhook WhatsApp: {str(e)}")
-
-
-# ==================== HELPER IMPORTS ====================
-
-from fastapi import Query
-import os

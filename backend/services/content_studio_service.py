@@ -30,7 +30,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import httpx
-from supabase_client import supabase
+import supabase_client
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class ContentStudioService:
         # Configuration API génération d'images
         self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
         self.stability_ai_key = os.getenv("STABILITY_AI_KEY", "")
-        self.supabase = supabase
+        self.supabase = supabase_client.get_supabase_client()
 
         # Mode DEMO par défaut
         self.demo_mode = not bool(self.openai_api_key or self.stability_ai_key)
@@ -207,7 +207,31 @@ class ContentStudioService:
 
         Retourne une liste de templates pré-conçus filtrables
         """
-        # Bibliothèque de templates
+        # Essayer de récupérer depuis la DB
+        try:
+            query = self.supabase.table("content_templates").select("*")
+            
+            if category:
+                query = query.eq("category", category.value)
+            
+            if content_type:
+                query = query.eq("content_type", content_type.value)
+                
+            result = query.execute()
+            db_templates = result.data if result.data else []
+            
+            # Filtrer par plateforme (JSONB array)
+            if platform:
+                db_templates = [t for t in db_templates if platform.value in t.get("platforms", [])]
+                
+            if db_templates:
+                return db_templates
+                
+        except Exception as e:
+            logger.warning(f"⚠️ Impossible de récupérer les templates depuis la DB: {e}")
+            # Fallback sur les données hardcodées
+
+        # Bibliothèque de templates (Fallback)
         all_templates = [
             # Posts Instagram - Product Showcase
             {
@@ -541,7 +565,7 @@ class ContentStudioService:
             ID de la tâche de scheduling
         """
         # Créer une entrée dans la table scheduled_posts
-        scheduled_id = hashlib.md5(
+        scheduled_id = hashlib.sha256(
             f"{user_id}{scheduled_time.isoformat()}".encode()
         ).hexdigest()[:16]
 
@@ -555,7 +579,13 @@ class ContentStudioService:
             "created_at": datetime.utcnow().isoformat()
         }
 
-        # TODO: Sauvegarder en DB
+        # Sauvegarder en DB
+        try:
+            self.supabase.table("scheduled_posts").insert(scheduled_post).execute()
+            logger.info(f"✅ Post sauvegardé en DB: {scheduled_id}")
+        except Exception as e:
+            logger.error(f"❌ Erreur sauvegarde post en DB: {e}")
+
         # TODO: Créer un job cron pour publier à l'heure
 
         logger.info(f"📅 Post planifié: {scheduled_id} pour {scheduled_time}")
@@ -584,33 +614,91 @@ class ContentStudioService:
         Returns:
             Résultats de l'A/B test avec recommandation
         """
-        # TODO: Récupérer les métriques réelles de chaque variante
+        # Récupérer les métriques réelles de chaque variante depuis la DB
+        try:
+            # Query for variant A metrics from tracking_events or scheduled_posts
+            variant_a_result = self.supabase.table("scheduled_posts")\
+                .select("views, clicks, shares, engagement_rate")\
+                .eq("id", variant_a_id)\
+                .execute()
 
-        # Données demo
-        variant_a_metrics = {
-            "impressions": 5420,
-            "clicks": 342,
-            "conversions": 23,
-            "ctr": 6.31,  # Click-through rate
-            "conversion_rate": 6.73,
-            "engagement_rate": 8.2
-        }
+            variant_b_result = self.supabase.table("scheduled_posts")\
+                .select("views, clicks, shares, engagement_rate")\
+                .eq("id", variant_b_id)\
+                .execute()
 
-        variant_b_metrics = {
-            "impressions": 5380,
-            "clicks": 478,
-            "conversions": 34,
-            "ctr": 8.88,
-            "conversion_rate": 7.11,
-            "engagement_rate": 11.5
-        }
+            # If we have real data, use it
+            if variant_a_result.data and variant_b_result.data:
+                variant_a_data = variant_a_result.data[0]
+                variant_b_data = variant_b_result.data[0]
+
+                # Calculate metrics from real data
+                variant_a_metrics = {
+                    "impressions": variant_a_data.get("views", 0),
+                    "clicks": variant_a_data.get("clicks", 0),
+                    "conversions": variant_a_data.get("shares", 0),  # Using shares as proxy for conversions
+                    "ctr": round((variant_a_data.get("clicks", 0) / max(variant_a_data.get("views", 1), 1)) * 100, 2),
+                    "conversion_rate": round((variant_a_data.get("shares", 0) / max(variant_a_data.get("clicks", 1), 1)) * 100, 2),
+                    "engagement_rate": variant_a_data.get("engagement_rate", 0)
+                }
+
+                variant_b_metrics = {
+                    "impressions": variant_b_data.get("views", 0),
+                    "clicks": variant_b_data.get("clicks", 0),
+                    "conversions": variant_b_data.get("shares", 0),
+                    "ctr": round((variant_b_data.get("clicks", 0) / max(variant_b_data.get("views", 1), 1)) * 100, 2),
+                    "conversion_rate": round((variant_b_data.get("shares", 0) / max(variant_b_data.get("clicks", 1), 1)) * 100, 2),
+                    "engagement_rate": variant_b_data.get("engagement_rate", 0)
+                }
+            else:
+                # Fallback to demo data if no real data exists yet
+                logger.warning(f"No A/B test data found for variants {variant_a_id}, {variant_b_id}. Using demo data.")
+                variant_a_metrics = {
+                    "impressions": 0,
+                    "clicks": 0,
+                    "conversions": 0,
+                    "ctr": 0,
+                    "conversion_rate": 0,
+                    "engagement_rate": 0
+                }
+                variant_b_metrics = {
+                    "impressions": 0,
+                    "clicks": 0,
+                    "conversions": 0,
+                    "ctr": 0,
+                    "conversion_rate": 0,
+                    "engagement_rate": 0
+                }
+        except Exception as e:
+            logger.error(f"Error fetching A/B test metrics: {str(e)}")
+            # Fallback to empty metrics on error
+            variant_a_metrics = {
+                "impressions": 0,
+                "clicks": 0,
+                "conversions": 0,
+                "ctr": 0,
+                "conversion_rate": 0,
+                "engagement_rate": 0
+            }
+            variant_b_metrics = {
+                "impressions": 0,
+                "clicks": 0,
+                "conversions": 0,
+                "ctr": 0,
+                "conversion_rate": 0,
+                "engagement_rate": 0
+            }
 
         # Calculer le gagnant
         winner = "B" if variant_b_metrics["conversions"] > variant_a_metrics["conversions"] else "A"
-        improvement = (
-            (variant_b_metrics["conversions"] - variant_a_metrics["conversions"]) /
-            variant_a_metrics["conversions"] * 100
-        )
+        
+        if variant_a_metrics["conversions"] > 0:
+            improvement = (
+                (variant_b_metrics["conversions"] - variant_a_metrics["conversions"]) /
+                variant_a_metrics["conversions"] * 100
+            )
+        else:
+            improvement = 100.0 if variant_b_metrics["conversions"] > 0 else 0.0
 
         return {
             "creative_id": creative_id,

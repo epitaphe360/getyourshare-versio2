@@ -25,6 +25,7 @@ import re
 from auth import get_current_admin
 from supabase_client import supabase
 from services.social_auto_publish_service import auto_publisher
+from utils.cache import cache
 
 router = APIRouter(prefix="/api/admin/social", tags=["Admin Social Media"])
 logger = structlog.get_logger()
@@ -704,6 +705,7 @@ async def create_post_template(
 # ============================================
 
 @router.get("/analytics", response_model=dict)
+@cache(ttl_seconds=60)
 async def get_admin_social_analytics(current_admin: dict = Depends(get_current_admin)):
     """
     Analytics des publications admin
@@ -731,9 +733,33 @@ async def get_admin_social_analytics(current_admin: dict = Depends(get_current_a
         campaign_stats = {}
         campaign_types = ['general', 'app_launch', 'new_feature', 'merchant_recruitment', 'influencer_recruitment', 'seasonal_promo', 'user_testimonial', 'milestone_celebration', 'contest']
 
-        for ctype in campaign_types:
-            ctype_result = supabase.table('admin_social_posts').select('*', count='exact').eq('campaign_type', ctype).eq('status', 'published').execute()
-            campaign_stats[ctype] = ctype_result.count or 0
+        # OPTIMIZATION: Fetch all published posts campaign types in one query instead of N queries
+        try:
+            posts_result = supabase.table('admin_social_posts')\
+                .select('campaign_type')\
+                .eq('status', 'published')\
+                .execute()
+            
+            # Initialize with 0
+            for ctype in campaign_types:
+                campaign_stats[ctype] = 0
+                
+            # Count in Python
+            if posts_result.data:
+                from collections import Counter
+                counts = Counter(post.get('campaign_type') for post in posts_result.data)
+                for ctype, count in counts.items():
+                    if ctype in campaign_stats:
+                        campaign_stats[ctype] = count
+                    else:
+                        # Handle types not in the list if any
+                        campaign_stats[ctype] = count
+                        
+        except Exception as e:
+            logger.error("campaign_stats_aggregation_failed", error=str(e))
+            # Fallback to empty stats if query fails, but don't crash the whole endpoint
+            for ctype in campaign_types:
+                campaign_stats[ctype] = 0
 
         return {
             "success": True,

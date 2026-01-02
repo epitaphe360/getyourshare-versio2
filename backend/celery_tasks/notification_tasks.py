@@ -28,6 +28,18 @@ SMTP_USER = os.getenv('SMTP_USER', '')
 SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
 FROM_EMAIL = os.getenv('FROM_EMAIL', 'noreply@shareyoursales.ma')
 
+def mask_email(email: str) -> str:
+    """Masquer l'email pour les logs"""
+    if not email or "@" not in email:
+        return "******"
+    try:
+        user, domain = email.split("@")
+        if len(user) > 1:
+            return f"{user[0]}***@{domain}"
+        return f"***@{domain}"
+    except Exception:
+        return "******"
+
 # ============================================
 # TÂCHES DE NOTIFICATION
 # ============================================
@@ -203,12 +215,13 @@ def send_token_expiration_email(email: str, full_name: str, platform: str, days_
             html_body=html_body
         )
 
-        logger.info(f"✅ Token expiration email sent to {email}")
+        masked = mask_email(email)
+        logger.info(f"✅ Token expiration email sent to {masked}")
 
-        return {'status': 'sent', 'email': email}
+        return {'status': 'sent', 'email': masked}
 
     except Exception as exc:
-        logger.error(f"❌ Failed to send email to {email}: {str(exc)}")
+        logger.error(f"❌ Failed to send email to {mask_email(email)}: {str(exc)}")
         raise
 
 
@@ -260,7 +273,7 @@ def notify_sync_failure(self, user_id: str, platform: str, error_message: str):
             error_message=error_message
         )
 
-        logger.info(f"✅ Sync failure notification sent to {email}")
+        logger.info(f"✅ Sync failure notification sent to {mask_email(email)}")
 
         return {'status': 'notified', 'user_id': user_id}
 
@@ -325,7 +338,7 @@ def send_sync_failure_email(email: str, full_name: str, platform: str, error_mes
             html_body=html_body
         )
 
-        logger.info(f"✅ Sync failure email sent to {email}")
+        logger.info(f"✅ Sync failure email sent to {mask_email(email)}")
 
     except Exception as exc:
         logger.error(f"❌ Failed to send sync failure email: {str(exc)}")
@@ -363,10 +376,10 @@ def send_email(to_email: str, subject: str, html_body: str):
                 server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
 
-        logger.info(f"✅ Email sent successfully to {to_email}")
+        logger.info(f"✅ Email sent successfully to {mask_email(to_email)}")
 
     except Exception as e:
-        logger.error(f"❌ Failed to send email to {to_email}: {str(e)}")
+        logger.error(f"❌ Failed to send email to {mask_email(to_email)}: {str(e)}")
         raise
 
 

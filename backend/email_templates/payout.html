@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #F59E0B; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; }
+        .button { display: inline-block; padding: 12px 24px; background-color: #F59E0B; color: white; text-decoration: none; border-radius: 6px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Paiement Envoyé</h1>
+        </div>
+        <div class="content">
+            <p>Bonne nouvelle!</p>
+            <p>Nous avons traité votre paiement de <strong>{{ amount }} MAD</strong>.</p>
+            <p>Il devrait apparaître sur votre compte bancaire sous peu.</p>
+            <a href="{{ dashboard_url }}" class="button">Voir l'historique</a>
+        </div>
+    </div>
+</body>
+</html>

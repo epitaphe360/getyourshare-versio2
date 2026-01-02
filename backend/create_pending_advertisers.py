@@ -5,6 +5,7 @@ Script pour créer des demandes d'inscription d'annonceurs en attente
 import os
 from dotenv import load_dotenv
 from supabase import create_client
+from utils.logger import logger
 
 load_dotenv()
 
@@ -119,5 +120,4 @@ try:
 except Exception as e:
     logger.info(f"\n❌ ERREUR: {e}\n")
     import traceback
-from utils.logger import logger
     traceback.print_exc()

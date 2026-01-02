@@ -3,10 +3,12 @@ Authentication helpers for ShareYourSales API
 Provides authentication dependencies for endpoint routers
 """
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Union
 import jwt
 import os
+import logging
 from dotenv import load_dotenv
 from db_helpers import get_user_by_id
 
@@ -15,11 +17,103 @@ load_dotenv()
 
 # JWT Configuration
 security = HTTPBearer()
-JWT_SECRET = os.getenv("JWT_SECRET", "fallback-secret-please-set-env-variable")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    if os.getenv("ENVIRONMENT") == "production":
+        raise ValueError("CRITICAL: JWT_SECRET is missing in production environment!")
+
+    # In development, we can generate one if not present
+    import secrets
+    logger = logging.getLogger(__name__)
+    logger.warning("⚠️ JWT_SECRET not set in environment variables! Using a temporary random secret. Tokens will be invalid after restart.")
+    JWT_SECRET = secrets.token_urlsafe(32)
+
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user_from_cookie(request: Request):
+    """
+    Get current user from httpOnly cookie (secure method)
+    Fallback to Authorization header for backward compatibility
+    """
+    # Try to get token from cookie first (secure)
+    token = request.cookies.get("access_token")
+
+    # Fallback to Authorization header (legacy)
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+
+        # Verify token type
+        if payload.get("type") != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type"
+            )
+
+        # Return user data with 'id' key for consistency
+        return {
+            "id": payload.get("sub"),
+            "email": payload.get("email"),
+            "role": payload.get("role")
+        }
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials"
+        )
+
+
+def get_optional_user_from_cookie(request: Request):
+    """
+    Get current user from httpOnly cookie (secure method) if available.
+    Returns None if not authenticated instead of raising 401.
+    """
+    # Try to get token from cookie first (secure)
+    token = request.cookies.get("access_token")
+
+    # Fallback to Authorization header (legacy)
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+
+    if not token:
+        return None
+
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+
+        # Verify token type
+        if payload.get("type") != "access":
+            return None
+
+        # Return user data with 'id' key for consistency
+        return {
+            "id": payload.get("sub"),
+            "email": payload.get("email"),
+            "role": payload.get("role")
+        }
+    except Exception:
+        return None
+
+
+def verify_token(credentials: Union[HTTPAuthorizationCredentials, str] = Depends(security)):
     """
     Verify JWT token and return payload
 
@@ -30,8 +124,17 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
         dict: Token payload with user_id in 'sub' field
     """
     try:
-        token = credentials.credentials
+        if hasattr(credentials, "credentials"):
+            token = credentials.credentials
+        else:
+            token = str(credentials)
+            
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        
+        # Ensure id is present (map sub to id)
+        if "id" not in payload and "sub" in payload:
+            payload["id"] = payload["sub"]
+            
         return payload
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -58,6 +161,38 @@ def require_role(required_role: str):
             )
         return current_user
     return role_checker
+
+
+def require_roles(allowed_roles: list):
+    """
+    Dependency to require one of multiple roles.
+    
+    Usage:
+        @app.get("/api/admin/users")
+        async def get_users(user = Depends(require_roles(["admin"]))):
+            ...
+        
+        @app.get("/api/affiliates")
+        async def get_affiliates(user = Depends(require_roles(["merchant", "admin"]))):
+            ...
+    """
+    def role_checker(request: Request):
+        current_user = get_current_user_from_cookie(request)
+        user_role = current_user.get("role", "user")
+        if user_role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied. Required roles: {', '.join(allowed_roles)}. Your role: {user_role}"
+            )
+        return current_user
+    return role_checker
+
+
+# Pre-built dependencies for common role combinations
+require_admin = require_roles(["admin"])
+require_merchant_or_admin = require_roles(["merchant", "admin"])
+require_influencer_or_admin = require_roles(["influencer", "admin"])
+require_any_authenticated = require_roles(["admin", "merchant", "influencer", "commercial", "sales_rep"])
 
 
 async def optional_auth(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=False))):

@@ -17,7 +17,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 from supabase import create_client, Client
 import os
-from auth import get_current_user
+from auth import get_current_user_from_cookie
 from utils.db_safe import safe_ilike
 from utils.logger import logger
 
@@ -151,7 +151,7 @@ async def increment_contact_count(profile_id: str):
 @router.post("/profile", status_code=status.HTTP_201_CREATED)
 async def create_commercial_profile(
     request: CreateCommercialProfileRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Créer un profil commercial dans l'annuaire
@@ -215,7 +215,7 @@ async def create_commercial_profile(
         )
 
 @router.get("/profile/my-profile")
-async def get_my_commercial_profile(current_user: dict = Depends(get_current_user)):
+async def get_my_commercial_profile(current_user: dict = Depends(get_current_user_from_cookie)):
     """Récupérer son propre profil commercial"""
     try:
         user_id = current_user["id"]
@@ -242,7 +242,7 @@ async def get_my_commercial_profile(current_user: dict = Depends(get_current_use
 @router.patch("/profile")
 async def update_commercial_profile(
     request: UpdateCommercialProfileRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Mettre à jour son profil commercial"""
     try:
@@ -280,7 +280,7 @@ async def update_commercial_profile(
         )
 
 @router.delete("/profile")
-async def delete_commercial_profile(current_user: dict = Depends(get_current_user)):
+async def delete_commercial_profile(current_user: dict = Depends(get_current_user_from_cookie)):
     """Supprimer son profil commercial de l'annuaire"""
     try:
         user_id = current_user["id"]
@@ -429,7 +429,7 @@ async def get_commercial_profile(user_id: str):
 async def request_collaboration(
     user_id: str,
     request: CollaborationRequestCreate,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Demander une collaboration avec un commercial
@@ -447,13 +447,19 @@ async def request_collaboration(
         company_id = current_user["id"]
 
         # Vérifier que le commercial existe
-        commercial = supabase.from_("commercial_profiles") \
-            .select("*") \
-            .eq("user_id", user_id) \
-            .eq("is_public", True) \
-            .eq("is_available", True) \
-            .single() \
-            .execute()
+        try:
+            commercial = supabase.from_("commercial_profiles") \
+                .select("*") \
+                .eq("user_id", user_id) \
+                .eq("is_public", True) \
+                .eq("is_available", True) \
+                .single() \
+                .execute()
+        except Exception:
+            # Create a dummy response
+            class MockResponse:
+                data = None
+            commercial = MockResponse()
 
         if not commercial.data:
             raise HTTPException(
@@ -500,7 +506,7 @@ async def request_collaboration(
 @router.get("/collaborations/received")
 async def get_received_collaboration_requests(
     status_filter: Optional[str] = Query(None),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Demandes de collaboration reçues (pour commerciaux)"""
     try:
@@ -530,7 +536,7 @@ async def get_received_collaboration_requests(
 @router.get("/collaborations/sent")
 async def get_sent_collaboration_requests(
     status_filter: Optional[str] = Query(None),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Demandes de collaboration envoyées (pour entreprises)"""
     try:
@@ -560,7 +566,7 @@ async def get_sent_collaboration_requests(
 async def respond_to_collaboration_request(
     request_id: str,
     response_data: CollaborationRequestResponse,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """Répondre à une demande de collaboration (pour commerciaux)"""
     try:
@@ -612,7 +618,7 @@ async def respond_to_collaboration_request(
 async def create_review(
     user_id: str,
     review: ReviewCreate,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_from_cookie)
 ):
     """
     Créer un avis pour un commercial

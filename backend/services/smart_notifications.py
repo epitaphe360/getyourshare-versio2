@@ -6,12 +6,11 @@ import os
 from typing import List, Dict, Any, Optional
 from datetime import datetime, timedelta
 from enum import Enum
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 import requests
 
 from utils.logger import logger
+from supabase_client import supabase
+from services.email_service import email_service
 
 
 class NotificationChannel(Enum):
@@ -65,7 +64,7 @@ class SmartNotificationService:
 
     async def send_notification(
         self,
-        user_id: int,
+        user_id: str,
         title: str,
         message: str,
         notification_type: str = "info",
@@ -144,51 +143,32 @@ class SmartNotificationService:
 
     async def _send_email(
         self,
-        user_id: int,
+        user_id: str,
         title: str,
         message: str,
         data: Optional[Dict] = None
     ) -> bool:
-        """Envoyer email via SMTP"""
-        if not self.smtp_user or not self.smtp_password:
-            logger.warning("SMTP not configured")
-            return False
-
+        """Envoyer email via EmailService"""
         try:
             # Récupérer email utilisateur
             user_email = await self._get_user_email(user_id)
             if not user_email:
                 return False
 
-            # Créer message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = title
-            msg['From'] = self.smtp_user
-            msg['To'] = user_email
-
-            # HTML template
-            html_content = self._generate_email_html(title, message, data)
-
-            # Plain text fallback
-            text_content = f"{title}\n\n{message}"
-
-            msg.attach(MIMEText(text_content, 'plain'))
-            msg.attach(MIMEText(html_content, 'html'))
-
-            # Envoyer
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
-
-            logger.info(f"Email sent to {user_email}")
-            return True
+            # Envoyer via EmailService
+            html_content = email_service._fallback_template({'content': f"<h2>{title}</h2><p>{message}</p>"})
+            
+            return email_service.send_email(
+                to_email=user_email,
+                subject=title,
+                html_content=html_content
+            )
 
         except Exception as e:
             logger.error(f"Email send failed: {e}")
             return False
 
-    async def _send_sms(self, user_id: int, message: str) -> bool:
+    async def _send_sms(self, user_id: str, message: str) -> bool:
         """Envoyer SMS via Twilio"""
         if not self.twilio_sid or not self.twilio_token:
             logger.warning("Twilio not configured")
@@ -218,7 +198,7 @@ class SmartNotificationService:
 
     async def _send_push(
         self,
-        user_id: int,
+        user_id: str,
         title: str,
         message: str,
         data: Optional[Dict] = None
@@ -251,7 +231,7 @@ class SmartNotificationService:
                 'data': data or {}
             }
 
-            response = requests.post(url, json=payload, headers=headers)
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
             response.raise_for_status()
 
             logger.info(f"Push sent to {len(device_tokens)} devices")
@@ -263,7 +243,7 @@ class SmartNotificationService:
 
     async def _send_in_app(
         self,
-        user_id: int,
+        user_id: str,
         title: str,
         message: str,
         data: Optional[Dict] = None
@@ -297,7 +277,7 @@ class SmartNotificationService:
             logger.error(f"In-app notification failed: {e}")
             return False
 
-    async def _send_whatsapp(self, user_id: int, message: str) -> bool:
+    async def _send_whatsapp(self, user_id: str, message: str) -> bool:
         """Envoyer message WhatsApp Business"""
         if not self.whatsapp_token:
             logger.warning("WhatsApp not configured")
@@ -321,7 +301,7 @@ class SmartNotificationService:
                 'text': {'body': message}
             }
 
-            response = requests.post(url, json=payload, headers=headers)
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
             response.raise_for_status()
 
             logger.info(f"WhatsApp sent to {user_phone}")
@@ -365,7 +345,7 @@ class SmartNotificationService:
                     ]
                 })
 
-            response = requests.post(self.slack_webhook, json=payload)
+            response = requests.post(self.slack_webhook, json=payload, timeout=10)
             response.raise_for_status()
 
             logger.info("Slack notification sent")
@@ -377,7 +357,7 @@ class SmartNotificationService:
 
     async def _select_channels(
         self,
-        user_id: int,
+        user_id: str,
         priority: NotificationPriority,
         notification_type: str,
         preferences: Dict
@@ -432,7 +412,7 @@ class SmartNotificationService:
 
         return channels
 
-    async def _check_rate_limit(self, user_id: int) -> bool:
+    async def _check_rate_limit(self, user_id: str) -> bool:
         """Vérifier si l'utilisateur n'est pas rate limited"""
         key = f"notif_count:{user_id}"
 
@@ -483,34 +463,42 @@ class SmartNotificationService:
 </html>
 """
 
-    # Méthodes de récupération données utilisateur (mockées)
-    async def _get_user_preferences(self, user_id: int) -> Dict:
+    # Méthodes de récupération données utilisateur
+    async def _get_user_preferences(self, user_id: str) -> Dict:
         """Récupérer préférences utilisateur"""
-        # En prod: SELECT FROM user_preferences WHERE user_id = ?
+        # TODO: Implémenter table user_preferences
         return {
             'enabled_channels': ['email', 'push', 'in_app'],
             'quiet_hours': {'start': 22, 'end': 8},
             'email_frequency': 'immediate'
         }
 
-    async def _get_user_email(self, user_id: int) -> Optional[str]:
+    async def _get_user_email(self, user_id: str) -> Optional[str]:
         """Récupérer email utilisateur"""
-        # En prod: SELECT email FROM users WHERE id = ?
-        return None  # Placeholder
+        try:
+            result = supabase.table('users').select('email').eq('id', user_id).single().execute()
+            return result.data['email'] if result.data else None
+        except Exception as e:
+            logger.error(f"Error getting user email: {e}")
+            return None
 
     async def _get_user_phone(
         self,
-        user_id: int,
+        user_id: str,
         international: bool = False
     ) -> Optional[str]:
         """Récupérer téléphone utilisateur"""
-        # En prod: SELECT phone FROM users WHERE id = ?
-        return None  # Placeholder
+        try:
+            result = supabase.table('users').select('phone').eq('id', user_id).single().execute()
+            return result.data['phone'] if result.data else None
+        except Exception as e:
+            logger.error(f"Error getting user phone: {e}")
+            return None
 
-    async def _get_user_device_tokens(self, user_id: int) -> List[str]:
+    async def _get_user_device_tokens(self, user_id: str) -> List[str]:
         """Récupérer device tokens FCM"""
-        # En prod: SELECT token FROM device_tokens WHERE user_id = ?
-        return []  # Placeholder
+        # TODO: Implémenter table device_tokens
+        return []
 
 
 # Instance globale

@@ -476,6 +476,3 @@ async def get_my_products(payload: dict = Depends(verify_token)):
         ],
         "total": 1
     }
-
-# Je continue dans le prochain message...
-"""

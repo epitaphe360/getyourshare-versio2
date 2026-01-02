@@ -25,8 +25,7 @@ from enum import Enum
 from services.social_media_service import (
     SocialMediaService,
     SocialPlatform,
-    SocialStats,
-    ConnectionStatus
+    SocialStats
 )
 from auth import get_current_user  # Fonction d'authentification JWT
 
@@ -742,7 +741,7 @@ async def instagram_webhook_verify(
 # ============================================
 
 # Ajouter des exemples de réponses pour la documentation
-router.get("/connections", response_model=List[ConnectionResponse]).__doc__ += """
+get_connections.__doc__ += """
 Exemple de réponse:
 ```json
 [

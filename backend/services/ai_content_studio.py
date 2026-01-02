@@ -6,8 +6,7 @@ import os
 import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime
-import openai
-from PIL import Image
+from openai import OpenAI
 import requests
 from io import BytesIO
 
@@ -21,9 +20,10 @@ class AIContentStudio:
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         if not self.openai_api_key:
             logger.warning("OPENAI_API_KEY not set - AI features disabled")
+            self.client = None
             self.enabled = False
         else:
-            openai.api_key = self.openai_api_key
+            self.client = OpenAI(api_key=self.openai_api_key)
             self.enabled = True
 
     def generate_product_description(
@@ -86,7 +86,7 @@ Format JSON:
 }}
 """
 
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-4-turbo-preview",
                 messages=[
                     {"role": "system", "content": "Tu es un expert en rédaction marketing et SEO."},
@@ -161,7 +161,7 @@ Format JSON:
 }}
 """
 
-                response = openai.ChatCompletion.create(
+                response = self.client.chat.completions.create(
                     model="gpt-4-turbo-preview",
                     messages=[
                         {"role": "system", "content": f"Tu es un expert en social media marketing pour {platform}."},
@@ -225,7 +225,7 @@ Text:
 
 Translation:"""
 
-                response = openai.ChatCompletion.create(
+                response = self.client.chat.completions.create(
                     model="gpt-4-turbo-preview",
                     messages=[
                         {"role": "system", "content": f"Tu es un traducteur professionnel expert en {lang_name}."},
@@ -267,7 +267,7 @@ Translation:"""
 Style: {style}
 High quality, well-lit, clean background, commercial use."""
 
-            response = openai.Image.create(
+            response = self.client.images.generate(
                 model="dall-e-3",
                 prompt=prompt,
                 size=size,
@@ -304,7 +304,7 @@ High quality, well-lit, clean background, commercial use."""
 
         try:
             # GPT-4 Vision pour analyser l'image
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-4-vision-preview",
                 messages=[
                     {
@@ -394,7 +394,7 @@ Format as JSON:
     "cta": "..."
 }}"""
 
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-4-turbo-preview",
                 messages=[
                     {"role": "system", "content": "Tu es un expert en email marketing avec un taux de conversion élevé."},

@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 import structlog
 
 from supabase_client import supabase
+from services.email_service import email_service, EmailTemplates
 
 # Logging structuré
 logger = structlog.get_logger(__name__)
@@ -814,8 +815,8 @@ class KYCService:
             docs.append("bank_account")
         return docs
 
-    async def upload_document(self, user_id: str, document_type: str, file_content: bytes, filename: str, content_type: str) -> str:
-        """Upload un document vers le storage"""
+    async def upload_document_bytes(self, user_id: str, document_type: str, file_content: bytes, filename: str, content_type: str) -> str:
+        """Upload un document vers le storage (version bytes)"""
         try:
             import uuid
             file_ext = filename.split(".")[-1] if "." in filename else "jpg"
@@ -886,7 +887,22 @@ class KYCService:
 
             if result.data:
                 logger.info("kyc_approved", kyc_id=kyc_id, reviewer_id=reviewer_id)
-                # TODO: Envoyer email de confirmation
+                
+                # Envoyer email de confirmation
+                try:
+                    # Récupérer email utilisateur
+                    submission = result.data[0]
+                    user_id = submission['user_id']
+                    user = self.supabase.table('users').select('email, first_name').eq('id', user_id).single().execute()
+                    
+                    if user.data:
+                        await EmailTemplates.send_kyc_approved_email(
+                            to_email=user.data['email'],
+                            user_name=user.data.get('first_name', 'Utilisateur')
+                        )
+                except Exception as e:
+                    logger.error(f"Failed to send KYC approval email: {e}")
+                    
                 return True
 
             return False
@@ -911,7 +927,24 @@ class KYCService:
 
             if result.data:
                 logger.info("kyc_rejected", kyc_id=kyc_id, reviewer_id=reviewer_id, reason=reason)
-                # TODO: Envoyer email avec raison du rejet
+                
+                # Envoyer email avec raison du rejet
+                try:
+                    # Récupérer email utilisateur
+                    submission = result.data[0]
+                    user_id = submission['user_id']
+                    user = self.supabase.table('users').select('email, first_name').eq('id', user_id).single().execute()
+                    
+                    if user.data:
+                        await EmailTemplates.send_kyc_rejected_email(
+                            to_email=user.data['email'],
+                            user_name=user.data.get('first_name', 'Utilisateur'),
+                            reason=reason,
+                            comment=comment
+                        )
+                except Exception as e:
+                    logger.error(f"Failed to send KYC rejection email: {e}")
+                    
                 return True
 
             return False

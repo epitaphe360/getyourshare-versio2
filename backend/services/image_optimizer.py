@@ -5,11 +5,11 @@ Pipeline complet de transformation, compression et génération de formats optim
 import io
 import os
 import time
-from typing import Dict, List, Optional, Any, Tuple, BinaryIO
+from typing import Dict, List, Optional, Any, Tuple
 from pathlib import Path
 from datetime import datetime
 from PIL import Image, ImageFilter, ImageOps, ExifTags
-import pillow_heif  # Pour support AVIF
+import tempfile
 
 from utils.logger import logger
 from utils.image_processing import (
@@ -24,6 +24,8 @@ from utils.image_processing import (
     ImageValidationError
 )
 
+
+import tempfile
 
 # Configuration des tailles de thumbnails
 THUMBNAIL_SIZES = {
@@ -50,7 +52,7 @@ class ImageOptimizer:
 
     def __init__(
         self,
-        storage_path: str = '/tmp/optimized_images',
+        storage_path: Optional[str] = None,
         enable_avif: bool = True,
         enable_webp: bool = True
     ):
@@ -62,6 +64,9 @@ class ImageOptimizer:
             enable_avif: Activer la génération AVIF
             enable_webp: Activer la génération WebP
         """
+        if storage_path is None:
+            storage_path = os.path.join(tempfile.gettempdir(), 'optimized_images')
+            
         self.storage_path = Path(storage_path)
         self.storage_path.mkdir(parents=True, exist_ok=True)
         self.enable_avif = enable_avif

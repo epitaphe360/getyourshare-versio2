@@ -44,13 +44,72 @@ try:
     def get_supabase_client():
         """Return the global Supabase client instance"""
         return supabase
-        
+
+    # ============================================
+    # SUPABASE USER HELPERS
+    # ============================================
+
+    def get_user_by_email(email: str):
+        """Get user from Supabase by email"""
+        try:
+            response = supabase.table("users").select("*").eq("email", email).execute()
+            if response.data and len(response.data) > 0:
+                return response.data[0]
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching user by email: {e}")
+            return None
+
+    def get_user_by_id(user_id: str):
+        """Get user from Supabase by ID"""
+        try:
+            response = supabase.table("users").select("*").eq("id", user_id).execute()
+            if response.data and len(response.data) > 0:
+                return response.data[0]
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching user by ID: {e}")
+            return None
+
+    def create_user_in_supabase(user_data: dict):
+        """Create new user in Supabase"""
+        try:
+            response = supabase.table("users").insert(user_data).execute()
+            if response.data and len(response.data) > 0:
+                return response.data[0]
+            return None
+        except Exception as e:
+            logger.error(f"Error creating user: {e}")
+            return None
+
+    def get_users_by_role(role: str):
+        """Get all users with specific role from Supabase"""
+        try:
+            response = supabase.table("users").select("*").eq("role", role).execute()
+            return response.data if response.data else []
+        except Exception as e:
+            logger.error(f"Error fetching users by role: {e}")
+            return []
+
 except Exception as e:
     logger.info(f"⚠️ Supabase non disponible: {e}")
     import traceback
     traceback.print_exc()
     supabase = None
     SUPABASE_ENABLED = False
+
+    # Fallback functions when Supabase is not available
+    def get_user_by_email(email: str):
+        return None
+
+    def get_user_by_id(user_id: str):
+        return None
+
+    def create_user_in_supabase(user_data: dict):
+        return None
+
+    def get_users_by_role(role: str):
+        return []
 
 # Services
 try:
@@ -143,6 +202,186 @@ except ImportError as e:
     logger.info(f"⚠️ Platform settings endpoints not available: {e}")
     PLATFORM_SETTINGS_ENDPOINTS_AVAILABLE = False
 
+# Analytics routes (complete with real DB logic)
+try:
+    from routes.analytics_routes import router as analytics_router
+    ANALYTICS_ROUTES_AVAILABLE = True
+    logger.info("✅ Analytics routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Analytics routes not available: {e}")
+    ANALYTICS_ROUTES_AVAILABLE = False
+
+# Products routes (CRUD + bulk import + variants)
+try:
+    from routes.products_routes import router as products_router
+    PRODUCTS_ROUTES_AVAILABLE = True
+    logger.info("✅ Products routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Products routes not available: {e}")
+    PRODUCTS_ROUTES_AVAILABLE = False
+
+# Campaigns routes (create, analytics, manage)
+try:
+    from routes.campaigns_routes import router as campaigns_router
+    CAMPAIGNS_ROUTES_AVAILABLE = True
+    logger.info("✅ Campaigns routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Campaigns routes not available: {e}")
+    CAMPAIGNS_ROUTES_AVAILABLE = False
+
+# Commissions routes (real calculations)
+try:
+    from routes.commissions_routes import router as commissions_router
+    COMMISSIONS_ROUTES_AVAILABLE = True
+    logger.info("✅ Commissions routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Commissions routes not available: {e}")
+    COMMISSIONS_ROUTES_AVAILABLE = False
+
+# Reports routes (summary + detailed with exports)
+try:
+    from routes.reports_routes import router as reports_router
+    REPORTS_ROUTES_AVAILABLE = True
+    logger.info("✅ Reports routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Reports routes not available: {e}")
+    REPORTS_ROUTES_AVAILABLE = False
+
+# Content Studio routes (templates, AI generation, scheduling)
+try:
+    from routes.content_studio_routes import router as content_studio_router
+    CONTENT_STUDIO_ROUTES_AVAILABLE = True
+    logger.info("✅ Content Studio routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Content Studio routes not available: {e}")
+    CONTENT_STUDIO_ROUTES_AVAILABLE = False
+
+# Utility routes (settings, notifications, currency, messages, referrals, reviews, system)
+try:
+    from routes.utility_routes import router as utility_router
+    UTILITY_ROUTES_AVAILABLE = True
+    logger.info("✅ Utility routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Utility routes not available: {e}")
+    UTILITY_ROUTES_AVAILABLE = False
+
+# E-commerce integrations routes (Shopify, WooCommerce, PrestaShop)
+try:
+    from routes.ecommerce_routes import router as ecommerce_router
+    ECOMMERCE_ROUTES_AVAILABLE = True
+    logger.info("✅ E-commerce routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ E-commerce routes not available: {e}")
+    ECOMMERCE_ROUTES_AVAILABLE = False
+
+# Payment gateways routes (Stripe, PayPal, Apple Pay, Google Pay, Crypto)
+try:
+    from routes.payment_gateways_routes import router as payment_gateways_router
+    PAYMENT_GATEWAYS_ROUTES_AVAILABLE = True
+    logger.info("✅ Payment gateways routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Payment gateways routes not available: {e}")
+    PAYMENT_GATEWAYS_ROUTES_AVAILABLE = False
+
+# Social media routes (Instagram, Facebook, TikTok, Twitter)
+try:
+    from routes.social_media_routes import router as social_media_router
+    SOCIAL_MEDIA_ROUTES_AVAILABLE = True
+    logger.info("✅ Social media routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Social media routes not available: {e}")
+    SOCIAL_MEDIA_ROUTES_AVAILABLE = False
+
+# Team management routes (invite, roles, permissions)
+try:
+    from routes.team_routes import router as team_router
+    TEAM_ROUTES_AVAILABLE = True
+    logger.info("✅ Team routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Team routes not available: {e}")
+    TEAM_ROUTES_AVAILABLE = False
+
+# Webhooks routes (Stripe, Shopify, WooCommerce, PayPal)
+try:
+    from routes.webhooks_routes import router as webhooks_router
+    WEBHOOKS_ROUTES_AVAILABLE = True
+    logger.info("✅ Webhooks routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Webhooks routes not available: {e}")
+    WEBHOOKS_ROUTES_AVAILABLE = False
+
+# Gamification routes (badges, achievements, points, leaderboard)
+try:
+    from routes.gamification_routes import router as gamification_router
+    GAMIFICATION_ROUTES_AVAILABLE = True
+    logger.info("✅ Gamification routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Gamification routes not available: {e}")
+    GAMIFICATION_ROUTES_AVAILABLE = False
+
+# KYC routes (upload, verify, status)
+try:
+    from routes.kyc_routes import router as kyc_router
+    KYC_ROUTES_AVAILABLE = True
+    logger.info("✅ KYC routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ KYC routes not available: {e}")
+    KYC_ROUTES_AVAILABLE = False
+
+# Mobile routes (WhatsApp Business, Mobile Payments Morocco)
+try:
+    from routes.mobile_routes import router as mobile_router
+    MOBILE_ROUTES_AVAILABLE = True
+    logger.info("✅ Mobile routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Mobile routes not available: {e}")
+    MOBILE_ROUTES_AVAILABLE = False
+
+# AI routes (Recommendations, Chatbot, Insights)
+try:
+    from routes.ai_routes import router as ai_router
+    AI_ROUTES_AVAILABLE = True
+    logger.info("✅ AI routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ AI routes not available: {e}")
+    AI_ROUTES_AVAILABLE = False
+
+# Customer Service routes (Ticketing System)
+try:
+    from routes.customer_service_routes import router as customer_service_router
+    CUSTOMER_SERVICE_ROUTES_AVAILABLE = True
+    logger.info("✅ Customer Service routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Customer Service routes not available: {e}")
+    CUSTOMER_SERVICE_ROUTES_AVAILABLE = False
+
+# Live Chat routes (WebSocket Real-time Chat)
+try:
+    from routes.live_chat_routes import router as live_chat_router
+    LIVE_CHAT_ROUTES_AVAILABLE = True
+    logger.info("✅ Live Chat routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Live Chat routes not available: {e}")
+    LIVE_CHAT_ROUTES_AVAILABLE = False
+
+# Advanced Analytics routes (Cohort, RFM, Segments, A/B Testing)
+try:
+    from routes.advanced_analytics_routes import router as advanced_analytics_router
+    ADVANCED_ANALYTICS_ROUTES_AVAILABLE = True
+    logger.info("✅ Advanced Analytics routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Advanced Analytics routes not available: {e}")
+    ADVANCED_ANALYTICS_ROUTES_AVAILABLE = False
+
+# Admin Dashboard routes (Stats, Users, Moderation, System)
+try:
+    from routes.admin_dashboard_routes import router as admin_dashboard_router
+    ADMIN_DASHBOARD_ROUTES_AVAILABLE = True
+    logger.info("✅ Admin Dashboard routes loaded successfully")
+except ImportError as e:
+    logger.info(f"⚠️ Admin Dashboard routes not available: {e}")
+    ADMIN_DASHBOARD_ROUTES_AVAILABLE = False
+
 # ============================================
 # CONFIGURATION
 # ============================================
@@ -233,16 +472,58 @@ app = FastAPI(
 # MIDDLEWARE
 # ============================================
 
-# Récupérer CORS origins depuis les variables d'environnement
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
-logger.info(f"🔐 CORS Origins configurés: {cors_origins}")
+# CORS configuration - Whitelist sécurisée par environnement
+# ✅ FIX SÉCURITÉ P0: Remplacement wildcard par whitelist
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    os.getenv("FRONTEND_URL", "https://getyourshare.com"),
+    os.getenv("PRODUCTION_URL", "https://www.getyourshare.com"),
+]
+
+# Ajouter les URLs Vercel (déploiement et preview)
+vercel_url = os.getenv("VERCEL_URL")
+if vercel_url:
+    # Vercel fournit l'URL sans protocole, on ajoute https://
+    if not vercel_url.startswith("http"):
+        vercel_url = f"https://{vercel_url}"
+    allowed_origins.append(vercel_url)
+
+# Ajouter les URLs Vercel spécifiques connues
+vercel_production_url = os.getenv("VERCEL_PRODUCTION_URL")
+if vercel_production_url:
+    if not vercel_production_url.startswith("http"):
+        vercel_production_url = f"https://{vercel_production_url}"
+    allowed_origins.append(vercel_production_url)
+
+# Ajouter l'URL Vercel actuelle du déploiement
+current_vercel_url = "https://getyourshare-7h1z5006j-getyourshares-projects.vercel.app"
+if current_vercel_url not in allowed_origins:
+    allowed_origins.append(current_vercel_url)
+
+# Ajouter origines de développement si ENV=development
+if os.getenv("ENV", "development") == "development":
+    allowed_origins.extend([
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ])
+
+# Log les origines autorisées pour faciliter le débogage
+logger.info(f"🔐 CORS allowed origins: {allowed_origins}")
+
+# Regex pattern to allow all Vercel preview and production deployments
+# This handles URLs like: https://getyourshare-*.vercel.app
+vercel_regex = r"https://.*\.vercel\.app"
 
 # CORS Configuration - Must be added FIRST
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En développement, autoriser toutes les origins
+    allow_origins=allowed_origins,  # ✅ Whitelist au lieu de wildcard
+    allow_origin_regex=vercel_regex,  # ✅ Allow all Vercel deployments
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"]
 )
@@ -290,8 +571,89 @@ try:
     app.include_router(auth_advanced_router)
     logger.info("✅ Advanced auth endpoints mounted at /api/auth")
 except ImportError as e:
-    logger.info(f"⚠️ Advanced auth endpoints not available: {e}")
+    logger.info("⚠️ Advanced auth endpoints not available: {e}")
     logger.info("💡 Install missing dependencies: pip install pyotp qrcode Pillow")
+
+# Monter les nouveaux routers avec vraie logique DB
+if ANALYTICS_ROUTES_AVAILABLE:
+    app.include_router(analytics_router)
+    logger.info("✅ Analytics routes mounted at /api/analytics")
+
+if PRODUCTS_ROUTES_AVAILABLE:
+    app.include_router(products_router)
+    logger.info("✅ Products routes mounted at /api/products")
+
+if CAMPAIGNS_ROUTES_AVAILABLE:
+    app.include_router(campaigns_router)
+    logger.info("✅ Campaigns routes mounted at /api/campaigns")
+
+if COMMISSIONS_ROUTES_AVAILABLE:
+    app.include_router(commissions_router)
+    logger.info("✅ Commissions routes mounted at /api/commissions")
+
+if REPORTS_ROUTES_AVAILABLE:
+    app.include_router(reports_router)
+    logger.info("✅ Reports routes mounted at /api/reports")
+
+if CONTENT_STUDIO_ROUTES_AVAILABLE:
+    app.include_router(content_studio_router)
+    logger.info("✅ Content Studio routes mounted at /api/content-studio")
+
+if UTILITY_ROUTES_AVAILABLE:
+    app.include_router(utility_router)
+    logger.info("✅ Utility routes mounted (settings, notifications, currency, messages, referrals, reviews, system)")
+
+if ECOMMERCE_ROUTES_AVAILABLE:
+    app.include_router(ecommerce_router)
+    logger.info("✅ E-commerce routes mounted at /api/ecommerce")
+
+if PAYMENT_GATEWAYS_ROUTES_AVAILABLE:
+    app.include_router(payment_gateways_router)
+    logger.info("✅ Payment gateways routes mounted at /api/payments")
+
+if SOCIAL_MEDIA_ROUTES_AVAILABLE:
+    app.include_router(social_media_router)
+    logger.info("✅ Social media routes mounted at /api/social-media")
+
+if TEAM_ROUTES_AVAILABLE:
+    app.include_router(team_router)
+    logger.info("✅ Team routes mounted at /api/team")
+
+if WEBHOOKS_ROUTES_AVAILABLE:
+    app.include_router(webhooks_router)
+    logger.info("✅ Webhooks routes mounted at /api/webhooks")
+
+if GAMIFICATION_ROUTES_AVAILABLE:
+    app.include_router(gamification_router)
+    logger.info("✅ Gamification routes mounted at /api/gamification")
+
+if KYC_ROUTES_AVAILABLE:
+    app.include_router(kyc_router)
+    logger.info("✅ KYC routes mounted at /api/kyc")
+
+if MOBILE_ROUTES_AVAILABLE:
+    app.include_router(mobile_router)
+    logger.info("✅ Mobile routes mounted (/api/whatsapp, /api/mobile-payments-ma)")
+
+if AI_ROUTES_AVAILABLE:
+    app.include_router(ai_router)
+    logger.info("✅ AI routes mounted at /api/ai")
+
+if CUSTOMER_SERVICE_ROUTES_AVAILABLE:
+    app.include_router(customer_service_router)
+    logger.info("✅ Customer Service routes mounted at /api/support")
+
+if LIVE_CHAT_ROUTES_AVAILABLE:
+    app.include_router(live_chat_router)
+    logger.info("✅ Live Chat routes mounted at /api/live-chat")
+
+if ADVANCED_ANALYTICS_ROUTES_AVAILABLE:
+    app.include_router(advanced_analytics_router)
+    logger.info("✅ Advanced Analytics routes mounted at /api/advanced-analytics")
+
+if ADMIN_DASHBOARD_ROUTES_AVAILABLE:
+    app.include_router(admin_dashboard_router)
+    logger.info("✅ Admin Dashboard routes mounted at /api/admin")
 
 # ============================================
 # HEALTH CHECK ENDPOINT (for Railway)
@@ -970,26 +1332,52 @@ async def health_check():
 @app.post("/api/auth/register")
 @limiter.limit("5/minute")
 async def register(request: Request, user_data: UserCreate):
-    """Inscription d'un nouvel utilisateur"""
-    # Vérifier si l'email existe déjà
-    for user in MOCK_USERS.values():
-        if user["email"] == user_data.email:
-            raise HTTPException(status_code=400, detail="Email déjà utilisé")
-    
-    # Créer nouvel utilisateur
-    user_id = str(len(MOCK_USERS) + 1)
-    new_user = {
+    """Inscription d'un nouvel utilisateur - Crée dans Supabase"""
+
+    # Vérifier si l'email existe déjà (Supabase ou MOCK_USERS)
+    existing_user = None
+    if SUPABASE_ENABLED:
+        existing_user = get_user_by_email(user_data.email)
+
+    if not existing_user:
+        # Fallback check in MOCK_USERS
+        for user in MOCK_USERS.values():
+            if user["email"] == user_data.email:
+                existing_user = user
+                break
+
+    if existing_user:
+        logger.warning(f"❌ Registration failed: Email already exists {user_data.email}")
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+
+    # Préparer les données utilisateur
+    import uuid
+    user_id = str(uuid.uuid4())
+    new_user_data = {
         "id": user_id,
         "email": user_data.email,
-        "username": user_data.username,
         "role": user_data.role,
-        "subscription_plan": "free",
         "password_hash": hash_password(user_data.password),
-        "created_at": datetime.now().isoformat()
+        "phone_verified": False,
+        "two_fa_enabled": False,
+        "is_active": True
     }
-    
-    MOCK_USERS[user_id] = new_user
-    
+
+    # Essayer de créer dans Supabase d'abord
+    created_user = None
+    if SUPABASE_ENABLED:
+        created_user = create_user_in_supabase(new_user_data)
+        logger.info(f"✅ User created in Supabase: {user_data.email}")
+
+    # Fallback to MOCK_USERS if Supabase fails
+    if not created_user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user creation: {user_data.email}")
+        new_user_data["username"] = user_data.username
+        new_user_data["subscription_plan"] = "free"
+        new_user_data["created_at"] = datetime.now().isoformat()
+        MOCK_USERS[user_id] = new_user_data
+        created_user = new_user_data
+
     # Envoyer email de bienvenue
     if EMAIL_ENABLED:
         try:
@@ -1000,10 +1388,12 @@ async def register(request: Request, user_data: UserCreate):
             )
         except Exception as e:
             logger.error(f"Email sending failed: {e}")
-    
+
     # Générer token JWT avec fonction dédiée
     access_token = create_token(user_id, user_data.email, user_data.role)
-    
+
+    logger.info(f"✅ User registered successfully: {user_data.email} (role: {user_data.role})")
+
     return {
         "message": "Inscription réussie",
         "user": {
@@ -1020,32 +1410,45 @@ async def register(request: Request, user_data: UserCreate):
 @app.post("/api/auth/login")
 @limiter.limit("10/minute")
 async def login(request: Request, credentials: UserLogin):
-    """Connexion utilisateur"""
-    # Trouver l'utilisateur par email
+    """Connexion utilisateur - Lit depuis Supabase"""
+
+    # Essayer de lire depuis Supabase d'abord
     user = None
-    for u in MOCK_USERS.values():
-        if u["email"] == credentials.email:
-            user = u
-            break
-    
+    if SUPABASE_ENABLED:
+        user = get_user_by_email(credentials.email)
+        logger.info(f"🔍 Login attempt for {credentials.email} - User found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for {credentials.email}")
+        for u in MOCK_USERS.values():
+            if u["email"] == credentials.email:
+                user = u
+                break
+
+    if not user:
+        logger.warning(f"❌ Login failed: User not found for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Vérifier le mot de passe
     if not verify_password(credentials.password, user["password_hash"]):
+        logger.warning(f"❌ Login failed: Invalid password for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Générer token JWT avec fonction dédiée
-    access_token = create_token(user["id"], user["email"], user["role"])
-    
+    user_id = str(user["id"])  # Ensure ID is string
+    access_token = create_token(user_id, user["email"], user["role"])
+
+    logger.info(f"✅ Login successful for {credentials.email} (role: {user['role']})")
+
     return {
         "message": "Connexion réussie",
         "user": {
-            "id": user["id"],
+            "id": user_id,
             "email": user["email"],
-            "username": user["username"],
+            "username": user.get("username", user["email"].split("@")[0]),
             "role": user["role"],
-            "subscription_plan": user["subscription_plan"]
+            "subscription_plan": user.get("subscription_plan", "free")
         },
         "access_token": access_token,
         "token_type": "bearer"
@@ -1053,20 +1456,31 @@ async def login(request: Request, credentials: UserLogin):
 
 @app.get("/api/auth/me")
 async def get_current_user(payload: dict = Depends(verify_token)):
-    """Obtenir les informations de l'utilisateur connecté"""
+    """Obtenir les informations de l'utilisateur connecté - Lit depuis Supabase"""
     user_id = payload.get("sub")
-    user = MOCK_USERS.get(user_id)
-    
+
+    # Essayer de lire depuis Supabase d'abord
+    user = None
+    if SUPABASE_ENABLED:
+        user = get_user_by_id(user_id)
+        logger.info(f"🔍 /api/auth/me for user ID {user_id} - Found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user ID {user_id}")
+        user = MOCK_USERS.get(user_id)
+
+    if not user:
+        logger.warning(f"❌ User not found: {user_id}")
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
+
     return {
-        "id": user["id"],
+        "id": str(user["id"]),
         "email": user["email"],
-        "username": user["username"],
+        "username": user.get("username", user["email"].split("@")[0]),
         "role": user["role"],
-        "subscription_plan": user["subscription_plan"],
-        "created_at": user["created_at"]
+        "subscription_plan": user.get("subscription_plan", "free"),
+        "created_at": user.get("created_at")
     }
 
 @app.post("/api/auth/logout")
@@ -2770,26 +3184,52 @@ async def health_check():
 @app.post("/api/auth/register")
 @limiter.limit("5/minute")
 async def register(request: Request, user_data: UserCreate):
-    """Inscription d'un nouvel utilisateur"""
-    # Vérifier si l'email existe déjà
-    for user in MOCK_USERS.values():
-        if user["email"] == user_data.email:
-            raise HTTPException(status_code=400, detail="Email déjà utilisé")
-    
-    # Créer nouvel utilisateur
-    user_id = str(len(MOCK_USERS) + 1)
-    new_user = {
+    """Inscription d'un nouvel utilisateur - Crée dans Supabase"""
+
+    # Vérifier si l'email existe déjà (Supabase ou MOCK_USERS)
+    existing_user = None
+    if SUPABASE_ENABLED:
+        existing_user = get_user_by_email(user_data.email)
+
+    if not existing_user:
+        # Fallback check in MOCK_USERS
+        for user in MOCK_USERS.values():
+            if user["email"] == user_data.email:
+                existing_user = user
+                break
+
+    if existing_user:
+        logger.warning(f"❌ Registration failed: Email already exists {user_data.email}")
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+
+    # Préparer les données utilisateur
+    import uuid
+    user_id = str(uuid.uuid4())
+    new_user_data = {
         "id": user_id,
         "email": user_data.email,
-        "username": user_data.username,
         "role": user_data.role,
-        "subscription_plan": "free",
         "password_hash": hash_password(user_data.password),
-        "created_at": datetime.now().isoformat()
+        "phone_verified": False,
+        "two_fa_enabled": False,
+        "is_active": True
     }
-    
-    MOCK_USERS[user_id] = new_user
-    
+
+    # Essayer de créer dans Supabase d'abord
+    created_user = None
+    if SUPABASE_ENABLED:
+        created_user = create_user_in_supabase(new_user_data)
+        logger.info(f"✅ User created in Supabase: {user_data.email}")
+
+    # Fallback to MOCK_USERS if Supabase fails
+    if not created_user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user creation: {user_data.email}")
+        new_user_data["username"] = user_data.username
+        new_user_data["subscription_plan"] = "free"
+        new_user_data["created_at"] = datetime.now().isoformat()
+        MOCK_USERS[user_id] = new_user_data
+        created_user = new_user_data
+
     # Envoyer email de bienvenue
     if EMAIL_ENABLED:
         try:
@@ -2800,10 +3240,12 @@ async def register(request: Request, user_data: UserCreate):
             )
         except Exception as e:
             logger.error(f"Email sending failed: {e}")
-    
+
     # Générer token JWT avec fonction dédiée
     access_token = create_token(user_id, user_data.email, user_data.role)
-    
+
+    logger.info(f"✅ User registered successfully: {user_data.email} (role: {user_data.role})")
+
     return {
         "message": "Inscription réussie",
         "user": {
@@ -2820,32 +3262,45 @@ async def register(request: Request, user_data: UserCreate):
 @app.post("/api/auth/login")
 @limiter.limit("10/minute")
 async def login(request: Request, credentials: UserLogin):
-    """Connexion utilisateur"""
-    # Trouver l'utilisateur par email
+    """Connexion utilisateur - Lit depuis Supabase"""
+
+    # Essayer de lire depuis Supabase d'abord
     user = None
-    for u in MOCK_USERS.values():
-        if u["email"] == credentials.email:
-            user = u
-            break
-    
+    if SUPABASE_ENABLED:
+        user = get_user_by_email(credentials.email)
+        logger.info(f"🔍 Login attempt for {credentials.email} - User found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for {credentials.email}")
+        for u in MOCK_USERS.values():
+            if u["email"] == credentials.email:
+                user = u
+                break
+
+    if not user:
+        logger.warning(f"❌ Login failed: User not found for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Vérifier le mot de passe
     if not verify_password(credentials.password, user["password_hash"]):
+        logger.warning(f"❌ Login failed: Invalid password for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Générer token JWT avec fonction dédiée
-    access_token = create_token(user["id"], user["email"], user["role"])
-    
+    user_id = str(user["id"])  # Ensure ID is string
+    access_token = create_token(user_id, user["email"], user["role"])
+
+    logger.info(f"✅ Login successful for {credentials.email} (role: {user['role']})")
+
     return {
         "message": "Connexion réussie",
         "user": {
-            "id": user["id"],
+            "id": user_id,
             "email": user["email"],
-            "username": user["username"],
+            "username": user.get("username", user["email"].split("@")[0]),
             "role": user["role"],
-            "subscription_plan": user["subscription_plan"]
+            "subscription_plan": user.get("subscription_plan", "free")
         },
         "access_token": access_token,
         "token_type": "bearer"
@@ -2853,20 +3308,31 @@ async def login(request: Request, credentials: UserLogin):
 
 @app.get("/api/auth/me")
 async def get_current_user(payload: dict = Depends(verify_token)):
-    """Obtenir les informations de l'utilisateur connecté"""
+    """Obtenir les informations de l'utilisateur connecté - Lit depuis Supabase"""
     user_id = payload.get("sub")
-    user = MOCK_USERS.get(user_id)
-    
+
+    # Essayer de lire depuis Supabase d'abord
+    user = None
+    if SUPABASE_ENABLED:
+        user = get_user_by_id(user_id)
+        logger.info(f"🔍 /api/auth/me for user ID {user_id} - Found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user ID {user_id}")
+        user = MOCK_USERS.get(user_id)
+
+    if not user:
+        logger.warning(f"❌ User not found: {user_id}")
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
+
     return {
-        "id": user["id"],
+        "id": str(user["id"]),
         "email": user["email"],
-        "username": user["username"],
+        "username": user.get("username", user["email"].split("@")[0]),
         "role": user["role"],
-        "subscription_plan": user["subscription_plan"],
-        "created_at": user["created_at"]
+        "subscription_plan": user.get("subscription_plan", "free"),
+        "created_at": user.get("created_at")
     }
 
 @app.post("/api/auth/logout")
@@ -4570,26 +5036,52 @@ async def health_check():
 @app.post("/api/auth/register")
 @limiter.limit("5/minute")
 async def register(request: Request, user_data: UserCreate):
-    """Inscription d'un nouvel utilisateur"""
-    # Vérifier si l'email existe déjà
-    for user in MOCK_USERS.values():
-        if user["email"] == user_data.email:
-            raise HTTPException(status_code=400, detail="Email déjà utilisé")
-    
-    # Créer nouvel utilisateur
-    user_id = str(len(MOCK_USERS) + 1)
-    new_user = {
+    """Inscription d'un nouvel utilisateur - Crée dans Supabase"""
+
+    # Vérifier si l'email existe déjà (Supabase ou MOCK_USERS)
+    existing_user = None
+    if SUPABASE_ENABLED:
+        existing_user = get_user_by_email(user_data.email)
+
+    if not existing_user:
+        # Fallback check in MOCK_USERS
+        for user in MOCK_USERS.values():
+            if user["email"] == user_data.email:
+                existing_user = user
+                break
+
+    if existing_user:
+        logger.warning(f"❌ Registration failed: Email already exists {user_data.email}")
+        raise HTTPException(status_code=400, detail="Email déjà utilisé")
+
+    # Préparer les données utilisateur
+    import uuid
+    user_id = str(uuid.uuid4())
+    new_user_data = {
         "id": user_id,
         "email": user_data.email,
-        "username": user_data.username,
         "role": user_data.role,
-        "subscription_plan": "free",
         "password_hash": hash_password(user_data.password),
-        "created_at": datetime.now().isoformat()
+        "phone_verified": False,
+        "two_fa_enabled": False,
+        "is_active": True
     }
-    
-    MOCK_USERS[user_id] = new_user
-    
+
+    # Essayer de créer dans Supabase d'abord
+    created_user = None
+    if SUPABASE_ENABLED:
+        created_user = create_user_in_supabase(new_user_data)
+        logger.info(f"✅ User created in Supabase: {user_data.email}")
+
+    # Fallback to MOCK_USERS if Supabase fails
+    if not created_user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user creation: {user_data.email}")
+        new_user_data["username"] = user_data.username
+        new_user_data["subscription_plan"] = "free"
+        new_user_data["created_at"] = datetime.now().isoformat()
+        MOCK_USERS[user_id] = new_user_data
+        created_user = new_user_data
+
     # Envoyer email de bienvenue
     if EMAIL_ENABLED:
         try:
@@ -4600,10 +5092,12 @@ async def register(request: Request, user_data: UserCreate):
             )
         except Exception as e:
             logger.error(f"Email sending failed: {e}")
-    
+
     # Générer token JWT avec fonction dédiée
     access_token = create_token(user_id, user_data.email, user_data.role)
-    
+
+    logger.info(f"✅ User registered successfully: {user_data.email} (role: {user_data.role})")
+
     return {
         "message": "Inscription réussie",
         "user": {
@@ -4620,32 +5114,45 @@ async def register(request: Request, user_data: UserCreate):
 @app.post("/api/auth/login")
 @limiter.limit("10/minute")
 async def login(request: Request, credentials: UserLogin):
-    """Connexion utilisateur"""
-    # Trouver l'utilisateur par email
+    """Connexion utilisateur - Lit depuis Supabase"""
+
+    # Essayer de lire depuis Supabase d'abord
     user = None
-    for u in MOCK_USERS.values():
-        if u["email"] == credentials.email:
-            user = u
-            break
-    
+    if SUPABASE_ENABLED:
+        user = get_user_by_email(credentials.email)
+        logger.info(f"🔍 Login attempt for {credentials.email} - User found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for {credentials.email}")
+        for u in MOCK_USERS.values():
+            if u["email"] == credentials.email:
+                user = u
+                break
+
+    if not user:
+        logger.warning(f"❌ Login failed: User not found for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Vérifier le mot de passe
     if not verify_password(credentials.password, user["password_hash"]):
+        logger.warning(f"❌ Login failed: Invalid password for {credentials.email}")
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-    
+
     # Générer token JWT avec fonction dédiée
-    access_token = create_token(user["id"], user["email"], user["role"])
-    
+    user_id = str(user["id"])  # Ensure ID is string
+    access_token = create_token(user_id, user["email"], user["role"])
+
+    logger.info(f"✅ Login successful for {credentials.email} (role: {user['role']})")
+
     return {
         "message": "Connexion réussie",
         "user": {
-            "id": user["id"],
+            "id": user_id,
             "email": user["email"],
-            "username": user["username"],
+            "username": user.get("username", user["email"].split("@")[0]),
             "role": user["role"],
-            "subscription_plan": user["subscription_plan"]
+            "subscription_plan": user.get("subscription_plan", "free")
         },
         "access_token": access_token,
         "token_type": "bearer"
@@ -4653,20 +5160,31 @@ async def login(request: Request, credentials: UserLogin):
 
 @app.get("/api/auth/me")
 async def get_current_user(payload: dict = Depends(verify_token)):
-    """Obtenir les informations de l'utilisateur connecté"""
+    """Obtenir les informations de l'utilisateur connecté - Lit depuis Supabase"""
     user_id = payload.get("sub")
-    user = MOCK_USERS.get(user_id)
-    
+
+    # Essayer de lire depuis Supabase d'abord
+    user = None
+    if SUPABASE_ENABLED:
+        user = get_user_by_id(user_id)
+        logger.info(f"🔍 /api/auth/me for user ID {user_id} - Found in Supabase: {user is not None}")
+
+    # Fallback to MOCK_USERS if Supabase not available or user not found
     if not user:
+        logger.info(f"⚠️ Falling back to MOCK_USERS for user ID {user_id}")
+        user = MOCK_USERS.get(user_id)
+
+    if not user:
+        logger.warning(f"❌ User not found: {user_id}")
         raise HTTPException(status_code=404, detail="Utilisateur non trouvé")
-    
+
     return {
-        "id": user["id"],
+        "id": str(user["id"]),
         "email": user["email"],
-        "username": user["username"],
+        "username": user.get("username", user["email"].split("@")[0]),
         "role": user["role"],
-        "subscription_plan": user["subscription_plan"],
-        "created_at": user["created_at"]
+        "subscription_plan": user.get("subscription_plan", "free"),
+        "created_at": user.get("created_at")
     }
 
 @app.post("/api/auth/logout")

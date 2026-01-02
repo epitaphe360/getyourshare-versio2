@@ -17,7 +17,7 @@ load_dotenv()
 
 # Importer les données MOCK
 sys.path.insert(0, os.path.dirname(__file__))
-from mock_data import MOCK_USERS, MOCK_PRODUCTS, MOCK_SALES
+from mock_data import MOCK_USERS, MOCK_PRODUCTS
 from utils.logger import logger
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")

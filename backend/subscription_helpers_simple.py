@@ -74,7 +74,7 @@ async def get_real_usage_counts(user_id: str, user_role: str) -> Dict[str, int]:
             influencer_response = supabase.from_("influencers")\
                 .select("id")\
                 .eq("user_id", user_id)\
-                .single()\
+                    .single()\
                 .execute()
             
             if not influencer_response.data:
@@ -273,7 +273,7 @@ async def get_user_subscription_data(user_id: str, user_role: str) -> Optional[D
             response = supabase.from_("influencers") \
                 .select("*") \
                 .eq("user_id", user_id) \
-                .single() \
+                    .single() \
                 .execute()
                 
             if response.data:

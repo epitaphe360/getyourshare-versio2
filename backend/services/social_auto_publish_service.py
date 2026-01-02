@@ -154,22 +154,24 @@ Lien en bio! 🔗
     async def publish_to_instagram(
         self,
         user_id: str,
-        product_id: str,
+        product_id: Optional[str],
         affiliate_link: str,
         image_url: str,
         caption_data: Dict,
-        post_type: str = "feed"  # feed, story, reel
+        post_type: str = "feed",  # feed, story, reel
+        service_id: Optional[str] = None
     ) -> Dict:
         """
         Publier sur Instagram
 
         Args:
             user_id: ID utilisateur
-            product_id: ID produit
+            product_id: ID produit (optionnel)
             affiliate_link: Lien affiliation
             image_url: URL image produit
             caption_data: Caption générée
             post_type: Type de post
+            service_id: ID service (optionnel)
 
         Returns:
             {
@@ -196,7 +198,7 @@ Lien en bio! 🔗
                 # POST /{ig-user-id}/media
                 # POST /{ig-user-id}/media_publish
 
-                logger.info("instagram_feed_post_initiated", user_id=user_id, product_id=product_id)
+                logger.info("instagram_feed_post_initiated", user_id=user_id, product_id=product_id, service_id=service_id)
 
                 # Simuler pour l'instant (à implémenter réellement)
                 post_id = f"ig_post_{datetime.utcnow().timestamp()}"
@@ -205,6 +207,7 @@ Lien en bio! 🔗
                 await self._save_publication(
                     user_id=user_id,
                     product_id=product_id,
+                    service_id=service_id,
                     platform="instagram",
                     post_type=post_type,
                     post_id=post_id,
@@ -262,20 +265,22 @@ Lien en bio! 🔗
     async def publish_to_tiktok(
         self,
         user_id: str,
-        product_id: str,
+        product_id: Optional[str],
         affiliate_link: str,
         video_url: str,
-        caption_data: Dict
+        caption_data: Dict,
+        service_id: Optional[str] = None
     ) -> Dict:
         """
         Publier sur TikTok
 
         Args:
             user_id: ID utilisateur
-            product_id: ID produit
+            product_id: ID produit (optionnel)
             affiliate_link: Lien affiliation
             video_url: URL vidéo
             caption_data: Caption générée
+            service_id: ID service (optionnel)
 
         Returns:
             Publication result
@@ -290,7 +295,7 @@ Lien en bio! 🔗
             # TODO: Implémenter TikTok Creator API
             # POST /share/video/upload/
 
-            logger.info("tiktok_post_initiated", user_id=user_id, product_id=product_id)
+            logger.info("tiktok_post_initiated", user_id=user_id, product_id=product_id, service_id=service_id)
 
             post_id = f"tiktok_{datetime.utcnow().timestamp()}"
 
@@ -298,6 +303,7 @@ Lien en bio! 🔗
             await self._save_publication(
                 user_id=user_id,
                 product_id=product_id,
+                service_id=service_id,
                 platform="tiktok",
                 post_type="video",
                 post_id=post_id,
@@ -324,11 +330,12 @@ Lien en bio! 🔗
     async def publish_to_facebook(
         self,
         user_id: str,
-        product_id: str,
+        product_id: Optional[str],
         affiliate_link: str,
         image_url: str,
         caption_data: Dict,
-        target_type: str = "page"  # page ou group
+        target_type: str = "page",  # page ou group
+        service_id: Optional[str] = None
     ) -> Dict:
         """
         Publier sur Facebook (Page ou Groupe)
@@ -344,13 +351,14 @@ Lien en bio! 🔗
             # POST /{page-id}/photos
             # POST /{group-id}/feed
 
-            logger.info("facebook_post_initiated", user_id=user_id, product_id=product_id)
+            logger.info("facebook_post_initiated", user_id=user_id, product_id=product_id, service_id=service_id)
 
             post_id = f"fb_{datetime.utcnow().timestamp()}"
 
             await self._save_publication(
                 user_id=user_id,
                 product_id=product_id,
+                service_id=service_id,
                 platform="facebook",
                 post_type=target_type,
                 post_id=post_id,
@@ -377,20 +385,22 @@ Lien en bio! 🔗
     async def publish_to_all_platforms(
         self,
         user_id: str,
-        product_id: str,
+        product_id: Optional[str],
         affiliate_link: str,
         media_urls: Dict,  # {platform: url}
-        platforms: List[str] = None
+        platforms: List[str] = None,
+        service_id: Optional[str] = None
     ) -> Dict:
         """
         Publier sur tous les réseaux sociaux de l'influenceur
 
         Args:
             user_id: ID influenceur
-            product_id: ID produit
+            product_id: ID produit (optionnel)
             affiliate_link: Lien affiliation généré
             media_urls: URLs des médias par plateforme
             platforms: Liste des plateformes (None = toutes)
+            service_id: ID service (optionnel)
 
         Returns:
             {
@@ -400,11 +410,19 @@ Lien en bio! 🔗
             }
         """
         try:
-            # Récupérer info produit
-            product = await self._get_product(product_id)
-
-            if not product:
-                raise Exception("Product not found")
+            # Récupérer info produit ou service
+            item = None
+            item_type = "product"
+            
+            if product_id:
+                item = await self._get_product(product_id)
+                item_type = "product"
+            elif service_id:
+                item = await self._get_service(service_id)
+                item_type = "service"
+            
+            if not item:
+                raise Exception("Item (Product or Service) not found")
 
             # Récupérer comptes sociaux actifs
             if platforms is None:
@@ -416,13 +434,16 @@ Lien en bio! 🔗
                 "failed": [],
                 "total": len(platforms)
             }
+            
+            name = item.get("name") if item_type == "product" else item.get("title")
+            description = item.get("description", "")
 
             for platform in platforms:
                 try:
                     # Générer caption optimisée
                     caption_data = await self.generate_caption(
-                        product_name=product["name"],
-                        product_description=product.get("description", ""),
+                        product_name=name,
+                        product_description=description,
                         affiliate_link=affiliate_link,
                         platform=platform
                     )
@@ -433,6 +454,7 @@ Lien en bio! 🔗
                         result = await self.publish_to_instagram(
                             user_id=user_id,
                             product_id=product_id,
+                            service_id=service_id,
                             affiliate_link=affiliate_link,
                             image_url=media_url,
                             caption_data=caption_data
@@ -443,6 +465,7 @@ Lien en bio! 🔗
                         result = await self.publish_to_tiktok(
                             user_id=user_id,
                             product_id=product_id,
+                            service_id=service_id,
                             affiliate_link=affiliate_link,
                             video_url=media_url,
                             caption_data=caption_data
@@ -453,6 +476,7 @@ Lien en bio! 🔗
                         result = await self.publish_to_facebook(
                             user_id=user_id,
                             product_id=product_id,
+                            service_id=service_id,
                             affiliate_link=affiliate_link,
                             image_url=media_url,
                             caption_data=caption_data
@@ -475,6 +499,7 @@ Lien en bio! 🔗
             logger.info("multi_platform_publish_completed",
                        user_id=user_id,
                        product_id=product_id,
+                       service_id=service_id,
                        published=len(results["published"]),
                        failed=len(results["failed"]))
 
@@ -517,22 +542,36 @@ Lien en bio! 🔗
             logger.error("get_product_failed", product_id=product_id, error=str(e))
             return None
 
+    async def _get_service(self, service_id: str) -> Optional[Dict]:
+        """Récupérer détails service"""
+        try:
+            result = supabase.table('services').select('*').eq('id', service_id).execute()
+
+            if result.data:
+                return result.data[0]
+
+            return None
+
+        except Exception as e:
+            logger.error("get_service_failed", service_id=service_id, error=str(e))
+            return None
+
     async def _save_publication(
         self,
         user_id: str,
-        product_id: str,
         platform: str,
         post_type: str,
         post_id: str,
         caption: str,
         media_url: str,
-        affiliate_link: str
+        affiliate_link: str,
+        product_id: Optional[str] = None,
+        service_id: Optional[str] = None
     ):
         """Sauvegarder publication dans DB"""
         try:
-            supabase.table('social_media_publications').insert({
+            data = {
                 'user_id': user_id,
-                'product_id': product_id,
                 'platform': platform,
                 'post_type': post_type,
                 'platform_post_id': post_id,
@@ -541,7 +580,14 @@ Lien en bio! 🔗
                 'affiliate_link': affiliate_link,
                 'published_at': datetime.utcnow().isoformat(),
                 'created_at': datetime.utcnow().isoformat()
-            }).execute()
+            }
+            
+            if product_id:
+                data['product_id'] = product_id
+            if service_id:
+                data['service_id'] = service_id
+                
+            supabase.table('social_media_publications').insert(data).execute()
 
             logger.info("publication_saved", user_id=user_id, platform=platform, post_id=post_id)
 

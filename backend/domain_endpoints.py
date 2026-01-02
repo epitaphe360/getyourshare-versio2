@@ -600,7 +600,7 @@ async def get_domain_stats(current_user: dict = Depends(get_current_user)):
         subscription_response = supabase.from_("v_active_subscriptions") \
             .select("plan_max_domains") \
             .eq("user_id", company_id) \
-            .single() \
+                .single() \
             .execute()
 
         domain_limit = None
@@ -650,7 +650,6 @@ async def validate_redirect_url(
 
         # Extraire le domaine de l'URL
         from urllib.parse import urlparse
-from utils.logger import logger
         parsed = urlparse(url)
         domain = parsed.netloc.lower()
 
@@ -664,7 +663,7 @@ from utils.logger import logger
             .eq("domain", domain) \
             .eq("is_verified", True) \
             .eq("is_active", True) \
-            .single() \
+                .single() \
             .execute()
 
         if response.data:

@@ -8,6 +8,8 @@ import stripe
 from typing import Optional, Dict, Any
 from datetime import datetime
 from dotenv import load_dotenv
+from utils.logger import logger
+from supabase_client import supabase
 
 from subscription_helpers import (
     create_transaction, update_transaction_status,
@@ -238,8 +240,6 @@ class PaymentService:
                 else:
                     new_end = current_end + timedelta(days=365)
 
-                from supabase_client import supabase
-from utils.logger import logger
                 supabase.table("subscriptions").update({
                     "current_period_start": current_end.isoformat(),
                     "current_period_end": new_end.isoformat(),

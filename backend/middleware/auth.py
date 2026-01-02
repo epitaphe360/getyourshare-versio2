@@ -4,24 +4,23 @@ Gère la vérification des tokens JWT et le contrôle d'accès basé sur les rô
 """
 
 import os
+import sys
 import jwt
 from typing import List, Optional, Callable
 from functools import wraps
 from fastapi import HTTPException, Security, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from utils.logger import logger
 
 
 # Configuration JWT avec validation stricte
 SECRET_KEY = os.getenv("JWT_SECRET_KEY") or os.getenv("JWT_SECRET")
 if not SECRET_KEY:
-    import sys
     logger.info("🔴 ERREUR CRITIQUE: JWT_SECRET_KEY ou JWT_SECRET doit être défini dans .env")
     logger.info("   Variable manquante dans les variables d'environnement")
     sys.exit(1)
 
 if len(SECRET_KEY) < 32:
-    import sys
-from utils.logger import logger
     logger.info(f"⚠️  ATTENTION: SECRET_KEY trop court ({len(SECRET_KEY)} chars, minimum 32 requis)")
     logger.info("   Utilisez un secret plus long pour une sécurité optimale")
     sys.exit(1)
@@ -53,10 +52,13 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Security(security))
         
         # Vérifier que le payload contient les champs requis
         if "user_id" not in payload:
-            raise HTTPException(
-                status_code=401,
-                detail="Token invalide: user_id manquant"
-            )
+            if "sub" in payload:
+                payload["user_id"] = payload["sub"]
+            else:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Token invalide: user_id manquant"
+                )
         
         return payload
         

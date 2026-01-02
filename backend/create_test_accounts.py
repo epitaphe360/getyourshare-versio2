@@ -23,8 +23,7 @@ try:
         "password_hash": password_hash,
         "role": "admin",
         "is_active": True,
-        "email_verified": True,
-        "phone_verified": False,
+        "is_verified": True,
         "two_fa_enabled": False
     }
     result = supabase.table("users").insert(admin_data).execute()
@@ -72,8 +71,7 @@ for inf in influencers:
             "password_hash": password_hash,
             "role": "influencer",
             "is_active": True,
-            "email_verified": True,
-            "phone_verified": False,
+            "is_verified": True,
             "two_fa_enabled": False
         }
         user_result = supabase.table("users").insert(user_data).execute()
@@ -129,8 +127,7 @@ for mer in merchants:
             "password_hash": password_hash,
             "role": "merchant",
             "is_active": True,
-            "email_verified": True,
-            "phone_verified": False,
+            "is_verified": True,
             "two_fa_enabled": False
         }
         user_result = supabase.table("users").insert(user_data).execute()
@@ -159,8 +156,7 @@ try:
         "password_hash": password_hash,
         "role": "admin",  # Les roles valides sont: admin, merchant, influencer
         "is_active": True,
-        "email_verified": True,
-        "phone_verified": False,
+        "is_verified": True,
         "two_fa_enabled": False
     }
     result = supabase.table("users").insert(commercial_data).execute()
