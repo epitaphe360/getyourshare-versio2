@@ -1,6 +1,7 @@
 # ============================================
 # Root Dockerfile for Railway - Backend deployment
 # Updated to use run.py for proper PORT handling
+# Build ID: 2026-01-02-v2 (force cache invalidation)
 # ============================================
 
 FROM python:3.11-slim
@@ -13,13 +14,16 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1
 
+# Force cache bust for requirements
+ARG CACHEBUST=1
+
 # Copy requirements from backend directory (build context is root)
 COPY backend/requirements.txt ./
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all backend application files
+# Force rebuild of application files - timestamp: 2026-01-02T18:15:00
 COPY backend/ ./
 
 # Expose port 
