@@ -1,5 +1,6 @@
 # ============================================
-# Root Dockerfile for Railway - Monorepo setup - Production Ready
+# Root Dockerfile for Railway - Backend deployment
+# Updated to use run.py for proper PORT handling
 # ============================================
 
 FROM python:3.11-slim
@@ -18,19 +19,11 @@ COPY backend/requirements.txt ./
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy run script first (it handles PORT from env)
-COPY backend/run.py ./
-
 # Copy all backend application files
 COPY backend/ ./
 
 # Expose port 
 EXPOSE 8000
 
-# Health check endpoint verification
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:${PORT:-8000}/health', timeout=5)"
-
 # Use Python script for startup - handles PORT environment variable properly
 CMD ["python", "run.py"]
-
