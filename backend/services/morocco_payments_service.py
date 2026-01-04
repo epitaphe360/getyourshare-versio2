@@ -467,6 +467,318 @@ class OrangeMoneyGateway:
             }
 
 
+class InwiMoneyGateway:
+    """
+    Intégration Inwi Money Maroc
+    Mobile money wallet pour paiements via téléphone
+    """
+
+    def __init__(self, merchant_id: str, api_key: str, environment: str = "production"):
+        """
+        Initialise Inwi Money
+
+        Args:
+            merchant_id: ID marchand Inwi Money
+            api_key: Clé API
+            environment: 'production' ou 'test'
+        """
+        self.merchant_id = merchant_id
+        self.api_key = api_key
+        self.environment = environment
+
+        if environment == "production":
+            self.base_url = "https://api.inwi.ma/payment/v1"
+        else:
+            self.base_url = "https://sandbox.inwi.ma/payment/v1"
+
+    def create_payment(
+        self,
+        amount: float,
+        phone_number: str,
+        order_id: Optional[str] = None,
+        description: Optional[str] = None,
+        callback_url: Optional[str] = None
+    ) -> Dict[str, any]:
+        """
+        Crée un paiement Inwi Money
+
+        Args:
+            amount: Montant en MAD
+            phone_number: Numéro téléphone client (format: 06XXXXXXXX)
+            order_id: ID commande
+            description: Description paiement
+            callback_url: URL de callback
+
+        Returns:
+            Dict avec résultat de paiement
+        """
+        if not order_id:
+            order_id = f"INWI_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "X-Merchant-ID": self.merchant_id
+        }
+
+        # Format du numéro: retirer +212 et espaces
+        clean_phone = phone_number.replace("+212", "").replace(" ", "")
+
+        payload = {
+            "merchant_id": self.merchant_id,
+            "order_id": order_id,
+            "amount": float(amount),
+            "currency": "MAD",
+            "customer_phone": clean_phone,
+            "description": description or f"Paiement commande {order_id}",
+            "callback_url": callback_url or "",
+            "return_url": callback_url or "",
+            "language": "fr"
+        }
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/init",
+                json=payload,
+                headers=headers,
+                timeout=30
+            )
+
+            response.raise_for_status()
+            data = response.json()
+
+            logger.info(f"Inwi Money payment created: {order_id}")
+
+            return {
+                "success": True,
+                "transaction_id": data.get("transaction_id"),
+                "payment_url": data.get("payment_url"),
+                "order_id": order_id,
+                "status": data.get("status", "pending"),
+                "expires_at": data.get("expires_at")
+            }
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Inwi Money API error: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "order_id": order_id
+            }
+
+    def check_payment_status(self, transaction_id: str) -> Dict[str, any]:
+        """
+        Vérifie le statut d'un paiement Inwi Money
+
+        Args:
+            transaction_id: ID de transaction Inwi
+
+        Returns:
+            Dict avec statut du paiement
+        """
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "X-Merchant-ID": self.merchant_id
+        }
+
+        try:
+            response = requests.get(
+                f"{self.base_url}/status/{transaction_id}",
+                headers=headers,
+                timeout=30
+            )
+
+            response.raise_for_status()
+            data = response.json()
+
+            return {
+                "success": True,
+                "transaction_id": transaction_id,
+                "status": data.get("status"),
+                "amount": data.get("amount"),
+                "order_id": data.get("order_id")
+            }
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Inwi Money status check error: {e}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+
+class MarocTelecomCashGateway:
+    """
+    Intégration Maroc Telecom Cash (MT Cash)
+    Service de paiement mobile de Maroc Telecom
+    """
+
+    def __init__(self, merchant_code: str, api_key: str, secret_key: str, environment: str = "production"):
+        """
+        Initialise MT Cash
+
+        Args:
+            merchant_code: Code marchand MT Cash
+            api_key: Clé API
+            secret_key: Clé secrète pour signatures
+            environment: 'production' ou 'test'
+        """
+        self.merchant_code = merchant_code
+        self.api_key = api_key
+        self.secret_key = secret_key
+        self.environment = environment
+
+        if environment == "production":
+            self.base_url = "https://api.mtcash.ma/v2"
+        else:
+            self.base_url = "https://sandbox.mtcash.ma/v2"
+
+    def _generate_signature(self, params: Dict[str, str]) -> str:
+        """
+        Génère la signature HMAC-SHA256 pour MT Cash
+
+        Args:
+            params: Paramètres de la transaction
+
+        Returns:
+            Signature encodée
+        """
+        # Trier les paramètres par clé
+        sorted_params = sorted(params.items())
+
+        # Concaténer clé=valeur avec &
+        data_string = "&".join([f"{k}={v}" for k, v in sorted_params])
+
+        # HMAC-SHA256
+        signature = hmac.new(
+            self.secret_key.encode('utf-8'),
+            data_string.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+
+        return signature
+
+    def create_payment(
+        self,
+        amount: float,
+        phone_number: str,
+        order_id: Optional[str] = None,
+        description: Optional[str] = None,
+        callback_url: Optional[str] = None
+    ) -> Dict[str, any]:
+        """
+        Crée un paiement MT Cash
+
+        Args:
+            amount: Montant en MAD
+            phone_number: Numéro téléphone client (format: 06XXXXXXXX ou 07XXXXXXXX)
+            order_id: ID commande
+            description: Description paiement
+            callback_url: URL de callback
+
+        Returns:
+            Dict avec résultat de paiement
+        """
+        if not order_id:
+            order_id = f"MTCASH_{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+        # Format du numéro
+        clean_phone = phone_number.replace("+212", "").replace(" ", "")
+
+        # Paramètres pour signature
+        params = {
+            "merchant_code": self.merchant_code,
+            "order_id": order_id,
+            "amount": str(int(amount * 100)),  # Montant en centimes
+            "currency": "MAD",
+            "customer_phone": clean_phone,
+            "timestamp": datetime.now().isoformat()
+        }
+
+        # Générer signature
+        signature = self._generate_signature(params)
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "X-Signature": signature
+        }
+
+        payload = {
+            **params,
+            "description": description or f"Paiement {order_id}",
+            "callback_url": callback_url or "",
+            "return_url": callback_url or "",
+            "language": "fr"
+        }
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/payments/create",
+                json=payload,
+                headers=headers,
+                timeout=30
+            )
+
+            response.raise_for_status()
+            data = response.json()
+
+            logger.info(f"MT Cash payment created: {order_id}")
+
+            return {
+                "success": True,
+                "transaction_id": data.get("transaction_id"),
+                "payment_token": data.get("payment_token"),
+                "payment_url": data.get("payment_url"),
+                "order_id": order_id,
+                "status": data.get("status", "initiated"),
+                "qr_code": data.get("qr_code_url"),  # MT Cash supporte les QR codes
+                "expires_at": data.get("expires_at")
+            }
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"MT Cash API error: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "order_id": order_id
+            }
+
+    def verify_callback(self, response_data: Dict[str, str]) -> Dict[str, any]:
+        """
+        Vérifie le callback MT Cash
+
+        Args:
+            response_data: Données reçues du callback
+
+        Returns:
+            Dict avec statut de validation
+        """
+        received_signature = response_data.get("signature", "")
+
+        # Retirer la signature pour recalculer
+        params_to_verify = {k: v for k, v in response_data.items() if k != "signature"}
+
+        # Recalculer signature
+        calculated_signature = self._generate_signature(params_to_verify)
+
+        is_valid = (received_signature == calculated_signature)
+
+        # Statut transaction
+        transaction_status = response_data.get("status", "")
+        success = (is_valid and transaction_status == "completed")
+
+        return {
+            "valid": is_valid,
+            "success": success,
+            "order_id": response_data.get("order_id"),
+            "transaction_id": response_data.get("transaction_id"),
+            "amount": float(response_data.get("amount", 0)) / 100,
+            "status": transaction_status,
+            "raw_data": response_data
+        }
+
+
 class MoroccoPaymentService:
     """
     Service unifié pour tous les paiements Maroc
@@ -481,12 +793,16 @@ class MoroccoPaymentService:
                 {
                     "cmi": {"store_key": "...", "client_id": "..."},
                     "payzen": {"shop_id": "...", "secret_key": "..."},
-                    "orange_money": {"merchant_code": "...", "api_key": "..."}
+                    "orange_money": {"merchant_code": "...", "api_key": "..."},
+                    "inwi_money": {"merchant_id": "...", "api_key": "..."},
+                    "maroc_telecom": {"merchant_code": "...", "api_key": "...", "secret_key": "..."}
                 }
         """
         self.cmi = None
         self.payzen = None
         self.orange_money = None
+        self.inwi_money = None
+        self.maroc_telecom = None
 
         # Initialiser les gateways disponibles
         if "cmi" in config:
@@ -498,6 +814,12 @@ class MoroccoPaymentService:
         if "orange_money" in config:
             self.orange_money = OrangeMoneyGateway(**config["orange_money"])
 
+        if "inwi_money" in config:
+            self.inwi_money = InwiMoneyGateway(**config["inwi_money"])
+
+        if "maroc_telecom" in config:
+            self.maroc_telecom = MarocTelecomCashGateway(**config["maroc_telecom"])
+
     def create_payment(
         self,
         provider: str,
@@ -508,7 +830,7 @@ class MoroccoPaymentService:
         Crée un paiement avec le provider spécifié
 
         Args:
-            provider: 'cmi', 'payzen', ou 'orange_money'
+            provider: 'cmi', 'payzen', 'orange_money', 'inwi_money', ou 'maroc_telecom'
             amount: Montant en MAD
             **kwargs: Paramètres spécifiques au provider
 
@@ -521,6 +843,10 @@ class MoroccoPaymentService:
             return self.payzen.create_payment(amount, **kwargs)
         elif provider == "orange_money" and self.orange_money:
             return self.orange_money.create_payment(amount, **kwargs)
+        elif provider == "inwi_money" and self.inwi_money:
+            return self.inwi_money.create_payment(amount, **kwargs)
+        elif provider == "maroc_telecom" and self.maroc_telecom:
+            return self.maroc_telecom.create_payment(amount, **kwargs)
         else:
             return {
                 "success": False,
@@ -532,7 +858,7 @@ class MoroccoPaymentService:
         Vérifie un callback de paiement
 
         Args:
-            provider: 'cmi', 'payzen', ou 'orange_money'
+            provider: 'cmi', 'payzen', 'orange_money', 'inwi_money', ou 'maroc_telecom'
             response_data: Données reçues
 
         Returns:
@@ -542,8 +868,30 @@ class MoroccoPaymentService:
             return self.cmi.verify_callback(response_data)
         elif provider == "payzen" and self.payzen:
             return self.payzen.verify_callback(response_data)
+        elif provider == "maroc_telecom" and self.maroc_telecom:
+            return self.maroc_telecom.verify_callback(response_data)
         else:
             return {
                 "valid": False,
                 "error": f"Provider {provider} not configured"
             }
+
+    def get_available_providers(self) -> List[str]:
+        """
+        Retourne la liste des providers configurés et disponibles
+
+        Returns:
+            Liste des noms de providers disponibles
+        """
+        providers = []
+        if self.cmi:
+            providers.append("cmi")
+        if self.payzen:
+            providers.append("payzen")
+        if self.orange_money:
+            providers.append("orange_money")
+        if self.inwi_money:
+            providers.append("inwi_money")
+        if self.maroc_telecom:
+            providers.append("maroc_telecom")
+        return providers
