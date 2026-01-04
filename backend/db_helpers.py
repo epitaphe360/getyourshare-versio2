@@ -9,6 +9,11 @@ from datetime import datetime
 import bcrypt
 import sys
 from utils.logger import logger
+from utils.db_calculations_fixed import (
+    get_service_total_leads,
+    calculate_monthly_growth,
+    get_merchant_stats_real
+)
 
 # ============================================
 # USERS
@@ -424,8 +429,14 @@ def get_all_services(
                 
             # Champs manquants dans la DB mais attendus par le frontend
             service["capacity_per_month"] = service.get("capacity", 100) # Valeur par défaut
-            service["total_leads"] = 0 # À calculer via une jointure avec la table leads si elle existe
-            
+
+            # Calcul réel du nombre de leads depuis la DB
+            try:
+                service["total_leads"] = get_service_total_leads(supabase, service["id"])
+            except Exception as e:
+                logger.error(f"Error calculating total_leads for service {service.get('id')}: {e}")
+                service["total_leads"] = 0
+
             if service.get("merchants"):
                 service["merchant"] = service["merchants"]
         
