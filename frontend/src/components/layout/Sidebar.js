@@ -255,6 +255,16 @@ const Sidebar = () => {
         ],
       },
       {
+        title: 'Services Intégrés',
+        icon: <Zap size={20} />,
+        path: '/services-integres',
+      },
+      {
+        title: translations.integrations,
+        icon: <Zap size={20} />,
+        path: '/integrations',
+      },
+      {
         title: translations.subscription,
         icon: <Zap size={20} />,
         path: '/subscription',
@@ -410,6 +420,31 @@ const Sidebar = () => {
         path: '/integrations',
       },
       {
+        title: 'Services Intégrés',
+        icon: <Zap size={20} />,
+        path: '/services-integres',
+      },
+      {
+        title: 'Analytics Dashboard',
+        icon: <TrendingUp size={20} />,
+        path: '/admin/analytics',
+      },
+      {
+        title: 'Rapports Avancés',
+        icon: <FileText size={20} />,
+        path: '/reports/advanced',
+      },
+      {
+        title: 'Campagnes Email',
+        icon: <MessageSquare size={20} />,
+        path: '/email/campaigns',
+      },
+      {
+        title: 'API Documentation',
+        icon: <FileText size={20} />,
+        path: '/api/docs',
+      },
+      {
         title: translations.platform_subscriptions,
         icon: <CreditCard size={20} />,
         path: '/admin/subscriptions',
@@ -449,6 +484,7 @@ const Sidebar = () => {
           { title: translations.security, path: '/settings/security' },
           { title: translations.company, path: '/settings/company' },
           { title: translations.platform, path: '/settings/platform' },
+          { title: 'Paramètres Avancés', path: '/settings/advanced' },
           { title: translations.affiliates, path: '/settings/affiliates' },
           { title: translations.registration, path: '/settings/registration' },
           { title: translations.mlm, path: '/settings/mlm' },
