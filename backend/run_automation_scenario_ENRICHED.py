@@ -480,10 +480,10 @@ def run_scenario():
                 user_webhooks = supabase.table('webhooks').select('id').eq('user_id', uid).execute()
                 for wh in user_webhooks.data:
                     try: supabase.table('webhook_logs').delete().eq('webhook_id', wh['id']).execute()
-                    except: pass
+                    except Exception: pass  # Cleanup - ignore errors
                 try: supabase.table('webhooks').delete().eq('user_id', uid).execute()
-                except: pass
-            except: pass
+                except Exception: pass  # Cleanup - ignore errors
+            except Exception: pass  # Cleanup - ignore errors
 
             # Nettoyage des produits et leurs liens d'abord
             try:
@@ -497,24 +497,24 @@ def run_scenario():
                         for t, col in tables_level2:
                             if col == 'tracking_link_id':
                                 try: supabase.table(t).delete().eq(col, l_id).execute()
-                                except: pass
+                                except Exception: pass  # Cleanup - ignore errors
                         try: supabase.table('tracking_links').delete().eq('id', l_id).execute()
-                        except: pass
+                        except Exception: pass  # Cleanup - ignore errors
                     
                     # Nettoyer les autres refs au produit
                     try: supabase.table('conversions').delete().eq('product_id', p_id).execute()
-                    except: pass
+                    except Exception: pass  # Cleanup - ignore errors
                     try: supabase.table('product_reviews').delete().eq('product_id', p_id).execute()
-                    except: pass
+                    except Exception: pass  # Cleanup - ignore errors
                     try: supabase.table('affiliation_requests').delete().eq('product_id', p_id).execute()
-                    except: pass
+                    except Exception: pass  # Cleanup - ignore errors
                     try: supabase.table('social_media_publications').delete().eq('product_id', p_id).execute()
-                    except: pass
+                    except Exception: pass  # Cleanup - ignore errors
                     
                     # Enfin le produit
                     try: supabase.table('products').delete().eq('id', p_id).execute()
-                    except: pass
-            except: pass
+                    except Exception: pass  # Cleanup - ignore errors
+            except Exception: pass  # Cleanup - ignore errors
 
             # Nettoyage des campagnes
             try:
@@ -522,10 +522,10 @@ def run_scenario():
                 for c in campaigns.data:
                     c_id = c['id']
                     try: supabase.table('campaign_influencers').delete().eq('campaign_id', c_id).execute()
-                    except: pass
+                    except Exception: pass  # Cleanup - ignore errors
                     try: supabase.table('campaigns').delete().eq('id', c_id).execute()
-                    except: pass
-            except: pass
+                    except Exception: pass  # Cleanup - ignore errors
+            except Exception: pass  # Cleanup - ignore errors
 
             # Nettoyage des services
             try:
@@ -533,10 +533,10 @@ def run_scenario():
                 for s in services.data:
                     s_id = s['id']
                     try: supabase.table('leads').delete().eq('service_id', s_id).execute()
-                    except: pass
+                    except Exception: pass  # Cleanup - ignore errors
                     try: supabase.table('services').delete().eq('id', s_id).execute()
-                    except: pass
-            except: pass
+                    except Exception: pass  # Cleanup - ignore errors
+            except Exception: pass  # Cleanup - ignore errors
 
             # Nettoyage des intégrations
             try:
@@ -544,10 +544,10 @@ def run_scenario():
                 for i in integrations.data:
                     i_id = i['id']
                     try: supabase.table('integration_sync_logs').delete().eq('integration_id', i_id).execute()
-                    except: pass
+                    except Exception: pass  # Cleanup - ignore errors
                     try: supabase.table('integrations').delete().eq('id', i_id).execute()
-                    except: pass
-            except: pass
+                    except Exception: pass  # Cleanup - ignore errors
+            except Exception: pass  # Cleanup - ignore errors
 
             # Nettoyage des tracking links orphelins de l'utilisateur
             try:
@@ -555,14 +555,14 @@ def run_scenario():
                 for l in user_links.data:
                     l_id = l['id']
                     try: supabase.table('qr_scan_events').delete().eq('tracking_link_id', l_id).execute()
-                    except: pass
+                    except Exception: pass  # Cleanup - ignore errors
                     try: supabase.table('tracking_events').delete().eq('tracking_link_id', l_id).execute()
-                    except: pass
+                    except Exception: pass  # Cleanup - ignore errors
                     try: supabase.table('conversions').delete().eq('tracking_link_id', l_id).execute()
-                    except: pass
+                    except Exception: pass  # Cleanup - ignore errors
                     try: supabase.table('tracking_links').delete().eq('id', l_id).execute()
-                    except: pass
-            except: pass
+                    except Exception: pass  # Cleanup - ignore errors
+            except Exception: pass  # Cleanup - ignore errors
 
             # Nettoyage des tables de niveau 1
             for t, col in tables_level1:
