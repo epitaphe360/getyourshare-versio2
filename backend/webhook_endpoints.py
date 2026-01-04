@@ -7,6 +7,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from supabase_config import get_supabase_client
+from utils.error_handler import handle_error, ErrorCategory, ErrorSeverity
 import json
 
 router = APIRouter()
@@ -93,7 +94,14 @@ async def get_webhook_logs(
             "by_source": by_source
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+        error_response = handle_error(
+            e,
+            category=ErrorCategory.DATABASE,
+            severity=ErrorSeverity.MEDIUM,
+            user_friendly_message="Erreur lors de la récupération des logs de webhooks",
+            context={"source": source, "event_type": event_type, "status": status}
+        )
+        raise HTTPException(status_code=500, detail=error_response["message"])
 
 # ============================================
 # GET /api/webhooks/stats
@@ -193,7 +201,14 @@ async def get_webhook_stats(
             "recent_errors": recent_errors
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+        error_response = handle_error(
+            e,
+            category=ErrorCategory.DATABASE,
+            severity=ErrorSeverity.MEDIUM,
+            user_friendly_message="Erreur lors de la récupération des statistiques",
+            context={"period": period}
+        )
+        raise HTTPException(status_code=500, detail=error_response["message"])
 
 # ============================================
 # POST /api/webhooks/test
@@ -224,7 +239,14 @@ async def test_webhook(request: TestWebhookRequest):
             "log": result.data[0] if result.data else None
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+        error_response = handle_error(
+            e,
+            category=ErrorCategory.DATABASE,
+            severity=ErrorSeverity.LOW,
+            user_friendly_message="Erreur lors de la création du webhook de test",
+            context={"event_type": request.event_type, "source": request.source}
+        )
+        raise HTTPException(status_code=500, detail=error_response["message"])
 
 # ============================================
 # POST /api/webhooks/stripe
@@ -396,7 +418,14 @@ async def get_webhook_log_details(log_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+        error_response = handle_error(
+            e,
+            category=ErrorCategory.DATABASE,
+            severity=ErrorSeverity.MEDIUM,
+            user_friendly_message="Erreur lors de la récupération des détails du log",
+            context={"log_id": log_id}
+        )
+        raise HTTPException(status_code=500, detail=error_response["message"])
 
 # ============================================
 # POST /api/webhooks/retry/{log_id}
@@ -442,7 +471,14 @@ async def retry_webhook(log_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+        error_response = handle_error(
+            e,
+            category=ErrorCategory.DATABASE,
+            severity=ErrorSeverity.MEDIUM,
+            user_friendly_message="Erreur lors de la réexécution du webhook",
+            context={"log_id": log_id}
+        )
+        raise HTTPException(status_code=500, detail=error_response["message"])
 
 # ============================================
 # DELETE /api/webhooks/logs/old
@@ -486,4 +522,11 @@ async def cleanup_old_logs(
             "cutoff_date": cutoff_date
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erreur: {str(e)}")
+        error_response = handle_error(
+            e,
+            category=ErrorCategory.DATABASE,
+            severity=ErrorSeverity.LOW,
+            user_friendly_message="Erreur lors du nettoyage des logs",
+            context={"days": days}
+        )
+        raise HTTPException(status_code=500, detail=error_response["message"])
