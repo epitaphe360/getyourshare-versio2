@@ -161,6 +161,9 @@ const AdvancedPlatformSettings = lazy(() => import('./pages/settings/AdvancedPla
 const EmailCampaigns = lazy(() => import('./pages/email/EmailCampaigns'));
 const APIDocs = lazy(() => import('./pages/api/APIDocs'));
 
+// ---------- Phase 3-7 - Integrated Services (NEW!) ----------
+const IntegratedServices = lazy(() => import('./pages/IntegratedServices'));
+
 // ---------- Company & Subscription ----------
 const SubscriptionDashboard = lazy(() => import('./pages/company/SubscriptionDashboard'));
 const SubscriptionManagement = lazy(() => import('./pages/subscription/SubscriptionManagement'));
@@ -907,6 +910,14 @@ function App() {
             element={
               <RoleProtectedRoute allowedRoles={['admin', 'merchant']}>
                 <IntegrationsHub />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/services-integres"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin', 'merchant']}>
+                <IntegratedServices />
               </RoleProtectedRoute>
             }
           />

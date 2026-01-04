@@ -601,6 +601,7 @@ from reports_endpoints import router as reports_router
 from notifications_endpoints import router as notifications_router
 from integrations_endpoints import router as integrations_router
 from advanced_features_endpoints import settings_router, email_router, api_router
+from integrated_services import router as integrated_services_router  # NOUVEAUX SERVICES PHASES 3-7
 
 # Include all routers in the app
 app.include_router(marketplace_router)
@@ -627,6 +628,9 @@ app.include_router(settings_router)  # Platform settings & SMTP
 app.include_router(email_router)  # Email marketing campaigns
 app.include_router(api_router)  # Public API & documentation
 app.include_router(support_router)  # Support Tickets
+
+# 🎉 NOUVEAUX SERVICES INTÉGRÉS - PHASES 3-7
+app.include_router(integrated_services_router)  # Email, Push, SMS, Social, E-commerce, IA, KYC
 
 # Nouveaux routers - 6 Features Marketables
 app.include_router(websocket_router)
