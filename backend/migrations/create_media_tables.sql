@@ -6,7 +6,7 @@
 -- Table 1: Connexions aux plateformes sociales
 CREATE TABLE IF NOT EXISTS media_platforms (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     platform VARCHAR(50) NOT NULL CHECK (platform IN ('instagram', 'twitter', 'linkedin', 'facebook', 'tiktok')),
     account_name VARCHAR(255),
     account_id VARCHAR(255) NOT NULL,
@@ -28,7 +28,7 @@ CREATE INDEX idx_media_platforms_active ON media_platforms(is_active) WHERE is_a
 -- Table 2: Templates de prompts
 CREATE TABLE IF NOT EXISTS media_templates (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     platform VARCHAR(50) NOT NULL CHECK (platform IN ('instagram', 'twitter', 'linkedin', 'facebook', 'tiktok')),
@@ -53,7 +53,7 @@ CREATE INDEX idx_media_templates_public ON media_templates(is_public) WHERE is_p
 -- Table 3: Contenu généré
 CREATE TABLE IF NOT EXISTS media_generated_content (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     template_id INTEGER REFERENCES media_templates(id) ON DELETE SET NULL,
     platform VARCHAR(50) NOT NULL CHECK (platform IN ('instagram', 'twitter', 'linkedin', 'facebook', 'tiktok')),
     prompt TEXT NOT NULL,
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS media_generated_content (
     engagement_prediction INTEGER CHECK (engagement_prediction >= 0 AND engagement_prediction <= 100),
     status VARCHAR(50) DEFAULT 'draft' CHECK (status IN ('draft', 'approved', 'scheduled', 'published', 'rejected')),
     approved_at TIMESTAMP,
-    approved_by INTEGER REFERENCES users(id),
+    approved_by UUID REFERENCES users(id),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -80,7 +80,7 @@ CREATE INDEX idx_media_content_created ON media_generated_content(created_at DES
 -- Table 4: Publications planifiées
 CREATE TABLE IF NOT EXISTS media_scheduled_posts (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content_id INTEGER REFERENCES media_generated_content(id) ON DELETE CASCADE,
     platform_id INTEGER NOT NULL REFERENCES media_platforms(id) ON DELETE CASCADE,
     platform VARCHAR(50) NOT NULL CHECK (platform IN ('instagram', 'twitter', 'linkedin', 'facebook', 'tiktok')),
@@ -111,7 +111,7 @@ CREATE INDEX idx_media_posts_due ON media_scheduled_posts(scheduled_time) WHERE 
 CREATE TABLE IF NOT EXISTS media_analytics (
     id SERIAL PRIMARY KEY,
     scheduled_post_id INTEGER NOT NULL REFERENCES media_scheduled_posts(id) ON DELETE CASCADE,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     platform VARCHAR(50) NOT NULL CHECK (platform IN ('instagram', 'twitter', 'linkedin', 'facebook', 'tiktok')),
     platform_post_id VARCHAR(255),
     views INTEGER DEFAULT 0,
@@ -156,7 +156,7 @@ CREATE INDEX idx_media_queue_next_attempt ON media_publishing_queue(next_attempt
 -- Table 7: États OAuth
 CREATE TABLE IF NOT EXISTS media_oauth_states (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     platform VARCHAR(50) NOT NULL CHECK (platform IN ('instagram', 'twitter', 'linkedin', 'facebook', 'tiktok')),
     state_token VARCHAR(255) NOT NULL UNIQUE,
     code_verifier VARCHAR(255),
