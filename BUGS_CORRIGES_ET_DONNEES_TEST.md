@@ -126,6 +126,22 @@ setAffiliates(response.data.data || []);
 
 ---
 
+### 7. Facturation - Erreur de téléchargement de facture
+
+**Fichier**: `backend/server.py`, `backend/invoice_service.py`
+
+**Problème**:
+- Endpoint `/api/invoices/{invoice_id}/download` retournait 501 Not Implemented
+- Crash du serveur dû à une erreur de syntaxe dans `invoice_service.py`
+
+**Correction**:
+- Implémentation de la logique de téléchargement PDF dans `server.py`
+- Correction de l'indentation et de l'import dans `invoice_service.py`
+
+**Impact**: ✅ Les annonceurs peuvent télécharger leurs factures PDF
+
+---
+
 ## ⚡ AMÉLIORATIONS DE PERFORMANCE
 
 ### 6. Index SQL manquants

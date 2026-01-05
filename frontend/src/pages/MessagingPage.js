@@ -430,7 +430,7 @@ const MessagingPage = () => {
                     <p>• Posez vos questions sur les campagnes</p>
                     <p>• Négociez vos conditions de collaboration</p>
                     <div className="mt-4">
-                      <Button disabled={loading} onClick={() => navigate('/marketplace', { state: { fromDashboard: true } })}>
+                      <Button disabled={loading} onClick={() => navigate('/dashboard/marketplace', { state: { fromDashboard: true } })}>
                         Découvrir les Campagnes
                       </Button>
                     </div>

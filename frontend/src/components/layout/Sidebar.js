@@ -22,7 +22,13 @@ import {
   Zap,
   MessageSquare,
   Shield,
-  Languages
+  Languages,
+  Calculator,
+  Receipt,
+  CreditCard,
+  HelpCircle,
+  Sparkles,
+  Radio
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -38,6 +44,7 @@ const Sidebar = () => {
     affiliates: false,
     logs: false,
     settings: false,
+    fiscal: false,
   });
 
   const handleLogout = () => {
@@ -107,6 +114,18 @@ const Sidebar = () => {
       permissions: t('nav_permissions') || 'Permissions',
       users: t('nav_users') || 'Utilisateurs',
       white_label: t('nav_white_label') || 'White Label',
+      // Fiscal Module - Complete System
+      fiscal: 'Fiscalité & Compta',
+      fiscal_dashboard: 'Tableau de Bord',
+      fiscal_invoices: 'Créer Facture',
+      fiscal_vat_calculator: 'Calculateur TVA',
+      fiscal_vat_declare: 'Déclaration TVA',
+      fiscal_accounting: 'Export Comptable',
+      fiscal_settings: 'Paramètres Fiscaux',
+      // Invoices Module
+      invoices: 'Facturation',
+      invoices_influencers: 'Factures Influenceurs',
+      invoices_commercials: 'Factures Commerciaux',
     };
     // Menu pour INFLUENCER - Simplifié et focalisé
     const influencerMenu = [
@@ -128,7 +147,17 @@ const Sidebar = () => {
       {
         title: translations.marketplace,
         icon: <ShoppingCart size={20} />,
-        path: '/marketplace',
+        path: '/dashboard/marketplace',
+      },
+      {
+        title: 'Générateur IA PRO',
+        icon: <Sparkles size={20} />,
+        path: '/ai-content-pro',
+      },
+      {
+        title: 'Automation Média',
+        icon: <Radio size={20} />,
+        path: '/media-automation',
       },
       {
         title: translations.my_campaigns,
@@ -153,6 +182,16 @@ const Sidebar = () => {
         title: translations.subscription,
         icon: <Zap size={20} />,
         path: '/subscription',
+      },
+      {
+        title: translations.fiscal,
+        icon: <Calculator size={20} />,
+        submenu: 'fiscal',
+        items: [
+          { title: translations.fiscal_dashboard, path: '/fiscal/influencer' },
+          { title: translations.fiscal_vat_calculator, path: '/fiscal/vat/calculator' },
+          { title: translations.fiscal_settings, path: '/fiscal/settings' },
+        ],
       },
       {
         title: translations.settings,
@@ -186,6 +225,21 @@ const Sidebar = () => {
         title: translations.my_products,
         icon: <ShoppingCart size={20} />,
         path: '/products',
+      },
+      {
+        title: translations.services,
+        icon: <Briefcase size={20} />,
+        path: '/services',
+      },
+      {
+        title: 'Générateur IA PRO',
+        icon: <Sparkles size={20} />,
+        path: '/ai-content-pro',
+      },
+      {
+        title: 'Automation Média',
+        icon: <Radio size={20} />,
+        path: '/media-automation',
       },
       {
         title: translations.my_campaigns,
@@ -223,14 +277,33 @@ const Sidebar = () => {
         ],
       },
       {
-        title: translations.marketplace,
-        icon: <ShoppingCart size={20} />,
-        path: '/marketplace',
+        title: 'Services Intégrés',
+        icon: <Zap size={20} />,
+        path: '/services-integres',
+      },
+      {
+        title: translations.integrations,
+        icon: <Zap size={20} />,
+        path: '/integrations',
       },
       {
         title: translations.subscription,
         icon: <Zap size={20} />,
         path: '/subscription',
+      },
+      {
+        title: translations.fiscal,
+        icon: <Calculator size={20} />,
+        submenu: 'fiscal',
+        items: [
+          { title: translations.fiscal_dashboard, path: '/fiscal/merchant' },
+          { title: translations.fiscal_invoices, path: '/fiscal/invoice/new' },
+          { title: translations.fiscal_vat_calculator, path: '/fiscal/vat/calculator' },
+          { title: translations.fiscal_vat_declare, path: '/fiscal/vat/declare' },
+          { title: translations.fiscal_accounting, path: '/fiscal/accounting/export' },
+          { title: translations.invoices_influencers, path: '/invoices/influencers' },
+          { title: translations.fiscal_settings, path: '/fiscal/settings' },
+        ],
       },
       {
         title: translations.settings,
@@ -250,11 +323,6 @@ const Sidebar = () => {
     // Menu pour ADMIN - Complet avec toutes les fonctionnalités
     const adminMenu = [
       {
-        title: translations.getting_started,
-        icon: <Newspaper size={20} />,
-        path: '/getting-started',
-      },
-      {
         title: translations.dashboard,
         icon: <LayoutDashboard size={20} />,
         path: '/dashboard',
@@ -265,23 +333,22 @@ const Sidebar = () => {
         path: '/messages',
       },
       {
-        title: translations.news,
-        icon: <Newspaper size={20} />,
-        path: '/news',
+        title: 'Modération & Support',
+        icon: <HelpCircle size={20} />,
+        path: '/support',
       },
-      // ========== SECTION ANNONCEURS ==========
+      // ========== SECTION MARCHANDS & CAMPAGNES ==========
       {
         section: true,
-        title: 'Gestion Annonceurs',
+        title: 'Gestion Marchands',
       },
       {
-        title: translations.advertisers,
+        title: 'Marchands',
         icon: <Users size={20} />,
         submenu: 'advertisers',
         items: [
-          { title: translations.list, path: '/advertisers' },
-          { title: translations.registrations, path: '/advertisers/registrations' },
-          { title: translations.billing, path: '/advertisers/billing' },
+          { title: 'Liste marchands', path: '/admin/merchants' },
+          { title: 'Demandes inscription', path: '/admin/registration-requests' },
         ],
       },
       {
@@ -307,10 +374,10 @@ const Sidebar = () => {
       {
         title: translations.marketplace,
         icon: <ShoppingCart size={20} />,
-        path: '/marketplace',
+        path: '/dashboard/marketplace',
       },
       {
-        title: translations.moderation,
+        title: 'Modération IA',
         icon: <Shield size={20} />,
         path: '/admin/moderation',
       },
@@ -375,9 +442,65 @@ const Sidebar = () => {
         path: '/integrations',
       },
       {
-        title: translations.platform_subscriptions,
+        title: 'Services Intégrés',
         icon: <Zap size={20} />,
-        path: '/subscription',
+        path: '/services-integres',
+      },
+      {
+        title: 'Générateur IA PRO',
+        icon: <Sparkles size={20} />,
+        path: '/ai-content-pro',
+      },
+      {
+        title: 'Automation Média',
+        icon: <Radio size={20} />,
+        path: '/media-automation',
+      },
+      {
+        title: 'Analytics Dashboard',
+        icon: <TrendingUp size={20} />,
+        path: '/admin/analytics',
+      },
+      {
+        title: 'Rapports Avancés',
+        icon: <FileText size={20} />,
+        path: '/reports/advanced',
+      },
+      {
+        title: 'Campagnes Email',
+        icon: <MessageSquare size={20} />,
+        path: '/email/campaigns',
+      },
+      {
+        title: 'API Documentation',
+        icon: <FileText size={20} />,
+        path: '/api/docs',
+      },
+      {
+        title: translations.platform_subscriptions,
+        icon: <CreditCard size={20} />,
+        path: '/admin/subscriptions',
+      },
+      // ========== SECTION FISCALE ==========
+      {
+        section: true,
+        title: 'Fiscalité (MA/FR/US)',
+      },
+      {
+        title: 'Fiscalité & Compta',
+        icon: <Calculator size={20} />,
+        submenu: 'fiscal',
+        items: [
+          { title: translations.fiscal_dashboard, path: '/fiscal/admin' },
+          { title: 'Facturation', path: '/advertisers/billing' },
+          { title: translations.fiscal_invoices, path: '/fiscal/invoice/new' },
+          { title: translations.fiscal_vat_calculator, path: '/fiscal/vat/calculator' },
+          { title: translations.fiscal_vat_declare, path: '/fiscal/vat/declare' },
+          { title: translations.fiscal_accounting, path: '/fiscal/accounting/export' },
+          { title: translations.invoices_influencers, path: '/invoices/influencers' },
+          { title: translations.invoices_commercials, path: '/invoices/commercials' },
+          { title: translations.fiscal_settings, path: '/fiscal/settings' },
+        ],
       },
       // ========== SECTION CONFIGURATION ==========
       {
@@ -385,7 +508,7 @@ const Sidebar = () => {
         title: 'Configuration',
       },
       {
-        title: translations.settings,
+        title: 'Paramètres',
         icon: <Settings size={20} />,
         submenu: 'settings',
         items: [
@@ -393,6 +516,7 @@ const Sidebar = () => {
           { title: translations.security, path: '/settings/security' },
           { title: translations.company, path: '/settings/company' },
           { title: translations.platform, path: '/settings/platform' },
+          { title: 'Paramètres Avancés', path: '/settings/advanced' },
           { title: translations.affiliates, path: '/settings/affiliates' },
           { title: translations.registration, path: '/settings/registration' },
           { title: translations.mlm, path: '/settings/mlm' },
@@ -406,12 +530,77 @@ const Sidebar = () => {
       },
     ];
 
+    // Menu pour COMMERCIAL / SALES_REP - Focalisé sur la prospection et les leads
+    const commercialMenu = [
+      {
+        title: translations.getting_started,
+        icon: <Newspaper size={20} />,
+        path: '/getting-started',
+      },
+      {
+        title: translations.dashboard,
+        icon: <LayoutDashboard size={20} />,
+        path: '/dashboard',
+      },
+      {
+        title: translations.messages,
+        icon: <MessageSquare size={20} />,
+        path: '/messages',
+      },
+      {
+        title: translations.marketplace,
+        icon: <ShoppingCart size={20} />,
+        path: '/dashboard/marketplace',
+      },
+      {
+        title: translations.my_campaigns,
+        icon: <Target size={20} />,
+        path: '/campaigns',
+      },
+      {
+        title: 'Tracking & Commissions',
+        icon: <LinkIcon size={20} />,
+        path: '/commercial/tracking',
+      },
+      {
+        title: translations.performance,
+        icon: <TrendingUp size={20} />,
+        submenu: 'performance',
+        items: [
+          { title: translations.conversions, path: '/performance/conversions' },
+          { title: translations.reports, path: '/performance/reports' },
+        ],
+      },
+      {
+        title: translations.subscription,
+        icon: <Zap size={20} />,
+        path: '/subscription',
+      },
+      {
+        title: translations.fiscal,
+        icon: <Calculator size={20} />,
+        path: '/fiscal/commercial',
+      },
+      {
+        title: translations.settings,
+        icon: <Settings size={20} />,
+        submenu: 'settings',
+        items: [
+          { title: translations.personal, path: '/settings/personal' },
+          { title: translations.security, path: '/settings/security' },
+        ],
+      },
+    ];
+
     // Retourner le menu approprié selon le rôle
     switch (role?.toLowerCase()) {
       case 'influencer':
         return influencerMenu;
       case 'merchant':
         return merchantMenu;
+      case 'commercial':
+      case 'sales_rep':
+        return commercialMenu;
       case 'admin':
       default:
         return adminMenu;

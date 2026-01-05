@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
 import {
   Box,
   Container,
@@ -29,7 +30,7 @@ import LanguageIcon from '@mui/icons-material/Language';
 import UpgradeIcon from '@mui/icons-material/Upgrade';
 import CancelIcon from '@mui/icons-material/Cancel';
 import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 /**
  * Dashboard d'abonnement - Gestion de l'abonnement entreprise
@@ -45,6 +46,7 @@ import api from '../../services/api';
 const SubscriptionDashboard = () => {
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState(null);
   const [usage, setUsage] = useState(null);
@@ -62,18 +64,38 @@ const SubscriptionDashboard = () => {
         api.get('/api/subscriptions/usage')
       ]);
 
-      setSubscription(subResponse.data);
+      const subData = subResponse.data;
+      // Map backend fields to frontend expectations
+      const mappedSubscription = {
+        ...subData,
+        current_period_end: subData.ends_at || subData.current_period_end || new Date().toISOString(),
+        plan_max_team_members: subData.plan_details?.max_team_members || 5,
+        current_team_members: subData.current_team_members || 0,
+        plan_max_domains: subData.plan_details?.max_domains || 1,
+        current_domains: subData.current_domains || 0,
+        can_add_team_member: true,
+        can_add_domain: true
+      };
+
+      setSubscription(mappedSubscription);
       setUsage(usageResponse.data);
     } catch (err) {
-      console.error('Error fetching subscription:', err);
-      setError('Erreur lors du chargement de l\'abonnement');
+      // Silencieux si 403 (endpoint non disponible pour ce rôle)
+      if (err.response?.status !== 403) {
+        console.error('Error fetching subscription:', err);
+        setError('Erreur lors du chargement de l\'abonnement: ' + (err.response?.data?.detail || err.message));
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleUpgrade = () => {
-    navigate('/pricing');
+    if (user?.role === 'influencer') {
+      navigate('/pricing?role=influencer');
+    } else {
+      navigate('/pricing');
+    }
   };
 
   const handleCancelSubscription = async () => {

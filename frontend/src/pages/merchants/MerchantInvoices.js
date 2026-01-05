@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../context/ToastContext';
-import { api } from '../../utils/api';
+import api from '../../utils/api';
 import Card from '../../components/common/Card';
 import Table from '../../components/common/Table';
 import Badge from '../../components/common/Badge';
@@ -152,16 +152,26 @@ const MerchantInvoices = () => {
             {
               key: 'invoice_date',
               label: 'Date',
-              render: (row) => new Date(row.invoice_date).toLocaleDateString('fr-FR')
+              render: (row) => {
+                if (!row.invoice_date) return '-';
+                try {
+                  return new Date(row.invoice_date).toLocaleDateString('fr-FR');
+                } catch (e) { return '-'; }
+              }
             },
             {
               key: 'period',
               label: 'Période',
-              render: (row) => (
-                <span className="text-sm">
-                  {new Date(row.period_start).toLocaleDateString('fr-FR')} - {new Date(row.period_end).toLocaleDateString('fr-FR')}
-                </span>
-              )
+              render: (row) => {
+                if (!row.period_start || !row.period_end) return '-';
+                try {
+                  return (
+                    <span className="text-sm">
+                      {new Date(row.period_start).toLocaleDateString('fr-FR')} - {new Date(row.period_end).toLocaleDateString('fr-FR')}
+                    </span>
+                  );
+                } catch (e) { return '-'; }
+              }
             },
             {
               key: 'total_sales_amount',
@@ -185,15 +195,18 @@ const MerchantInvoices = () => {
               key: 'due_date',
               label: 'Échéance',
               render: (row) => {
-                const dueDate = new Date(row.due_date);
-                const today = new Date();
-                const isOverdue = dueDate < today && row.status !== 'paid';
+                if (!row.due_date) return '-';
+                try {
+                  const dueDate = new Date(row.due_date);
+                  const today = new Date();
+                  const isOverdue = dueDate < today && row.status !== 'paid';
 
-                return (
-                  <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
-                    {dueDate.toLocaleDateString('fr-FR')}
-                  </span>
-                );
+                  return (
+                    <span className={isOverdue ? 'text-red-600 font-semibold' : ''}>
+                      {dueDate.toLocaleDateString('fr-FR')}
+                    </span>
+                  );
+                } catch (e) { return '-'; }
               }
             },
             {

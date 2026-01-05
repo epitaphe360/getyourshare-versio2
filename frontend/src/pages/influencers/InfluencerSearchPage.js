@@ -75,14 +75,23 @@ const InfluencerSearchPage = () => {
   };
 
   const handleContactInfluencer = async (influencer) => {
-    // TODO: Implémenter système de messagerie
-    toast.info(`Contacter ${influencer.full_name} - Fonctionnalité à venir`, { duration: 4000 });
+    // Ouvrir la modal de collaboration avec l'influenceur sélectionné
+    try {
+      // Rediriger vers la page de recherche d'influenceurs avec l'ID pré-sélectionné
+      navigate(`/influencers/${influencer.id}/collaborate`);
+    } catch (error) {
+      // Fallback: ouvrir le profil
+      toast.success(`Ouverture du profil de ${influencer.full_name}`, { duration: 2000 });
+      navigate(`/influencers/${influencer.id}`);
+    }
   };
 
   const formatNumber = (num) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num;
+    const n = Number(num);
+    if (isNaN(n)) return '0';
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+    return n.toString();
   };
 
   return (
@@ -313,7 +322,7 @@ const InfluencerSearchPage = () => {
                 <div className="p-5">
                   <div className="flex items-start gap-3 mb-3">
                     <img
-                      src={influencer.profile_image || 'https://via.placeholder.com/50'}
+                      src={(influencer.profile_image || 'https://placehold.co/50').replace('via.placeholder.com', 'placehold.co')}
                       alt={influencer.full_name}
                       className="w-16 h-16 rounded-full object-cover border-2 border-purple-100"
                     />

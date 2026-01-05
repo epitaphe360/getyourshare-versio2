@@ -203,6 +203,8 @@ CREATE UNIQUE INDEX idx_influencer_profiles_unique ON influencer_profiles(user_i
 -- Demandes de collaboration entre entreprises et commerciaux/influenceurs
 -- ============================================
 
+DROP TABLE IF EXISTS collaboration_requests CASCADE;
+
 CREATE TABLE IF NOT EXISTS collaboration_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
@@ -306,6 +308,14 @@ CREATE UNIQUE INDEX idx_profile_reviews_unique ON profile_reviews(profile_user_i
 -- ============================================
 -- Triggers: Auto-update updated_at
 -- ============================================
+
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER trigger_commercial_profiles_updated_at
     BEFORE UPDATE ON commercial_profiles
@@ -497,10 +507,9 @@ CREATE POLICY profile_reviews_profile_respond
 CREATE OR REPLACE VIEW v_commercial_profiles_public AS
 SELECT
     cp.*,
-    u.first_name,
-    u.last_name,
+    u.full_name,
     u.email,
-    u.profile_picture,
+    u.avatar_url as profile_picture,
     get_profile_average_rating(cp.user_id, 'commercial') as average_rating,
     get_profile_review_count(cp.user_id, 'commercial') as review_count
 FROM commercial_profiles cp
@@ -511,10 +520,9 @@ WHERE cp.is_public = TRUE;
 CREATE OR REPLACE VIEW v_influencer_profiles_public AS
 SELECT
     ip.*,
-    u.first_name,
-    u.last_name,
-    u.email,
-    u.profile_picture,
+    u.full_name,
+    u.email as account_email,
+    u.avatar_url as profile_picture,
     get_profile_average_rating(ip.user_id, 'influencer') as average_rating,
     get_profile_review_count(ip.user_id, 'influencer') as review_count
 FROM influencer_profiles ip

@@ -187,14 +187,14 @@ const Conversions = () => {
       header: 'Montant',
       accessor: 'amount',
       render: (row) => (
-        <span className="font-semibold text-gray-900">{formatCurrency(row.amount)} MAD</span>
+        <span className="font-semibold text-gray-900">{formatCurrency(row.amount, 'MAD')}</span>
       ),
     },
     {
       header: 'Commission',
       accessor: 'commission',
       render: (row) => (
-        <span className="font-semibold text-green-600">{formatCurrency(row.commission)} MAD</span>
+        <span className="font-semibold text-green-600">{formatCurrency(row.commission, 'MAD')}</span>
       ),
     },
     {
@@ -271,9 +271,8 @@ const Conversions = () => {
             <div>
               <p className="text-sm font-medium text-green-600">Revenu Total</p>
               <p className="text-3xl font-bold text-green-900 mt-2 amount-glow">
-                {formatCurrency(stats.totalRevenue)}
+                {formatCurrency(stats.totalRevenue, 'MAD')}
               </p>
-              <p className="text-xs text-green-600 mt-1">MAD</p>
             </div>
             <div className="bg-green-500 rounded-full p-3">
               <DollarSign className="w-8 h-8 text-white" />
@@ -286,9 +285,8 @@ const Conversions = () => {
             <div>
               <p className="text-sm font-medium text-purple-600">Commissions</p>
               <p className="text-3xl font-bold text-purple-900 mt-2 amount-glow">
-                {formatCurrency(stats.totalCommissions)}
+                {formatCurrency(stats.totalCommissions, 'MAD')}
               </p>
-              <p className="text-xs text-purple-600 mt-1">MAD</p>
             </div>
             <div className="bg-purple-500 rounded-full p-3">
               <DollarSign className="w-8 h-8 text-white" />
@@ -394,13 +392,13 @@ const Conversions = () => {
               <div className="text-right">
                 <p className="text-xs text-gray-600">Revenu total filtré</p>
                 <p className="text-lg font-bold text-gray-900">
-                  {formatCurrency(filteredConversions.reduce((sum, c) => sum + (c.amount || 0), 0))} MAD
+                  {formatCurrency(filteredConversions.reduce((sum, c) => sum + (c.amount || 0), 0), 'MAD')}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-gray-600">Commissions totales</p>
                 <p className="text-lg font-bold text-green-600">
-                  {formatCurrency(filteredConversions.reduce((sum, c) => sum + (c.commission || 0), 0))} MAD
+                  {formatCurrency(filteredConversions.reduce((sum, c) => sum + (c.commission || 0), 0), 'MAD')}
                 </p>
               </div>
             </div>

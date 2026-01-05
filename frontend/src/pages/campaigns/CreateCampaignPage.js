@@ -44,7 +44,7 @@ const CreateCampaignPage = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('/api/products');
+      const response = await api.get('/api/marketplace/products');
       const productsData = Array.isArray(response.data) ? response.data : response.data.products || [];
       setProducts(productsData);
     } catch (err) {

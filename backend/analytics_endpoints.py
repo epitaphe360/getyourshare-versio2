@@ -9,6 +9,7 @@ from supabase_config import get_supabase_client
 from auth import get_current_user_from_cookie
 from db_helpers import get_user_by_id, get_influencer_by_user_id
 from utils.cache import cache
+from utils.error_handler import handle_error, ErrorCategory, ErrorSeverity
 import asyncio
 from fastapi.concurrency import run_in_threadpool
 
@@ -1270,7 +1271,19 @@ async def get_influencer_performance(current_user: dict = Depends(get_current_us
             links_result = supabase.table("affiliate_links").select(
                 "*, products(name, price, commission_rate)"
             ).eq("influencer_id", influencer["id"]).execute()
+<<<<<<< HEAD
         except:
+=======
+        except Exception as e:
+            handle_error(
+                e,
+                category=ErrorCategory.DATABASE,
+                severity=ErrorSeverity.LOW,
+                user_friendly_message="Erreur lors de la récupération des liens d'affiliation",
+                context={"influencer_id": influencer["id"]},
+                user_id=user["id"]
+            )
+>>>>>>> origin/claude/fix-api-communication-bgzli
             links_result = None
         
         if not links_result or not links_result.data:
@@ -1288,7 +1301,19 @@ async def get_influencer_performance(current_user: dict = Depends(get_current_us
             try:
                 comm_res = supabase.table("commissions").select("amount").eq("link_id", link["id"]).eq("status", "approved").execute()
                 revenue = sum(float(c["amount"]) for c in comm_res.data) if comm_res.data else 0
+<<<<<<< HEAD
             except:
+=======
+            except Exception as e:
+                handle_error(
+                    e,
+                    category=ErrorCategory.DATABASE,
+                    severity=ErrorSeverity.LOW,
+                    user_friendly_message="Erreur lors du calcul des revenus",
+                    context={"link_id": link["id"]},
+                    user_id=user["id"]
+                )
+>>>>>>> origin/claude/fix-api-communication-bgzli
                 revenue = 0
                 
             if revenue > max_revenue:

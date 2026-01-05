@@ -14,6 +14,15 @@ export const AuthProvider = ({ children }) => {
   // Fonction pour vérifier la session auprès du backend
   const verifySession = async () => {
     try {
+      // Vérifier d'abord si un token existe
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setUser(null);
+        setSessionStatus('expired');
+        setLoading(false);
+        return false;
+      }
+
       // Les cookies httpOnly sont automatiquement envoyés avec credentials: 'include'
       const response = await api.get('/api/auth/me');
 
@@ -34,12 +43,16 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (refreshError) {
           // Refresh token aussi expiré, déconnexion nécessaire
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
           setUser(null);
           setSessionStatus('expired');
           return false;
         }
       }
 
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setUser(null);
       setSessionStatus('expired');
       return false;
@@ -68,7 +81,9 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log(`[Auth] Tentative de connexion pour: ${email}`);
       const response = await api.post('/api/auth/login', { email, password });
+      console.log("[Auth] Réponse reçue:", response.status);
 
       // Check if 2FA is required (support both snake_case and camelCase)
       if (response.data.requires_2fa || response.data.requires2FA) {
@@ -83,17 +98,44 @@ export const AuthProvider = ({ children }) => {
       }
 
       // No 2FA required, login directly
-      // Les tokens sont automatiquement stockés dans des cookies httpOnly
-      const { user: userData } = response.data;
+      const { user: userData, access_token } = response.data;
+      
+      // Stocker le token
+      if (access_token) {
+        localStorage.setItem('token', access_token);
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
 
       setUser(userData);
       setSessionStatus('active');
 
       return { success: true };
     } catch (error) {
+      console.error("[Auth] Erreur de connexion détaillée:", error);
+      
+      let errorMessage = 'Connexion échouée';
+      
+      if (error.response) {
+        // La requête a été faite et le serveur a répondu avec un code d'état
+        // qui n'est pas dans la plage 2xx
+        console.error("[Auth] Data:", error.response.data);
+        console.error("[Auth] Status:", error.response.status);
+        console.error("[Auth] Headers:", error.response.headers);
+        
+        errorMessage = error.response.data?.detail || `Erreur serveur (${error.response.status})`;
+      } else if (error.request) {
+        // La requête a été faite mais aucune réponse n'a été reçue
+        console.error("[Auth] Pas de réponse reçue:", error.request);
+        errorMessage = "Le serveur ne répond pas. Vérifiez votre connexion ou si le backend est lancé.";
+      } else {
+        // Quelque chose s'est passé lors de la configuration de la requête
+        console.error("[Auth] Erreur configuration:", error.message);
+        errorMessage = `Erreur: ${error.message}`;
+      }
+
       return {
         success: false,
-        error: error.response?.data?.detail || 'Connexion échouée'
+        error: errorMessage
       };
     }
   };
@@ -105,7 +147,9 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       // Continue même si le backend échoue (les cookies expirent de toute façon)
     } finally {
-      // Nettoyer l'état utilisateur
+      // Nettoyer l'état utilisateur et le localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       setUser(null);
       setSessionStatus('expired');
     }

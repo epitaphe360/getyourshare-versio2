@@ -1,8 +1,9 @@
-import { useReducer, useEffect, useCallback } from 'react';
+import { useReducer, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import api from '../utils/api';
+import { getErrorMessage } from '../utils/errorHandler';
 
 // Initial state
 const initialState = {
@@ -90,37 +91,79 @@ export const useProductDetail = () => {
   const { user } = useAuth();
   const toast = useToast();
   const [state, dispatch] = useReducer(productDetailReducer, initialState);
+  const hasFetchedRef = useRef(false);
+  const productIdRef = useRef(productId);
 
-  // Fetch product and reviews in parallel (Promise.all)
-  const fetchAllData = useCallback(async () => {
-    if (!productId) return;
+  // Fetch product and reviews
+  const fetchAllData = async () => {
+    if (!productId || hasFetchedRef.current) return;
 
     try {
       dispatch({ type: ACTIONS.SET_LOADING, payload: true });
+      hasFetchedRef.current = true;
 
-      // Parallelize API calls with Promise.all
-      const [productResponse, reviewsResponse] = await Promise.all([
-        api.get(`/api/marketplace/products/${productId}`),
-        api.get(`/api/marketplace/products/${productId}/reviews`)
-      ]);
+      let productData = null;
 
-      if (productResponse.data.success) {
-        dispatch({ type: ACTIONS.SET_PRODUCT, payload: productResponse.data.product });
+      // 1. Try fetching as product
+      try {
+        const productResponse = await api.get(`/api/marketplace/products/${productId}`);
+        if (productResponse.data.success) {
+          productData = productResponse.data.product;
+        }
+      } catch (error) {
+        // If 404, try fetching as service
+        if (error.response && error.response.status === 404) {
+          try {
+            const serviceResponse = await api.get(`/api/services/${productId}`);
+            if (serviceResponse.data) {
+              const service = serviceResponse.data;
+              // Normalize service data to match product structure
+              productData = {
+                ...service,
+                type: 'service',
+                is_service: true,
+                images: service.images || (service.image ? [service.image] : []),
+                rating_average: service.rating || 0,
+                rating_count: service.rating_count || 0,
+                merchant: service.merchant || { name: "Service Provider" }
+              };
+            }
+          } catch (serviceError) {
+            console.error('Service fetch failed:', serviceError);
+          }
+        } else {
+          console.error('Product fetch error:', error);
+        }
       }
 
-      if (reviewsResponse.data.success) {
-        dispatch({ type: ACTIONS.SET_REVIEWS, payload: reviewsResponse.data.reviews || [] });
+      if (productData) {
+        dispatch({ type: ACTIONS.SET_PRODUCT, payload: productData });
+
+        // 2. Try fetching reviews (might fail for services if not implemented)
+        try {
+          const reviewsResponse = await api.get(`/api/marketplace/products/${productId}/reviews`);
+          if (reviewsResponse.data.success) {
+            dispatch({ type: ACTIONS.SET_REVIEWS, payload: reviewsResponse.data.reviews || [] });
+          }
+        } catch (reviewError) {
+          console.warn('Reviews fetch failed or not available:', reviewError);
+          dispatch({ type: ACTIONS.SET_REVIEWS, payload: [] });
+        }
+      } else {
+        // If neither product nor service found
+        toast?.error('Produit ou service introuvable');
       }
+
     } catch (error) {
-      console.error('Error fetching product data:', error);
-      toast.error('Erreur lors du chargement du produit');
+      console.error('Error in fetchAllData:', error);
+      toast?.error('Erreur lors du chargement');
     } finally {
       dispatch({ type: ACTIONS.SET_LOADING, payload: false });
     }
-  }, [productId, toast]);
+  };
 
   // Fetch user profile
-  const fetchUserProfile = useCallback(async () => {
+  const fetchUserProfile = async () => {
     if (!user) return;
 
     try {
@@ -155,10 +198,10 @@ export const useProductDetail = () => {
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
-  }, [user]);
+  };
 
   // Validate stats with AI
-  const validateStatsWithAI = useCallback(async () => {
+  const validateStatsWithAI = async () => {
     if (!user || user.role !== 'influencer') return;
 
     dispatch({ type: ACTIONS.SET_VALIDATING, payload: true });
@@ -171,18 +214,18 @@ export const useProductDetail = () => {
         await fetchUserProfile();
 
         if (response.data.is_verified) {
-          toast.success(`✅ Profil vérifié ! Score: ${response.data.confidence_score}% - Bonus de note: +${response.data.bonus_rating}⭐`);
+          toast?.success(`✅ Profil vérifié ! Score: ${response.data.confidence_score}% - Bonus de note: +${response.data.bonus_rating}⭐`);
         } else {
-          toast.info('🔍 Validation en cours. Améliorez vos statistiques pour être vérifié.');
+          toast?.info('🔍 Validation en cours. Améliorez vos statistiques pour être vérifié.');
         }
       }
     } catch (error) {
       console.error('Error validating stats:', error);
-      toast.error('Erreur lors de la validation IA');
+      toast?.error('Erreur lors de la validation IA');
     } finally {
       dispatch({ type: ACTIONS.SET_VALIDATING, payload: false });
     }
-  }, [user, toast, fetchUserProfile]);
+  };
 
   // Handle affiliation request
   const handleRequestAffiliation = useCallback(async () => {
@@ -234,7 +277,7 @@ export const useProductDetail = () => {
         dispatch({ type: ACTIONS.RESET_AFFILIATE_DATA });
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erreur lors de la demande');
+      toast.error(getErrorMessage(error, 'Erreur lors de la demande'));
     }
   }, [productId, state.affiliateData, toast]);
 
@@ -254,9 +297,20 @@ export const useProductDetail = () => {
         dispatch({ type: ACTIONS.RESET_REVIEW_DATA });
       }
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Erreur lors de l\'envoi de l\'avis');
+      toast.error(getErrorMessage(error, 'Erreur lors de l\'envoi de l\'avis'));
     }
   }, [user, productId, state.reviewData, toast]);
+
+  // Fetch all data on mount and handle productId change
+  useEffect(() => {
+    // Reset if productId changes
+    if (productIdRef.current !== productId) {
+      hasFetchedRef.current = false;
+      productIdRef.current = productId;
+    }
+    
+    fetchAllData();
+  }, [productId]);
 
   // Check if user returned after login to open affiliate modal
   useEffect(() => {
@@ -275,11 +329,6 @@ export const useProductDetail = () => {
       }
     }
   }, [user, state.product]);
-
-  // Fetch all data on mount
-  useEffect(() => {
-    fetchAllData();
-  }, [fetchAllData]);
 
   return {
     state,

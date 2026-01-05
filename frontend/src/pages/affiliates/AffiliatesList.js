@@ -235,6 +235,35 @@ const AffiliatesList = () => {
     }
   ];
 
+  const handleExport = () => {
+    const headers = ['Prénom', 'Nom', 'Email', 'Pays', 'Statut', 'Clics', 'Conversions', 'Revenu Total'];
+    const csvContent = [
+      headers.join(','),
+      ...affiliates.map(row => [
+        `"${row.first_name || ''}"`,
+        `"${row.last_name || ''}"`,
+        `"${row.email || ''}"`,
+        `"${row.country || ''}"`,
+        `"${row.status || ''}"`,
+        row.clicks || 0,
+        row.conversions || 0,
+        row.total_earned || 0
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `affiliates_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -259,7 +288,7 @@ const AffiliatesList = () => {
         <div className="flex gap-2">
           <Button 
             variant="outline"
-            onClick={() => {/* Export logic */}}
+            onClick={handleExport}
           >
             <Download size={20} className="mr-2" />
             Exporter

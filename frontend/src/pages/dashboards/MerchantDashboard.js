@@ -13,12 +13,19 @@ import CountUp from 'react-countup';
 import {
   DollarSign, ShoppingBag, Users, TrendingUp,
   Package, Eye, Target, Award, Plus, Search, FileText, Settings, RefreshCw,
-  UserCheck, Clock, CheckCircle, XCircle, TrendingDown, Gift, Video, UserPlus
+  UserCheck, Clock, CheckCircle, XCircle, TrendingDown, Gift, Video, UserPlus, Calculator, ShieldCheck,
+  ShoppingCart, Sparkles
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
+
+// Import new AI and integration components
+import AIRecommendationsWidget from '../../components/ai/AIRecommendationsWidget';
+import AIInsightsPanel from '../../components/ai/AIInsightsPanel';
+import EcommerceIntegrationsPanel from '../../components/integrations/EcommerceIntegrationsPanel';
+import LiveChatWidget from '../../components/chat/LiveChatWidget';
 
 const MerchantDashboard = () => {
   const navigate = useNavigate();
@@ -38,6 +45,124 @@ const MerchantDashboard = () => {
   const [referralData, setReferralData] = useState(null);
   const [productLives, setProductLives] = useState([]);
 
+  // Helper pour vérifier l'accès aux fonctionnalités selon le plan
+  const checkAccess = (feature) => {
+    if (!subscription) return false;
+    const plan = subscription.plan_name; // 'Freemium', 'Standard', 'Premium', 'Enterprise'
+    
+    switch(feature) {
+      case 'analytics_pro':
+        return ['Premium', 'Enterprise'].includes(plan);
+      case 'matching':
+        return ['Enterprise'].includes(plan);
+      case 'referral':
+        return ['Premium', 'Enterprise'].includes(plan);
+      case 'live_shopping':
+        return ['Enterprise'].includes(plan);
+      case 'unlimited_campaigns':
+        return ['Enterprise'].includes(plan);
+      case 'advanced_matching':
+        return ['Premium', 'Enterprise'].includes(plan);
+      default:
+        return true;
+    }
+  };
+
+  // Obtenir les limites du plan
+  const getPlanLimits = () => {
+    if (!subscription) return { campaigns: 1, products: 5, affiliates: 10, budget: 500 };
+    const plan = subscription.plan_name;
+    
+    switch(plan) {
+      case 'Freemium':
+        return {
+          campaigns: 1,
+          products: 5,
+          affiliates: 10,
+          budget: 500,
+          analytics_days: 7
+        };
+      case 'Standard':
+        return {
+          campaigns: 5,
+          products: 25,
+          affiliates: 50,
+          budget: 5000,
+          analytics_days: 30
+        };
+      case 'Premium':
+        return {
+          campaigns: 20,
+          products: 100,
+          affiliates: 200,
+          budget: 50000,
+          analytics_days: 90
+        };
+      case 'Enterprise':
+        return {
+          campaigns: 999,
+          products: 999,
+          affiliates: 999,
+          budget: 999999,
+          analytics_days: 365
+        };
+      default:
+        // Fallback to Freemium limits for unknown plans (prevents infinite recursion)
+        return {
+          campaigns: 1,
+          products: 5,
+          affiliates: 10,
+          budget: 500,
+          analytics_days: 7
+        };
+    }
+  };
+
+  // Obtenir le badge du plan
+  const getPlanBadge = () => {
+    if (!subscription) return { name: 'Freemium', color: 'bg-gray-100 text-gray-800 border-gray-300', icon: '🆓' };
+    const plan = subscription.plan_name;
+    
+    switch(plan) {
+      case 'Freemium':
+        return {
+          name: 'Freemium',
+          color: 'bg-gray-100 text-gray-800 border-gray-300',
+          icon: '🆓'
+        };
+      case 'Standard':
+        return {
+          name: 'Standard',
+          color: 'bg-blue-100 text-blue-800 border-blue-300',
+          icon: '⭐'
+        };
+      case 'Premium':
+        return {
+          name: 'Premium',
+          color: 'bg-purple-100 text-purple-800 border-purple-300',
+          icon: '💎'
+        };
+      case 'Enterprise':
+        return {
+          name: 'Enterprise',
+          color: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+          icon: '👑'
+        };
+      default:
+        // Fallback to Freemium badge for unknown plans (prevents infinite recursion)
+        return {
+          name: 'Freemium',
+          color: 'bg-gray-100 text-gray-800 border-gray-300',
+          icon: '🆓'
+        };
+    }
+  };
+
+  const handleLockedFeature = (featureName) => {
+    toast.info(`🔒 ${featureName} nécessite un abonnement supérieur.`);
+    navigate('/pricing');
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -47,8 +172,8 @@ const MerchantDashboard = () => {
       setError(null);
       // Utiliser Promise.allSettled au lieu de Promise.all
       const results = await Promise.allSettled([
-        api.get('/api/analytics/overview'),
-        api.get('/api/products'),
+        // api.get('/api/analytics/overview'), // Removed: Admin only
+        api.get('/api/marketplace/products'),
         api.get('/api/analytics/merchant/sales-chart'),
         api.get('/api/analytics/merchant/performance'),
         api.get('/api/subscriptions/current'),
@@ -58,7 +183,7 @@ const MerchantDashboard = () => {
         api.get('/api/ai/live-shopping/upcoming?limit=5')
       ]);
 
-      const [statsRes, productsRes, salesChartRes, performanceRes, subscriptionRes, sentRequestsRes, referralRes, livesRes] = results;
+      const [productsRes, salesChartRes, performanceRes, subscriptionRes, sentRequestsRes, referralRes, livesRes] = results;
 
       // Gérer les statistiques
       if (performanceRes.status === 'fulfilled') {
@@ -70,7 +195,7 @@ const MerchantDashboard = () => {
           affiliates_count: performance.affiliates_count || 0,
           total_clicks: performance.total_clicks || 0,
           conversion_rate: performance.conversion_rate || 0,
-          roi: performance.total_revenue > 0 ? ((performance.total_revenue / (performance.total_revenue * 0.1)) * 100) : 0,
+          roi: performance.roi || 0, // ROI calculé par le backend
           performance: {
             conversion_rate: performance.conversion_rate || 0,
             engagement_rate: performance.engagement_rate || 0,
@@ -231,14 +356,104 @@ const MerchantDashboard = () => {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard Entreprise</h1>
-          <p className="text-gray-600 mt-2">
-            Bienvenue {user?.first_name} ! Suivez vos performances en temps réel
-          </p>
+      {/* Navigation Bar */}
+      <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+        <div className="flex flex-wrap gap-3 items-center">
+          <button
+            onClick={() => navigate('/')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Accueil
+          </button>
+          <button
+            onClick={() => navigate('/products')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <ShoppingCart size={18} />
+            Mes Produits
+          </button>
+          <button
+            onClick={() => navigate('/services')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Target size={18} />
+            Services
+          </button>
+          <button
+            onClick={() => navigate('/advertisers')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Users size={18} />
+            Influenceurs
+          </button>
+          <button
+            onClick={() => navigate('/features')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Sparkles size={18} />
+            Features
+          </button>
+          <button
+            onClick={() => navigate('/profile')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Users size={18} />
+            Profil
+          </button>
         </div>
+      </div>
+
+      {/* Header avec Badge Plan */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg shadow-lg p-6 text-white"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Dashboard Entreprise</h1>
+            <p className="text-indigo-100">
+              Bienvenue {user?.first_name} ! Suivez vos performances en temps réel
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className={`px-4 py-2 rounded-lg border-2 ${getPlanBadge().color} font-bold text-lg`}>
+              {getPlanBadge().icon} {getPlanBadge().name}
+            </div>
+            <div className="text-right bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
+              <div className="text-sm text-indigo-100">Budget Max</div>
+              <div className="text-2xl font-bold">{getPlanLimits().budget}€</div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Limites du Plan */}
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          <div className="bg-white/10 px-3 py-2 rounded backdrop-blur-sm">
+            <div className="text-indigo-100">Campagnes</div>
+            <div className="font-bold">{stats?.total_campaigns || 0}/{getPlanLimits().campaigns}</div>
+          </div>
+          <div className="bg-white/10 px-3 py-2 rounded backdrop-blur-sm">
+            <div className="text-indigo-100">Produits</div>
+            <div className="font-bold">{products.length}/{getPlanLimits().products}</div>
+          </div>
+          <div className="bg-white/10 px-3 py-2 rounded backdrop-blur-sm">
+            <div className="text-indigo-100">Affiliés</div>
+            <div className="font-bold">{stats?.affiliates_count || 0}/{getPlanLimits().affiliates}</div>
+          </div>
+          <div className="bg-white/10 px-3 py-2 rounded backdrop-blur-sm">
+            <div className="text-indigo-100">Analytics</div>
+            <div className="font-bold">{getPlanLimits().analytics_days} jours</div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Header Actions */}
+      <div className="flex justify-between items-start">
         <div className="flex space-x-3">
           <button
             onClick={() => fetchData()}
@@ -248,25 +463,60 @@ const MerchantDashboard = () => {
             <RefreshCw size={18} />
           </button>
           <button
-            onClick={() => navigate('/analytics-pro')}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition flex items-center gap-2"
-            title="Analytics Pro avec IA"
+            onClick={() => checkAccess('analytics_pro') ? navigate('/analytics-pro') : handleLockedFeature('Analytics Pro')}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+              checkAccess('analytics_pro')
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+            title={checkAccess('analytics_pro') ? "Analytics Pro avec IA" : "Analytics Pro (Premium & Enterprise)"}
           >
+            {!checkAccess('analytics_pro') && <span className="mr-1">🔒</span>}
             <Award size={18} />
             Analytics Pro
           </button>
           <button
-            onClick={() => navigate('/matching')}
-            className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 transition flex items-center gap-2"
-            title="Matching Influenceurs Tinder"
+            onClick={() => navigate('/features?tab=roi')}
+            className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg hover:from-green-600 hover:to-emerald-600 transition flex items-center gap-2"
+            title="Calculateur ROI"
           >
+            <Calculator size={18} />
+            Calculateur ROI
+          </button>
+          <button
+            onClick={() => checkAccess('matching') ? navigate('/matching') : handleLockedFeature('Matching')}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+              checkAccess('matching')
+                ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+            title={checkAccess('matching') ? "Matching Influenceurs Tinder" : "Matching (Enterprise uniquement)"}
+          >
+            {!checkAccess('matching') && <span className="mr-1">🔒</span>}
             <Target size={18} />
             Matching
           </button>
           <button
-            onClick={() => navigate('/campaigns/create')}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2"
+            onClick={() => {
+              if ((stats?.total_campaigns || 0) >= getPlanLimits().campaigns && !checkAccess('unlimited_campaigns')) {
+                handleLockedFeature('Campagnes illimitées');
+              } else {
+                navigate('/campaigns/create');
+              }
+            }}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+              (stats?.total_campaigns || 0) >= getPlanLimits().campaigns && !checkAccess('unlimited_campaigns')
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-purple-600 text-white hover:bg-purple-700'
+            }`}
+            title={(stats?.total_campaigns || 0) >= getPlanLimits().campaigns && !checkAccess('unlimited_campaigns') 
+              ? `Limite atteinte (${stats?.total_campaigns}/${getPlanLimits().campaigns})`
+              : 'Créer une nouvelle campagne'
+            }
           >
+            {(stats?.total_campaigns || 0) >= getPlanLimits().campaigns && !checkAccess('unlimited_campaigns') && (
+              <span className="mr-1">🔒</span>
+            )}
             <Plus size={18} />
             Créer Campagne
           </button>
@@ -278,9 +528,26 @@ const MerchantDashboard = () => {
             Rechercher Influenceurs
           </button>
           <button
-            onClick={() => navigate('/products/create')}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+            onClick={() => {
+              if (products.length >= getPlanLimits().products && getPlanLimits().products < 999) {
+                handleLockedFeature('Produits illimités');
+              } else {
+                navigate('/products/create');
+              }
+            }}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+              products.length >= getPlanLimits().products && getPlanLimits().products < 999
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            }`}
+            title={products.length >= getPlanLimits().products && getPlanLimits().products < 999
+              ? `Limite atteinte (${products.length}/${getPlanLimits().products})`
+              : 'Ajouter un nouveau produit'
+            }
           >
+            {products.length >= getPlanLimits().products && getPlanLimits().products < 999 && (
+              <span className="mr-1">🔒</span>
+            )}
             <Plus size={18} />
             Ajouter Produit
           </button>
@@ -332,7 +599,7 @@ const MerchantDashboard = () => {
         >
           <StatCard
             title="ROI Marketing"
-            value={<CountUp end={typeof stats?.roi === 'number' && !isNaN(stats.roi) ? stats.roi : 0} duration={2} decimals={1} suffix="%" />}
+            value={<CountUp end={!isNaN(Number(stats?.roi)) ? Number(stats?.roi) : 0} duration={2} decimals={1} suffix="%" />}
             icon={<TrendingUp className="text-orange-600" size={24} />}
             trend={stats?.roi_growth || 0}
           />
@@ -440,7 +707,8 @@ const MerchantDashboard = () => {
           icon={<Gift size={20} className="text-purple-600" />}
           className="border-l-4 border-purple-500"
         >
-          {referralData ? (
+          {checkAccess('referral') ? (
+            referralData ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-purple-50 p-4 rounded-lg">
@@ -490,9 +758,9 @@ const MerchantDashboard = () => {
               )}
               <button
                 onClick={() => navigate('/features?tab=referral')}
-                className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+                className="w-full py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition text-sm font-medium shadow-md hover:shadow-lg"
               >
-                Voir Dashboard Complet →
+                🎯 Gérer mon Parrainage
               </button>
             </div>
           ) : (
@@ -507,6 +775,23 @@ const MerchantDashboard = () => {
                 Démarrer →
               </button>
             </div>
+          )
+          ) : (
+            <div className="text-center py-6">
+              <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Gift size={32} className="text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Fonctionnalité Premium</h3>
+              <p className="text-gray-500 mb-4 text-sm">
+                Le programme de parrainage est réservé aux membres Premium et Enterprise.
+              </p>
+              <button
+                onClick={() => navigate('/pricing')}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium"
+              >
+                Passer Premium
+              </button>
+            </div>
           )}
         </Card>
 
@@ -516,7 +801,8 @@ const MerchantDashboard = () => {
           icon={<Video size={20} className="text-red-600" />}
           className="border-l-4 border-red-500"
         >
-          {productLives.length > 0 ? (
+          {checkAccess('live_shopping') ? (
+            productLives.length > 0 ? (
             <div className="space-y-3">
               <div className="bg-red-50 p-3 rounded-lg">
                 <div className="text-sm text-red-900 font-medium mb-2">
@@ -558,6 +844,23 @@ const MerchantDashboard = () => {
                 Trouver des Influenceurs →
               </button>
             </div>
+          )
+          ) : (
+            <div className="text-center py-6">
+              <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Video size={32} className="text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Fonctionnalité Enterprise</h3>
+              <p className="text-gray-500 mb-4 text-sm">
+                Le Live Shopping est réservé aux membres Enterprise.
+              </p>
+              <button
+                onClick={() => navigate('/pricing')}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+              >
+                Passer Enterprise
+              </button>
+            </div>
           )}
         </Card>
       </div>
@@ -569,6 +872,13 @@ const MerchantDashboard = () => {
           icon={<UserCheck size={20} />}
           className="border-l-4 border-purple-600"
         >
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-3">
+            <ShieldCheck className="text-blue-600" size={24} />
+            <div>
+              <h4 className="text-sm font-bold text-blue-800">Tiers de Confiance (Escrow)</h4>
+              <p className="text-xs text-blue-700">Vos fonds sont sécurisés et ne sont versés à l'influenceur qu'une fois le travail validé.</p>
+            </div>
+          </div>
           <div className="space-y-4">
             {sentRequests.map(request => (
               <div 
@@ -849,6 +1159,36 @@ const MerchantDashboard = () => {
           </div>
         )}
       </Card>
+
+      {/* AI Recommendations Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+      >
+        <AIRecommendationsWidget />
+      </motion.div>
+
+      {/* AI Insights Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
+      >
+        <AIInsightsPanel />
+      </motion.div>
+
+      {/* E-commerce Integrations Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+      >
+        <EcommerceIntegrationsPanel />
+      </motion.div>
+
+      {/* Live Chat Widget (Floating) */}
+      {user && <LiveChatWidget userId={user.id} userRole="merchant" />}
     </div>
   );
 };

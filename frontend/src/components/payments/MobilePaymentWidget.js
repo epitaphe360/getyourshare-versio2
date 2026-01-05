@@ -5,10 +5,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useI18n } from '../../i18n/i18n';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 const MobilePaymentWidget = ({ user, onSuccess, onError }) => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [providers, setProviders] = useState([]);
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -261,10 +261,10 @@ const MobilePaymentWidget = ({ user, onSuccess, onError }) => {
             <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
           </svg>
           <p className="text-xs text-gray-600">
-            {t('language') === 'fr' && 'Paiements sécurisés et instantanés. Vous recevrez l\'argent directement sur votre compte mobile.'}
-            {t('language') === 'ar' && 'مدفوعات آمنة وفورية. ستستلم المال مباشرة في حسابك المحمول.'}
-            {t('language') === 'darija' && 'الدفع آمن وفوري. غادي توصلك الفلوس دغية فحسابك.'}
-            {t('language') === 'en' && 'Secure and instant payments. You will receive money directly to your mobile account.'}
+            {language === 'fr' && 'Paiements sécurisés et instantanés. Vous recevrez l\'argent directement sur votre compte mobile.'}
+            {language === 'ar' && 'مدفوعات آمنة وفورية. ستستلم المال مباشرة في حسابك المحمول.'}
+            {language === 'darija' && 'الدفع آمن وفوري. غادي توصلك الفلوس دغية فحسابك.'}
+            {language === 'en' && 'Secure and instant payments. You will receive money directly to your mobile account.'}
           </p>
         </div>
       </div>

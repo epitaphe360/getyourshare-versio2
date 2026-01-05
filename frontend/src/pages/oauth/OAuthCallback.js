@@ -15,7 +15,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 const OAuthCallback = () => {
   const { platform } = useParams(); // instagram, tiktok, facebook

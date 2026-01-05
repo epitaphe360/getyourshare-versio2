@@ -3,15 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, X, Check } from 'lucide-react';
 import api from '../../utils/api';
 import { formatDate } from '../../utils/helpers';
+import { useAuth } from '../../context/AuthContext';
 
 const NotificationBell = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
+    if (!user) return;
+
     fetchNotifications();
     
     // Poll toutes les 30 secondes
@@ -20,7 +24,7 @@ const NotificationBell = () => {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     // Fermer le dropdown si clic à l'extérieur
@@ -40,7 +44,13 @@ const NotificationBell = () => {
       setNotifications(response.data.notifications || []);
       setUnreadCount(response.data.unread_count || 0);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      // Silencieux si 403 (endpoint non disponible pour ce rôle)
+      if (error.response?.status !== 403) {
+        console.error('Error fetching notifications:', error);
+      }
+      // Réinitialiser avec des valeurs vides
+      setNotifications([]);
+      setUnreadCount(0);
     }
   };
 

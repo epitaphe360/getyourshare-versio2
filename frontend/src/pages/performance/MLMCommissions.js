@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Card from '../../components/common/Card';
 import StatCard from '../../components/common/StatCard';
+import { useToast } from '../../context/ToastContext';
 import { 
   DollarSign, 
   Users, 
@@ -33,6 +34,7 @@ import {
 } from 'recharts';
 
 const MLMCommissions = () => {
+  const toast = useToast();
   const [animatedValues, setAnimatedValues] = useState({
     total: 0,
     affiliates: 0,
@@ -41,6 +43,24 @@ const MLMCommissions = () => {
   
   const [period, setPeriod] = useState('month');
   const [hoveredLevel, setHoveredLevel] = useState(null);
+
+  // Fonction d'export
+  const handleExport = () => {
+    try {
+      toast.info('Préparation de l\'export...');
+      const csvContent = `Niveau,Pourcentage,Affiliés,Gains,Croissance\n${levels.map(l => 
+        `${l.level},${l.percentage}%,${l.affiliates},${l.earned}€,${l.growth}%`
+      ).join('\n')}`;
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `mlm_commissions_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      toast.success('Export réussi !');
+    } catch (error) {
+      toast.error('Erreur lors de l\'export');
+    }
+  };
 
   // Animation des chiffres au chargement
   useEffect(() => {
@@ -136,6 +156,8 @@ const MLMCommissions = () => {
         
         <div className="flex gap-3 mt-4 md:mt-0">
           <select 
+            id="period-select"
+            name="period"
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -146,7 +168,10 @@ const MLMCommissions = () => {
             <option value="year">12 derniers mois</option>
           </select>
           
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+          <button 
+            onClick={handleExport}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
             <Download size={18} />
             Exporter
           </button>

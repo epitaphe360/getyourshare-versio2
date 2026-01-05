@@ -39,7 +39,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
 import PeopleIcon from '@mui/icons-material/People';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 /**
  * Team Management - Gestion de l'équipe entreprise

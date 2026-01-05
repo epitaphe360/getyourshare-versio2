@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
+import LiveChatWidget from '../components/chat/LiveChatWidget';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { MessageCircle, Mail, Phone, Clock, Send, HelpCircle, AlertCircle, CheckCircle } from 'lucide-react';
+import api from '../utils/api';
+import { formatDateShort } from '../utils/helpers';
 
 const Support = () => {
   const toast = useToast();
+  const { user } = useAuth();
+  const chatWidgetRef = useRef(null);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     subject: '',
     category: 'general',
@@ -13,10 +21,32 @@ const Support = () => {
     message: ''
   });
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
+  const fetchTickets = async () => {
+    try {
+      const response = await api.get('/api/support/tickets');
+      setTickets(response.data);
+    } catch (error) {
+      console.error('Erreur chargement tickets:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    toast.success('Votre demande a été envoyée avec succès! Notre équipe vous répondra dans les plus brefs délais.');
-    setFormData({ subject: '', category: 'general', priority: 'medium', message: '' });
+    try {
+      await api.post('/api/support/tickets', formData);
+      toast.success('Votre demande a été envoyée avec succès! Notre équipe vous répondra dans les plus brefs délais.');
+      setFormData({ subject: '', category: 'general', priority: 'medium', message: '' });
+      fetchTickets(); // Refresh list
+    } catch (error) {
+      console.error('Erreur création ticket:', error);
+      toast.error('Erreur lors de la création du ticket. Veuillez réessayer.');
+    }
   };
 
   const contactMethods = [
@@ -85,10 +115,25 @@ const Support = () => {
     }
   ];
 
-  const ticketStatus = [
-    { id: '#12345', subject: 'Problème de paiement', status: 'En cours', date: '23 Oct 2025', color: 'text-yellow-600 bg-yellow-50' },
-    { id: '#12344', subject: 'Question sur les commissions', status: 'Résolu', date: '22 Oct 2025', color: 'text-green-600 bg-green-50' },
-  ];
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'open': return 'text-blue-600 bg-blue-50';
+      case 'in_progress': return 'text-yellow-600 bg-yellow-50';
+      case 'resolved': return 'text-green-600 bg-green-50';
+      case 'closed': return 'text-gray-600 bg-gray-50';
+      default: return 'text-gray-600 bg-gray-50';
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'open': return 'Ouvert';
+      case 'in_progress': return 'En cours';
+      case 'resolved': return 'Résolu';
+      case 'closed': return 'Fermé';
+      default: return status;
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -112,27 +157,49 @@ const Support = () => {
                   <span>{method.available}</span>
                 </div>
               </div>
-              <Button size="sm" className="w-full">{method.action}</Button>
+              <Button 
+                size="sm" 
+                className="w-full"
+                onClick={() => {
+                  if (method.title === 'Chat en Direct') {
+                    if (user) {
+                      if (chatWidgetRef.current) {
+                        chatWidgetRef.current.open();
+                      } else {
+                        toast.info('Le chat est en cours de chargement...');
+                      }
+                    } else {
+                      toast.info('Veuillez vous connecter pour accéder au chat en direct.');
+                    }
+                  } else if (method.title === 'Email Support') {
+                    window.location.href = 'mailto:support@shareyoursales.com';
+                  } else if (method.title === 'Support Téléphonique') {
+                    toast.info('Appelez-nous au +212 5XX-XXXXXX');
+                  }
+                }}
+              >
+                {method.action}
+              </Button>
             </div>
           </Card>
         ))}
       </div>
 
       {/* Ticket Status */}
-      {ticketStatus.length > 0 && (
+      {tickets.length > 0 && (
         <Card title="📋 Mes Tickets de Support">
           <div className="space-y-3">
-            {ticketStatus.map((ticket) => (
+            {tickets.map((ticket) => (
               <div key={ticket.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-4">
-                  <span className="font-mono text-sm text-gray-600">{ticket.id}</span>
+                  <span className="font-mono text-sm text-gray-600">{ticket.ticket_number}</span>
                   <div>
                     <h4 className="font-semibold text-gray-900">{ticket.subject}</h4>
-                    <p className="text-sm text-gray-600">{ticket.date}</p>
+                    <p className="text-sm text-gray-600">{formatDateShort(ticket.created_at)}</p>
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${ticket.color}`}>
-                  {ticket.status}
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(ticket.status)}`}>
+                  {getStatusLabel(ticket.status)}
                 </span>
               </div>
             ))}
@@ -273,6 +340,8 @@ const Support = () => {
           ))}
         </div>
       </Card>
+
+      {user && <LiveChatWidget ref={chatWidgetRef} userId={user.id} userRole={user.role || 'customer'} />}
     </div>
   );
 };

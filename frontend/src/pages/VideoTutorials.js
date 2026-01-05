@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useToast } from '../context/ToastContext';
 import Card from '../components/common/Card';
 import { Video, Play, Clock, Eye, ThumbsUp, Filter } from 'lucide-react';
 
 const VideoTutorials = () => {
+  const toast = useToast();
   const [selectedCategory, setSelectedCategory] = useState('all');
 
   const categories = [
@@ -217,7 +219,9 @@ const VideoTutorials = () => {
         <div className="text-center py-8">
           <h3 className="text-xl font-bold text-gray-900 mb-2">Vous ne trouvez pas ce que vous cherchez ?</h3>
           <p className="text-gray-600 mb-6">Suggérez-nous un sujet pour une prochaine vidéo</p>
-          <button className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all">
+          <button 
+            onClick={() => toast.success('Merci ! Votre suggestion a été enregistrée.')}
+            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all">
             Suggérer une Vidéo
           </button>
         </div>

@@ -325,7 +325,7 @@ const MerchantAffiliationRequests = () => {
                     )}
 
                     <p className="text-xs text-gray-500 mt-3">
-                      Demandé le {new Date(request.created_at).toLocaleDateString()} à {new Date(request.created_at).toLocaleTimeString()}
+                      Demandé le {request.created_at ? new Date(request.created_at).toLocaleDateString() : '-'} à {request.created_at ? new Date(request.created_at).toLocaleTimeString() : '-'}
                     </p>
                   </div>
                 </div>

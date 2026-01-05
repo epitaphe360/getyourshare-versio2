@@ -16,7 +16,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 const ChatbotWidget = ({ user, language = 'fr' }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,6 +31,38 @@ const ChatbotWidget = ({ user, language = 'fr' }) => {
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+
+  // Charger l'historique local au démarrage
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('chat_history');
+    const savedSessionId = localStorage.getItem('chat_session_id');
+    
+    if (savedMessages) {
+      try {
+        setMessages(JSON.parse(savedMessages));
+      } catch (e) {
+        console.error('Error parsing chat history', e);
+      }
+    }
+    
+    if (savedSessionId) {
+      setSessionId(savedSessionId);
+    }
+  }, []);
+
+  // Sauvegarder les messages dans localStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('chat_history', JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // Sauvegarder session ID
+  useEffect(() => {
+    if (sessionId) {
+      localStorage.setItem('chat_session_id', sessionId);
+    }
+  }, [sessionId]);
 
   // Scroll vers le bas quand nouveau message
   useEffect(() => {
@@ -53,7 +85,7 @@ const ChatbotWidget = ({ user, language = 'fr' }) => {
     }
   }, [isOpen]);
 
-  // Message de bienvenue
+  // Message de bienvenue (seulement si pas de messages)
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       setMessages([
@@ -64,7 +96,7 @@ const ChatbotWidget = ({ user, language = 'fr' }) => {
         },
       ]);
     }
-  }, [isOpen]);
+  }, [isOpen, messages.length]);
 
   const getWelcomeMessage = () => {
     const welcomeMessages = {
@@ -164,8 +196,16 @@ const ChatbotWidget = ({ user, language = 'fr' }) => {
   };
 
   const handleFeedback = async (messageIndex, rating) => {
-    // TODO: Envoyer feedback au backend
-    };
+    try {
+      await api.post('/api/bot/feedback', {
+        session_id: sessionId,
+        message_index: messageIndex,
+        rating: rating
+      });
+    } catch (error) {
+      console.error('Erreur envoi feedback:', error);
+    }
+  };
 
   const clearChat = () => {
     setMessages([
@@ -273,8 +313,21 @@ const ChatbotWidget = ({ user, language = 'fr' }) => {
                       <div
                         key={conv.session_id}
                         className="p-3 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition"
-                        onClick={() => {
-                          // TODO: Charger conversation
+                        onClick={async () => {
+                          // Charger la conversation sélectionnée
+                          try {
+                            const response = await api.get(`/api/bot/conversations/${conv.session_id}`);
+                            if (response.data?.messages) {
+                              setMessages(response.data.messages.map(m => ({
+                                role: m.role,
+                                content: m.content,
+                                timestamp: new Date(m.created_at)
+                              })));
+                              setSessionId(conv.session_id);
+                            }
+                          } catch (error) {
+                            console.error('Erreur chargement conversation:', error);
+                          }
                           setShowHistory(false);
                         }}
                       >

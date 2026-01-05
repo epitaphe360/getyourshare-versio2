@@ -4,8 +4,11 @@ import Table from '../../components/common/Table';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
 import { Plus } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 const Users = () => {
+  const toast = useToast();
+  const [showModal, setShowModal] = useState(false);
   const [users] = useState([
     {
       id: 'user_1',
@@ -59,7 +62,11 @@ const Users = () => {
       header: 'Actions',
       accessor: 'actions',
       render: (row) => (
-        <Button size="sm" variant="outline">
+        <Button 
+          size="sm" 
+          variant="outline"
+          onClick={() => toast.info(`Modification de ${row.name}`)}
+        >
           Modifier
         </Button>
       ),
@@ -73,7 +80,7 @@ const Users = () => {
           <h1 className="text-3xl font-bold text-gray-900">Gestion des Utilisateurs</h1>
           <p className="text-gray-600 mt-2">Gérez les utilisateurs managers</p>
         </div>
-        <Button>
+        <Button onClick={() => toast.info('Fonctionnalité en cours de développement')}>
           <Plus size={20} className="mr-2" />
           Nouvel Utilisateur
         </Button>

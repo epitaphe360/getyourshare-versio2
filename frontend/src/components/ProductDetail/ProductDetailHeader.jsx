@@ -98,7 +98,7 @@ const ProductDetailHeader = memo(({
             </h1>
             <p className="text-gray-600 text-lg font-semibold flex items-center gap-2">
               <Award className="w-5 h-5 text-cyan-600" />
-              {product.merchant?.name || 'Marchand Certifié'}
+              {product.merchant?.company_name || product.merchant?.name || product.merchant_name || 'Marchand Certifié'}
             </p>
           </div>
           <div className="flex space-x-3">

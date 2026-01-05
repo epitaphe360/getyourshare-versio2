@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GetYourShare - Guide Complet de l'Application</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1e1b4b;
+            --light: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-500: #64748b;
+            --gray-700: #334155;
+            --gray-900: #0f172a;
+            --gradient-1: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+            --gradient-2: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-900);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: var(--gradient-2);
+            color: white;
+            padding: 4rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.08'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            opacity: 0.5;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--gradient-1);
+            color: white;
+            padding: 0.5rem 1.5rem;
+            border-radius: 50px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+        }
+
+        /* Navigation */
+        .nav {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .nav-item {
+            padding: 1rem 1.5rem;
+            color: var(--gray-500);
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: var(--gray-100);
+        }
+
+        .nav-item.influencer {
+            border-left: 3px solid var(--success);
+        }
+
+        .nav-item.merchant {
+            border-left: 3px solid var(--warning);
+        }
+
+        .nav-item.admin {
+            border-left: 3px solid var(--danger);
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        /* Section */
+        .section {
+            margin-bottom: 4rem;
+            scroll-margin-top: 80px;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--gray-200);
+        }
+
+        .section-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .section-icon.influencer {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .section-icon.merchant {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .section-icon.admin {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .section-icon.general {
+            background: var(--gradient-1);
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .section-subtitle {
+            color: var(--gray-500);
+            font-size: 0.95rem;
+        }
+
+        /* Screenshot Cards */
+        .screenshots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+            gap: 2rem;
+        }
+
+        .screenshot-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .screenshot-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .screenshot-header {
+            padding: 1.25rem 1.5rem;
+            background: var(--gray-100);
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .screenshot-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-900);
+        }
+
+        .screenshot-url {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            font-family: 'Monaco', 'Consolas', monospace;
+            background: var(--gray-200);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+        }
+
+        .screenshot-image-container {
+            position: relative;
+            padding: 1rem;
+            background: #f0f0f0;
+            min-height: 300px;
+        }
+
+        .screenshot-image {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease;
+        }
+
+        .screenshot-card:hover .screenshot-image {
+            transform: scale(1.02);
+        }
+
+        .screenshot-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            color: var(--gray-500);
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .screenshot-placeholder svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            padding: 2rem;
+            overflow: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            width: 50px;
+            height: 50px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-lg);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-close:hover {
+            transform: scale(1.1);
+        }
+
+        .modal-content {
+            max-width: 95vw;
+            max-height: 90vh;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: var(--shadow-xl);
+        }
+
+        .modal-title {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Table of Contents */
+        .toc {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: var(--shadow);
+        }
+
+        .toc h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+        }
+
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .toc-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: var(--gray-100);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--gray-700);
+            transition: all 0.2s ease;
+        }
+
+        .toc-item:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .toc-number {
+            width: 28px;
+            height: 28px;
+            background: var(--gradient-1);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-label {
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--dark);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+
+        .footer p {
+            opacity: 0.7;
+        }
+
+        /* Print Styles */
+        @media print {
+            .nav, .modal, .toc {
+                display: none !important;
+            }
+            
+            .header {
+                padding: 2rem;
+            }
+            
+            .screenshot-card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+            
+            .screenshots-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .screenshots-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                padding: 2rem 1rem;
+            }
+            
+            .logo {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">GetYourShare</div>
+            <h1>Guide Complet de l'Application</h1>
+            <p>Documentation visuelle interactive de toutes les fonctionnalités</p>
+            <span class="badge">📸 Captures d'écran automatiques</span>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="#general" class="nav-item">🏠 Général</a>
+            <a href="#influencer" class="nav-item influencer">👤 Espace Influenceur</a>
+            <a href="#merchant" class="nav-item merchant">🏪 Espace Marchand</a>
+            <a href="#admin" class="nav-item admin">⚙️ Espace Admin</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value">0</div>
+                <div class="stat-label">Screenshots capturés</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">20</div>
+                <div class="stat-label">Pages documentées</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">3</div>
+                <div class="stat-label">Espaces utilisateur</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">100%</div>
+                <div class="stat-label">Couverture</div>
+            </div>
+        </div>
+
+        <!-- Table of Contents -->
+        <div class="toc">
+            <h2>📑 Table des Matières</h2>
+            <div class="toc-grid">
+                
+                <a href="#01_page_accueil" class="toc-item">
+                    <span class="toc-number">1</span>
+                    <span>Page d'Accueil</span>
+                </a>
+                <a href="#02_login" class="toc-item">
+                    <span class="toc-number">2</span>
+                    <span>Page de Connexion</span>
+                </a>
+                <a href="#03_register" class="toc-item">
+                    <span class="toc-number">3</span>
+                    <span>Page d'Inscription</span>
+                </a>
+                <a href="#04_dashboard_influenceur" class="toc-item">
+                    <span class="toc-number">4</span>
+                    <span>Dashboard Influenceur</span>
+                </a>
+                <a href="#05_marketplace" class="toc-item">
+                    <span class="toc-number">5</span>
+                    <span>Marketplace</span>
+                </a>
+                <a href="#06_mes_liens" class="toc-item">
+                    <span class="toc-number">6</span>
+                    <span>Mes Liens d'Affiliation</span>
+                </a>
+                <a href="#07_live_shopping" class="toc-item">
+                    <span class="toc-number">7</span>
+                    <span>Live Shopping Studio</span>
+                </a>
+                <a href="#08_content_ia" class="toc-item">
+                    <span class="toc-number">8</span>
+                    <span>Générateur de Contenu IA</span>
+                </a>
+                <a href="#09_smart_matching" class="toc-item">
+                    <span class="toc-number">9</span>
+                    <span>Smart Matching</span>
+                </a>
+                <a href="#10_wallet" class="toc-item">
+                    <span class="toc-number">10</span>
+                    <span>Wallet & Revenus</span>
+                </a>
+                <a href="#11_analytics" class="toc-item">
+                    <span class="toc-number">11</span>
+                    <span>Analytics</span>
+                </a>
+                <a href="#12_messages" class="toc-item">
+                    <span class="toc-number">12</span>
+                    <span>Messagerie</span>
+                </a>
+                <a href="#14_dashboard_marchand" class="toc-item">
+                    <span class="toc-number">13</span>
+                    <span>Dashboard Marchand</span>
+                </a>
+                <a href="#15_produits" class="toc-item">
+                    <span class="toc-number">14</span>
+                    <span>Gestion des Produits</span>
+                </a>
+                <a href="#16_commissions" class="toc-item">
+                    <span class="toc-number">15</span>
+                    <span>Configuration des Commissions</span>
+                </a>
+                <a href="#17_analytics_marchand" class="toc-item">
+                    <span class="toc-number">16</span>
+                    <span>Analytics Marchand</span>
+                </a>
+                <a href="#22_dashboard_admin" class="toc-item">
+                    <span class="toc-number">17</span>
+                    <span>Dashboard Admin</span>
+                </a>
+                <a href="#23_users_admin" class="toc-item">
+                    <span class="toc-number">18</span>
+                    <span>Gestion des Utilisateurs</span>
+                </a>
+                <a href="#24_transactions_admin" class="toc-item">
+                    <span class="toc-number">19</span>
+                    <span>Gestion des Transactions</span>
+                </a>
+                <a href="#25_settings_admin" class="toc-item">
+                    <span class="toc-number">20</span>
+                    <span>Paramètres Système</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Sections -->
+        
+    <section class="section" id="general">
+        <div class="section-header">
+            <div class="section-icon general">🏠</div>
+            <div>
+                <h2 class="section-title">Pages Générales</h2>
+                <p class="section-subtitle">Accueil, connexion et inscription</p>
+            </div>
+        </div>
+        <div class="screenshots-grid">
+            
+        <div class="screenshot-card" id="01_page_accueil">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Page d'Accueil</span>
+                <span class="screenshot-url">/</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="02_login">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Page de Connexion</span>
+                <span class="screenshot-url">/login</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="03_register">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Page d'Inscription</span>
+                <span class="screenshot-url">/register</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        </div>
+    </section>
+    <section class="section" id="influencer">
+        <div class="section-header">
+            <div class="section-icon influencer">👤</div>
+            <div>
+                <h2 class="section-title">Espace Influenceur</h2>
+                <p class="section-subtitle">Dashboard, marketplace, liens d'affiliation et outils</p>
+            </div>
+        </div>
+        <div class="screenshots-grid">
+            
+        <div class="screenshot-card" id="04_dashboard_influenceur">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Dashboard Influenceur</span>
+                <span class="screenshot-url">/dashboard/influencer</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="05_marketplace">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Marketplace</span>
+                <span class="screenshot-url">/marketplace</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="06_mes_liens">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Mes Liens d'Affiliation</span>
+                <span class="screenshot-url">/influencer/my-links</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="07_live_shopping">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Live Shopping Studio</span>
+                <span class="screenshot-url">/influencer/live-shopping</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="08_content_ia">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Générateur de Contenu IA</span>
+                <span class="screenshot-url">/influencer/ai-content</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="09_smart_matching">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Smart Matching</span>
+                <span class="screenshot-url">/influencer/matching</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="10_wallet">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Wallet & Revenus</span>
+                <span class="screenshot-url">/influencer/payouts</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="11_analytics">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Analytics</span>
+                <span class="screenshot-url">/influencer/analytics</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="12_messages">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Messagerie</span>
+                <span class="screenshot-url">/messages</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        </div>
+    </section>
+    <section class="section" id="merchant">
+        <div class="section-header">
+            <div class="section-icon merchant">🏪</div>
+            <div>
+                <h2 class="section-title">Espace Marchand</h2>
+                <p class="section-subtitle">Gestion des produits et des commissions</p>
+            </div>
+        </div>
+        <div class="screenshots-grid">
+            
+        <div class="screenshot-card" id="14_dashboard_marchand">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Dashboard Marchand</span>
+                <span class="screenshot-url">/dashboard/merchant</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="15_produits">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Gestion des Produits</span>
+                <span class="screenshot-url">/merchant/products</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="16_commissions">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Configuration des Commissions</span>
+                <span class="screenshot-url">/merchant/commissions</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="17_analytics_marchand">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Analytics Marchand</span>
+                <span class="screenshot-url">/merchant/analytics</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        </div>
+    </section>
+    <section class="section" id="admin">
+        <div class="section-header">
+            <div class="section-icon admin">⚙️</div>
+            <div>
+                <h2 class="section-title">Espace Administrateur</h2>
+                <p class="section-subtitle">Gestion de la plateforme</p>
+            </div>
+        </div>
+        <div class="screenshots-grid">
+            
+        <div class="screenshot-card" id="22_dashboard_admin">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Dashboard Admin</span>
+                <span class="screenshot-url">/admin/dashboard</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="23_users_admin">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Gestion des Utilisateurs</span>
+                <span class="screenshot-url">/admin/users</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="24_transactions_admin">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Gestion des Transactions</span>
+                <span class="screenshot-url">/admin/transactions</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        <div class="screenshot-card" id="25_settings_admin">
+            <div class="screenshot-header">
+                <span class="screenshot-title">Paramètres Système</span>
+                <span class="screenshot-url">/admin/settings</span>
+            </div>
+            
+            <div class="screenshot-placeholder">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <p><strong>Capture non disponible</strong></p>
+                <p style="font-size: 0.85rem;">Lancez le script auto_screenshot.py</p>
+            </div>
+        </div>
+        </div>
+    </section>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal" id="imageModal">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <img src="" alt="" class="modal-content" id="modalImage">
+        <div class="modal-title" id="modalTitle"></div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>GetYourShare &copy; 2024 - Documentation générée automatiquement</p>
+    </footer>
+
+    <script>
+        // Modal functionality
+        function openModal(src, title) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            const modalTitle = document.getElementById('modalTitle');
+            
+            modal.classList.add('active');
+            modalImg.src = src;
+            modalTitle.textContent = title;
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Smooth scroll for navigation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        // Active navigation state
+        const sections = document.querySelectorAll('.section');
+        const navItems = document.querySelectorAll('.nav-item');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navItems.forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('href') === '#' + current) {
+                    item.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

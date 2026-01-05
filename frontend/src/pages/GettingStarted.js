@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../components/common/Card';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 
 const GettingStarted = () => {
+  const navigate = useNavigate();
   const steps = [
     {
       title: 'Étape 1: Configurer votre compte',
@@ -63,18 +65,18 @@ const GettingStarted = () => {
         <div className="space-y-6">
           <Card title="Ressources">
             <div className="space-y-3">
-              <a href="#" className="block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all">
+              <button onClick={() => navigate('/documentation')} className="block w-full text-left p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-all">
                 <h4 className="font-semibold text-blue-900">Documentation</h4>
                 <p className="text-sm text-blue-700 mt-1">Guides complets</p>
-              </a>
-              <a href="#" className="block p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-all">
+              </button>
+              <button onClick={() => navigate('/video-tutorials')} className="block w-full text-left p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-all">
                 <h4 className="font-semibold text-green-900">Vidéos Tutoriels</h4>
                 <p className="text-sm text-green-700 mt-1">Apprenez en vidéo</p>
-              </a>
-              <a href="#" className="block p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-all">
+              </button>
+              <button onClick={() => navigate('/support')} className="block w-full text-left p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-all">
                 <h4 className="font-semibold text-purple-900">Support</h4>
                 <p className="text-sm text-purple-700 mt-1">Contactez-nous</p>
-              </a>
+              </button>
             </div>
           </Card>
 

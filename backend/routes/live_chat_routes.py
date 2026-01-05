@@ -409,3 +409,8 @@ async def mark_messages_as_read(
         logger.error(f"Error marking messages as read: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+<<<<<<< HEAD
+=======
+
+from typing import Optional
+>>>>>>> origin/claude/fix-api-communication-bgzli

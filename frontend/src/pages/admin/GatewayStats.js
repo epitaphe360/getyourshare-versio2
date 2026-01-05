@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../utils/api';
+import api from '../../utils/api';
 import Card from '../../components/common/Card';
 import Table from '../../components/common/Table';
 import Badge from '../../components/common/Badge';
@@ -324,7 +324,7 @@ const GatewayStats = () => {
             {
               key: 'created_at',
               label: 'Date',
-              render: (row) => new Date(row.created_at).toLocaleString('fr-FR')
+              render: (row) => row.created_at ? new Date(row.created_at).toLocaleString('fr-FR') : '-'
             }
           ]}
           data={filteredTransactions}

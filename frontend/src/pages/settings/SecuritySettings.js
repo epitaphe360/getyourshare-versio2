@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import { Lock, Shield, Wifi } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 const SecuritySettings = () => {
+  const toast = useToast();
   const [passwordData, setPasswordData] = useState({
     current_password: '',
     new_password: '',
@@ -115,13 +117,23 @@ const SecuritySettings = () => {
                   <Wifi className="text-green-600" size={20} />
                   <span className="font-mono">{ip}</span>
                 </div>
-                <Button size="sm" variant="danger">
+                <Button 
+                  size="sm" 
+                  variant="danger"
+                  onClick={() => {
+                    setAllowedIps(allowedIps.filter((_, i) => i !== index));
+                    toast.success(`IP ${ip} supprimée`);
+                  }}
+                >
                   Supprimer
                 </Button>
               </div>
             ))}
           </div>
-          <Button variant="outline">
+          <Button 
+            variant="outline"
+            onClick={() => toast.info('Fonctionnalité en cours de développement')}
+          >
             Ajouter une IP
           </Button>
         </div>

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 import { Mail, Lock, Sparkles, AlertCircle, Shield } from 'lucide-react';
 import Button from '../components/common/Button';
 import SEOHead from '../components/SEO/SEOHead';
 import SEO_CONFIG from '../config/seo';
+import Navigation from '../components/Navigation';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -14,8 +16,23 @@ const Login = () => {
   const [requires2FA, setRequires2FA] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [debugInfo, setDebugInfo] = useState(null); // DEBUG MODE
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // DEBUG: Test connectivity
+  const testConnection = async () => {
+    setDebugInfo("Test de connexion en cours...");
+    try {
+      const startTime = Date.now();
+      const response = await api.get('/health');
+      const duration = Date.now() - startTime;
+      setDebugInfo(`✅ Backend connecté en ${duration}ms. Status: ${response.status}`);
+    } catch (err) {
+      console.error("Debug connection error:", err);
+      setDebugInfo(`❌ Erreur connexion: ${err.message}. ${err.response ? `Status: ${err.response.status}` : 'Pas de réponse'}`);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -98,20 +115,15 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
-      const response = await fetch(`${API_URL}/api/auth/verify-2fa`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          code: twoFACode,
-          temp_token: tempToken
-        })
+      const response = await api.post('/api/auth/verify-2fa', {
+        email,
+        code: twoFACode,
+        temp_token: tempToken
       });
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (response.ok && data.access_token) {
+      if (data.access_token) {
         // Stocker le token et l'utilisateur
         localStorage.setItem('token', data.access_token);
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -133,19 +145,28 @@ const Login = () => {
         } else {
           navigate('/dashboard');
         }
-      } else {
-        setError(data.detail || 'Code 2FA incorrect');
       }
     } catch (err) {
-      setError('Erreur lors de la vérification du code');
+      setError(err.response?.data?.detail || 'Erreur lors de la vérification du code');
     } finally {
       setLoading(false);
     }
   };
 
+  const seoData = SEO_CONFIG?.login || {
+    title: 'Connexion - Accédez à Votre Compte GetYourShare',
+    description: 'Connectez-vous à votre compte GetYourShare.',
+    keywords: 'connexion, login, compte, affiliation',
+    image: 'https://getyourshare.com/og-login.jpg',
+    type: 'website',
+    url: 'https://getyourshare.com/login',
+    structuredData: null
+  };
+
   return (
     <>
-      <SEOHead {...SEO_CONFIG.login} />
+      <SEOHead {...seoData} />
+      <Navigation />
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-12 px-4">
       <div className="max-w-md w-full">
         {/* Logo */}
@@ -176,12 +197,14 @@ const Login = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                     Email
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
+                      id="email"
+                      name="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -189,17 +212,20 @@ const Login = () => {
                       placeholder="votre@email.com"
                       required
                       data-testid="email-input"
+                      autoComplete="email"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                     Mot de passe
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
+                      id="password"
+                      name="password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -207,6 +233,7 @@ const Login = () => {
                       placeholder="••••••••"
                       required
                       data-testid="password-input"
+                      autoComplete="current-password"
                     />
                   </div>
                 </div>
@@ -232,6 +259,25 @@ const Login = () => {
 
               {/* Connexion rapide - Toujours visible pour les tests */}
               <>
+                {/* DEBUG SECTION */}
+                <div className="mt-4 p-2 border border-gray-200 rounded bg-gray-50 text-xs">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-bold text-gray-500">MODE DEBUG</span>
+                    <button 
+                      onClick={testConnection}
+                      type="button"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Tester Connexion API
+                    </button>
+                  </div>
+                  {debugInfo && (
+                    <div className={`p-2 rounded ${debugInfo.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {debugInfo}
+                    </div>
+                  )}
+                </div>
+
                 <div className="mt-6">
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
@@ -245,7 +291,7 @@ const Login = () => {
                   {/* Admin */}
                   <div className="mt-6">
                     <button
-                      onClick={() => quickLogin('admin@getyourshare.com', 'Test123!')}
+                      onClick={() => quickLogin('admin@getyourshare.com', 'admin123')}
                       disabled={loading}
                       className="w-full flex items-center justify-between px-4 py-3 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition disabled:opacity-50"
                     >
@@ -271,7 +317,7 @@ const Login = () => {
                     <div className="space-y-2">
                       {/* Influenceur STARTER */}
                       <button
-                        onClick={() => quickLogin('hassan.oudrhiri@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('influencer1@fashion.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition disabled:opacity-50"
                       >
@@ -280,8 +326,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-green-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">Hassan Oudrhiri</p>
-                            <p className="text-xs text-gray-500">67K followers • Food & Cuisine</p>
+                            <p className="text-sm font-semibold text-gray-900">Sarah El Fassi</p>
+                            <p className="text-xs text-gray-500">250K followers • Fashion & Beauty</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">STARTER</span>
@@ -289,7 +335,7 @@ const Login = () => {
 
                       {/* Influenceur PRO */}
                       <button
-                        onClick={() => quickLogin('sarah.benali@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('influencer2@tech.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-yellow-200 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition disabled:opacity-50"
                       >
@@ -298,8 +344,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-yellow-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">Sarah Benali</p>
-                            <p className="text-xs text-gray-500">125K followers • Lifestyle</p>
+                            <p className="text-sm font-semibold text-gray-900">Pierre Tech</p>
+                            <p className="text-xs text-gray-500">150K followers • Tech & Gaming</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">PRO</span>
@@ -307,7 +353,7 @@ const Login = () => {
 
                       {/* Influenceur ENTERPRISE */}
                       <button
-                        onClick={() => quickLogin('karim.benjelloun@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('influencer3@lifestyle.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition disabled:opacity-50"
                       >
@@ -316,8 +362,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-purple-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">Karim Benjelloun ⭐</p>
-                            <p className="text-xs text-gray-500">285K followers • Tech & Gaming</p>
+                            <p className="text-sm font-semibold text-gray-900">Laura Lifestyle ⭐</p>
+                            <p className="text-xs text-gray-500">180K followers • Lifestyle</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded">ENTERPRISE</span>
@@ -334,7 +380,7 @@ const Login = () => {
                     <div className="space-y-2">
                       {/* Marchand STARTER */}
                       <button
-                        onClick={() => quickLogin('boutique.maroc@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('merchant1@fashionstore.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition disabled:opacity-50"
                       >
@@ -343,8 +389,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-green-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">Boutique Maroc</p>
-                            <p className="text-xs text-gray-500">Artisanat traditionnel</p>
+                            <p className="text-sm font-semibold text-gray-900">Fashion Store</p>
+                            <p className="text-xs text-gray-500">Mode & Vêtements</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded">STARTER</span>
@@ -352,7 +398,7 @@ const Login = () => {
 
                       {/* Marchand PRO */}
                       <button
-                        onClick={() => quickLogin('luxury.crafts@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('merchant2@techgadgets.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-yellow-200 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition disabled:opacity-50"
                       >
@@ -361,8 +407,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-yellow-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">Luxury Crafts</p>
-                            <p className="text-xs text-gray-500">Artisanat Premium</p>
+                            <p className="text-sm font-semibold text-gray-900">Tech Gadgets</p>
+                            <p className="text-xs text-gray-500">Technologie & Gadgets</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">PRO</span>
@@ -370,7 +416,7 @@ const Login = () => {
 
                       {/* Marchand ENTERPRISE */}
                       <button
-                        onClick={() => quickLogin('electromaroc@getyourshare.com', 'Test123!')}
+                        onClick={() => quickLogin('merchant3@beautyparis.com', 'Test123!')}
                         disabled={loading}
                         className="w-full flex items-center justify-between px-4 py-3 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition disabled:opacity-50"
                       >
@@ -379,8 +425,8 @@ const Login = () => {
                             <Sparkles className="w-5 h-5 text-purple-600" />
                           </div>
                           <div className="ml-3 text-left">
-                            <p className="text-sm font-semibold text-gray-900">ElectroMaroc ⭐</p>
-                            <p className="text-xs text-gray-500">Électronique & High-Tech</p>
+                            <p className="text-sm font-semibold text-gray-900">Beauty Paris ⭐</p>
+                            <p className="text-xs text-gray-500">Beauté & Cosmétiques</p>
                           </div>
                         </div>
                         <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs font-medium rounded">ENTERPRISE</span>
@@ -395,7 +441,7 @@ const Login = () => {
                       Commercial
                     </p>
                     <button
-                      onClick={() => quickLogin('sofia.chakir@getyourshare.com', 'Test123!')}
+                      onClick={() => quickLogin('commercial1@getyourshare.com', 'Test123!')}
                       disabled={loading}
                       className="w-full flex items-center justify-between px-4 py-3 border-2 border-indigo-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition disabled:opacity-50"
                     >
@@ -404,7 +450,7 @@ const Login = () => {
                           <Sparkles className="w-5 h-5 text-indigo-600" />
                         </div>
                         <div className="ml-3 text-left">
-                          <p className="text-sm font-semibold text-gray-900">Sofia Chakir</p>
+                          <p className="text-sm font-semibold text-gray-900">Lucas Commercial</p>
                           <p className="text-xs text-gray-500">Business Development</p>
                         </div>
                       </div>
@@ -422,7 +468,9 @@ const Login = () => {
                       <p><span className="px-2 py-0.5 bg-green-100 text-green-800 rounded font-medium">STARTER</span> - Fonctionnalités de base</p>
                       <p><span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded font-medium">PRO</span> - Accès complet + Analytics</p>
                       <p><span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded font-medium">ENTERPRISE</span> - Tout illimité + Support prioritaire</p>
-                      <p><strong>Influenceur 3:</strong> julie.beauty@tiktok.com / influencer123</p>
+                      <p className="mt-2"><strong>Mots de passe par défaut :</strong></p>
+                      <p>• Admin : <code>Admin123!</code></p>
+                      <p>• Autres comptes : <code>Test123!</code></p>
                       <p className="text-indigo-600 mt-2"><strong>Code 2FA:</strong> 123456</p>
                     </div>
                   </div>
@@ -450,10 +498,12 @@ const Login = () => {
 
               <form onSubmit={handleVerify2FA} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="twoFACode" className="block text-sm font-medium text-gray-700 mb-1">
                     Code à 6 chiffres
                   </label>
                   <input
+                    id="twoFACode"
+                    name="twoFACode"
                     type="text"
                     value={twoFACode}
                     onChange={(e) => setTwoFACode(e.target.value)}
@@ -461,6 +511,7 @@ const Login = () => {
                     placeholder="000000"
                     maxLength="6"
                     required
+                    autoComplete="one-time-code"
                   />
                 </div>
 

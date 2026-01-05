@@ -488,14 +488,17 @@ def run_scenario():
                     for l in p_links.data:
                         try:
                             supabase.table('qr_scan_events').delete().eq('tracking_link_id', l['id']).execute()
-                        except: pass
+                        except Exception:
+                            pass  # Cleanup - ignore if table doesn't exist
                         try:
                             supabase.table('tracking_events').delete().eq('tracking_link_id', l['id']).execute()
-                        except: pass
+                        except Exception:
+                            pass  # Cleanup - ignore if table doesn't exist
                         try:
                             supabase.table('conversions').delete().eq('tracking_link_id', l['id']).execute()
-                        except: pass
-                        
+                        except Exception:
+                            pass  # Cleanup - ignore if table doesn't exist
+
                     supabase.table('tracking_links').delete().eq('product_id', p['id']).execute()
                 except Exception:
                     pass

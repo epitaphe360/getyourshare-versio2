@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import Table from '../components/common/Table';
@@ -14,6 +15,7 @@ import {
 
 const TrackingLinks = () => {
   const toast = useToast();
+  const { user } = useAuth();
   const [links, setLinks] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -58,9 +60,11 @@ const TrackingLinks = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await api.get('/api/products');
-      // S'assurer que response.data est un tableau
-      const productsData = Array.isArray(response.data) ? response.data : [];
+      const response = await api.get('/api/marketplace/products');
+      // Gérer les deux formats de réponse possibles
+      const productsData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data.products || []);
       setProducts(productsData);
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error);
@@ -70,28 +74,13 @@ const TrackingLinks = () => {
 
   const fetchAffiliationRequests = async () => {
     try {
-      // Charger toutes les demandes d'affiliation (tous statuts)
-      const [pendingRes, activeRes, rejectedRes, cancelledRes] = await Promise.all([
-        api.get('/api/influencer/affiliation-requests?status=pending_approval'),
-        api.get('/api/influencer/affiliation-requests?status=active'),
-        api.get('/api/influencer/affiliation-requests?status=rejected'),
-        api.get('/api/influencer/affiliation-requests?status=cancelled')
-      ]);
-
+      // Charger toutes les demandes d'affiliation
+      const response = await api.get('/api/influencer/affiliation-requests');
+      
       // Extraire les données en gérant différentes structures de réponse
-      const extractData = (res) => {
-        const data = res.data?.data || res.data || [];
-        return Array.isArray(data) ? data : [];
-      };
-
-      const allRequests = [
-        ...extractData(pendingRes),
-        ...extractData(activeRes),
-        ...extractData(rejectedRes),
-        ...extractData(cancelledRes)
-      ];
-
-      setPendingRequests(allRequests);
+      const requests = response.data?.requests || response.data?.data || response.data || [];
+      
+      setPendingRequests(Array.isArray(requests) ? requests : []);
     } catch (error) {
       console.error('Erreur lors du chargement des demandes:', error);
       setPendingRequests([]);
@@ -192,15 +181,17 @@ const TrackingLinks = () => {
     try {
       setLoading(true);
       
+      // Récupérer les stats utilisateur depuis le profil
+      const userStats = user?.influencer_profile || {};
+      
       // Créer une demande d'affiliation au lieu de générer directement
       const response = await api.post('/api/affiliation/request', {
         product_id: selectedProduct,
         message: requestMessage,
         stats: {
-          // TODO: Récupérer les vraies stats du profil utilisateur
-          followers: 0,
-          engagement_rate: 0,
-          platforms: []
+          followers: userStats.followers_count || 0,
+          engagement_rate: userStats.engagement_rate || 0,
+          platforms: userStats.platforms || []
         }
       });
 

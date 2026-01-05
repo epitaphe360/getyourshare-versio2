@@ -5,7 +5,7 @@ import axios from 'axios';
 import SEOHead from '../components/SEO/SEOHead';
 import SEO_CONFIG from '../config/seo';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -32,18 +32,34 @@ const Register = () => {
 
   // Check URL parameters for pre-selected role and plan
   useEffect(() => {
-    const urlRole = searchParams.get('role');
-    const urlPlan = searchParams.get('plan');
-    
-    if (urlRole && (urlRole === 'merchant' || urlRole === 'influencer')) {
-      setRole(urlRole);
-      setStep(2); // Skip role selection, go directly to form
-    }
-    
-    if (urlPlan) {
-      setSelectedPlan(urlPlan);
+    try {
+      if (!searchParams) return;
+
+      const urlRole = searchParams.get('role');
+      const urlPlan = searchParams.get('plan');
+      
+      if (urlRole && (urlRole === 'merchant' || urlRole === 'influencer')) {
+        setRole(urlRole);
+        setStep(2); // Skip role selection, go directly to form
+      }
+      
+      if (urlPlan) {
+        setSelectedPlan(urlPlan);
+      }
+    } catch (error) {
+      console.error("Error parsing URL parameters:", error);
     }
   }, [searchParams]);
+
+  const seoData = SEO_CONFIG?.register || {
+    title: 'Inscription - Rejoignez la Communauté GetYourShare',
+    description: 'Créez votre compte GetYourShare en quelques minutes.',
+    keywords: 'inscription, register, compte, affiliation',
+    image: 'https://getyourshare.com/og-register.jpg',
+    type: 'website',
+    url: 'https://getyourshare.com/register',
+    structuredData: null
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -89,7 +105,7 @@ const Register = () => {
         ...(role === 'influencer' && { username: formData.username })
       };
 
-      const response = await axios.post(`${API_URL}/api/auth/register`, registerData);
+      const response = await axios.post(`${API_URL}/auth/register`, registerData);
       
       if (response.data.success) {
         setSuccess(true);
@@ -125,7 +141,7 @@ const Register = () => {
 
   return (
     <>
-      <SEOHead {...SEO_CONFIG.register} />
+      <SEOHead {...seoData} />
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-4xl w-full">
         <div className="flex flex-col md:flex-row">
@@ -242,12 +258,13 @@ const Register = () => {
                   {/* Nom et Prénom */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
                         Prénom
                       </label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
+                          id="first_name"
                           type="text"
                           name="first_name"
                           value={formData.first_name}
@@ -255,14 +272,16 @@ const Register = () => {
                           className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                           placeholder="Jean"
                           required
+                          autoComplete="given-name"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
                         Nom
                       </label>
                       <input
+                        id="last_name"
                         type="text"
                         name="last_name"
                         value={formData.last_name}
@@ -270,6 +289,7 @@ const Register = () => {
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="Dupont"
                         required
+                        autoComplete="family-name"
                       />
                     </div>
                   </div>
@@ -277,12 +297,13 @@ const Register = () => {
                   {/* Company Name (Merchant only) */}
                   {role === 'merchant' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="company_name" className="block text-sm font-medium text-gray-700 mb-1">
                         Nom de l'entreprise
                       </label>
                       <div className="relative">
                         <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
+                          id="company_name"
                           type="text"
                           name="company_name"
                           value={formData.company_name}
@@ -290,6 +311,7 @@ const Register = () => {
                           className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                           placeholder="Mon Entreprise SAS"
                           required
+                          autoComplete="organization"
                         />
                       </div>
                     </div>
@@ -298,12 +320,13 @@ const Register = () => {
                   {/* Username (Influencer only) */}
                   {role === 'influencer' && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
                         Nom d'utilisateur
                       </label>
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
+                          id="username"
                           type="text"
                           name="username"
                           value={formData.username}
@@ -311,6 +334,7 @@ const Register = () => {
                           className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                           placeholder="mon_username"
                           required
+                          autoComplete="username"
                         />
                       </div>
                     </div>
@@ -318,12 +342,13 @@ const Register = () => {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                       Email
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="email"
                         type="email"
                         name="email"
                         value={formData.email}
@@ -331,18 +356,20 @@ const Register = () => {
                         className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="email@exemple.com"
                         required
+                        autoComplete="email"
                       />
                     </div>
                   </div>
 
                   {/* Phone */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
                       Téléphone
                     </label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="phone"
                         type="tel"
                         name="phone"
                         value={formData.phone}
@@ -350,18 +377,20 @@ const Register = () => {
                         className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="+33612345678"
                         required
+                        autoComplete="tel"
                       />
                     </div>
                   </div>
 
                   {/* Password */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                       Mot de passe
                     </label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="password"
                         type="password"
                         name="password"
                         value={formData.password}
@@ -369,18 +398,20 @@ const Register = () => {
                         className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="••••••••"
                         required
+                        autoComplete="new-password"
                       />
                     </div>
                   </div>
 
                   {/* Confirm Password */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                       Confirmer le mot de passe
                     </label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
+                        id="confirmPassword"
                         type="password"
                         name="confirmPassword"
                         value={formData.confirmPassword}
@@ -388,6 +419,7 @@ const Register = () => {
                         className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         placeholder="••••••••"
                         required
+                        autoComplete="new-password"
                       />
                     </div>
                   </div>
@@ -402,9 +434,9 @@ const Register = () => {
                     />
                     <label htmlFor="terms" className="ml-2 text-sm text-gray-600">
                       J'accepte les{' '}
-                      <a href="#" className="text-indigo-600 hover:text-indigo-700">
+                      <Link to="/terms" className="text-indigo-600 hover:text-indigo-700">
                         conditions générales d'utilisation
-                      </a>
+                      </Link>
                     </label>
                   </div>
 

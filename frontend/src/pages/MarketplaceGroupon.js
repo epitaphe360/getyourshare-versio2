@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import api from '../services/api';
+import api from '../utils/api';
 import Layout from '../components/layout/Layout';
 import CollaborationRequestModal from '../components/modals/CollaborationRequestModal';
 import './MarketplaceAnimations.css';
 import {
   Search, MapPin, Star, TrendingUp, Users, 
-  ShoppingBag, Briefcase, Instagram, ChevronRight
+  ShoppingBag, Briefcase, Instagram, ChevronRight, Store, ArrowLeft
 } from 'lucide-react';
 
 const MarketplaceGroupon = () => {
@@ -22,22 +22,66 @@ const MarketplaceGroupon = () => {
   const [services, setServices] = useState([]);
   const [commercials, setCommercials] = useState([]);
   const [influencers, setInfluencers] = useState([]);
+  const [merchants, setMerchants] = useState([]);
+  const [selectedMerchantProducts, setSelectedMerchantProducts] = useState([]);
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'merchant_details'
+  const [selectedMerchant, setSelectedMerchant] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showCollabModal, setShowCollabModal] = useState(false);
   const [selectedInfluencer, setSelectedInfluencer] = useState(null);
   const [merchantProducts, setMerchantProducts] = useState([]);
 
+  // Fonction pour calculer la commission d'affiliation selon la logique implémentée
+  const calculateAffiliateCommission = (price) => {
+    const THRESHOLD = 800; // Seuil de 800 DHS
+    const PERCENTAGE_RATE = 10; // 10% pour les prix < 800 DHS
+    const FIXED_COMMISSION = 80; // 80 DHS fixe pour les prix >= 800 DHS
+    
+    if (price < THRESHOLD) {
+      // Commission de 10% pour les services entre 50-799 DHS
+      const commission = (price * PERCENTAGE_RATE) / 100;
+      return {
+        amount: commission.toFixed(2),
+        type: 'percentage',
+        rate: PERCENTAGE_RATE,
+        display: `${PERCENTAGE_RATE}% (${commission.toFixed(2)} DH)`
+      };
+    } else {
+      // Commission fixe de 80 DHS pour les services >= 800 DHS
+      return {
+        amount: FIXED_COMMISSION.toFixed(2),
+        type: 'fixed',
+        rate: null,
+        display: `${FIXED_COMMISSION} DH`
+      };
+    }
+  };
+
   // Détecter si on vient du dashboard ou de la home
   const fromDashboard = location.state?.fromDashboard || false;
 
-  const tabs = [
-    { id: 0, name: 'Produits', icon: ShoppingBag, color: 'bg-green-500' },
-    { id: 1, name: 'Services', icon: Briefcase, color: 'bg-blue-500' },
-    { id: 2, name: 'Commerciaux', icon: Users, color: 'bg-purple-500' },
-    { id: 3, name: 'Influenceurs', icon: Instagram, color: 'bg-pink-500' }
-  ];
+  const tabs = useMemo(() => {
+    const baseTabs = [
+      { id: 0, name: 'Produits', icon: ShoppingBag, color: 'bg-green-500' },
+      { id: 1, name: 'Services', icon: Briefcase, color: 'bg-blue-500' }
+    ];
+
+    if (user?.role === 'influencer' || user?.role === 'commercial' || user?.role === 'sales_rep') {
+      return [
+        ...baseTabs,
+        { id: 4, name: 'Marchands', icon: Store, color: 'bg-orange-500' }
+      ];
+    }
+
+    return [
+      ...baseTabs,
+      { id: 2, name: 'Commerciaux', icon: Users, color: 'bg-purple-500' },
+      { id: 3, name: 'Influenceurs', icon: Instagram, color: 'bg-pink-500' }
+    ];
+  }, [user]);
 
   useEffect(() => {
+    setViewMode('list');
     loadTabData();
   }, [currentTab]);
 
@@ -50,7 +94,7 @@ const MarketplaceGroupon = () => {
 
   const loadMerchantProducts = async () => {
     try {
-      const res = await api.get('/api/products');
+      const res = await api.get('/api/marketplace/products');
       setMerchantProducts(res.data.products || []);
     } catch (error) {
       console.error('Error loading merchant products:', error);
@@ -96,7 +140,7 @@ const MarketplaceGroupon = () => {
     setLoading(true);
     try {
       if (currentTab === 0) {
-        const res = await api.get('/api/products?limit=20');
+        const res = await api.get('/api/marketplace/products?limit=20');
         setProducts(res.data.products || []);
       } else if (currentTab === 1) {
         const res = await api.get('/api/services?limit=20');
@@ -107,6 +151,9 @@ const MarketplaceGroupon = () => {
       } else if (currentTab === 3) {
         const res = await api.get('/api/influencers/directory?limit=20');
         setInfluencers(res.data.influencers || []);
+      } else if (currentTab === 4) {
+        const res = await api.get('/api/merchants');
+        setMerchants(res.data.merchants || []);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -119,14 +166,48 @@ const MarketplaceGroupon = () => {
     // Permettre l'accès aux détails sans connexion
     // La connexion sera demandée seulement lors de la demande d'affiliation
     
+    const isDashboard = location.pathname.startsWith('/dashboard');
+    const productBasePath = isDashboard ? '/dashboard/marketplace/product' : '/marketplace/product';
+
     // Rediriger selon le type
     if (type === 'product' || type === 'service') {
-      navigate(`/marketplace/product/${item.id}`);
+      navigate(`${productBasePath}/${item.id}`);
     } else if (type === 'commercial') {
       navigate(`/commercial/${item.id}`);
     } else if (type === 'influencer') {
       navigate(`/influencer/${item.id}`);
     }
+  };
+
+  const handleMerchantClick = async (merchant) => {
+    setSelectedMerchant(merchant);
+    setViewMode('merchant_details');
+    setLoading(true);
+    try {
+      // Tentative de récupération des produits du marchand
+      const res = await api.get(`/api/marketplace/products`);
+      let allProducts = res.data.products || [];
+      
+      // Filtrage côté client car l'API ne semble pas supporter le filtrage par merchant_id directement dans l'URL publique
+      // (A vérifier selon l'implémentation backend, mais le filtrage client est sûr)
+      const merchantProducts = allProducts.filter(p => 
+        p.merchant_id === merchant.id || 
+        (p.merchant && p.merchant.id === merchant.id)
+      );
+      
+      setSelectedMerchantProducts(merchantProducts);
+    } catch (error) {
+      console.error('Error loading merchant products:', error);
+      toast.error('Erreur lors du chargement des produits');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBackToMerchants = () => {
+    setViewMode('list');
+    setSelectedMerchant(null);
+    setSelectedMerchantProducts([]);
   };
 
   // Contenu principal du marketplace
@@ -207,7 +288,15 @@ const MarketplaceGroupon = () => {
                   className="w-full pl-14 pr-5 py-5 rounded-2xl text-gray-900 text-lg font-medium focus:outline-none focus:ring-4 focus:ring-cyan-300 shadow-2xl hover-lift"
                 />
               </div>
-              <button className="px-10 py-5 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 text-white rounded-2xl font-bold hover:shadow-2xl hover:scale-105 transition-all duration-300 animate-gradient">
+              <button 
+                onClick={() => {
+                  if (searchQuery.trim()) {
+                    toast.info(`Recherche en cours pour "${searchQuery}"...`);
+                  } else {
+                    toast.info('Entrez un terme de recherche');
+                  }
+                }}
+                className="px-10 py-5 bg-gradient-to-r from-yellow-400 via-orange-500 to-pink-500 text-white rounded-2xl font-bold hover:shadow-2xl hover:scale-105 transition-all duration-300 animate-gradient">
                 🔍 Rechercher
               </button>
             </div>
@@ -330,7 +419,9 @@ const MarketplaceGroupon = () => {
                         </div>
                       </div>
                       
-                      <button className="w-full py-3.5 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-white rounded-xl font-bold hover:from-blue-700 hover:via-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-2xl transform hover:scale-105 animate-gradient">
+                      <button 
+                        onClick={() => handleViewDetails(product, 'product')}
+                        className="w-full py-3.5 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-600 text-white rounded-xl font-bold hover:from-blue-700 hover:via-cyan-700 hover:to-teal-700 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-2xl transform hover:scale-105 animate-gradient">
                         <span>Voir détails</span>
                         <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
                       </button>
@@ -374,18 +465,25 @@ const MarketplaceGroupon = () => {
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-600">Prix public</span>
                           <span className="text-lg font-bold text-gray-900">
-                            {service.price} DH
+                            {service.price || service.price_per_lead} DH
                           </span>
                         </div>
                         <div className="flex items-center justify-between bg-blue-50 px-3 py-2 rounded-lg">
-                          <span className="text-sm font-semibold text-blue-700">Commission d'affiliation</span>
+                          <span className="text-sm font-semibold text-blue-700">Commission d'affiliation par lead</span>
                           <span className="text-xl font-bold text-blue-600">
-                            {service.commission_rate || 20}%
+                            {calculateAffiliateCommission(service.price || service.price_per_lead || 0).display}
                           </span>
+                        </div>
+                        <div className="text-xs text-gray-500 italic text-center mt-1">
+                          {(service.price || service.price_per_lead) < 800 
+                            ? '10% de commission pour les services < 800 DH' 
+                            : 'Commission fixe de 80 DH pour les services ≥ 800 DH'}
                         </div>
                       </div>
                       
-                      <button className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                      <button 
+                        onClick={() => handleViewDetails(service, 'product')}
+                        className="w-full py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2">
                         Voir les détails <ChevronRight size={16} />
                       </button>
                     </div>
@@ -468,7 +566,12 @@ const MarketplaceGroupon = () => {
                         </div>
                       )}
 
-                      <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition flex items-center justify-center gap-2 shadow-md">
+                      <button 
+                        onClick={() => {
+                          toast.success(`Demande de contact envoyée à ${commercial.profile?.first_name || 'ce commercial'}`);
+                          navigate('/messages', { state: { recipientId: commercial.id, recipientName: `${commercial.profile?.first_name || ''} ${commercial.profile?.last_name || ''}` } });
+                        }}
+                        className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-purple-800 transition flex items-center justify-center gap-2 shadow-md">
                         <Users size={18} />
                         Contacter le Commercial
                       </button>
@@ -522,7 +625,10 @@ const MarketplaceGroupon = () => {
                       <div className="grid grid-cols-3 gap-2 mb-4">
                         <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-3 text-center">
                           <div className="text-lg font-bold text-pink-600">
-                            {(influencer.profile?.followers_count / 1000).toFixed(0)}K
+                            {(() => {
+                              const count = Number(influencer.profile?.followers_count);
+                              return isNaN(count) ? '0' : (count / 1000).toFixed(0);
+                            })()}K
                           </div>
                           <div className="text-xs text-gray-600">Followers</div>
                         </div>
@@ -547,14 +653,20 @@ const MarketplaceGroupon = () => {
                           <div className="flex items-center gap-1 bg-white px-2 py-1 rounded shadow-sm">
                             <Instagram size={14} className="text-pink-500" />
                             <span className="text-xs font-semibold">
-                              {(influencer.profile?.followers_count / 1000).toFixed(0)}K
+                              {(() => {
+                                const count = Number(influencer.profile?.followers_count);
+                                return isNaN(count) ? '0' : (count / 1000).toFixed(0);
+                              })()}K
                             </span>
                           </div>
                           {influencer.profile?.tiktok_followers && (
                             <div className="flex items-center gap-1 bg-white px-2 py-1 rounded shadow-sm">
                               <span className="text-xs">📱</span>
                               <span className="text-xs font-semibold">
-                                {(influencer.profile.tiktok_followers / 1000).toFixed(0)}K
+                                {(() => {
+                                  const count = Number(influencer.profile?.tiktok_followers);
+                                  return isNaN(count) ? '0' : (count / 1000).toFixed(0);
+                                })()}K
                               </span>
                             </div>
                           )}
@@ -617,11 +729,203 @@ const MarketplaceGroupon = () => {
               </div>
             )}
 
+            {/* Tab 4: Marchands */}
+            {currentTab === 4 && viewMode === 'list' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {merchants.map((merchant) => (
+                  <div
+                    key={merchant.id}
+                    className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group"
+                    onClick={() => handleMerchantClick(merchant)}
+                  >
+                    {/* Header avec gradient */}
+                    <div className="h-24 bg-gradient-to-r from-orange-400 to-red-500 relative">
+                      <div className="absolute -bottom-12 left-6">
+                        <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center border-4 border-white shadow-lg overflow-hidden">
+                          {merchant.logo_url ? (
+                            <img src={merchant.logo_url} alt={merchant.company_name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="text-orange-600 font-bold text-3xl">
+                              {merchant.company_name?.[0] || 'M'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="absolute top-3 right-3 bg-white/90 px-3 py-1 rounded-full text-orange-700 font-semibold text-sm">
+                        Marchand Vérifié
+                      </div>
+                    </div>
+
+                    {/* Contenu */}
+                    <div className="pt-16 px-6 pb-6">
+                      <h3 className="font-bold text-xl mb-1 group-hover:text-orange-600 transition">
+                        {merchant.company_name}
+                      </h3>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                        {merchant.description || 'Aucune description disponible'}
+                      </p>
+                      
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-orange-50 rounded-lg p-3 text-center">
+                          <div className="text-2xl font-bold text-orange-600">
+                            {merchant.campaigns_count || 0}
+                          </div>
+                          <div className="text-xs text-gray-600">Campagnes</div>
+                        </div>
+                        <div className="bg-red-50 rounded-lg p-3 text-center">
+                          <div className="text-2xl font-bold text-red-600">
+                            {merchant.total_spent ? `${(merchant.total_spent/1000).toFixed(1)}k` : '0'}
+                          </div>
+                          <div className="text-xs text-gray-600">Budget</div>
+                        </div>
+                      </div>
+
+                      {/* Infos */}
+                      <div className="space-y-2 mb-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <MapPin size={16} className="text-orange-500" />
+                          <span className="font-medium">{merchant.country || 'Maroc'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Briefcase size={16} className="text-orange-500" />
+                          <span>{merchant.category || 'Général'}</span>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={() => handleViewMerchantProducts(merchant)}
+                        className="w-full py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg font-semibold hover:from-orange-600 hover:to-red-700 transition flex items-center justify-center gap-2 shadow-md">
+                        <Store size={18} />
+                        Voir les Produits
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Détails du Marchand (View Mode: merchant_details) */}
+            {viewMode === 'merchant_details' && selectedMerchant && (
+              <div className="bg-white rounded-2xl shadow-lg p-6 mb-10">
+                {/* Bouton Retour */}
+                <button
+                  onClick={handleBackToMerchants}
+                  className="flex items-center text-gray-500 hover:text-gray-700 mb-4"
+                >
+                  <ArrowLeft size={18} className="mr-2" />
+                  Retour aux Marchands
+                </button>
+                
+                {/* Détails du Marchand */}
+                <div className="flex flex-col md:flex-row gap-6">
+                  {/* Info Marchand */}
+                  <div className="flex-1 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-5 shadow-md">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-16 h-16 rounded-full overflow-hidden border-4 border-white shadow-md">
+                        <img
+                          src={selectedMerchant.logo_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(selectedMerchant.company_name || 'M')}
+                          alt={selectedMerchant.company_name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-purple-700">
+                          {selectedMerchant.company_name}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {selectedMerchant.email}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Description et Localisation */}
+                    <div className="mb-4">
+                      <p className="text-gray-700 text-sm mb-2">
+                        {selectedMerchant.description || 'Aucune description disponible'}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-gray-500">
+                        <MapPin size={14} />
+                        <span>{selectedMerchant.country || 'Maroc'}</span>
+                      </div>
+                    </div>
+                    
+                    {/* Stats Marchand */}
+                    <div className="grid grid-cols-2 gap-4 text-center text-sm">
+                      <div>
+                        <div className="text-2xl font-bold text-purple-600">
+                          {selectedMerchant.campaigns_count || 0}
+                        </div>
+                        <div className="text-gray-500">Campagnes</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {selectedMerchant.total_spent ? `${(selectedMerchant.total_spent/1000).toFixed(1)}k` : '0'}
+                        </div>
+                        <div className="text-gray-500">Budget</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Produits du Marchand */}
+                  <div className="flex-1">
+                    <h4 className="text-lg font-semibold text-gray-800 mb-4">
+                      Produits de {selectedMerchant.company_name}
+                    </h4>
+                    {selectedMerchantProducts.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {selectedMerchantProducts.map((product) => (
+                          <div
+                            key={product.id}
+                            className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                            onClick={() => handleViewDetails(product, 'product')}
+                          >
+                            <div className="relative h-40 overflow-hidden bg-gradient-to-br from-blue-100 to-blue-200">
+                              <img
+                                src={product.image_url || `https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop&q=80`}
+                                alt={product.name}
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%230891b2" width="400" height="300"/%3E%3Ctext fill="%23ffffff" font-family="Arial" font-size="24" x="50%25" y="50%25" text-anchor="middle" dominant-baseline="middle"%3EProduit%3C/text%3E%3C/svg%3E';
+                                }}
+                              />
+                            </div>
+                            <div className="p-4">
+                              <h5 className="font-bold text-md mb-2 group-hover:text-blue-600 transition">
+                                {product.name}
+                              </h5>
+                              <div className="flex items-center justify-between text-sm mb-2">
+                                <span className="text-gray-700 font-semibold">
+                                  {product.price} DH
+                                </span>
+                                <span className="text-xs bg-green-100 text-green-800 rounded-full px-3 py-1 font-medium">
+                                  {product.commission_rate || 15}% Commission
+                                </span>
+                              </div>
+                              <p className="text-gray-600 text-sm line-clamp-2">
+                                {product.description}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-center text-gray-500 text-sm py-10">
+                        Aucun produit trouvé pour ce marchand.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Empty State */}
             {((currentTab === 0 && products.length === 0) ||
               (currentTab === 1 && services.length === 0) ||
               (currentTab === 2 && commercials.length === 0) ||
-              (currentTab === 3 && influencers.length === 0)) && !loading && (
+              (currentTab === 3 && influencers.length === 0) ||
+              (currentTab === 4 && merchants.length === 0)) && !loading && (
               <div className="text-center py-16">
                 <div className="text-gray-400 mb-4">
                   <Search size={64} className="mx-auto" />
@@ -640,23 +944,6 @@ const MarketplaceGroupon = () => {
     </div>
   );
 
-  // Si on vient du dashboard, afficher avec le Layout (menu)
-  if (fromDashboard) {
-    return (
-      <Layout>
-        {marketplaceContent}
-        <CollaborationRequestModal
-          isOpen={showCollabModal}
-          onClose={() => setShowCollabModal(false)}
-          products={merchantProducts}
-          influencerId={selectedInfluencer?.id}
-          influencerName={selectedInfluencer?.name || `${selectedInfluencer?.first_name} ${selectedInfluencer?.last_name}`}
-        />
-      </Layout>
-    );
-  }
-
-  // Sinon, afficher sans menu (depuis la home)
   return (
     <>
       {marketplaceContent}

@@ -118,10 +118,12 @@ const ModerationDashboard = () => {
     );
   };
 
-  const filteredProducts = pendingProducts.filter(product =>
-    product.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.merchant_name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = pendingProducts.filter(product => {
+    const productName = (product.product_name || '').toLowerCase();
+    const merchantName = (product.merchant_name || '').toLowerCase();
+    const search = searchTerm.toLowerCase();
+    return productName.includes(search) || merchantName.includes(search);
+  });
 
   if (loading && !stats) {
     return (

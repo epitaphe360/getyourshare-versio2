@@ -1,12 +1,13 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API_URL = (process.env.REACT_APP_API_URL || 'http://127.0.0.1:5000').trim();
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important: Envoie les cookies httpOnly automatiquement
 });
 
 // Request interceptor to add auth token
@@ -48,6 +49,7 @@ api.interceptors.response.use(
       console.error('💥 Erreur serveur', status, '-', url);
     } else {
       console.error('❌ Erreur API:', status, error.response?.data?.detail || error.message);
+      console.error('URL demandée:', `${error.config?.baseURL}${error.config?.url}`);
     }
 
     return Promise.reject(error);

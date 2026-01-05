@@ -10,12 +10,13 @@ import EmptyState from '../../components/common/EmptyState';
 import Modal from '../../components/common/Modal';
 import MobilePaymentWidget from '../../components/payments/MobilePaymentWidget';
 import GamificationWidget from '../../components/GamificationWidget';
+import SwipeMatching from '../../components/features/SwipeMatching';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 import {
   DollarSign, MousePointer, ShoppingCart, TrendingUp,
   Eye, Target, Award, Link as LinkIcon, Sparkles, RefreshCw, X, Send, BarChart3, Wallet,
-  MessageSquare, Users, CheckCircle, Gift, Wand2, Video, UserPlus
+  MessageSquare, Users, CheckCircle, Gift, Wand2, Video, UserPlus, Flame, ShieldCheck
 } from 'lucide-react';
 import CollaborationResponseModal from '../../components/modals/CollaborationResponseModal';
 import {
@@ -23,11 +24,18 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 
+// Import new AI and support components
+import AIRecommendationsWidget from '../../components/ai/AIRecommendationsWidget';
+import SupportTicketsList from '../../components/support/SupportTicketsList';
+import CreateTicketForm from '../../components/support/CreateTicketForm';
+import LiveChatWidget from '../../components/chat/LiveChatWidget';
+
 const InfluencerDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const toast = useToast();
   const { t } = useI18n();
+  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' | 'matching'
   const [stats, setStats] = useState(null);
   const [links, setLinks] = useState([]);
   const [earningsData, setEarningsData] = useState([]);
@@ -51,6 +59,69 @@ const InfluencerDashboard = () => {
   const [referralData, setReferralData] = useState(null);
   const [topRecommendations, setTopRecommendations] = useState([]);
   const [upcomingLives, setUpcomingLives] = useState([]);
+
+  // Helper pour vérifier l'accès aux fonctionnalités selon le plan
+  const checkAccess = (feature) => {
+    if (!subscription) return false;
+    const plan = subscription.plan_name || subscription.plan_code || 'free';
+    const planLower = plan.toLowerCase();
+    
+    switch(feature) {
+      case 'analytics_pro':
+        return ['pro', 'elite', 'premium'].includes(planLower);
+      case 'matching':
+        return ['elite', 'premium'].includes(planLower);
+      case 'ia_marketing':
+        return ['elite', 'premium'].includes(planLower);
+      case 'live_shopping':
+        return !['free'].includes(planLower);
+      case 'referral':
+        return true;
+      case 'mobile':
+        return true;
+      case 'marketplace':
+        return true;
+      default:
+        return true;
+    }
+  };
+
+  // Helper pour obtenir les limites selon le plan
+  const getPlanLimits = () => {
+    if (!subscription) return { campaigns: 3, lives: 0, commission: 5 };
+    const plan = (subscription.plan_name || subscription.plan_code || 'free').toLowerCase();
+    
+    const limits = {
+      'free': { campaigns: 3, lives: 0, commission: 5 },
+      'basic': { campaigns: 10, lives: 1, commission: 7 },
+      'pro': { campaigns: 50, lives: 5, commission: 10 },
+      'elite': { campaigns: -1, lives: -1, commission: 15 },
+      'premium': { campaigns: -1, lives: -1, commission: 15 }
+    };
+    
+    return limits[plan] || limits['free'];
+  };
+
+  // Helper pour obtenir le badge du plan
+  const getPlanBadge = () => {
+    if (!subscription) return { name: 'Free', color: 'bg-gray-100 text-gray-700', icon: '🆓' };
+    const plan = (subscription.plan_name || subscription.plan_code || 'free').toLowerCase();
+    
+    const badges = {
+      'free': { name: 'Free', color: 'bg-gray-100 text-gray-700', icon: '🆓' },
+      'basic': { name: 'Basic', color: 'bg-blue-100 text-blue-700', icon: '⭐' },
+      'pro': { name: 'Pro', color: 'bg-purple-100 text-purple-700', icon: '💎' },
+      'elite': { name: 'Elite', color: 'bg-yellow-100 text-yellow-700', icon: '👑' },
+      'premium': { name: 'Premium', color: 'bg-yellow-100 text-yellow-700', icon: '👑' }
+    };
+    
+    return badges[plan] || badges['free'];
+  };
+
+  const handleLockedFeature = (featureName) => {
+    toast.info(`La fonctionnalité ${featureName} nécessite un abonnement supérieur.`);
+    navigate('/pricing?role=influencer');
+  };
 
   useEffect(() => {
     fetchData();
@@ -77,8 +148,8 @@ const InfluencerDashboard = () => {
         api.get('/api/affiliate-links'),
         api.get('/api/analytics/influencer/earnings-chart'),
         api.get('/api/subscriptions/current'),
-        api.get('/api/invitations/received'),
-        api.get('/api/collaborations/requests/received'),
+        api.get('/api/invitations'),
+        api.get('/api/affiliation-requests/my-requests'),
         // 4 Killer Features
         api.get(`/api/referrals/dashboard/${user?.id}`),
         api.get(`/api/ai/product-recommendations/${user?.id}?limit=3`),
@@ -106,17 +177,29 @@ const InfluencerDashboard = () => {
 
       // Gérer l'abonnement
       if (subscriptionRes.status === 'fulfilled') {
-        setSubscription(subscriptionRes.value.data);
+        const subData = subscriptionRes.value.data;
+        setSubscription({
+          ...subData,
+          plan_name: subData.plan_name || subData.plan_code || 'free',
+          commission_rate: subData.commission_rate || 5,
+          max_campaigns: subData.max_campaigns || subData.max_tracking_links || 5,
+          instant_payout: subData.instant_payout || false,
+          analytics_level: subData.analytics_level || 'basic',
+          status: subData.status || 'active'
+        });
       } else {
         console.error('Error loading subscription:', subscriptionRes.reason);
         // Abonnement par défaut gratuit
         setSubscription({
-          plan_name: 'Free',
+          plan_name: 'free',
+          plan_code: 'free',
           commission_rate: 5,
-          max_campaigns: 5,
+          max_campaigns: 3,
+          max_tracking_links: 5,
           instant_payout: false,
           analytics_level: 'basic',
-          status: 'active'
+          status: 'active',
+          is_free_plan: true
         });
       }
 
@@ -181,11 +264,10 @@ const InfluencerDashboard = () => {
         }));
         setEarningsData(mappedEarnings);
 
-        // Créer les données de performance basées sur les gains réels
-        const perfData = mappedEarnings.map(day => ({
-          date: day.date,
-          clics: Math.round((day.gains || 0) * 3), // Estimation basée sur les gains
-          conversions: Math.round((day.gains || 0) / 25) // Estimation: gain moyen de 25€ par conversion
+        // Utiliser les VRAIES données de conversions depuis l'API
+        const perfData = earningsDataResult.map(day => ({
+          date: day.formatted_date || day.date,
+          conversions: day.conversions || 0 // Vraies conversions depuis l'API
         }));
         setPerformanceData(perfData);
       } else {
@@ -301,6 +383,56 @@ const InfluencerDashboard = () => {
     }
   };
 
+  // State pour les campagnes de matching (chargées depuis l'API)
+  const [matchingCampaigns, setMatchingCampaigns] = useState([]);
+  const [matchingLoading, setMatchingLoading] = useState(false);
+
+  // Charger les campagnes de matching quand le mode matching est activé
+  useEffect(() => {
+    if (viewMode === 'matching' && matchingCampaigns.length === 0) {
+      fetchMatchingCampaigns();
+    }
+  }, [viewMode]);
+
+  const fetchMatchingCampaigns = async () => {
+    try {
+      setMatchingLoading(true);
+      const response = await api.get('/api/matching/campaigns-for-influencer?limit=20');
+      setMatchingCampaigns(response.data.campaigns || []);
+    } catch (error) {
+      console.error('Error fetching matching campaigns:', error);
+      toast.error('Erreur lors du chargement des campagnes');
+      // Fallback vide au lieu de données mockées
+      setMatchingCampaigns([]);
+    } finally {
+      setMatchingLoading(false);
+    }
+  };
+
+  const handleMatch = async (campaign) => {
+    try {
+      await api.post('/api/matching/influencer-swipe', {
+        product_id: campaign.id,
+        action: 'like'
+      });
+      toast.success(`Vous avez liké "${campaign.title}" ! Demande envoyée au marchand.`);
+    } catch (error) {
+      console.error('Error matching campaign:', error);
+      toast.error('Erreur lors de l\'envoi de la demande');
+    }
+  };
+
+  const handleReject = async (campaign) => {
+    try {
+      await api.post('/api/matching/influencer-swipe', {
+        product_id: campaign.id,
+        action: 'pass'
+      });
+    } catch (error) {
+      console.error('Error rejecting campaign:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -331,8 +463,89 @@ const InfluencerDashboard = () => {
     );
   }
 
+  const planBadge = getPlanBadge();
+  const planLimits = getPlanLimits();
+
   return (
     <div className="space-y-8">
+      {/* Header avec Badge Plan */}
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-3xl font-bold">
+                {t('influencer.dashboard.title') || 'Tableau de Bord Influenceur'}
+              </h1>
+              <span className={`${planBadge.color} px-4 py-1.5 rounded-full text-sm font-semibold`}>
+                {planBadge.icon} {planBadge.name}
+              </span>
+            </div>
+            <p className="text-purple-100">
+              Bonjour {user?.first_name || user?.username || 'Influenceur'} 👋 • Commission: {subscription?.commission_rate || 5}%
+            </p>
+          </div>
+          {subscription?.is_free_plan && (
+            <button
+              onClick={() => navigate('/pricing?role=influencer')}
+              className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition"
+            >
+              <Sparkles size={20} />
+              Passer à Pro
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation Bar */}
+      <div className="bg-white rounded-lg shadow-md p-4 mb-4">
+        <div className="flex flex-wrap gap-3 items-center">
+          <button
+            onClick={() => navigate('/')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            Accueil
+          </button>
+          <button
+            onClick={() => navigate('/dashboard/marketplace')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <ShoppingCart size={18} />
+            Marketplace
+          </button>
+          <button
+            onClick={() => navigate('/products')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Target size={18} />
+            Produits
+          </button>
+          <button
+            onClick={() => navigate('/campaigns')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <MessageSquare size={18} />
+            Campagnes
+          </button>
+          <button
+            onClick={() => navigate('/features')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Sparkles size={18} />
+            Features
+          </button>
+          <button
+            onClick={() => navigate('/profile')}
+            className="px-4 py-2 text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition flex items-center gap-2 font-medium"
+          >
+            <Users size={18} />
+            Profil
+          </button>
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
@@ -343,6 +556,23 @@ const InfluencerDashboard = () => {
         </div>
         <div className="flex space-x-3">
           <button
+            onClick={() => checkAccess('matching') ? setViewMode(viewMode === 'dashboard' ? 'matching' : 'dashboard') : handleLockedFeature('Mode Matching')}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 font-bold shadow-lg ${
+              !checkAccess('matching') 
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : viewMode === 'matching' 
+                  ? 'bg-gray-800 text-white hover:bg-gray-700' 
+                  : 'bg-gradient-to-r from-pink-500 to-rose-500 text-white hover:from-pink-600 hover:to-rose-600'
+            }`}
+            title={checkAccess('matching') ? "Mode Matching Tinder-style" : `Mode Matching (${planBadge.name === 'Free' ? 'Elite' : 'Elite'} uniquement)`}
+          >
+            {viewMode === 'matching' ? (
+              <>📊 Retour Dashboard</>
+            ) : (
+              <>{!checkAccess('matching') && <span className="mr-1">🔒</span>}<Flame size={18} /> Mode Matching {!checkAccess('matching') && <span className="ml-1 text-xs">({planBadge.name === 'Free' ? 'Elite' : 'Elite'})</span>}</>
+            )}
+          </button>
+          <button
             onClick={() => fetchData()}
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition flex items-center gap-2"
             title="Rafraîchir les données"
@@ -350,10 +580,15 @@ const InfluencerDashboard = () => {
             <RefreshCw size={18} />
           </button>
           <button
-            onClick={() => navigate('/analytics-pro')}
-            className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition flex items-center gap-2"
-            title="Analytics Pro avec IA"
+            onClick={() => checkAccess('analytics_pro') ? navigate('/analytics-pro') : handleLockedFeature('Analytics Pro')}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+              checkAccess('analytics_pro')
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:from-purple-700 hover:to-indigo-700'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+            title={checkAccess('analytics_pro') ? "Analytics Pro avec IA" : "Analytics Pro (Pro & Elite)"}
           >
+            {!checkAccess('analytics_pro') && <span className="mr-1">🔒</span>}
             <BarChart3 size={18} />
             Analytics Pro
           </button>
@@ -365,20 +600,74 @@ const InfluencerDashboard = () => {
             📱 Mobile
           </button>
           <button
-            onClick={() => navigate('/marketplace', { state: { fromDashboard: true } })}
+            onClick={() => navigate('/dashboard/marketplace')}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
           >
             🛍️ Marketplace
           </button>
           <button
-            onClick={() => navigate('/ai-marketing')}
-            className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition"
+            onClick={() => checkAccess('ia_marketing') ? navigate('/ai-marketing') : handleLockedFeature('IA Marketing')}
+            className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
+              checkAccess('ia_marketing')
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700'
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            }`}
+            title={checkAccess('ia_marketing') ? "IA Marketing" : "IA Marketing (Elite uniquement)"}
           >
+            {!checkAccess('ia_marketing') && <span className="mr-1">🔒</span>}
             ✨ IA Marketing
           </button>
         </div>
       </div>
 
+      {/* Matching Mode View */}
+      {viewMode === 'matching' ? (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="py-10 bg-gray-900 rounded-3xl min-h-[700px] relative overflow-hidden"
+        >
+          <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-600/30 rounded-full blur-[100px]" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-pink-600/30 rounded-full blur-[100px]" />
+          </div>
+          
+          <div className="text-center mb-8 relative z-10">
+            <h2 className="text-3xl font-bold text-white mb-2">Trouve ta prochaine campagne 🔥</h2>
+            <p className="text-gray-400">Swipe à droite pour postuler, à gauche pour passer</p>
+          </div>
+
+          {matchingLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center text-white">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                <p>Chargement des campagnes...</p>
+              </div>
+            </div>
+          ) : matchingCampaigns.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center text-white">
+                <Sparkles size={48} className="mx-auto mb-4 text-gray-400" />
+                <p className="text-xl mb-2">Aucune campagne disponible</p>
+                <p className="text-gray-400">Revenez plus tard ou explorez la marketplace</p>
+                <button
+                  onClick={() => navigate('/dashboard/marketplace')}
+                  className="mt-4 px-6 py-2 bg-purple-600 rounded-lg hover:bg-purple-700 transition"
+                >
+                  Explorer Marketplace
+                </button>
+              </div>
+            </div>
+          ) : (
+            <SwipeMatching 
+              items={matchingCampaigns} 
+              onMatch={handleMatch} 
+              onReject={handleReject} 
+            />
+          )}
+        </motion.div>
+      ) : (
+        <>
         {/* Invitations (pending) */}
         {invitations && invitations.length > 0 && (
           <Card title={`Invitations (${invitations.length})`} icon={<MessageSquare size={20} />}>
@@ -406,6 +695,13 @@ const InfluencerDashboard = () => {
             title={`Demandes de Collaboration (${collaborationRequests.filter(r => r.status === 'pending').length})`} 
             icon={<Users size={20} className="text-purple-600" />}
           >
+            <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-3">
+              <ShieldCheck className="text-green-600" size={24} />
+              <div>
+                <h4 className="text-sm font-bold text-green-800">Paiements Sécurisés (Escrow)</h4>
+                <p className="text-xs text-green-700">L'argent est bloqué sur un compte séquestre dès l'acceptation. Vous êtes garanti d'être payé !</p>
+              </div>
+            </div>
             <div className="space-y-3">
               {collaborationRequests.map(request => (
                 <div 
@@ -546,7 +842,7 @@ const InfluencerDashboard = () => {
                 </p>
               </div>
               <button
-                onClick={() => navigate('/pricing')}
+                onClick={() => navigate('/pricing?role=influencer')}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
               >
                 {subscription.plan_name === 'Free' ? 'Passer à Pro' : 'Améliorer mon Plan'}
@@ -651,9 +947,9 @@ const InfluencerDashboard = () => {
               )}
               <button
                 onClick={() => navigate('/features?tab=referral')}
-                className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+                className="w-full py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition text-sm font-medium shadow-md hover:shadow-lg"
               >
-                Voir Dashboard Complet →
+                🎯 Gérer mon Parrainage
               </button>
             </div>
           ) : (
@@ -756,7 +1052,22 @@ const InfluencerDashboard = () => {
           icon={<Video size={20} className="text-red-600" />}
           className="border-l-4 border-red-500"
         >
-          {upcomingLives.length > 0 ? (
+          {!checkAccess('live_shopping') ? (
+            <div className="text-center py-6">
+              <Video size={48} className="mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 mb-3">Fonctionnalité réservée aux abonnés {planBadge.name === 'Free' ? 'Basic+' : 'supérieurs'}</p>
+              <div className="bg-yellow-50 p-3 rounded-lg mb-3 text-xs text-yellow-800">
+                <strong>+5% de commission</strong> pendant tes lives! 🔥
+              </div>
+              <button
+                onClick={() => navigate('/pricing?role=influencer')}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium flex items-center gap-2 mx-auto"
+              >
+                <Sparkles size={16} />
+                Débloquer
+              </button>
+            </div>
+          ) : upcomingLives.length > 0 ? (
             <div className="space-y-3">
               <div className="bg-red-50 p-3 rounded-lg">
                 <div className="text-sm text-red-900 font-medium mb-2">
@@ -787,6 +1098,11 @@ const InfluencerDashboard = () => {
               <p className="text-gray-500 mb-3">Crée ton premier live shopping!</p>
               <div className="bg-yellow-50 p-3 rounded-lg mb-3 text-xs text-yellow-800">
                 <strong>+5% de commission</strong> pendant tes lives! 🔥
+                {planLimits.lives > 0 && (
+                  <div className="mt-1 text-gray-600">
+                    Limite: {planLimits.lives === -1 ? 'Illimité' : `${planLimits.lives} live(s)/mois`}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => navigate('/features?tab=live')}
@@ -818,9 +1134,13 @@ const InfluencerDashboard = () => {
           <div className="text-right">
             <div className="text-purple-100 mb-2">Gains ce Mois</div>
             <div className="text-3xl font-bold">
-              {((stats?.total_earnings || 0) * 0.25).toLocaleString()} €
+              {(stats?.monthly_earnings || stats?.total_earnings || 0).toLocaleString()} €
             </div>
-            <div className="text-purple-200 text-sm mt-1">+32% vs mois dernier</div>
+            {stats?.earnings_growth !== undefined && (
+              <div className={`text-sm mt-1 ${stats.earnings_growth >= 0 ? 'text-green-200' : 'text-red-200'}`}>
+                {stats.earnings_growth >= 0 ? '+' : ''}{stats.earnings_growth}% vs mois dernier
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -1151,6 +1471,50 @@ const InfluencerDashboard = () => {
         request={selectedRequest}
         onRespond={handleCollaborationRespond}
       />
+
+      {/* AI Recommendations Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+        className="mt-6"
+      >
+        <AIRecommendationsWidget />
+      </motion.div>
+
+      {/* Support Tickets Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.7 }}
+        className="mt-6"
+      >
+        <Card title="Support & Assistance" icon={<MessageSquare size={20} />}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold mb-4">Mes Tickets</h4>
+              <SupportTicketsList
+                onSelectTicket={(ticket) => navigate(`/support/ticket/${ticket.id}`)}
+                currentUserId={user?.id}
+                userRole="influencer"
+              />
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Créer un Ticket</h4>
+              <CreateTicketForm
+                onTicketCreated={() => {
+                  toast.success('Ticket créé avec succès!');
+                }}
+              />
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+
+      {/* Live Chat Widget (Floating) */}
+      {user && <LiveChatWidget userId={user.id} userRole="influencer" />}
+      </>
+      )}
     </div>
   );
 };

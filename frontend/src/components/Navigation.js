@@ -16,14 +16,16 @@ import {
   Home,
   Store,
   Analytics,
-  People,
   Settings,
-  ExitToApp
+  ExitToApp,
+  Star
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const Navigation = ({ user, onLogout }) => {
+const Navigation = () => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
   const [userMenuAnchor, setUserMenuAnchor] = useState(null);
 
@@ -42,10 +44,9 @@ const Navigation = ({ user, onLogout }) => {
 
   const navigationItems = [
     { label: 'Accueil', icon: <Home />, path: '/' },
-    { label: 'À Propos', icon: <People />, path: '/about' },
+    { label: 'Features', icon: <Star />, path: '/features' },
     { label: 'Marketplace', icon: <Store />, path: '/marketplace' },
     { label: 'Tarifs', icon: <Settings />, path: '/pricing' },
-    { label: 'Contact', icon: <Analytics />, path: '/contact' },
   ];
 
   return (
@@ -218,7 +219,7 @@ const Navigation = ({ user, onLogout }) => {
                 </MenuItem>
                 <Divider />
                 <MenuItem 
-                  onClick={() => { handleClose(); onLogout(); }}
+                  onClick={() => { handleClose(); logout(); }}
                   sx={{ py: 1.5, px: 2.5, color: '#dc2626' }}
                 >
                   <ExitToApp sx={{ mr: 2, fontSize: 20 }} />

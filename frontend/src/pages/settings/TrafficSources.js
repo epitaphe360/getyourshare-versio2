@@ -4,8 +4,10 @@ import Table from '../../components/common/Table';
 import Button from '../../components/common/Button';
 import Modal from '../../components/common/Modal';
 import { Plus, Edit, Trash2 } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 const TrafficSources = () => {
+  const toast = useToast();
   const [sources, setSources] = useState([
     { id: 1, name: 'Facebook', status: 'active' },
     { id: 2, name: 'Google', status: 'active' },
@@ -45,10 +47,21 @@ const TrafficSources = () => {
       accessor: 'actions',
       render: (row) => (
         <div className="flex space-x-2">
-          <Button size="sm" variant="outline">
+          <Button 
+            size="sm" 
+            variant="outline"
+            onClick={() => toast.info(`Édition de ${row.name}`)}
+          >
             <Edit size={16} />
           </Button>
-          <Button size="sm" variant="danger">
+          <Button 
+            size="sm" 
+            variant="danger"
+            onClick={() => {
+              setSources(sources.filter(s => s.id !== row.id));
+              toast.success(`${row.name} supprimé`);
+            }}
+          >
             <Trash2 size={16} />
           </Button>
         </div>

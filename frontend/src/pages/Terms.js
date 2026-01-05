@@ -1,5 +1,6 @@
 import React from 'react';
-import { FileText, CheckCircle, AlertCircle, Scale, DollarSign, Users } from 'lucide-react';
+import { FileText, CheckCircle, AlertCircle, Scale, DollarSign, Users, Shield, Globe } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Terms = () => {
   return (
@@ -13,7 +14,7 @@ const Terms = () => {
             </div>
             <div>
               <h1 className="text-4xl font-bold text-gray-900">Conditions Générales de Vente</h1>
-              <p className="text-gray-600 mt-2">Dernière mise à jour : 2 novembre 2024</p>
+              <p className="text-gray-600 mt-2">Dernière mise à jour : 27 novembre 2025</p>
             </div>
           </div>
           
@@ -21,6 +22,7 @@ const Terms = () => {
             <p className="text-purple-900">
               Les présentes Conditions Générales de Vente (CGV) régissent l'utilisation de la plateforme 
               <strong> ShareYourSales</strong> et les relations contractuelles entre les utilisateurs.
+              En utilisant nos services, vous acceptez également notre <Link to="/privacy" className="text-purple-700 underline font-semibold">Politique de Confidentialité</Link>.
             </p>
           </div>
         </div>
@@ -229,11 +231,46 @@ const Terms = () => {
             </ul>
           </section>
 
-          {/* Article 5 */}
+          {/* Article 5 - Protection des Données (GDPR/CCPA) */}
           <section className="border-t pt-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">Article 5 - Litiges et Résiliation</h2>
+            <div className="flex items-start space-x-3 mb-4">
+              <Shield className="w-6 h-6 text-purple-600 mt-1" />
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">Article 5 - Protection des Données (RGPD & CCPA)</h2>
+                <p className="text-gray-700 mb-4">
+                  ShareYourSales s'engage à protéger la vie privée de ses utilisateurs conformément au Règlement Général sur la Protection des Données (RGPD) et au California Consumer Privacy Act (CCPA).
+                </p>
+                
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">5.1 Vos Droits</h3>
+                <ul className="space-y-2 text-gray-700 mb-4">
+                  <li className="flex items-start">
+                    <span className="text-purple-600 mr-2">•</span>
+                    <span><strong>Droit d'accès et de portabilité :</strong> Vous pouvez demander une copie de vos données personnelles (export JSON).</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-purple-600 mr-2">•</span>
+                    <span><strong>Droit à l'oubli :</strong> Vous pouvez demander la suppression définitive de votre compte et de vos données.</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-purple-600 mr-2">•</span>
+                    <span><strong>Anonymisation :</strong> Les adresses IP collectées pour le tracking sont anonymisées (hachage SHA-256).</span>
+                  </li>
+                </ul>
+
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-gray-800">
+                    Pour exercer vos droits ou en savoir plus, consultez notre <Link to="/privacy" className="text-blue-600 font-bold hover:underline">Politique de Confidentialité</Link>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Article 6 */}
+          <section className="border-t pt-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Article 6 - Litiges et Résiliation</h2>
             
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">5.1 Résiliation</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">6.1 Résiliation</h3>
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               <ul className="space-y-2 text-gray-700">
                 <li className="flex items-start">
@@ -251,7 +288,7 @@ const Terms = () => {
               </ul>
             </div>
 
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">5.2 Droit applicable et juridiction</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">6.2 Droit applicable et juridiction</h3>
             <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded">
               <p className="text-gray-800">
                 Les présentes CGV sont régies par le droit marocain. En cas de litige, et à défaut d'accord amiable, 
@@ -260,9 +297,9 @@ const Terms = () => {
             </div>
           </section>
 
-          {/* Article 6 */}
+          {/* Article 7 */}
           <section className="border-t pt-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">Article 6 - Limitation de Responsabilité</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-3">Article 7 - Limitation de Responsabilité</h2>
             <ul className="space-y-2 text-gray-700">
               <li className="flex items-start">
                 <AlertCircle className="w-5 h-5 text-orange-500 mr-2 mt-0.5" />

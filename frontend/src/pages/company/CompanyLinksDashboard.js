@@ -40,7 +40,7 @@ import QrCodeIcon from '@mui/icons-material/QrCode';
 import ShareIcon from '@mui/icons-material/Share';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 /**
  * Company Links Dashboard - Génération et attribution de liens

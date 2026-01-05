@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { Trophy, Star, Target, Award, TrendingUp, Zap, Gift, Crown } from 'lucide-react';
-
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
 const GamificationWidget = ({ userId, userType = 'merchant' }) => {
   const [gamifData, setGamifData] = useState(null);
@@ -15,11 +13,34 @@ const GamificationWidget = ({ userId, userType = 'merchant' }) => {
   const fetchGamification = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/api/gamification/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setGamifData(response.data);
+      const response = await api.get(`/api/gamification/${userId}`);
+      let data = response.data;
+
+      // Normalisation pour l'API simple (si level est un nombre)
+      if (typeof data.level === 'number') {
+        const tierMap = {
+          1: 'bronze',
+          2: 'silver',
+          3: 'gold',
+          4: 'platinum',
+          5: 'diamond',
+          6: 'legend'
+        };
+        
+        data = {
+          ...data,
+          level: {
+            tier: tierMap[data.level] || 'bronze',
+            current_points: data.points,
+            next_level_points: data.next_level_points,
+            next_tier: tierMap[data.level + 1] || 'legend',
+            benefits: {}
+          },
+          points: { total: data.points }
+        };
+      }
+
+      setGamifData(data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching gamification:', error);
@@ -82,16 +103,16 @@ const GamificationWidget = ({ userId, userType = 'merchant' }) => {
       {level && (
         <div className="mb-6">
           <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>{level.current_points} / {level.next_level_points} pts</span>
-            <span>{Math.round((level.current_points / level.next_level_points) * 100)}%</span>
+            <span>{level.current_points} / {level.next_level_points || '∞'} pts</span>
+            <span>{level.next_level_points ? Math.round((level.current_points / level.next_level_points) * 100) : 100}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
             <div
               className={`h-full bg-gradient-to-r ${currentLevel.color} transition-all duration-500 rounded-full`}
-              style={{ width: `${Math.min((level.current_points / level.next_level_points) * 100, 100)}%` }}
+              style={{ width: `${level.next_level_points ? Math.min((level.current_points / level.next_level_points) * 100, 100) : 100}%` }}
             ></div>
           </div>
-          {level.next_tier && (
+          {level.next_tier && level.next_level_points && (
             <p className="text-xs text-gray-500 mt-1">
               Prochain niveau: {levelConfig[level.next_tier]?.label} ({level.next_level_points - level.current_points} pts restants)
             </p>

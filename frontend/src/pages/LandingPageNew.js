@@ -14,6 +14,7 @@ const LandingPageNew = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSpace, setActiveSpace] = useState('entreprises');
   const [stats, setStats] = useState({ affiliates: 0, companies: 0, commissions: 0 });
+  const [loading] = useState(false);
 
   // Animation stats
   useEffect(() => {
@@ -198,7 +199,7 @@ const LandingPageNew = () => {
     }
   };
 
-  // 6 fonctionnalités principales
+  // TOUTES LES FONCTIONNALITÉS UNIQUES - Section enrichie
   const coreFeatures = [
     {
       icon: <Link2 className="w-8 h-8" />,
@@ -235,6 +236,210 @@ const LandingPageNew = () => {
       title: "Sécurité maximale",
       description: "Anti-fraude IA, conformité RGPD, encryption AES-256, audits permanents.",
       gradient: "from-red-500 to-pink-500"
+    }
+  ];
+
+  // OUTILS EXCLUSIFS PAR TYPE D'UTILISATEUR - Ce qui rend ShareYourSales unique
+  const uniqueToolsByRole = {
+    merchant: [
+      {
+        icon: <Sparkles className="w-6 h-6" />,
+        title: "AI Recommendations & Insights",
+        description: "Intelligence artificielle qui analyse vos ventes et suggère les meilleures stratégies, produits à promouvoir, et périodes optimales.",
+        badge: "IA"
+      },
+      {
+        icon: <Play className="w-6 h-6" />,
+        title: "Live Shopping Multi-plateformes",
+        description: "Vendez en direct sur Instagram Live, TikTok Live, YouTube Live et Facebook Live avec tracking automatique des ventes.",
+        badge: "LIVE"
+      },
+      {
+        icon: <FileCheck className="w-6 h-6" />,
+        title: "Content Studio",
+        description: "Créez du contenu professionnel en quelques clics : templates personnalisables, planification multi-canaux, bibliothèque de médias.",
+        badge: "STUDIO"
+      },
+      {
+        icon: <Award className="w-6 h-6" />,
+        title: "Gamification complète",
+        description: "Système de badges, missions, classements et récompenses pour motiver vos affiliés et commerciaux.",
+        badge: "GAME"
+      },
+      {
+        icon: <Users className="w-6 h-6" />,
+        title: "Parrainage multi-niveaux (MLM)",
+        description: "Créez un réseau exponentiel : vos affiliés recrutent d'autres affiliés, et vous gagnez sur plusieurs niveaux.",
+        badge: "MLM"
+      },
+      {
+        icon: <Zap className="w-6 h-6" />,
+        title: "WhatsApp Business Integration",
+        description: "Envoyez des campagnes automatiques, notifications de vente, et messages personnalisés via WhatsApp Business API.",
+        badge: "WHATSAPP"
+      },
+      {
+        icon: <ShoppingBag className="w-6 h-6" />,
+        title: "TikTok Shop Sync",
+        description: "Synchronisation automatique de vos produits TikTok Shop, gestion des commandes et tracking des ventes.",
+        badge: "TIKTOK"
+      },
+      {
+        icon: <BarChart3 className="w-6 h-6" />,
+        title: "ROI Calculator & Predictive Analytics",
+        description: "Calculez votre retour sur investissement en temps réel et prédisez vos revenus futurs avec l'IA prédictive.",
+        badge: "ANALYTICS"
+      },
+      {
+        icon: <Star className="w-6 h-6" />,
+        title: "Trust Score System",
+        description: "Score de confiance automatique pour vendeurs et acheteurs, basé sur historique, vérifications et comportement.",
+        badge: "TRUST"
+      },
+      {
+        icon: <Wallet className="w-6 h-6" />,
+        title: "Paiements multiples",
+        description: "PayPal, virement bancaire, Mobile Money Maroc (Cash Plus, Orange Money), portefeuille virtuel intégré.",
+        badge: "PAY"
+      },
+      {
+        icon: <Globe className="w-6 h-6" />,
+        title: "White-Label & API complète",
+        description: "Votre marque, votre domaine, vos couleurs. API REST complète pour intégrer ShareYourSales dans vos systèmes existants.",
+        badge: "API"
+      },
+      {
+        icon: <Target className="w-6 h-6" />,
+        title: "Segmentation intelligente",
+        description: "Ciblez vos affiliés par région, performance, audience, et créez des campagnes ultra-personnalisées.",
+        badge: "TARGETING"
+      }
+    ],
+    influencer: [
+      {
+        icon: <ShoppingBag className="w-6 h-6" />,
+        title: "Marketplace exclusif vérifié",
+        description: "Accès à des centaines de produits marocains de qualité, tous vérifiés (RC, IF, CNIE).",
+        badge: "MARKET"
+      },
+      {
+        icon: <Sparkles className="w-6 h-6" />,
+        title: "AI Product Recommendations",
+        description: "L'IA vous suggère les produits les plus rentables pour VOTRE audience spécifique.",
+        badge: "IA"
+      },
+      {
+        icon: <Play className="w-6 h-6" />,
+        title: "Live Shopping Integration",
+        description: "Vendez pendant vos lives Instagram, TikTok, YouTube avec liens automatiques et tracking.",
+        badge: "LIVE"
+      },
+      {
+        icon: <FileCheck className="w-6 h-6" />,
+        title: "Content Studio",
+        description: "Templates professionnels pour stories, posts, vidéos - créez du contenu qui convertit.",
+        badge: "STUDIO"
+      },
+      {
+        icon: <Link2 className="w-6 h-6" />,
+        title: "Liens illimités personnalisables",
+        description: "Short links branded, QR codes personnalisés, liens bio optimisés, UTM automatiques.",
+        badge: "LINKS"
+      },
+      {
+        icon: <Award className="w-6 h-6" />,
+        title: "Gamification & Badges",
+        description: "Débloquez des badges, accomplissez des missions, montez dans les classements et gagnez des bonus.",
+        badge: "GAME"
+      },
+      {
+        icon: <Users className="w-6 h-6" />,
+        title: "Programme de parrainage",
+        description: "Recrutez d'autres influenceurs et gagnez une commission sur leurs ventes à vie.",
+        badge: "REFER"
+      },
+      {
+        icon: <BarChart3 className="w-6 h-6" />,
+        title: "Dashboard analytics avancé",
+        description: "Stats temps réel : clics, conversions, meilleurs produits, revenus prévisionnels, ROI par produit.",
+        badge: "ANALYTICS"
+      },
+      {
+        icon: <Wallet className="w-6 h-6" />,
+        title: "Paiements rapides multiples",
+        description: "PayPal, virement, Mobile Money - recevez vos commissions automatiquement chaque semaine.",
+        badge: "PAY"
+      },
+      {
+        icon: <Zap className="w-6 h-6" />,
+        title: "Formations gratuites",
+        description: "Accès à des masterclasses, webinaires, et ressources pour maximiser vos conversions.",
+        badge: "LEARN"
+      }
+    ]
+  };
+
+  // POURQUOI SHAREYOURSALES EST UNIQUE
+  const whyUnique = [
+    {
+      icon: <Sparkles className="w-8 h-8" />,
+      title: "IA intégrée partout",
+      points: [
+        "Recommandations produits personnalisées",
+        "Prédictions de revenus avec machine learning",
+        "Détection anti-fraude automatique",
+        "Suggestions stratégiques en temps réel"
+      ]
+    },
+    {
+      icon: <Play className="w-8 h-8" />,
+      title: "Live Shopping révolutionnaire",
+      points: [
+        "4 plateformes : Instagram, TikTok, YouTube, Facebook",
+        "Tracking automatique pendant les lives",
+        "Commissions calculées en temps réel",
+        "Première au Maroc avec cette technologie"
+      ]
+    },
+    {
+      icon: <Award className="w-8 h-8" />,
+      title: "Gamification complète",
+      points: [
+        "Système de badges et missions",
+        "Classements par région et secteur",
+        "Récompenses et bonus progressifs",
+        "Compétitions et challenges"
+      ]
+    },
+    {
+      icon: <Users className="w-8 h-8" />,
+      title: "MLM & Parrainage puissant",
+      points: [
+        "Commissions multi-niveaux illimitées",
+        "Recrutement en cascade",
+        "Réseau exponentiel automatique",
+        "Suivi généalogique complet"
+      ]
+    },
+    {
+      icon: <Zap className="w-8 h-8" />,
+      title: "Intégrations exclusives",
+      points: [
+        "WhatsApp Business API",
+        "TikTok Shop automatique",
+        "API REST complète",
+        "White-label personnalisable"
+      ]
+    },
+    {
+      icon: <Shield className="w-8 h-8" />,
+      title: "Sécurité maximale Maroc",
+      points: [
+        "Vérification RC/IF/CNIE obligatoire",
+        "Conformité RGPD + lois marocaines",
+        "Trust Score pour chaque utilisateur",
+        "Paiements 100% sécurisés"
+      ]
     }
   ];
 
@@ -522,8 +727,8 @@ const LandingPageNew = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {coreFeatures.map((feature, index) => (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className="bg-gradient-to-br from-white to-gray-50 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all border border-gray-100"
               >
                 <div className={`inline-flex p-4 rounded-xl bg-gradient-to-br ${feature.gradient} text-white mb-6 shadow-lg`}>
@@ -533,6 +738,153 @@ const LandingPageNew = () => {
                 <p className="text-gray-600 leading-relaxed">{feature.description}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* POURQUOI SHAREYOURSALES EST UNIQUE */}
+      <section className="py-20 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-2 rounded-full text-sm font-semibold mb-6 shadow-lg">
+              <Star className="w-4 h-4 mr-2" />
+              CE QUI NOUS REND UNIQUE
+            </div>
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+              Pourquoi ShareYourSales ?
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              La seule plateforme d'affiliation au Maroc combinant IA avancée, Live Shopping multi-plateformes,
+              et gamification complète pour maximiser vos revenus
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {whyUnique.map((item, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all border-2 border-purple-100"
+              >
+                <div className="inline-flex p-4 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 text-white mb-6 shadow-lg">
+                  {item.icon}
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-6">{item.title}</h3>
+                <ul className="space-y-3">
+                  {item.points.map((point, idx) => (
+                    <li key={idx} className="flex items-start space-x-3">
+                      <CheckCircle2 className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-700">{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA fort */}
+          <div className="text-center mt-16">
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-3xl p-12 shadow-2xl text-white">
+              <h3 className="text-3xl lg:text-4xl font-bold mb-4">
+                Prêt à transformer votre business ?
+              </h3>
+              <p className="text-xl mb-8 opacity-90">
+                Rejoignez les 15,000+ affiliés qui gagnent déjà avec ShareYourSales
+              </p>
+              <Button
+                onClick={() => navigate('/register')}
+                className="bg-white text-purple-600 text-lg px-12 py-6 rounded-xl shadow-xl hover:shadow-2xl font-bold"
+              >
+                <Rocket className="w-5 h-5 mr-2" />
+                Commencer gratuitement maintenant
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TOUS LES OUTILS PAR RÔLE */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4">
+              Tous les outils pour votre rôle
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Des fonctionnalités puissantes et exclusives adaptées à chaque type d'utilisateur
+            </p>
+          </div>
+
+          {/* OUTILS POUR MERCHANTS */}
+          <div className="mb-20">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center space-x-3 bg-gradient-to-r from-blue-100 to-purple-100 px-8 py-4 rounded-2xl">
+                <Building2 className="w-8 h-8 text-blue-600" />
+                <h3 className="text-3xl font-bold text-gray-900">Outils pour Entreprises (Merchants)</h3>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {uniqueToolsByRole.merchant.map((tool, index) => (
+                <div
+                  key={index}
+                  className="bg-gradient-to-br from-white to-blue-50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all border border-blue-100"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg text-white">
+                      {tool.icon}
+                    </div>
+                    <span className="text-xs font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1 rounded-full">
+                      {tool.badge}
+                    </span>
+                  </div>
+                  <h4 className="text-xl font-bold text-gray-900 mb-3">{tool.title}</h4>
+                  <p className="text-gray-600 text-sm leading-relaxed">{tool.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* OUTILS POUR INFLUENCERS / COMMERCIALS */}
+          <div>
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center space-x-3 bg-gradient-to-r from-purple-100 to-pink-100 px-8 py-4 rounded-2xl">
+                <UserCheck className="w-8 h-8 text-purple-600" />
+                <h3 className="text-3xl font-bold text-gray-900">Outils pour Influenceurs & Commerciaux</h3>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {uniqueToolsByRole.influencer.map((tool, index) => (
+                <div
+                  key={index}
+                  className="bg-gradient-to-br from-white to-purple-50 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all border border-purple-100"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg text-white">
+                      {tool.icon}
+                    </div>
+                    <span className="text-xs font-bold bg-gradient-to-r from-purple-600 to-pink-600 text-white px-3 py-1 rounded-full">
+                      {tool.badge}
+                    </span>
+                  </div>
+                  <h4 className="text-xl font-bold text-gray-900 mb-3">{tool.title}</h4>
+                  <p className="text-gray-600 text-sm leading-relaxed">{tool.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA final */}
+          <div className="text-center mt-16">
+            <Button
+              onClick={() => navigate('/register')}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white text-lg px-12 py-6 rounded-xl shadow-2xl"
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              Découvrir tous les outils - Essai gratuit
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
           </div>
         </div>
       </section>
@@ -758,15 +1110,15 @@ const LandingPageNew = () => {
             <div>
               <h4 className="font-bold text-white mb-4">Entreprise</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">À propos</a></li>
-                <li><a href="#" className="hover:text-white transition">Blog</a></li>
+                <li><button disabled={loading} onClick={() => navigate('/about')} className="hover:text-white transition">À propos</button></li>
+                <li><button disabled={loading} onClick={() => navigate('/blog')} className="hover:text-white transition">Blog</button></li>
               </ul>
             </div>
 
             <div>
               <h4 className="font-bold text-white mb-4">Support</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">Centre d'aide</a></li>
+                <li><button disabled={loading} onClick={() => navigate('/support')} className="hover:text-white transition">Centre d'aide</button></li>
                 <li><button disabled={loading} onClick={() => navigate('/contact')} className="hover:text-white transition">Contact</button></li>
               </ul>
             </div>
@@ -777,8 +1129,8 @@ const LandingPageNew = () => {
               © 2024 ShareYourSales. Tous droits réservés. Fait avec ❤️ au Maroc 🇲🇦
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-gray-400 hover:text-white transition">Confidentialité</a>
-              <a href="#" className="text-gray-400 hover:text-white transition">CGU</a>
+              <button disabled={loading} onClick={() => navigate('/privacy')} className="text-gray-400 hover:text-white transition">Confidentialité</button>
+              <button disabled={loading} onClick={() => navigate('/terms')} className="text-gray-400 hover:text-white transition">CGU</button>
             </div>
           </div>
         </div>

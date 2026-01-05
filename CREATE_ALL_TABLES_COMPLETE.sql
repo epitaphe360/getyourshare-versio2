@@ -540,6 +540,7 @@ CREATE TABLE IF NOT EXISTS public.leads (
     score INTEGER,
     source TEXT,
     notes TEXT,
+    rejection_reason TEXT,
     metadata JSONB,
     validated_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -760,25 +761,41 @@ CREATE INDEX IF NOT EXISTS idx_social_connections_platform ON public.social_conn
 -- ============================================
 CREATE TABLE IF NOT EXISTS public.admin_social_posts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    admin_id UUID REFERENCES public.users(id),
-    platform TEXT NOT NULL,
-    content TEXT NOT NULL,
-    media_urls TEXT[],
-    scheduled_at TIMESTAMPTZ,
-    status TEXT DEFAULT 'draft',
+    created_by UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    title VARCHAR(500),
+    caption TEXT NOT NULL,
+    media_urls JSONB DEFAULT '[]'::jsonb,
+    media_type VARCHAR(50) DEFAULT 'image' CHECK (media_type IN ('image', 'video', 'carousel', 'text')),
+    cta_text VARCHAR(255),
+    cta_url TEXT,
+    hashtags TEXT[],
+    platforms JSONB DEFAULT '{}'::jsonb,
+    campaign_type VARCHAR(100) DEFAULT 'general',
+    status VARCHAR(50) DEFAULT 'draft',
+    scheduled_for TIMESTAMPTZ,
     published_at TIMESTAMPTZ,
-    engagement_stats JSONB,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    total_views INTEGER DEFAULT 0,
+    total_likes INTEGER DEFAULT 0,
+    total_comments INTEGER DEFAULT 0,
+    total_shares INTEGER DEFAULT 0,
+    total_clicks INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS public.admin_social_post_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
-    category TEXT,
-    content TEXT NOT NULL,
-    media_urls TEXT[],
-    variables TEXT[],
-    is_active BOOLEAN DEFAULT true,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    category VARCHAR(100) DEFAULT 'general',
+    caption_template TEXT NOT NULL,
+    suggested_hashtags TEXT[],
+    suggested_cta_text VARCHAR(255),
+    suggested_cta_url TEXT,
+    example_media_url TEXT,
+    media_type VARCHAR(50) DEFAULT 'image',
+    usage_count INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -1272,26 +1289,35 @@ LIMIT 5;
 
 -- Vue pour statistiques admin social posts
 CREATE OR REPLACE VIEW v_admin_social_posts_summary AS
-SELECT 
-    platform,
-    COUNT(*) as total_posts,
-    COUNT(*) FILTER (WHERE status = 'published') as published_count,
-    COUNT(*) FILTER (WHERE status = 'draft') as draft_count
-FROM admin_social_posts
-GROUP BY platform;
+SELECT
+    asp.*,
+    u.email as creator_email,
+    u.full_name as creator_name,
+    (total_views + total_likes + total_comments + total_shares) as total_engagement
+FROM admin_social_posts asp
+JOIN users u ON asp.created_by = u.id
+ORDER BY asp.created_at DESC;
 
 -- Vue pour analytics admin social
 CREATE OR REPLACE VIEW v_admin_social_analytics AS
-SELECT 
-    DATE(created_at) as date,
-    platform,
-    COUNT(*) as posts_count,
-    SUM((engagement_stats->>'likes')::int) as total_likes,
-    SUM((engagement_stats->>'comments')::int) as total_comments,
-    SUM((engagement_stats->>'shares')::int) as total_shares
+SELECT
+    COUNT(*) as total_posts,
+    COUNT(CASE WHEN status = 'published' THEN 1 END) as published_posts,
+    COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled_posts,
+    COUNT(CASE WHEN status = 'draft' THEN 1 END) as draft_posts,
+    SUM(total_views) as total_views,
+    SUM(total_likes) as total_likes,
+    SUM(total_comments) as total_comments,
+    SUM(total_shares) as total_shares,
+    SUM(total_clicks) as total_clicks,
+    ROUND(AVG(total_views), 2) as avg_views_per_post,
+    ROUND(AVG(total_likes), 2) as avg_likes_per_post,
+    ROUND(
+        (SUM(total_likes) + SUM(total_comments) + SUM(total_shares)) * 100.0 / NULLIF(SUM(total_views), 0),
+        2
+    ) as engagement_rate_percent
 FROM admin_social_posts
-WHERE status = 'published'
-GROUP BY DATE(created_at), platform;
+WHERE status = 'published';
 
 -- Vue pour statistiques de contact
 CREATE OR REPLACE VIEW v_contact_stats AS

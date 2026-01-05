@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const AIMarketing = () => {
   const { user } = useAuth();
@@ -19,7 +19,15 @@ const AIMarketing = () => {
   const [contentType, setContentType] = useState('social_post');
   const [platform, setPlatform] = useState('Instagram');
   const [tone, setTone] = useState('friendly');
+  const [productName, setProductName] = useState('');
+  const [productDescription, setProductDescription] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
+  
+  // Advanced Options
+  const [emojiIntensity, setEmojiIntensity] = useState('standard');
+  const [hashtagStrategy, setHashtagStrategy] = useState('mixed');
+  const [contentLength, setContentLength] = useState('medium');
   
   // Predictions State
   const [predictions, setPredictions] = useState(null);
@@ -27,12 +35,46 @@ const AIMarketing = () => {
   const handleGenerateContent = async () => {
     setLoading(true);
     try {
+      let backendPlatform = platform.toLowerCase();
+      let backendContentType = 'post_caption';
+
+      if (contentType === 'email') {
+        backendPlatform = 'email';
+        backendContentType = 'email_newsletter';
+      } else if (contentType === 'blog') {
+        backendPlatform = 'blog';
+        backendContentType = 'blog_article';
+      } else {
+        // Social Post
+        if (platform === 'TikTok') {
+             backendContentType = 'video_script';
+        } else if (platform === 'Instagram') {
+             backendContentType = 'post_caption';
+        } else if (platform === 'YouTube Shorts') {
+             backendPlatform = 'youtube_shorts';
+             backendContentType = 'video_script';
+        }
+      }
+
+      const payload = {
+        platform: backendPlatform,
+        content_type: backendContentType,
+        product_name: productName,
+        product_description: productDescription,
+        target_audience: targetAudience,
+        tone: tone,
+        language: 'fr',
+        emoji_intensity: emojiIntensity,
+        hashtag_strategy: hashtagStrategy,
+        content_length: contentLength
+      };
+
       const response = await axios.post(
-        `${API_URL}/api/ai/generate-content`,
-        { type: contentType, platform, tone },
+        `${API_URL}/ai-content/generate`,
+        payload,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
-      setGeneratedContent(response.data.content);
+      setGeneratedContent(response.data.script);
     } catch (error) {
       console.error('Error generating content:', error);
     } finally {
@@ -44,7 +86,7 @@ const AIMarketing = () => {
     setLoading(true);
     try {
       const response = await axios.get(
-        `${API_URL}/api/ai/predictions`,
+        `${API_URL}/ai/predictions`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
       );
       setPredictions(response.data);
@@ -103,6 +145,47 @@ const AIMarketing = () => {
         <div className="max-w-4xl mx-auto space-y-6">
           <Card title="Générateur de Contenu Hyper-Personnalisé" icon={<Wand2 size={20} />}>
             <div className="space-y-6">
+              {/* Product Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nom du Produit / Service
+                  </label>
+                  <input
+                    type="text"
+                    value={productName}
+                    onChange={(e) => setProductName(e.target.value)}
+                    placeholder="Ex: Crème Hydratante Bio"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Audience Cible
+                  </label>
+                  <input
+                    type="text"
+                    value={targetAudience}
+                    onChange={(e) => setTargetAudience(e.target.value)}
+                    placeholder="Ex: Femmes 25-40 ans, urbaines"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description du Produit
+                </label>
+                <textarea
+                  value={productDescription}
+                  onChange={(e) => setProductDescription(e.target.value)}
+                  placeholder="Décrivez les bénéfices clés, les caractéristiques..."
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+
               {/* Type Selection */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
@@ -174,21 +257,70 @@ const AIMarketing = () => {
               )}
 
               {/* Tone Selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Tonalité
-                </label>
-                <select
-                  value={tone}
-                  onChange={(e) => setTone(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                >
-                  <option value="friendly">Amical</option>
-                  <option value="professional">Professionnel</option>
-                  <option value="casual">Décontracté</option>
-                  <option value="enthusiastic">Enthousiaste</option>
-                  <option value="formal">Formel</option>
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Tonalité
+                  </label>
+                  <select
+                    value={tone}
+                    onChange={(e) => setTone(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="friendly">Amical</option>
+                    <option value="professional">Professionnel</option>
+                    <option value="casual">Décontracté</option>
+                    <option value="enthusiastic">Enthousiaste</option>
+                    <option value="formal">Formel</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Longueur du Contenu
+                  </label>
+                  <select
+                    value={contentLength}
+                    onChange={(e) => setContentLength(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="short">Court (Concise)</option>
+                    <option value="medium">Moyen (Standard)</option>
+                    <option value="long">Long (Détaillé)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Advanced Options */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Intensité Emojis
+                  </label>
+                  <select
+                    value={emojiIntensity}
+                    onChange={(e) => setEmojiIntensity(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="none">Aucun 🚫</option>
+                    <option value="minimal">Minimal (1-2) 🙂</option>
+                    <option value="standard">Standard (3-5) 😃🔥</option>
+                    <option value="heavy">Intense (Beaucoup) 🚀🔥💯</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Stratégie Hashtags
+                  </label>
+                  <select
+                    value={hashtagStrategy}
+                    onChange={(e) => setHashtagStrategy(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="mixed">Mixte (Équilibré)</option>
+                    <option value="niche">Niche (Ciblé)</option>
+                    <option value="broad">Large (Viral)</option>
+                  </select>
+                </div>
               </div>
 
               {/* Generate Button */}

@@ -118,6 +118,13 @@ export default {
   dash_pending: 'En attente',
   dash_approved: 'Approuvés',
 
+  // Influencer Dashboard
+  'influencer.dashboard.title': 'Tableau de Bord Influenceur',
+  'influencer.dashboard.welcome': 'Bienvenue sur votre espace influenceur',
+  'merchant.dashboard.title': 'Tableau de Bord Marchand',
+  'commercial.dashboard.title': 'Tableau de Bord Commercial',
+  'admin.dashboard.title': 'Tableau de Bord Admin',
+
   // Marketplace
   market_browse: 'Parcourir les Produits',
   market_search_products: 'Rechercher un produit...',

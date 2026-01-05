@@ -22,7 +22,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import api from '../../services/api';
+import api from '../../utils/api';
 
 const SocialMediaHistory = () => {
   const navigate = useNavigate();
@@ -106,13 +106,15 @@ const SocialMediaHistory = () => {
   };
 
   const formatNumber = (num) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
+    const n = Number(num);
+    if (isNaN(n)) return '0';
+    if (n >= 1000000) {
+      return (n / 1000000).toFixed(1) + 'M';
     }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
+    if (n >= 1000) {
+      return (n / 1000).toFixed(1) + 'K';
     }
-    return num;
+    return n.toString();
   };
 
   const getPlatformIcon = (platform) => {
@@ -182,10 +184,12 @@ const SocialMediaHistory = () => {
           <div className="flex flex-wrap gap-4">
             {/* Sélecteur de plateforme */}
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="platform-select" className="block text-sm font-medium text-gray-700 mb-2">
                 Plateforme
               </label>
               <select
+                id="platform-select"
+                name="platform"
                 value={selectedPlatform}
                 onChange={(e) => setSelectedPlatform(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -200,10 +204,12 @@ const SocialMediaHistory = () => {
 
             {/* Sélecteur de période */}
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="time-range-select" className="block text-sm font-medium text-gray-700 mb-2">
                 Période
               </label>
               <select
+                id="time-range-select"
+                name="timeRange"
                 value={timeRange}
                 onChange={(e) => setTimeRange(parseInt(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"

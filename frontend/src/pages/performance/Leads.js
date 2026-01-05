@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Card from '../../components/common/Card';
 import Table from '../../components/common/Table';
 import Badge from '../../components/common/Badge';
 import { formatDate, formatCurrency } from '../../utils/helpers';
 import api from '../../utils/api';
+import { useToast } from '../../context/ToastContext';
 import { 
   TrendingUp, 
   Users, 
@@ -24,8 +26,11 @@ import {
 import { AreaChart, Area, ResponsiveContainer, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
 const Leads = () => {
+  const navigate = useNavigate();
+  const toast = useToast();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [animatedValues, setAnimatedValues] = useState({
     total: 0,
     pending: 0,
@@ -35,6 +40,25 @@ const Leads = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [period, setPeriod] = useState('week');
+
+  // Fonction d'export
+  const handleExport = async () => {
+    try {
+      toast.info('Préparation de l\'export...');
+      const csvContent = leads.map(lead => 
+        `${lead.name || ''},${lead.email || ''},${lead.status || ''},${lead.amount || 0},${formatDate(lead.created_at)}`
+      ).join('\n');
+      const header = 'Nom,Email,Statut,Montant,Date\n';
+      const blob = new Blob([header + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `leads_export_${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      toast.success('Export réussi !');
+    } catch (error) {
+      toast.error('Erreur lors de l\'export');
+    }
+  };
 
   useEffect(() => {
     fetchLeads();
@@ -208,11 +232,17 @@ const Leads = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${showFilters ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-300 hover:bg-gray-50'}`}
+          >
             <Filter className="h-4 w-4" />
             Filtres
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          <button 
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
             <Download className="h-4 w-4" />
             Exporter
           </button>
@@ -400,7 +430,10 @@ const Leads = () => {
                 : 'Aucun lead ne correspond aux critères de recherche. Essayez de modifier vos filtres.'}
             </p>
             {leads.length === 0 && (
-              <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto">
+              <button 
+                onClick={() => navigate('/campaigns/create')}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 mx-auto"
+              >
                 <Target className="h-5 w-5" />
                 Créer une campagne
               </button>

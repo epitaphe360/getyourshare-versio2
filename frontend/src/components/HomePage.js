@@ -41,8 +41,10 @@ const HomePage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+
   useEffect(() => {
-    fetch('http://localhost:8000/api/products')
+    fetch(`${API_URL}/products`)
       .then(res => res.json())
       .then(data => {
         setProducts(data.slice(0, 6));
@@ -752,7 +754,7 @@ const HomePage = () => {
                   <CardMedia
                     component="img"
                     height="220"
-                    image={product.image_url || 'https://via.placeholder.com/400x300'}
+                    image={(product.image_url || 'https://placehold.co/400x300').replace('via.placeholder.com', 'placehold.co')}
                     alt={product.name}
                     sx={{ objectFit: 'cover' }}
                   />

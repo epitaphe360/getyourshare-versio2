@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   TrendingUp, Users, ShoppingBag, Sparkles, DollarSign,
   Target, Share2, BarChart3, Zap, CheckCircle, Shield,
   Clock, Globe, Award, ArrowRight, Star, Quote,
   Link as LinkIcon, Settings, MousePointer, MessageSquare,
-  Percent, Eye, RefreshCw, Lock, Smartphone, Briefcase
+  Percent, Eye, RefreshCw, Lock, Smartphone, Briefcase, Menu, X
 } from 'lucide-react';
 import SEOHead from '../components/SEO/SEOHead';
 import SEO_CONFIG from '../config/seo';
@@ -17,6 +17,7 @@ import SEO_CONFIG from '../config/seo';
  */
 const HomepageV2 = () => {
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Fonctionnalités principales de la plateforme
   const mainFeatures = [
@@ -261,9 +262,19 @@ const HomepageV2 = () => {
     }
   ];
 
+  const seoData = SEO_CONFIG?.homepage || {
+    title: 'GetYourShare - Plateforme d\'affiliation B2B',
+    description: 'Plateforme d\'affiliation B2B qui connecte entreprises, commerciaux et influenceurs.',
+    keywords: 'affiliation B2B, marketing digital',
+    image: '',
+    type: 'website',
+    url: 'https://getyourshare.com',
+    structuredData: null
+  };
+
   return (
     <>
-      <SEOHead {...SEO_CONFIG.homepage} />
+      <SEOHead {...seoData} />
       <div className="w-full">
       {/* Header Sticky avec Navigation Complète */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm">
@@ -302,24 +313,58 @@ const HomepageV2 = () => {
               </a>
             </nav>
             
-            {/* Boutons Connexion/Inscription */}
+            {/* Boutons Connexion/Inscription & Mobile Menu Toggle */}
             <div className="flex items-center space-x-3">
-              <button
-                onClick={() => navigate('/login')}
-                className="px-6 py-2 text-gray-700 hover:text-blue-600 font-semibold transition flex items-center space-x-2"
+              <div className="hidden sm:flex items-center space-x-3">
+                <button
+                  onClick={() => navigate('/login')}
+                  className="px-6 py-2 text-gray-700 hover:text-blue-600 font-semibold transition flex items-center space-x-2"
+                >
+                  <Lock className="w-4 h-4" />
+                  <span>Se Connecter</span>
+                </button>
+                <button
+                  onClick={() => navigate('/register')}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition shadow-md"
+                >
+                  S'inscrire
+                </button>
+              </div>
+              
+              {/* Mobile Menu Button */}
+              <button 
+                className="lg:hidden p-2 text-gray-700 hover:bg-gray-100 rounded-lg"
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
-                <Lock className="w-4 h-4" />
-                <span>Se Connecter</span>
-              </button>
-              <button
-                onClick={() => navigate('/register')}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold transition shadow-md"
-              >
-                S'inscrire
+                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
             </div>
           </div>
         </div>
+
+        {/* Mobile Menu Overlay */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-white border-t border-gray-100 shadow-xl p-4 flex flex-col space-y-4 z-50 animate-in slide-in-from-top-5">
+            <a href="/#fonctionnalites" className="p-2 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">Fonctionnalités</a>
+            <a href="/about" className="p-2 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">À Propos</a>
+            <a href="/marketplace" className="p-2 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">Marketplace</a>
+            <a href="/pricing" className="p-2 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">Tarifs</a>
+            <a href="/contact" className="p-2 text-gray-700 hover:bg-gray-50 rounded-lg font-medium">Contact</a>
+            <div className="h-px bg-gray-100 my-2"></div>
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full p-3 text-center text-gray-700 font-semibold border border-gray-200 rounded-lg hover:bg-gray-50"
+            >
+              Se Connecter
+            </button>
+            <button
+              onClick={() => navigate('/register')}
+              className="w-full p-3 text-center bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700"
+            >
+              S'inscrire
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Hero Section - Proposition de Valeur */}
@@ -789,23 +834,23 @@ const HomepageV2 = () => {
               <ul className="space-y-2 text-sm">
                 <li><a href="/pricing" className="hover:text-white transition">Tarifs</a></li>
                 <li><a href="/marketplace" className="hover:text-white transition">Marketplace</a></li>
-                <li><a href="#" className="hover:text-white transition">Fonctionnalités</a></li>
+                <li><a href="#features" className="hover:text-white transition">Fonctionnalités</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-4">Entreprise</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">À Propos</a></li>
+                <li><a href="/about" className="hover:text-white transition">À Propos</a></li>
                 <li><a href="/contact" className="hover:text-white transition">Contact</a></li>
-                <li><a href="#" className="hover:text-white transition">Carrières</a></li>
+                <li><a href="/careers" className="hover:text-white transition">Carrières</a></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-white mb-4">Légal</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">Confidentialité</a></li>
-                <li><a href="#" className="hover:text-white transition">CGV</a></li>
-                <li><a href="#" className="hover:text-white transition">Mentions Légales</a></li>
+                <li><a href="/privacy" className="hover:text-white transition">Confidentialité</a></li>
+                <li><a href="/terms" className="hover:text-white transition">CGV</a></li>
+                <li><a href="/legal" className="hover:text-white transition">Mentions Légales</a></li>
               </ul>
             </div>
           </div>
