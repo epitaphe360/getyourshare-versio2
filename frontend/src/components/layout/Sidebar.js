@@ -27,7 +27,8 @@ import {
   Receipt,
   CreditCard,
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Radio
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -154,6 +155,11 @@ const Sidebar = () => {
         path: '/ai-content-pro',
       },
       {
+        title: 'Automation Média',
+        icon: <Radio size={20} />,
+        path: '/media-automation',
+      },
+      {
         title: translations.my_campaigns,
         icon: <Target size={20} />,
         path: '/campaigns',
@@ -229,6 +235,11 @@ const Sidebar = () => {
         title: 'Générateur IA PRO',
         icon: <Sparkles size={20} />,
         path: '/ai-content-pro',
+      },
+      {
+        title: 'Automation Média',
+        icon: <Radio size={20} />,
+        path: '/media-automation',
       },
       {
         title: translations.my_campaigns,
@@ -439,6 +450,11 @@ const Sidebar = () => {
         title: 'Générateur IA PRO',
         icon: <Sparkles size={20} />,
         path: '/ai-content-pro',
+      },
+      {
+        title: 'Automation Média',
+        icon: <Radio size={20} />,
+        path: '/media-automation',
       },
       {
         title: 'Analytics Dashboard',

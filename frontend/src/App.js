@@ -164,6 +164,7 @@ const APIDocs = lazy(() => import('./pages/api/APIDocs'));
 // ---------- Phase 3-7 - Integrated Services (NEW!) ----------
 const IntegratedServices = lazy(() => import('./pages/IntegratedServices'));
 const AIContentGeneratorPro = lazy(() => import('./pages/AIContentGeneratorPro'));
+const MediaAutomationDashboard = lazy(() => import('./pages/MediaAutomationDashboard'));
 
 // ---------- Company & Subscription ----------
 const SubscriptionDashboard = lazy(() => import('./pages/company/SubscriptionDashboard'));
@@ -927,6 +928,14 @@ function App() {
             element={
               <RoleProtectedRoute allowedRoles={['admin', 'merchant', 'influencer']}>
                 <AIContentGeneratorPro />
+              </RoleProtectedRoute>
+            }
+          />
+          <Route
+            path="/media-automation"
+            element={
+              <RoleProtectedRoute allowedRoles={['admin', 'merchant', 'influencer']}>
+                <MediaAutomationDashboard />
               </RoleProtectedRoute>
             }
           />
