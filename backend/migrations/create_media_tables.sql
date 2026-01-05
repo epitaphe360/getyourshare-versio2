@@ -105,7 +105,7 @@ CREATE INDEX idx_media_posts_user ON media_scheduled_posts(user_id);
 CREATE INDEX idx_media_posts_platform ON media_scheduled_posts(platform);
 CREATE INDEX idx_media_posts_status ON media_scheduled_posts(status);
 CREATE INDEX idx_media_posts_scheduled ON media_scheduled_posts(scheduled_time);
-CREATE INDEX idx_media_posts_due ON media_scheduled_posts(scheduled_time) WHERE status = 'scheduled' AND scheduled_time <= CURRENT_TIMESTAMP;
+CREATE INDEX idx_media_posts_due ON media_scheduled_posts(scheduled_time) WHERE status = 'scheduled';
 
 -- Table 5: Analytics des publications
 CREATE TABLE IF NOT EXISTS media_analytics (
@@ -166,7 +166,7 @@ CREATE TABLE IF NOT EXISTS media_oauth_states (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_media_oauth_state ON media_oauth_states(state_token) WHERE used = false AND expires_at > CURRENT_TIMESTAMP;
+CREATE INDEX idx_media_oauth_state ON media_oauth_states(state_token) WHERE used = false;
 CREATE INDEX idx_media_oauth_cleanup ON media_oauth_states(expires_at) WHERE used = false;
 
 -- Fonction pour mettre à jour updated_at automatiquement
