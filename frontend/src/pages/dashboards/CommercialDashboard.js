@@ -32,6 +32,7 @@ import NotificationCenter from '../../components/NotificationCenter';
 
 // PHASE 2: Outils de Communication
 import CalendarIntegration from '../../components/dashboard/CalendarIntegration';
+import AppointmentsCalendar from '../../components/dashboard/AppointmentsCalendar';
 import EmailTracker from '../../components/dashboard/EmailTracker';
 import ClickToCall from '../../components/dashboard/ClickToCall';
 
@@ -1158,6 +1159,16 @@ const CommercialDashboard = () => {
 
       {/* ========== PHASE 2: OUTILS DE COMMUNICATION ========== */}
       
+      {/* MES RENDEZ-VOUS - Vue Semaine Améliorée */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.42 }}
+        className="mb-6"
+      >
+        <AppointmentsCalendar userId={userId} />
+      </motion.div>
+
       {/* CALENDRIER INTÉGRÉ */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
