@@ -44,6 +44,7 @@ pathspec==0.12.1
 platformdirs==4.5.0
 pluggy==1.6.0
 postgrest==2.22.1
+psycopg2-binary==2.9.9  # PostgreSQL adapter for Media Automation
 propcache==0.4.1
 pyasn1==0.4.8
 pycodestyle==2.14.0
