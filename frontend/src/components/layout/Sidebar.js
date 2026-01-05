@@ -26,7 +26,8 @@ import {
   Calculator,
   Receipt,
   CreditCard,
-  HelpCircle
+  HelpCircle,
+  Sparkles
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -148,6 +149,11 @@ const Sidebar = () => {
         path: '/dashboard/marketplace',
       },
       {
+        title: 'Générateur IA PRO',
+        icon: <Sparkles size={20} />,
+        path: '/ai-content-pro',
+      },
+      {
         title: translations.my_campaigns,
         icon: <Target size={20} />,
         path: '/campaigns',
@@ -218,6 +224,11 @@ const Sidebar = () => {
         title: translations.services,
         icon: <Briefcase size={20} />,
         path: '/services',
+      },
+      {
+        title: 'Générateur IA PRO',
+        icon: <Sparkles size={20} />,
+        path: '/ai-content-pro',
       },
       {
         title: translations.my_campaigns,
@@ -423,6 +434,11 @@ const Sidebar = () => {
         title: 'Services Intégrés',
         icon: <Zap size={20} />,
         path: '/services-integres',
+      },
+      {
+        title: 'Générateur IA PRO',
+        icon: <Sparkles size={20} />,
+        path: '/ai-content-pro',
       },
       {
         title: 'Analytics Dashboard',

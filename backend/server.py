@@ -602,6 +602,7 @@ from notifications_endpoints import router as notifications_router
 from integrations_endpoints import router as integrations_router
 from advanced_features_endpoints import settings_router, email_router, api_router
 from integrated_services import router as integrated_services_router  # NOUVEAUX SERVICES PHASES 3-7
+from ai_content_pro_endpoints import router as ai_content_pro_router  # AI CONTENT GENERATOR PRO
 
 # Include all routers in the app
 app.include_router(marketplace_router)
@@ -644,6 +645,7 @@ app.include_router(websocket_router)
 
 # Nouveaux routers - 6 Features Marketables
 app.include_router(ai_content_router)
+app.include_router(ai_content_pro_router)  # 🚀 AI Content Generator PRO
 app.include_router(mobile_payment_router)
 
 # Phase 5G - Système Fiscal & Comptable (Multi-pays: Maroc, France, USA)
