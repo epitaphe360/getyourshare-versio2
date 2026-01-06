@@ -127,19 +127,27 @@ class TestBaseRepository:
         assert result == {"id": "123", "name": "Test"}
 
     @pytest.mark.asyncio
-    async def test_find_by_id_not_found(self, base_repo, mock_supabase):
+    async def test_find_by_id_not_found(self):
         """Test find_by_id quand l'enregistrement n'existe pas"""
+        # Créer un mock complètement isolé pour ce test
+        fresh_mock = Mock()
+
         mock_result = Mock()
-        mock_result.data = None
+        mock_result.data = None  # Pas de données trouvées
 
         mock_query = Mock()
         mock_query.eq = Mock(return_value=mock_query)
         mock_query.maybe_single = Mock(return_value=mock_query)
         mock_query.execute = Mock(return_value=mock_result)
 
-        mock_supabase.table = Mock(return_value=Mock(select=Mock(return_value=mock_query)))
+        mock_table = Mock()
+        mock_table.select = Mock(return_value=mock_query)
 
-        result = await base_repo.find_by_id("999")
+        fresh_mock.table = Mock(return_value=mock_table)
+
+        # Créer repo avec le mock isolé
+        repo = BaseRepository(fresh_mock, table_name="test_table")
+        result = await repo.find_by_id("999")
 
         assert result is None
 
@@ -329,26 +337,25 @@ class TestCampaignRepository:
         assert result["status"] == "paused"
 
     @pytest.mark.asyncio
-    async def test_get_campaign_stats(self, campaign_repo, mock_supabase):
+    async def test_get_campaign_stats(self, mock_supabase):
         """Test get_campaign_stats() retourne les stats"""
-        mock_result = Mock()
-        mock_result.data = {
-            "id": "1",
-            "name": "Test Campaign",
-            "status": "active",
-            "budget": 1000,
-            "start_date": "2024-01-01",
-            "end_date": "2024-12-31"
-        }
+        # Créer un nouveau repo avec un mock frais
+        repo = CampaignRepository(mock_supabase)
 
-        mock_query = Mock()
-        mock_query.eq = Mock(return_value=mock_query)
-        mock_query.maybe_single = Mock(return_value=mock_query)
-        mock_query.execute = Mock(return_value=mock_result)
+        # Mock find_by_id pour retourner les données de campagne
+        async def mock_find_by_id(campaign_id):
+            return {
+                "id": campaign_id,
+                "name": "Test Campaign",
+                "status": "active",
+                "budget": 1000,
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31"
+            }
 
-        mock_supabase.table = Mock(return_value=Mock(select=Mock(return_value=mock_query)))
+        repo.find_by_id = mock_find_by_id
 
-        result = await campaign_repo.get_campaign_stats("1")
+        result = await repo.get_campaign_stats("1")
 
         assert result["id"] == "1"
         assert result["name"] == "Test Campaign"

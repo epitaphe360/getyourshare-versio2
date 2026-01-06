@@ -21,6 +21,20 @@ def cache(ttl_seconds: int = 300):
                 # Generate key
                 key_parts = [func.__name__]
 
+                # Handle positional args (important pour différencier les appels)
+                for i, arg in enumerate(args):
+                    # Skip 'self' parameter (first arg of instance methods)
+                    # Check if it looks like a self parameter (has methods but isn't a basic type)
+                    if i == 0 and hasattr(arg, '__dict__') and not isinstance(arg, (str, int, float, bool, list, dict, tuple)):
+                        continue
+                    # Ajouter les args simples à la clé
+                    if isinstance(arg, (str, int, float, bool)):
+                        key_parts.append(str(arg))
+                    elif isinstance(arg, (list, tuple)):
+                        key_parts.append(str(sorted(arg) if isinstance(arg, list) else arg))
+                    elif isinstance(arg, dict):
+                        key_parts.append(str(sorted(arg.items())))
+
                 # Handle kwargs
                 for k, v in sorted(kwargs.items()):
                     if k == 'request':
