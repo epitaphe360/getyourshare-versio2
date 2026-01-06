@@ -582,6 +582,16 @@ def get_all_campaigns(merchant_id: Optional[str] = None) -> List[Dict]:
         return []
 
 
+def get_campaign_by_id(campaign_id: int) -> Optional[Dict]:
+    """Récupère une campagne par son ID"""
+    try:
+        result = supabase.table("campaigns").select("*").eq("id", campaign_id).execute()
+        return result.data[0] if result.data else None
+    except Exception as e:
+        logger.error(f"Error getting campaign {campaign_id}: {e}")
+        return None
+
+
 def create_campaign(merchant_id: str, name: str, **kwargs) -> Optional[Dict]:
     """Crée une nouvelle campagne"""
     try:
