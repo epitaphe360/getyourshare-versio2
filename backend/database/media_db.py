@@ -4,12 +4,14 @@ Utilise Supabase (PostgreSQL) et psycopg2 pour les requêtes SQL
 """
 
 import os
+import time
 import psycopg2
 from psycopg2.extras import RealDictCursor, Json
 from psycopg2.pool import ThreadedConnectionPool
 from contextlib import contextmanager
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
+from utils.logger import logger
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -42,6 +44,7 @@ class MediaDatabase:
     def _init_pool(self):
         """Initialise le pool de connexions"""
         if not DATABASE_URL:
+            logger.warning("DATABASE_URL not configured. Media DB queries will not work.")
             print("⚠️ DATABASE_URL non configuré. Les requêtes DB ne fonctionneront pas.")
             return
 
@@ -51,8 +54,10 @@ class MediaDatabase:
                 maxconn=10,
                 dsn=DATABASE_URL
             )
+            logger.info("Media DB connection pool initialized", extra={"minconn": 1, "maxconn": 10})
             print("✅ Pool de connexions Media DB initialisé")
         except Exception as e:
+            logger.error(f"Failed to initialize Media DB pool: {str(e)}")
             print(f"❌ Erreur initialisation pool DB: {str(e)}")
             self.pool = None
 
@@ -85,39 +90,105 @@ class MediaDatabase:
 
     def execute_query(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
         """Exécute une requête SELECT et retourne les résultats"""
-        with self.get_cursor() as cursor:
-            cursor.execute(query, params or ())
-            return cursor.fetchall()
+        start_time = time.time()
+        try:
+            with self.get_cursor() as cursor:
+                cursor.execute(query, params or ())
+                results = cursor.fetchall()
+                duration_ms = (time.time() - start_time) * 1000
+
+                # Log slow queries (> 100ms)
+                if duration_ms > 100:
+                    logger.warning("Slow query detected", extra={
+                        "query": query[:100],
+                        "duration_ms": round(duration_ms, 2),
+                        "rows": len(results)
+                    })
+                else:
+                    logger.debug("Query executed", extra={
+                        "duration_ms": round(duration_ms, 2),
+                        "rows": len(results)
+                    })
+
+                return results
+        except Exception as e:
+            logger.error(f"Query execution failed: {str(e)}", extra={"query": query[:100]})
+            raise
 
     def execute_one(self, query: str, params: tuple = None) -> Optional[Dict[str, Any]]:
         """Exécute une requête SELECT et retourne un seul résultat"""
-        with self.get_cursor() as cursor:
-            cursor.execute(query, params or ())
-            return cursor.fetchone()
+        start_time = time.time()
+        try:
+            with self.get_cursor() as cursor:
+                cursor.execute(query, params or ())
+                result = cursor.fetchone()
+                duration_ms = (time.time() - start_time) * 1000
+
+                logger.debug("Query executed (one)", extra={"duration_ms": round(duration_ms, 2)})
+                return result
+        except Exception as e:
+            logger.error(f"Query execution failed: {str(e)}", extra={"query": query[:100]})
+            raise
 
     def execute_insert(self, query: str, params: tuple = None) -> int:
         """Exécute un INSERT et retourne l'ID généré"""
-        with self.get_cursor() as cursor:
-            cursor.execute(query + " RETURNING id", params or ())
-            result = cursor.fetchone()
-            return result['id'] if result else None
+        start_time = time.time()
+        try:
+            with self.get_cursor() as cursor:
+                cursor.execute(query + " RETURNING id", params or ())
+                result = cursor.fetchone()
+                duration_ms = (time.time() - start_time) * 1000
+
+                logger.info("Insert executed", extra={
+                    "duration_ms": round(duration_ms, 2),
+                    "id": result['id'] if result else None
+                })
+                return result['id'] if result else None
+        except Exception as e:
+            logger.error(f"Insert failed: {str(e)}", extra={"query": query[:100]})
+            raise
 
     def execute_update(self, query: str, params: tuple = None) -> int:
         """Exécute un UPDATE et retourne le nombre de lignes affectées"""
-        with self.get_cursor(dict_cursor=False) as cursor:
-            cursor.execute(query, params or ())
-            return cursor.rowcount
+        start_time = time.time()
+        try:
+            with self.get_cursor(dict_cursor=False) as cursor:
+                cursor.execute(query, params or ())
+                rowcount = cursor.rowcount
+                duration_ms = (time.time() - start_time) * 1000
+
+                logger.info("Update executed", extra={
+                    "duration_ms": round(duration_ms, 2),
+                    "rows_affected": rowcount
+                })
+                return rowcount
+        except Exception as e:
+            logger.error(f"Update failed: {str(e)}", extra={"query": query[:100]})
+            raise
 
     def execute_delete(self, query: str, params: tuple = None) -> int:
         """Exécute un DELETE et retourne le nombre de lignes supprimées"""
-        with self.get_cursor(dict_cursor=False) as cursor:
-            cursor.execute(query, params or ())
-            return cursor.rowcount
+        start_time = time.time()
+        try:
+            with self.get_cursor(dict_cursor=False) as cursor:
+                cursor.execute(query, params or ())
+                rowcount = cursor.rowcount
+                duration_ms = (time.time() - start_time) * 1000
+
+                logger.info("Delete executed", extra={
+                    "duration_ms": round(duration_ms, 2),
+                    "rows_deleted": rowcount
+                })
+                return rowcount
+        except Exception as e:
+            logger.error(f"Delete failed: {str(e)}", extra={"query": query[:100]})
+            raise
 
     def close(self):
         """Ferme le pool de connexions"""
         if self.pool:
             self.pool.closeall()
+            logger.info("Media DB connection pool closed")
             print("✅ Pool de connexions Media DB fermé")
 
 

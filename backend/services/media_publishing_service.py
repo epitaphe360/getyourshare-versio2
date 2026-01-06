@@ -3,7 +3,7 @@ Service de Publication Multi-Plateformes
 Publie du contenu sur Instagram, Twitter, LinkedIn, Facebook, TikTok
 """
 
-import aiohttp
+import httpx
 from typing import Optional, Dict, Any
 from datetime import datetime
 
@@ -204,22 +204,22 @@ class MediaPublishingService:
                 if media_ids:
                     payload["media"] = {"media_ids": media_ids}
 
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload, headers=headers) as response:
-                    if response.status == 201:
-                        data = await response.json()
-                        tweet_id = data["data"]["id"]
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, json=payload, headers=headers)
+                if response.status_code == 201:
+                    data = response.json()
+                    tweet_id = data["data"]["id"]
 
-                        return PublishResult(
-                            success=True,
-                            platform=PlatformType.TWITTER,
-                            platform_post_id=tweet_id,
-                            platform_post_url=f"https://twitter.com/i/web/status/{tweet_id}",
-                            published_at=datetime.utcnow()
-                        )
-                    else:
-                        error = await response.text()
-                        raise Exception(f"Twitter API error: {error}")
+                    return PublishResult(
+                        success=True,
+                        platform=PlatformType.TWITTER,
+                        platform_post_id=tweet_id,
+                        platform_post_url=f"https://twitter.com/i/web/status/{tweet_id}",
+                        published_at=datetime.utcnow()
+                    )
+                else:
+                    error = response.text
+                    raise Exception(f"Twitter API error: {error}")
 
         except Exception as e:
             return PublishResult(
@@ -289,22 +289,22 @@ class MediaPublishingService:
                 }
             }
 
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload, headers=headers) as response:
-                    if response.status == 201:
-                        data = await response.json()
-                        post_id = data.get("id", "").split(":")[-1]
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, json=payload, headers=headers)
+                if response.status_code == 201:
+                    data = response.json()
+                    post_id = data.get("id", "").split(":")[-1]
 
-                        return PublishResult(
-                            success=True,
-                            platform=PlatformType.LINKEDIN,
-                            platform_post_id=post_id,
-                            platform_post_url=f"https://www.linkedin.com/feed/update/{post_id}/",
-                            published_at=datetime.utcnow()
-                        )
-                    else:
-                        error = await response.text()
-                        raise Exception(f"LinkedIn API error: {error}")
+                    return PublishResult(
+                        success=True,
+                        platform=PlatformType.LINKEDIN,
+                        platform_post_id=post_id,
+                        platform_post_url=f"https://www.linkedin.com/feed/update/{post_id}/",
+                        published_at=datetime.utcnow()
+                    )
+                else:
+                    error = response.text
+                    raise Exception(f"LinkedIn API error: {error}")
 
         except Exception as e:
             return PublishResult(
@@ -349,22 +349,22 @@ class MediaPublishingService:
             if post.media_urls:
                 params["link"] = post.media_urls[0]
 
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, data=params) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        post_id = data.get("id")
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, data=params)
+                if response.status_code == 200:
+                    data = response.json()
+                    post_id = data.get("id")
 
-                        return PublishResult(
-                            success=True,
-                            platform=PlatformType.FACEBOOK,
-                            platform_post_id=post_id,
-                            platform_post_url=f"https://www.facebook.com/{post_id}",
-                            published_at=datetime.utcnow()
-                        )
-                    else:
-                        error = await response.text()
-                        raise Exception(f"Facebook API error: {error}")
+                    return PublishResult(
+                        success=True,
+                        platform=PlatformType.FACEBOOK,
+                        platform_post_id=post_id,
+                        platform_post_url=f"https://www.facebook.com/{post_id}",
+                        published_at=datetime.utcnow()
+                    )
+                else:
+                    error = response.text
+                    raise Exception(f"Facebook API error: {error}")
 
         except Exception as e:
             return PublishResult(
@@ -415,22 +415,22 @@ class MediaPublishingService:
                 }
             }
 
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=payload, headers=headers) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        publish_id = data.get("data", {}).get("publish_id")
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, json=payload, headers=headers)
+                if response.status_code == 200:
+                    data = response.json()
+                    publish_id = data.get("data", {}).get("publish_id")
 
-                        return PublishResult(
-                            success=True,
-                            platform=PlatformType.TIKTOK,
-                            platform_post_id=publish_id,
-                            platform_post_url=f"https://www.tiktok.com/@{connection.account_name}",
-                            published_at=datetime.utcnow()
-                        )
-                    else:
-                        error = await response.text()
-                        raise Exception(f"TikTok API error: {error}")
+                    return PublishResult(
+                        success=True,
+                        platform=PlatformType.TIKTOK,
+                        platform_post_id=publish_id,
+                        platform_post_url=f"https://www.tiktok.com/@{connection.account_name}",
+                        published_at=datetime.utcnow()
+                    )
+                else:
+                    error = response.text
+                    raise Exception(f"TikTok API error: {error}")
 
         except Exception as e:
             return PublishResult(

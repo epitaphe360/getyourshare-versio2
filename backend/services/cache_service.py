@@ -238,8 +238,18 @@ class RedisCache:
             return {}
 
 
-# Instance globale
-cache = RedisCache()
+def get_cache_instance() -> RedisCache:
+    """
+    Fonction helper pour obtenir l'instance unique du cache
+    Utilise un pattern Singleton lazy
+    """
+    if not hasattr(get_cache_instance, '_instance'):
+        get_cache_instance._instance = RedisCache()
+    return get_cache_instance._instance
+
+
+# Backward compatibility - alias pour ancien code
+cache = get_cache_instance()
 
 
 # ============================================

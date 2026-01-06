@@ -10,7 +10,7 @@ import base64
 from typing import Optional, Dict, Any
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
-import aiohttp
+import httpx
 
 from models.media_models import (
     PlatformType,
@@ -236,7 +236,7 @@ class MediaOAuthService:
             raise ValueError(f"Platform {connection.platform} not supported")
 
         # Rafraîchir le token
-        async with aiohttp.ClientSession() as session:
+        async with httpx.AsyncClient() as client:
             token_data = {
                 "grant_type": "refresh_token",
                 "refresh_token": connection.refresh_token,
@@ -244,12 +244,12 @@ class MediaOAuthService:
                 "client_secret": config["client_secret"]
             }
 
-            async with session.post(config["token_url"], data=token_data) as response:
-                if response.status != 200:
-                    error = await response.text()
-                    raise Exception(f"Failed to refresh token: {error}")
+            response = await client.post(config["token_url"], data=token_data)
+            if response.status_code != 200:
+                error = response.text
+                raise Exception(f"Failed to refresh token: {error}")
 
-                new_token_data = await response.json()
+            new_token_data = response.json()
 
         # Mettre à jour la connexion (dans la vraie app)
         # await self._update_platform_connection(
@@ -308,7 +308,7 @@ class MediaOAuthService:
         """Échange le code d'autorisation contre un access token"""
         config = self.platform_configs[platform]
 
-        async with aiohttp.ClientSession() as session:
+        async with httpx.AsyncClient() as client:
             token_data = {
                 "grant_type": config["grant_type"],
                 "code": code,
@@ -321,12 +321,12 @@ class MediaOAuthService:
             if code_verifier:
                 token_data["code_verifier"] = code_verifier
 
-            async with session.post(config["token_url"], data=token_data) as response:
-                if response.status != 200:
-                    error = await response.text()
-                    raise Exception(f"Failed to exchange code for token: {error}")
+            response = await client.post(config["token_url"], data=token_data)
+            if response.status_code != 200:
+                error = response.text
+                raise Exception(f"Failed to exchange code for token: {error}")
 
-                return await response.json()
+            return response.json()
 
     async def _fetch_account_info(
         self,
@@ -347,15 +347,15 @@ class MediaOAuthService:
         if not url:
             return {"id": "unknown", "username": "unknown"}
 
-        async with aiohttp.ClientSession() as session:
+        async with httpx.AsyncClient() as client:
             headers = {"Authorization": f"Bearer {access_token}"}
 
-            async with session.get(url, headers=headers) as response:
-                if response.status != 200:
-                    # Si erreur, retourner des infos par défaut
-                    return {"id": "unknown", "username": "unknown"}
+            response = await client.get(url, headers=headers)
+            if response.status_code != 200:
+                # Si erreur, retourner des infos par défaut
+                return {"id": "unknown", "username": "unknown"}
 
-                return await response.json()
+            return response.json()
 
     async def _save_oauth_state(
         self,

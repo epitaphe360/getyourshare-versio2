@@ -624,31 +624,83 @@ async def reject_review(
 @router.get("/api/system/health")
 async def system_health():
     """
-    État du système (healthcheck)
+    État du système complet avec métriques (healthcheck)
     """
     try:
+        import time
+        import psutil
+        from utils.cache import get_cache_stats
+
+        start_time = time.time()
+
         # Vérifier la connexion Supabase
         supabase_status = "healthy"
+        db_latency_ms = 0
         try:
+            db_start = time.time()
             supabase.table('users').select('id').limit(1).execute()
-        except Exception:
+            db_latency_ms = round((time.time() - db_start) * 1000, 2)
+        except Exception as e:
             supabase_status = "unhealthy"
+            logger.error(f"Database health check failed: {e}")
+
+        # Cache statistics
+        cache_stats = get_cache_stats()
+
+        # System metrics (CPU, Memory, Disk)
+        try:
+            cpu_percent = psutil.cpu_percent(interval=0.1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('/')
+
+            system_metrics = {
+                "cpu_percent": round(cpu_percent, 2),
+                "memory_percent": round(memory.percent, 2),
+                "memory_available_mb": round(memory.available / (1024 * 1024), 2),
+                "memory_total_mb": round(memory.total / (1024 * 1024), 2),
+                "disk_percent": round(disk.percent, 2),
+                "disk_available_gb": round(disk.free / (1024 * 1024 * 1024), 2)
+            }
+        except Exception as e:
+            logger.warning(f"System metrics collection failed: {e}")
+            system_metrics = {"error": "unavailable"}
+
+        # Determine overall status
+        overall_status = "healthy"
+        if supabase_status != "healthy":
+            overall_status = "degraded"
+
+        # Performance thresholds
+        if db_latency_ms > 500:
+            overall_status = "degraded"
+
+        response_time_ms = round((time.time() - start_time) * 1000, 2)
 
         return {
-            "status": "healthy",
+            "status": overall_status,
             "version": "2.0.0",
             "timestamp": datetime.now().isoformat(),
+            "response_time_ms": response_time_ms,
             "services": {
                 "api": "healthy",
-                "database": supabase_status
-            }
+                "database": {
+                    "status": supabase_status,
+                    "latency_ms": db_latency_ms
+                },
+                "cache": {
+                    "status": "healthy",
+                    "stats": cache_stats
+                }
+            },
+            "system": system_metrics
         }
 
     except Exception as e:
         logger.error(f"Health check error: {e}")
         return {
             "status": "unhealthy",
-            "error": str(e)
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
         }
 
 
