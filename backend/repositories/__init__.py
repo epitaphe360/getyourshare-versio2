@@ -1,4 +1,4 @@
-﻿from .base_repository import BaseRepository
+from .base_repository import BaseRepository
 from .user_repository import UserRepository
 from .product_repository import ProductRepository
 from .sale_repository import SaleRepository

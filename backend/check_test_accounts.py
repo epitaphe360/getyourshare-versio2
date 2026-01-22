@@ -7,7 +7,9 @@ logger.info("=== VÉRIFICATION DES COMPTES DE TEST ===\n")
 # 1. Admin
 logger.info("1. ADMIN:")
 admin = supabase.table("users").select("*").eq("email", "admin@getyourshare.com").execute()
-logger.info(f"   admin@getyourshare.com: {'✅ EXISTE' if admin.data else '❌ N\'EXISTE PAS'}")
+exists_msg = "EXISTE" if admin.data else "N'EXISTE PAS"
+status_icon = "[OK]" if admin.data else "[X]"
+logger.info(f"   admin@getyourshare.com: {status_icon} {exists_msg}")
 if admin.data:
     logger.info(f"   Role: {admin.data[0].get('role')}, Tier: {admin.data[0].get('tier')}")
 
@@ -21,8 +23,10 @@ influencers = [
 
 for name, email, tier in influencers:
     user = supabase.table("users").select("*").eq("email", email).execute()
+    exists_msg = "EXISTE" if user.data else "N'EXISTE PAS"
+    status_icon = "[OK]" if user.data else "[X]"
     logger.info(f"   {name} ({email}):")
-    logger.info(f"      {'✅ EXISTE' if user.data else '❌ N\'EXISTE PAS'}")
+    logger.info(f"      {status_icon} {exists_msg}")
     if user.data:
         logger.info(f"      Role: {user.data[0].get('role')}, Tier: {user.data[0].get('tier')}")
 
@@ -36,16 +40,20 @@ merchants = [
 
 for name, email, tier in merchants:
     user = supabase.table("users").select("*").eq("email", email).execute()
+    exists_msg = "EXISTE" if user.data else "N'EXISTE PAS"
+    status_icon = "[OK]" if user.data else "[X]"
     logger.info(f"   {name} ({email}):")
-    logger.info(f"      {'✅ EXISTE' if user.data else '❌ N\'EXISTE PAS'}")
+    logger.info(f"      {status_icon} {exists_msg}")
     if user.data:
         logger.info(f"      Role: {user.data[0].get('role')}, Tier: {user.data[0].get('tier')}")
 
 # 4. Commercial
 logger.info("\n4. COMMERCIAL:")
 commercial = supabase.table("users").select("*").eq("email", "sofia.chakir@getyourshare.com").execute()
+exists_msg = "EXISTE" if commercial.data else "N'EXISTE PAS"
+status_icon = "[OK]" if commercial.data else "[X]"
 logger.info(f"   Sofia Chakir (sofia.chakir@getyourshare.com):")
-logger.info(f"      {'✅ EXISTE' if commercial.data else '❌ N\'EXISTE PAS'}")
+logger.info(f"      {status_icon} {exists_msg}")
 if commercial.data:
     logger.info(f"      Role: {commercial.data[0].get('role')}, Tier: {commercial.data[0].get('tier')}")
 
@@ -58,7 +66,7 @@ if all_users.data:
     # Afficher les colonnes disponibles
     logger.info("Colonnes disponibles:", list(all_users.data[0].keys()))
     print()
-    
+
     for user in all_users.data[:15]:  # Afficher les 15 premiers
         email = user.get('email', 'N/A')
         role = user.get('role', 'N/A')
@@ -66,4 +74,4 @@ if all_users.data:
         company = user.get('company_name', 'N/A')
         logger.info(f"   - {email:40} | {role:12} | {subscription:12} | {company}")
 else:
-    logger.info("❌ AUCUN utilisateur dans la base de données !")
+    logger.info("[X] AUCUN utilisateur dans la base de données !")

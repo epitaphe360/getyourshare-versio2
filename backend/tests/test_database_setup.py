@@ -1,4 +1,4 @@
-﻿"""
+"""
 Configuration et setup de la base de donnees de test
 Gere l initialisation de donnees de test reelles dans Supabase
 """
@@ -16,12 +16,12 @@ load_dotenv()
 
 class DatabaseSetup:
     """Gestionnaire de base de donnees de test"""
-    
+
     def __init__(self):
         self.supabase_client = None
         self.test_data = {}
         self.created_records = []
-        
+
     def get_client(self):
         """Retourne le client Supabase pour les tests"""
         if self.supabase_client is None:
@@ -29,7 +29,7 @@ class DatabaseSetup:
                 from supabase import create_client
                 supabase_url = os.getenv("SUPABASE_URL")
                 supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
-                
+
                 if supabase_url and supabase_key:
                     self.supabase_client = create_client(supabase_url, supabase_key)
                     logger.info(f"Test Supabase client initialized")
@@ -37,9 +37,9 @@ class DatabaseSetup:
                     logger.warning("Warning: Supabase credentials not found in environment")
             except Exception as e:
                 logger.error(f"Error creating Supabase client: {e}")
-        
+
         return self.supabase_client
-    
+
     async def cleanup(self):
         """Nettoie les donnees de test creees"""
         logger.info("Cleaning up test data...")
@@ -118,14 +118,14 @@ def get_test_data() -> Dict[str, Any]:
 async def setup_test_database() -> Dict[str, Any]:
     """Configure la base de donnees de test avec des donnees initiales"""
     logger.info("Setting up test database...")
-    
+
     supabase = get_supabase_for_tests()
-    
+
     if supabase is None:
         logger.warning("Warning: Supabase client not available, using mock data")
         return get_test_data()
-    
+
     test_data = get_test_data()
-    
+
     logger.info("Test database setup complete")
     return test_data
