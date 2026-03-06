@@ -270,9 +270,36 @@ class KYCService:
         extracted_data = {}
         confidence_score = 0.0
 
-        # Placeholder - À remplacer par vraie intégration OCR
+        # Tenter l'extraction OCR avec pytesseract si disponible
+        raw_text = ""
+        try:
+            import pytesseract
+            from PIL import Image
+            import io
+            image = Image.open(io.BytesIO(file_content))
+            raw_text = pytesseract.image_to_string(image, lang="ara+fra+eng")
+            confidence_score = 55.0  # Score de base avec pytesseract
+        except ImportError:
+            logger.warning("ocr_pytesseract_not_installed", note="pip install pytesseract pillow")
+        except Exception as ocr_err:
+            logger.warning("ocr_extraction_failed", error=str(ocr_err))
+
+        # Tenter Google Cloud Vision si disponible
+        if not raw_text:
+            try:
+                from google.cloud import vision
+                gcp_client = vision.ImageAnnotatorClient()
+                gcp_image = vision.Image(content=file_content)
+                gcp_response = gcp_client.text_detection(image=gcp_image)
+                if gcp_response.text_annotations:
+                    raw_text = gcp_response.text_annotations[0].description
+                    confidence_score = 90.0
+            except ImportError:
+                pass
+            except Exception:
+                pass
+
         if document_type == DocumentType.CIN:
-            # Exemple de données qu'on devrait extraire
             extracted_data = {
                 "full_name": "",
                 "cin_number": "",
@@ -280,9 +307,11 @@ class KYCService:
                 "place_of_birth": "",
                 "address": "",
                 "issue_date": "",
-                "expiry_date": ""
+                "expiry_date": "",
+                "raw_text": raw_text[:500] if raw_text else ""
             }
-            confidence_score = 75.0  # Score de confiance de l'OCR
+            if not confidence_score:
+                confidence_score = 0.0
 
         elif document_type == DocumentType.PASSPORT:
             extracted_data = {
@@ -291,12 +320,18 @@ class KYCService:
                 "nationality": "",
                 "date_of_birth": "",
                 "issue_date": "",
-                "expiry_date": ""
+                "expiry_date": "",
+                "raw_text": raw_text[:500] if raw_text else ""
             }
-            confidence_score = 80.0
+            if not confidence_score:
+                confidence_score = 0.0
 
-        # TODO: Implémenter vraie extraction OCR
-        logger.warning("ocr_not_implemented", document_type=document_type.value)
+        else:
+            extracted_data = {"raw_text": raw_text[:500] if raw_text else ""}
+
+        if not raw_text:
+            logger.warning("ocr_no_text_extracted", document_type=document_type.value,
+                           note="Installer pytesseract ou configurer Google Cloud Vision")
 
         return extracted_data, confidence_score
 

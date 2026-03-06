@@ -227,6 +227,10 @@ async def get_users(
         if status:
             query = query.eq('status', status)
 
+        # Filtre par plan d'abonnement (colonne subscription_plan sur users)
+        if subscription:
+            query = query.eq('subscription_plan', subscription)
+
         # Pagination
         offset = (page - 1) * page_size
         query = query.range(offset, offset + page_size - 1)
@@ -239,11 +243,6 @@ async def get_users(
         
         users = response.data if response.data else []
         total = response.count if hasattr(response, 'count') else len(users)
-
-        # Enrichir avec les abonnements si nécessaire
-        if subscription:
-            # TODO: Filter by subscription plan
-            pass
 
         return {
             'success': True,

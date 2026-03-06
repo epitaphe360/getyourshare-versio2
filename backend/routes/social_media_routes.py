@@ -368,25 +368,41 @@ async def get_social_analytics(
                 analytics_data.append({
                     'platform': 'facebook',
                     'followers': followers,
-                    'engagement': 5.5,  # Simulation
-                    'reach': 10000  # Simulation
+                    'engagement': conn.get('engagement_rate') or 0.0,
+                    'reach': conn.get('reach') or 0
                 })
 
             elif platform_name == "instagram":
-                # Instagram Insights (simulation)
+                # Instagram Basic Display API / Graph API Insights
+                ig_followers = 0
+                ig_engagement = 0.0
+                ig_reach = 0
+                try:
+                    ig_url = f"https://graph.facebook.com/v18.0/me?fields=followers_count,media_count&access_token={access_token}"
+                    ig_resp = requests.get(ig_url, timeout=10)
+                    if ig_resp.status_code == 200:
+                        ig_data = ig_resp.json()
+                        ig_followers = ig_data.get('followers_count', 0)
+                except Exception:
+                    pass
+                # Fallback sur les données stockées en BDD
+                if ig_followers == 0:
+                    ig_followers = (conn.get('metadata') or {}).get('followers_count', 0) or conn.get('followers_count', 0)
                 analytics_data.append({
                     'platform': 'instagram',
-                    'followers': 1500,
-                    'engagement': 8.2,
-                    'reach': 25000
+                    'followers': ig_followers,
+                    'engagement': conn.get('engagement_rate') or ig_engagement,
+                    'reach': conn.get('reach') or ig_reach
                 })
 
             elif platform_name == "tiktok":
+                # Données TikTok stockées lors de la connexion
+                tt_meta = conn.get('metadata') or {}
                 analytics_data.append({
                     'platform': 'tiktok',
-                    'followers': 5000,
-                    'engagement': 12.5,
-                    'reach': 100000
+                    'followers': tt_meta.get('follower_count', 0) or conn.get('followers_count', 0),
+                    'engagement': conn.get('engagement_rate') or 0.0,
+                    'reach': conn.get('reach') or 0
                 })
 
         return {

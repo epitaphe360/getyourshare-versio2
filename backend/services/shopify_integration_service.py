@@ -87,8 +87,12 @@ class ShopifyIntegrationService:
         self.api_version = api_version or os.getenv("SHOPIFY_API_VERSION", "2024-01")
 
         if not self.shop_name or not self.access_token:
-            raise ValueError("shop_name and access_token required")
+            logger.warning("ShopifyIntegrationService: SHOPIFY_SHOP_NAME ou SHOPIFY_ACCESS_TOKEN manquant — service désactivé")
+            self.available = False
+            self.base_url = None
+            return
 
+        self.available = True
         self.base_url = f"https://{self.shop_name}.myshopify.com/admin/api/{self.api_version}"
 
     def _make_request(
@@ -99,6 +103,8 @@ class ShopifyIntegrationService:
         json_data: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """Make HTTP request to Shopify API"""
+        if not getattr(self, 'available', False):
+            raise ValueError("Shopify service is not available: missing SHOPIFY_SHOP_NAME or SHOPIFY_ACCESS_TOKEN")
         url = f"{self.base_url}/{endpoint}"
 
         headers = {

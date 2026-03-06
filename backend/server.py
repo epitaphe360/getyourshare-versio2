@@ -565,11 +565,6 @@ from whatsapp_endpoints import router as whatsapp_router
 from tiktok_shop_endpoints import router as tiktok_shop_router
 
 # ============================================
-# MODULE FISCAL - Maroc, France, USA
-# ============================================
-from fiscal_endpoints import router as fiscal_router
-
-# ============================================
 # SYSTÈME DE GESTION DES SERVICES & LEADS
 # ============================================
 from services_leads_endpoints import router as services_leads_router
@@ -636,13 +631,10 @@ app.include_router(integrated_services_router)  # Email, Push, SMS, Social, E-co
 
 # Nouveaux routers - 6 Features Marketables
 app.include_router(websocket_router)
-app.include_router(services_leads_router)  # Services & Leads Management
-app.include_router(admin_users_router)  # Admin User Management
 
 # Nouveaux routers - 6 Features Marketables
 app.include_router(company_links_router)  # New company-only link generation
 app.include_router(notification_router)
-app.include_router(websocket_router)
 
 # Nouveaux routers - 6 Features Marketables
 app.include_router(ai_content_router)
@@ -692,9 +684,6 @@ app.include_router(live_shopping_enhanced_router)  # Live Shopping Enhanced (Ins
 app.include_router(whatsapp_router)
 app.include_router(tiktok_shop_router)
 
-# Module Fiscal - Maroc, France, USA
-app.include_router(fiscal_router)
-
 # Module Factures Influenceurs - Pour récupérer les factures pour les impôts
 try:
     from influencer_invoices_endpoints import router as influencer_invoices_router
@@ -727,8 +716,184 @@ try:
 except ImportError as e:
     logger.warning(f"⚠️ Test Helpers router not available: {e}")
 
-# Security
-security = HTTPBearer()
+# ============================================
+# ROUTES/ FOLDER — Enregistrement des routeurs manquants
+# ============================================
+try:
+    from routes.admin_dashboard_routes import router as admin_dashboard_r
+    app.include_router(admin_dashboard_r)
+    logger.info("✅ routes/admin_dashboard_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/admin_dashboard_routes not available: {e}")
+
+try:
+    from routes.advanced_analytics_routes import router as advanced_analytics_r
+    app.include_router(advanced_analytics_r)
+    logger.info("✅ routes/advanced_analytics_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/advanced_analytics_routes not available: {e}")
+
+try:
+    from routes.analytics_routes import router as analytics_r2
+    app.include_router(analytics_r2)
+    logger.info("✅ routes/analytics_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/analytics_routes not available: {e}")
+
+try:
+    from routes.campaigns_routes import router as campaigns_r
+    app.include_router(campaigns_r)
+    logger.info("✅ routes/campaigns_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/campaigns_routes not available: {e}")
+
+try:
+    from routes.commissions_routes import router as commissions_r
+    app.include_router(commissions_r)
+    logger.info("✅ routes/commissions_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/commissions_routes not available: {e}")
+
+try:
+    from routes.content_studio_routes import router as content_studio_r
+    app.include_router(content_studio_r)
+    logger.info("✅ routes/content_studio_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/content_studio_routes not available: {e}")
+
+try:
+    from routes.customer_service_routes import router as customer_service_r
+    app.include_router(customer_service_r)
+    logger.info("✅ routes/customer_service_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/customer_service_routes not available: {e}")
+
+try:
+    from routes.dashboard_routes import router as dashboard_r
+    app.include_router(dashboard_r)
+    logger.info("✅ routes/dashboard_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/dashboard_routes not available: {e}")
+
+try:
+    from routes.ecommerce_routes import router as ecommerce_r
+    app.include_router(ecommerce_r)
+    logger.info("✅ routes/ecommerce_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/ecommerce_routes not available: {e}")
+
+try:
+    from routes.gamification_routes import router as gamification_r2
+    app.include_router(gamification_r2)
+    logger.info("✅ routes/gamification_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/gamification_routes not available: {e}")
+
+try:
+    from routes.gdpr_routes import router as gdpr_r
+    app.include_router(gdpr_r)
+    logger.info("✅ routes/gdpr_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/gdpr_routes not available: {e}")
+
+try:
+    from routes.invoice_routes import router as invoice_r
+    app.include_router(invoice_r)
+    logger.info("✅ routes/invoice_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/invoice_routes not available: {e}")
+
+try:
+    from routes.kyc_routes import router as kyc_r2
+    app.include_router(kyc_r2)
+    logger.info("✅ routes/kyc_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/kyc_routes not available: {e}")
+
+try:
+    from routes.live_chat_routes import router as live_chat_r
+    app.include_router(live_chat_r)
+    logger.info("✅ routes/live_chat_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/live_chat_routes not available: {e}")
+
+try:
+    from routes.missing_endpoints import router as missing_r
+    app.include_router(missing_r)
+    logger.info("✅ routes/missing_endpoints loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/missing_endpoints not available: {e}")
+
+try:
+    from routes.mobile_routes import router as mobile_r
+    app.include_router(mobile_r)
+    logger.info("✅ routes/mobile_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/mobile_routes not available: {e}")
+
+try:
+    from routes.payment_gateways_routes import router as payment_gateways_r
+    app.include_router(payment_gateways_r)
+    logger.info("✅ routes/payment_gateways_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/payment_gateways_routes not available: {e}")
+
+try:
+    from routes.payment_routes import router as payment_r
+    app.include_router(payment_r)
+    logger.info("✅ routes/payment_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/payment_routes not available: {e}")
+
+try:
+    from routes.products_routes import router as products_r2
+    app.include_router(products_r2)
+    logger.info("✅ routes/products_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/products_routes not available: {e}")
+
+try:
+    from routes.public_routes import router as public_r
+    app.include_router(public_r)
+    logger.info("✅ routes/public_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/public_routes not available: {e}")
+
+try:
+    from routes.reports_routes import router as reports_r2
+    app.include_router(reports_r2)
+    logger.info("✅ routes/reports_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/reports_routes not available: {e}")
+
+try:
+    from routes.social_media_routes import router as social_media_r2
+    app.include_router(social_media_r2)
+    logger.info("✅ routes/social_media_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/social_media_routes not available: {e}")
+
+try:
+    from routes.team_routes import router as team_r
+    app.include_router(team_r)
+    logger.info("✅ routes/team_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/team_routes not available: {e}")
+
+try:
+    from routes.utility_routes import router as utility_r
+    app.include_router(utility_r)
+    logger.info("✅ routes/utility_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/utility_routes not available: {e}")
+
+try:
+    from routes.webhooks_routes import router as webhooks_r
+    app.include_router(webhooks_r)
+    logger.info("✅ routes/webhooks_routes loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ routes/webhooks_routes not available: {e}")
+
 # Security
 security = HTTPBearer()
 JWT_SECRET = os.getenv("JWT_SECRET")

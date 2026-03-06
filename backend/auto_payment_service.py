@@ -395,8 +395,21 @@ from utils.logger import logger
             if user.data:
                 email = user.data[0]["email"]
 
-                # TODO: Envoyer email via SendGrid/SMTP
-                logger.info(f"📧 Notification envoyée à {email}: Paiement de {amount}€")
+                # Envoyer email via Resend
+                try:
+                    import resend
+                    resend_key = os.getenv("RESEND_API_KEY")
+                    if resend_key:
+                        resend.api_key = resend_key
+                        resend.Emails.send({
+                            "from": "noreply@getyourshare.ma",
+                            "to": email,
+                            "subject": f"Paiement de {amount}€ effectué",
+                            "html": f"<p>Bonjour,</p><p>Votre paiement de <strong>{amount}€</strong> a été traité avec succès.</p><p>Référence : <code>{transaction_id}</code></p>"
+                        })
+                        logger.info(f"📧 Email paiement envoyé à {email}: {amount}€")
+                except Exception as email_err:
+                    logger.warning(f"Email paiement non envoyé: {email_err}")
 
                 # Créer une notification in-app
                 notification_data = {

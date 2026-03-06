@@ -57,11 +57,12 @@ class GDPRService:
                 }
 
             # 2. Profil utilisateur
+            profile = None
             try:
                 profile = self.supabase.table('profiles').select('*').eq('user_id', user_id).single().execute()
             except Exception:
-                pass  # .single() might return no results
-            if profile.data:
+                pass  # La table profiles peut ne pas exister
+            if profile and profile.data:
                 export_data["data"]["profile"] = profile.data
 
             # 3. Liens d'affiliation

@@ -303,12 +303,50 @@ def aggregate_daily_analytics():
         from supabase_client import supabase
 
         yesterday = (datetime.utcnow() - timedelta(days=1)).date()
+        yesterday_str = str(yesterday)
+        day_start = f"{yesterday_str}T00:00:00"
+        day_end = f"{yesterday_str}T23:59:59"
 
-        # Agréger par utilisateur
-        # TODO: Implémenter agrégation analytics
+        # Agréger les clics du jour
+        try:
+            clicks_response = supabase.table("tracking_events") \
+                .select("user_id", count="exact") \
+                .gte("created_at", day_start) \
+                .lte("created_at", day_end) \
+                .execute()
+            total_clicks = clicks_response.count or 0
+        except Exception:
+            total_clicks = 0
 
-        logger.info("daily_analytics_aggregated", date=str(yesterday))
-        return {"date": str(yesterday), "success": True}
+        # Agréger les conversions du jour
+        try:
+            conversions_response = supabase.table("conversions") \
+                .select("amount") \
+                .gte("created_at", day_start) \
+                .lte("created_at", day_end) \
+                .execute()
+            total_conversions = len(conversions_response.data or [])
+            total_revenue = sum(float(c.get("amount", 0)) for c in (conversions_response.data or []))
+        except Exception:
+            total_conversions = 0
+            total_revenue = 0.0
+
+        # Stocker le résumé dans daily_analytics (si la table existe)
+        try:
+            supabase.table("daily_analytics").upsert({
+                "date": yesterday_str,
+                "total_clicks": total_clicks,
+                "total_conversions": total_conversions,
+                "total_revenue": total_revenue,
+                "updated_at": datetime.utcnow().isoformat()
+            }, on_conflict="date").execute()
+        except Exception:
+            pass  # Table peut ne pas exister encore
+
+        logger.info("daily_analytics_aggregated", date=yesterday_str,
+                    clicks=total_clicks, conversions=total_conversions, revenue=total_revenue)
+        return {"date": yesterday_str, "total_clicks": total_clicks,
+                "total_conversions": total_conversions, "total_revenue": total_revenue, "success": True}
 
     except Exception as e:
         logger.error("aggregate_daily_analytics_failed", error=str(e))
@@ -331,10 +369,31 @@ def cleanup_expired_tokens():
         # Supprimer tokens expirés (> 30 jours)
         cutoff_date = (datetime.utcnow() - timedelta(days=30)).isoformat()
 
-        # TODO: Nettoyer tokens expirés
+        deleted_reset = 0
+        deleted_verify = 0
 
-        logger.info("expired_tokens_cleaned", cutoff_date=cutoff_date)
-        return {"cutoff_date": cutoff_date, "success": True}
+        try:
+            resp = supabase.table("password_reset_tokens") \
+                .delete() \
+                .lt("expires_at", cutoff_date) \
+                .execute()
+            deleted_reset = len(resp.data or [])
+        except Exception:
+            pass
+
+        try:
+            resp = supabase.table("email_verification_tokens") \
+                .delete() \
+                .lt("expires_at", cutoff_date) \
+                .execute()
+            deleted_verify = len(resp.data or [])
+        except Exception:
+            pass
+
+        logger.info("expired_tokens_cleaned", cutoff_date=cutoff_date,
+                    deleted_reset=deleted_reset, deleted_verify=deleted_verify)
+        return {"cutoff_date": cutoff_date, "deleted_reset": deleted_reset,
+                "deleted_verify": deleted_verify, "success": True}
 
     except Exception as e:
         logger.error("cleanup_expired_tokens_failed", error=str(e))
@@ -348,13 +407,36 @@ def cleanup_old_logs():
     Task planifiée hebdomadairement
     """
     try:
+        from supabase_client import supabase
+
         # Supprimer logs > 90 jours
         cutoff_date = (datetime.utcnow() - timedelta(days=90)).isoformat()
 
-        # TODO: Nettoyer logs
+        deleted_system = 0
+        deleted_tracking = 0
 
-        logger.info("old_logs_cleaned", cutoff_date=cutoff_date)
-        return {"cutoff_date": cutoff_date, "success": True}
+        try:
+            resp = supabase.table("system_logs") \
+                .delete() \
+                .lt("created_at", cutoff_date) \
+                .execute()
+            deleted_system = len(resp.data or [])
+        except Exception:
+            pass
+
+        try:
+            resp = supabase.table("tracking_events") \
+                .delete() \
+                .lt("created_at", cutoff_date) \
+                .execute()
+            deleted_tracking = len(resp.data or [])
+        except Exception:
+            pass
+
+        logger.info("old_logs_cleaned", cutoff_date=cutoff_date,
+                    deleted_system=deleted_system, deleted_tracking=deleted_tracking)
+        return {"cutoff_date": cutoff_date, "deleted_system": deleted_system,
+                "deleted_tracking": deleted_tracking, "success": True}
 
     except Exception as e:
         logger.error("cleanup_old_logs_failed", error=str(e))
@@ -398,14 +480,78 @@ def generate_monthly_report(user_id: str, month: str):
     Générer rapport mensuel pour un utilisateur
     """
     try:
-        # TODO: Implémenter génération de rapport
-        # - Récupérer toutes les conversions du mois
-        # - Calculer total commissions
-        # - Générer PDF
-        # - Envoyer par email
+        from supabase_client import supabase
+        import resend
 
-        logger.info("monthly_report_generated", user_id=user_id, month=month)
-        return {"user_id": user_id, "month": month, "success": True}
+        # Récupérer l'email de l'utilisateur
+        user_resp = supabase.table("users").select("email").eq("id", user_id).single().execute()
+        if not user_resp.data:
+            logger.error("generate_monthly_report_user_not_found", user_id=user_id)
+            return {"success": False, "error": "User not found"}
+
+        user_email = user_resp.data["email"]
+
+        # Construire les bornes du mois (format YYYY-MM)
+        try:
+            year, mon = month.split("-")
+            month_start = f"{year}-{mon}-01T00:00:00"
+            # Dernier jour du mois
+            import calendar
+            last_day = calendar.monthrange(int(year), int(mon))[1]
+            month_end = f"{year}-{mon}-{last_day:02d}T23:59:59"
+        except Exception:
+            month_start = f"{month}-01T00:00:00"
+            month_end = f"{month}-31T23:59:59"
+
+        # Récupérer les commissions du mois
+        total_commissions = 0.0
+        total_conversions = 0
+        try:
+            # Chercher l'influencer_id
+            inf_resp = supabase.table("influencers").select("id").eq("user_id", user_id).single().execute()
+            if inf_resp.data:
+                influencer_id = inf_resp.data["id"]
+                comm_resp = supabase.table("commissions") \
+                    .select("amount") \
+                    .eq("influencer_id", influencer_id) \
+                    .gte("created_at", month_start) \
+                    .lte("created_at", month_end) \
+                    .execute()
+                total_commissions = sum(float(c.get("amount", 0)) for c in (comm_resp.data or []))
+                total_conversions = len(comm_resp.data or [])
+        except Exception:
+            pass
+
+        # Envoyer rapport par email via Resend
+        resend_api_key = os.getenv("RESEND_API_KEY")
+        if resend_api_key:
+            resend.api_key = resend_api_key
+            html_body = f"""
+            <h2>Rapport Mensuel – {month}</h2>
+            <p>Bonjour,</p>
+            <p>Voici votre récapitulatif pour le mois de <strong>{month}</strong> :</p>
+            <ul>
+              <li>Conversions : <strong>{total_conversions}</strong></li>
+              <li>Commissions totales : <strong>{total_commissions:.2f} MAD</strong></li>
+            </ul>
+            <p>Connectez-vous à votre tableau de bord pour plus de détails.</p>
+            """
+            try:
+                resend.Emails.send({
+                    "from": "noreply@getyourshare.ma",
+                    "to": user_email,
+                    "subject": f"Votre rapport mensuel – {month}",
+                    "html": html_body
+                })
+            except Exception as email_err:
+                logger.warning("monthly_report_email_failed", error=str(email_err))
+
+        logger.info("monthly_report_generated", user_id=user_id, month=month,
+                    total_commissions=total_commissions, total_conversions=total_conversions)
+        return {"user_id": user_id, "month": month,
+                "total_commissions": total_commissions,
+                "total_conversions": total_conversions,
+                "success": True}
 
     except Exception as e:
         logger.error("generate_monthly_report_failed", user_id=user_id, error=str(e))

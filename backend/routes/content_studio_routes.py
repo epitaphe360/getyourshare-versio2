@@ -473,10 +473,30 @@ async def get_content_analytics(
         except Exception:
             posts_data = []
 
-        # Stats globales (simulées - à intégrer avec vraies APIs)
+        # Stats globales depuis social_media_analytics si disponible, sinon agrégation par post
         total_posts = len(posts_data)
-        total_engagement = total_posts * random.randint(50, 200)  # Simulation
-        total_reach = total_posts * random.randint(500, 2000)  # Simulation
+
+        # Tenter de récupérer les vraies analytics
+        real_total_engagement = 0
+        real_total_reach = 0
+        post_ids = [p.get('id') for p in posts_data if p.get('id')]
+        if post_ids:
+            try:
+                analytics_resp = supabase.table('post_analytics').select('likes, comments, shares, reach').in_('post_id', post_ids).execute()
+                for a in (analytics_resp.data or []):
+                    real_total_engagement += (a.get('likes', 0) or 0) + (a.get('comments', 0) or 0) + (a.get('shares', 0) or 0)
+                    real_total_reach += (a.get('reach', 0) or 0)
+            except Exception:
+                pass
+
+        # Fallback sur les champs stockés dans scheduled_posts
+        if real_total_engagement == 0 and post_ids:
+            for post in posts_data:
+                real_total_engagement += (post.get('likes', 0) or 0) + (post.get('comments', 0) or 0) + (post.get('shares', 0) or 0)
+                real_total_reach += (post.get('reach', 0) or 0)
+
+        total_engagement = real_total_engagement
+        total_reach = real_total_reach
 
         # Par plateforme
         platform_stats = {}
@@ -490,8 +510,10 @@ async def get_content_analytics(
                 }
 
             platform_stats[platform]['posts_count'] += 1
-            platform_stats[platform]['engagement'] += random.randint(50, 200)
-            platform_stats[platform]['reach'] += random.randint(500, 2000)
+            # Utiliser les vraies données stockées dans le post (likes, comments, shares, reach)
+            eng = (post.get('likes', 0) or 0) + (post.get('comments', 0) or 0) + (post.get('shares', 0) or 0)
+            platform_stats[platform]['engagement'] += eng
+            platform_stats[platform]['reach'] += (post.get('reach', 0) or 0)
 
         return {
             "success": True,
@@ -503,7 +525,7 @@ async def get_content_analytics(
                 "avg_engagement_per_post": total_engagement // total_posts if total_posts > 0 else 0
             },
             "by_platform": platform_stats,
-            "note": "Données simulées - intégrer APIs Instagram/Facebook/TikTok pour données réelles"
+            "note": "Analytics calculées depuis les données stockées en BDD"
         }
 
     except Exception as e:
