@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List
 from datetime import datetime
 import structlog
+import os
 
 from auth import get_current_user, get_current_admin
 from supabase_client import supabase
@@ -143,8 +144,27 @@ async def submit_contact_message(
                    category=request_data.category,
                    message_id=message['id'])
 
-        # TODO: Envoyer notification email aux admins
-        # TODO: Envoyer email de confirmation à l'expéditeur
+        # Envoyer notification email aux admins + confirmation à l'expéditeur
+        try:
+            import resend
+            _resend_key = os.getenv("RESEND_API_KEY")
+            if _resend_key:
+                resend.api_key = _resend_key
+                admin_email = os.getenv("ADMIN_EMAIL", "admin@getyourshare.ma")
+                resend.Emails.send({
+                    "from": "noreply@getyourshare.ma",
+                    "to": admin_email,
+                    "subject": f"[Contact] Nouveau message - {request_data.category}",
+                    "html": f"<p><strong>De :</strong> {request_data.email}</p><p><strong>Catégorie :</strong> {request_data.category}</p><p><strong>Message :</strong> {request_data.message}</p>"
+                })
+                resend.Emails.send({
+                    "from": "noreply@getyourshare.ma",
+                    "to": request_data.email,
+                    "subject": "Nous avons bien reçu votre message",
+                    "html": f"<p>Bonjour,</p><p>Votre message a bien été reçu. Notre équipe vous répondra dans les plus brefs délais.</p><p>Référence : MSG-{message['id'][:8].upper()}</p>"
+                })
+        except Exception as _email_err:
+            logger.warning("contact_email_failed", error=str(_email_err))
 
         return {
             "success": True,
@@ -385,7 +405,21 @@ async def update_contact_message(
             update_dict['responded_by'] = admin_id
             update_dict['responded_at'] = datetime.utcnow().isoformat()
 
-            # TODO: Envoyer email avec la réponse au client
+            # Envoyer email avec la réponse au client
+            try:
+                import resend, os as _os
+                _key = _os.getenv("RESEND_API_KEY")
+                _client_email = existing_message.data[0].get("email") if existing_message.data else None
+                if _key and _client_email:
+                    resend.api_key = _key
+                    resend.Emails.send({
+                        "from": "noreply@getyourshare.ma",
+                        "to": _client_email,
+                        "subject": "Réponse à votre message",
+                        "html": f"<p>Bonjour,</p><p>Voici la réponse à votre message :</p><blockquote>{update_data.admin_response}</blockquote>"
+                    })
+            except Exception:
+                pass
 
         # Update
         result = supabase.table('contact_messages').update(update_dict).eq('id', message_id).execute()

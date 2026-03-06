@@ -620,7 +620,18 @@ async def request_collaboration(
         # Incrémenter le compteur de contacts
         await increment_contact_count(influencer.data["id"])
 
-        # TODO: Envoyer notification à l'influenceur
+        # Envoyer notification à l'influenceur
+        try:
+            supabase.table("notifications").insert({
+                "user_id": collaboration_data["target_user_id"],
+                "type": "collaboration_request",
+                "title": "Nouvelle demande de collaboration",
+                "message": f"Une entreprise souhaite collaborer avec vous. Budget proposé : {request.proposed_budget or 'À définir'}.",
+                "is_read": False,
+                "created_at": datetime.now().isoformat()
+            }).execute()
+        except Exception:
+            pass
 
         return {
             "success": True,
@@ -699,7 +710,21 @@ async def respond_to_collaboration_request(
             .eq("id", request_id) \
             .execute()
 
-        # TODO: Envoyer notification à l'entreprise
+        # Envoyer notification à l'entreprise
+        try:
+            company_id = existing.data.get("company_id")
+            status_label = "acceptée" if response_data.status == "accepted" else "refusée"
+            if company_id:
+                supabase.table("notifications").insert({
+                    "user_id": company_id,
+                    "type": "collaboration_response",
+                    "title": f"Demande de collaboration {status_label}",
+                    "message": response_data.response_message or f"Votre demande de collaboration a été {status_label}.",
+                    "is_read": False,
+                    "created_at": datetime.now().isoformat()
+                }).execute()
+        except Exception:
+            pass
 
         return {
             "success": True,

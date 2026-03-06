@@ -376,31 +376,27 @@ class InvoicingService:
         """Envoie la facture par email"""
 
         try:
-            # TODO: Intégrer service email (SendGrid, AWS SES, etc.)
-
-            email_body = f"""
-            Bonjour {merchant.get('company_name')},
-            
-            Veuillez trouver ci-joint votre facture pour la période du {invoice['period_start']} au {invoice['period_end']}.
-            
-            Numéro de facture: {invoice['invoice_number']}
-            Montant total: {invoice['total_amount']:.2f} MAD
-            Date d'échéance: {invoice['due_date']}
-            
-            Vous pouvez payer cette facture via votre dashboard merchant ou par virement bancaire.
-            
-            Cordialement,
-            L'équipe ShareYourSales
-            """
-
-            logger.info(
-                f"Email sent to {merchant.get('email')} for invoice {invoice['invoice_number']}"
-            )
-
-            # Ici, intégrer vraiment l'envoi d'email
-            # import sendgrid
-            # sg = sendgrid.SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
-            # ...
+            import resend
+            _resend_key = os.getenv("RESEND_API_KEY")
+            if _resend_key and merchant.get("email"):
+                resend.api_key = _resend_key
+                resend.Emails.send({
+                    "from": "facturation@getyourshare.ma",
+                    "to": merchant["email"],
+                    "subject": f"Facture {invoice['invoice_number']} - {invoice['total_amount']:.2f} MAD",
+                    "html": f"""
+                    <h2>Bonjour {merchant.get('company_name', '')},</h2>
+                    <p>Votre facture pour la période du <strong>{invoice['period_start']}</strong> au <strong>{invoice['period_end']}</strong> est disponible.</p>
+                    <table><tr><td>Numéro :</td><td><strong>{invoice['invoice_number']}</strong></td></tr>
+                    <tr><td>Montant total :</td><td><strong>{invoice['total_amount']:.2f} MAD</strong></td></tr>
+                    <tr><td>Date d\'échéance :</td><td>{invoice['due_date']}</td></tr></table>
+                    <p>Vous pouvez payer via votre dashboard ou par virement bancaire.</p>
+                    <p>L\'équipe GetYourShare</p>
+                    """
+                })
+                logger.info(f"Email facture envoyé à {merchant.get('email')} pour {invoice['invoice_number']}")
+            else:
+                logger.warning("invoice_email_skipped: RESEND_API_KEY manquant ou email merchant absent")
 
         except Exception as e:
             logger.error(f"Error sending invoice email: {e}")

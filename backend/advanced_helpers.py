@@ -132,8 +132,22 @@ def create_invitation(merchant_id: str, email: str, **kwargs) -> Optional[Dict]:
 
         result = supabase.table("invitations").insert(invitation_data).execute()
 
-        # TODO: Envoyer l'email d'invitation
-        # send_invitation_email(email, invitation_code)
+        # Envoyer l'email d'invitation via Resend
+        try:
+            import resend, os as _os
+            _key = _os.getenv("RESEND_API_KEY")
+            if _key:
+                resend.api_key = _key
+                _fe = _os.getenv("FRONTEND_URL", "http://localhost:3000")
+                _invite_url = f"{_fe}/join?code={invitation_code}"
+                resend.Emails.send({
+                    "from": "noreply@getyourshare.ma",
+                    "to": email,
+                    "subject": "Vous êtes invité à rejoindre GetYourShare",
+                    "html": f'<p>Bonjour,</p><p>Vous avez été invité à rejoindre la plateforme GetYourShare en tant qu\'affilié.</p><p><a href="{_invite_url}">Accepter l\'invitation</a></p><p>Code : <code>{invitation_code}</code></p>'
+                })
+        except Exception as _err:
+            logger.warning(f"invitation_email_failed: {_err}")
 
         return result.data[0] if result.data else None
     except Exception as e:

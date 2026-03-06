@@ -9399,10 +9399,10 @@ async def get_deals_of_day(
         
         deals = result.data or []
         
-        # Ajouter un attribut "discount" simulé (pourrait venir d'un champ discount_percentage)
+        # Utiliser discount_percentage réel du produit (ou 0 si non défini)
         for deal in deals:
-            deal["discount_percentage"] = 15  # Simulation: 15% de réduction
-            deal["is_deal"] = True
+            deal["discount_percentage"] = deal.get("discount_percentage") or deal.get("discount") or 0
+            deal["is_deal"] = deal["discount_percentage"] > 0
         
         return {
             "deals": deals,
@@ -9446,13 +9446,29 @@ async def search_influencers(
         
         influencers = result.data or []
         
-        # Enrichir avec des stats simulées
+        # Enrichir avec les vraies stats des réseaux sociaux
         for inf in influencers:
+            try:
+                social = supabase.table("social_media_connections").select(
+                    "platform, followers_count"
+                ).eq("user_id", inf["id"]).execute()
+                total_followers = sum(r.get("followers_count", 0) or 0 for r in (social.data or []))
+                platforms = list({r["platform"] for r in (social.data or []) if r.get("platform")})
+            except Exception:
+                total_followers = 0
+                platforms = []
+            try:
+                collab_count = supabase.table("collaboration_requests").select(
+                    "id", count="exact"
+                ).eq("target_user_id", inf["id"]).eq("status", "accepted").execute()
+                total_collabs = collab_count.count or 0
+            except Exception:
+                total_collabs = 0
             inf["stats"] = {
-                "followers": 15000,  # Simulation
-                "engagement_rate": 4.5,
-                "total_collaborations": 12,
-                "platforms": ["Instagram", "TikTok"]
+                "followers": total_followers,
+                "engagement_rate": inf.get("engagement_rate") or 0,
+                "total_collaborations": total_collabs,
+                "platforms": platforms
             }
         
         return {
@@ -9558,11 +9574,29 @@ async def get_influencer_profile(
         links_count = supabase.table("tracking_links").select("id", count="exact").eq("influencer_id", user["id"]).execute().count or 0
         conversions_count = supabase.table("conversions").select("id", count="exact").eq("influencer_id", user["id"]).execute().count or 0
 
+        # Calculer les gains réels depuis la table commissions
+        try:
+            earnings_resp = supabase.table("commissions").select(
+                "amount"
+            ).eq("influencer_id", user["id"]).eq("status", "paid").execute()
+            total_earnings = sum(r.get("amount", 0) or 0 for r in (earnings_resp.data or []))
+        except Exception:
+            total_earnings = 0
+
+        # Collaborations actives
+        try:
+            active_collab = supabase.table("collaboration_requests").select(
+                "id", count="exact"
+            ).eq("target_user_id", user["id"]).eq("status", "accepted").execute()
+            active_collaborations = active_collab.count or 0
+        except Exception:
+            active_collaborations = 0
+
         profile["stats"] = {
             "total_links": links_count,
             "total_conversions": conversions_count,
-            "total_earnings": conversions_count * 10,  # Simulation: 10€ par conversion
-            "active_collaborations": 5
+            "total_earnings": total_earnings,
+            "active_collaborations": active_collaborations
         }
 
         return {"profile": profile}
@@ -9605,13 +9639,14 @@ async def get_influencer_tracking_links(
         
         links = result.data or []
         
-        # Enrichir avec le nombre de conversions par link
+        # Enrichir avec le nombre de conversions et gains réels par link
         for link in links:
             try:
-                conversions_result = supabase.table("conversions").select("id", count="exact").eq("tracking_link_id", link["id"]).execute()
-                conversions = conversions_result.count if hasattr(conversions_result, 'count') else 0
+                conversions_result = supabase.table("conversions").select("id, commission_amount").eq("tracking_link_id", link["id"]).execute()
+                conversions = len(conversions_result.data or [])
+                earnings = sum(r.get("commission_amount") or 0 for r in (conversions_result.data or []))
                 link["conversions_count"] = conversions
-                link["earnings"] = conversions * 10  # Estimation
+                link["earnings"] = earnings
             except Exception as e:
                 logger.debug(f"Failed to get conversions for link {link.get('id')}: {e}")
                 link["conversions_count"] = 0
@@ -10569,17 +10604,51 @@ async def get_social_media_dashboard(
         if user['role'] != 'influencer':
             raise HTTPException(status_code=403, detail="Influencers only")
         
+        # Récupérer les vraies stats depuis social_media_connections
+        try:
+            social_resp = supabase.table("social_media_connections").select(
+                "platform, followers_count, posts_count, engagement_rate"
+            ).eq("user_id", user["id"]).execute()
+            connections = social_resp.data or []
+        except Exception:
+            connections = []
+
+        total_followers = sum(c.get("followers_count") or 0 for c in connections)
+        total_posts = sum(c.get("posts_count") or 0 for c in connections)
+        avg_engagement = (
+            sum(c.get("engagement_rate") or 0 for c in connections) / len(connections)
+            if connections else 0
+        )
+
+        # Reach 30j depuis la table social_media_stats
+        try:
+            from datetime import timedelta
+            thirty_days_ago = (datetime.now() - timedelta(days=30)).isoformat()
+            reach_resp = supabase.table("social_media_stats").select(
+                "reach"
+            ).eq("user_id", user["id"]).gte("date", thirty_days_ago).execute()
+            reach_30_days = sum(r.get("reach") or 0 for r in (reach_resp.data or []))
+        except Exception:
+            reach_30_days = 0
+
+        platforms_summary = [
+            {
+                "name": c["platform"].capitalize(),
+                "followers": c.get("followers_count") or 0,
+                "posts": c.get("posts_count") or 0,
+                "engagement": c.get("engagement_rate") or 0
+            }
+            for c in connections
+        ]
+
         return {
             "summary": {
-                "total_followers": 15000,
-                "total_posts": 45,
-                "engagement_rate": 4.5,
-                "reach_30_days": 50000
+                "total_followers": total_followers,
+                "total_posts": total_posts,
+                "engagement_rate": round(avg_engagement, 2),
+                "reach_30_days": reach_30_days
             },
-            "platforms": [
-                {"name": "Instagram", "followers": 10000, "posts": 30, "engagement": 5.2},
-                {"name": "TikTok", "followers": 5000, "posts": 15, "engagement": 3.8}
-            ]
+            "platforms": platforms_summary
         }
     
     except Exception as e:
@@ -10599,13 +10668,25 @@ async def get_top_social_posts(
         if user['role'] != 'influencer':
             raise HTTPException(status_code=403, detail="Influencers only")
         
-        # Simulation de top posts
-        return {
-            "top_posts": [
-                {"platform": "Instagram", "likes": 1500, "comments": 120, "engagement": 5.4, "date": "2024-01-15"},
-                {"platform": "TikTok", "likes": 2000, "comments": 80, "engagement": 6.1, "date": "2024-01-10"}
+        # Top posts réels depuis social_media_posts ou media_analytics
+        try:
+            posts_resp = supabase.table("social_media_posts").select(
+                "platform, likes_count, comments_count, engagement_rate, published_at"
+            ).eq("user_id", user["id"]).order("likes_count", desc=True).limit(limit).execute()
+            top_posts = [
+                {
+                    "platform": p.get("platform", "").capitalize(),
+                    "likes": p.get("likes_count") or 0,
+                    "comments": p.get("comments_count") or 0,
+                    "engagement": p.get("engagement_rate") or 0,
+                    "date": (p.get("published_at") or "")[:10]
+                }
+                for p in (posts_resp.data or [])
             ]
-        }
+        except Exception:
+            top_posts = []
+
+        return {"top_posts": top_posts}
     
     except Exception as e:
         logger.error(f"Error fetching top posts: {e}")
@@ -11611,11 +11692,28 @@ async def get_merchant_profile(
         total_offers = products_count + services_count
         links_count = supabase.table("tracking_links").select("id", count="exact").eq("merchant_id", user["id"]).execute().count or 0
         
+        # Stats réelles depuis conversions et commissions
+        try:
+            sales_resp = supabase.table("conversions").select(
+                "id", count="exact"
+            ).eq("merchant_id", user["id"]).execute()
+            total_sales = sales_resp.count or 0
+        except Exception:
+            total_sales = 0
+
+        try:
+            revenue_resp = supabase.table("conversions").select(
+                "sale_amount"
+            ).eq("merchant_id", user["id"]).execute()
+            revenue = sum(r.get("sale_amount") or 0 for r in (revenue_resp.data or []))
+        except Exception:
+            revenue = 0
+
         profile["stats"] = {
             "total_products": total_offers,
             "total_links": links_count,
-            "total_sales": total_offers * 25,  # Simulation
-            "revenue": total_offers * 500
+            "total_sales": total_sales,
+            "revenue": revenue
         }
         
         return profile

@@ -1591,6 +1591,24 @@ async def get_all_users_admin(
 # ADMIN - GET STATS
 # ============================================
 
+def _calc_monthly_growth(supabase) -> float:
+    """Calcule la croissance mensuelle du nombre d'utilisateurs (%)"""
+    try:
+        from datetime import datetime, timedelta
+        now = datetime.utcnow()
+        first_day_this_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        first_day_last_month = (first_day_this_month - timedelta(days=1)).replace(day=1)
+        this_month_resp = supabase.table("users").select("id", count="exact").gte("created_at", first_day_this_month.isoformat()).execute()
+        last_month_resp = supabase.table("users").select("id", count="exact").gte("created_at", first_day_last_month.isoformat()).lt("created_at", first_day_this_month.isoformat()).execute()
+        this_month = this_month_resp.count or 0
+        last_month = last_month_resp.count or 0
+        if last_month == 0:
+            return 100.0 if this_month > 0 else 0.0
+        return round((this_month - last_month) / last_month * 100, 1)
+    except Exception:
+        return 0.0
+
+
 async def get_admin_stats() -> Dict[str, Any]:
     """
     Récupérer les statistiques globales de la plateforme (admin)
@@ -1626,7 +1644,7 @@ async def get_admin_stats() -> Dict[str, Any]:
                 "total_affiliate_links": total_links,
                 "total_revenue": round(total_revenue, 2),
                 "platform_revenue": round(platform_revenue, 2),
-                "monthly_growth": 0  # TODO: calculer réellement
+                "monthly_growth": _calc_monthly_growth(supabase)
             },
             "user_breakdown": {
                 "influencers": influencers_count,

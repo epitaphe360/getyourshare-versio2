@@ -73,10 +73,36 @@ class SuggestionResponse(BaseModel):
 
 
 # ============================================
-# STOCKAGE EN MÉMOIRE (temporaire)
+# STOCKAGE DES CONVERSATIONS
 # ============================================
 
-# TODO: Remplacer par base de données
+def _load_conversation(session_id: str, user_id: str):
+    """Charge une conversation depuis la BDD, fallback en mémoire"""
+    try:
+        from db_helpers import supabase as _supa
+        resp = _supa.table("bot_conversations").select("context_json").eq("session_id", session_id).eq("user_id", user_id).single().execute()
+        if resp.data and resp.data.get("context_json"):
+            import json
+            return json.loads(resp.data["context_json"])
+    except Exception:
+        pass
+    return None
+
+def _save_conversation(session_id: str, user_id: str, context):
+    """Sauvegarde une conversation en BDD"""
+    try:
+        import json
+        from db_helpers import supabase as _supa
+        ctx_str = json.dumps(context.__dict__ if hasattr(context, '__dict__') else str(context))
+        existing = _supa.table("bot_conversations").select("id").eq("session_id", session_id).execute()
+        if existing.data:
+            _supa.table("bot_conversations").update({"context_json": ctx_str, "updated_at": datetime.utcnow().isoformat()}).eq("session_id", session_id).execute()
+        else:
+            _supa.table("bot_conversations").insert({"session_id": session_id, "user_id": user_id, "context_json": ctx_str, "created_at": datetime.utcnow().isoformat(), "updated_at": datetime.utcnow().isoformat()}).execute()
+    except Exception:
+        pass
+
+# Cache mémoire en fallback
 conversations_store = {}
 
 
@@ -306,7 +332,19 @@ async def submit_feedback(
     Utilisé pour améliorer le bot via fine-tuning
     """
     try:
-        # TODO: Sauvegarder feedback en DB pour analyse et fine-tuning
+        # Sauvegarder feedback en BDD
+        try:
+            from db_helpers import supabase as _supa
+            _supa.table("bot_feedback").insert({
+                "user_id": current_user["id"],
+                "session_id": feedback.session_id,
+                "message_id": feedback.message_id,
+                "rating": feedback.rating,
+                "comment": feedback.comment,
+                "created_at": datetime.utcnow().isoformat()
+            }).execute()
+        except Exception as db_err:
+            logger.warning("bot_feedback_db_save_failed", error=str(db_err))
 
         logger.info(
             "bot_feedback_received",
