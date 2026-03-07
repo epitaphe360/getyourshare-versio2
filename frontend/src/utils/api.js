@@ -3,24 +3,24 @@ import axios from 'axios';
 const getApiUrl = () => {
   let envUrl = process.env.REACT_APP_API_URL;
 
-  // If env var is set and not localhost, use it (e.g. production URL)
-  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
-    // Fix: Remove trailing /api if present (to avoid /api/api/ duplication)
+  // Si la variable d'environnement est définie, l'utiliser en priorité (localhost ou non)
+  if (envUrl) {
+    // Supprimer le suffixe /api si présent (pour éviter /api/api/ en double)
     envUrl = envUrl.replace(/\/api\/?$/, '');
     return envUrl;
   }
 
-  // If we are in a browser environment, try to use the current hostname
+  // Si on est dans un navigateur, essayer d'utiliser l'IP locale du réseau
   if (typeof window !== 'undefined') {
     const hostname = window.location.hostname;
-    // If hostname is a local IP (not localhost), use it for backend too
-    // This allows accessing the backend from other devices on the same network
+    // IP réseau local (pas localhost) → utiliser le même hôte pour le backend
     if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-        return `http://${hostname}:5000`;
+        return `http://${hostname}:8003`;
     }
   }
 
-  return envUrl || 'http://127.0.0.1:5000';
+  // Fallback : backend local sur port 8003
+  return 'http://127.0.0.1:8003';
 };
 
 const API_URL = getApiUrl();

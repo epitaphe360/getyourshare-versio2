@@ -1,7 +1,7 @@
 """
 Routes pour les endpoints manquants (stubs minimaux pour tests)
 """
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Body
 from typing import List, Dict, Optional
 from auth import get_current_user_from_cookie
 from db_helpers import supabase

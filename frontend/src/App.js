@@ -12,6 +12,7 @@ import ChatbotWidget from './components/bot/ChatbotWidget';
 import WhatsAppFloatingButton from './components/social/WhatsAppFloatingButton';
 import CookieConsent from './components/CookieConsent';
 import LoadingFallback from './components/LoadingFallback';
+import PremiumLoader from './components/common/PremiumLoader';
 import GlobalSearch from './components/GlobalSearch';
 import performanceUtils from './utils/performance';
 import { usePerformanceMonitor } from './hooks/usePerformance';
@@ -27,6 +28,7 @@ import './App.css';
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const HomepageV2 = lazy(() => import('./pages/HomepageV2'));
+const HomepageV3 = lazy(() => import('./pages/HomepageV3'));
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const LandingPageNew = lazy(() => import('./pages/LandingPageNew'));
 const Pricing = lazy(() => import('./pages/Pricing'));
@@ -307,14 +309,15 @@ function App() {
               v7_relativeSplatPath: true
             }}
           >
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={<PremiumLoader />}>
               <CookieConsent />
               <Routes>
                 {/* ========================================
                     PUBLIC ROUTES (No Authentication)
                 ======================================== */}
-                <Route path="/" element={<HomepageV2 />} />
-                <Route path="/home" element={<HomepageV2 />} />
+                <Route path="/" element={<HomepageV3 />} />
+                <Route path="/home" element={<HomepageV3 />} />
+                <Route path="/home-v2" element={<HomepageV2 />} />
                 <Route path="/landing-old" element={<LandingPage />} />
                 <Route path="/landing-new" element={<LandingPageNew />} />
                 <Route path="/login" element={<Login />} />

@@ -429,10 +429,6 @@ def get_all_services(
                 
             # Champs manquants dans la DB mais attendus par le frontend
             service["capacity_per_month"] = service.get("capacity", 100) # Valeur par défaut
-<<<<<<< HEAD
-            service["total_leads"] = 0 # À calculer via une jointure avec la table leads si elle existe
-            
-=======
 
             # Calcul réel du nombre de leads depuis la DB
             try:
@@ -441,7 +437,6 @@ def get_all_services(
                 logger.error(f"Error calculating total_leads for service {service.get('id')}: {e}")
                 service["total_leads"] = 0
 
->>>>>>> origin/claude/fix-api-communication-bgzli
             if service.get("merchants"):
                 service["merchant"] = service["merchants"]
         
