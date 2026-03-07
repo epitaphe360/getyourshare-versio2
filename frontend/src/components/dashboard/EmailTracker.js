@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Mail, Eye, Click, TrendingUp, BarChart3, Download, Send } from 'lucide-react';
+import { Mail, Eye, MousePointerClick, TrendingUp, BarChart3, Download, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './EmailTracker.css';
 
@@ -232,7 +232,7 @@ Votre Équipe GetYourShare`,
 
           <div className="stat-item">
             <div className="stat-icon clicked">
-              <Click size={20} />
+              <MousePointerClick size={20} />
             </div>
             <div className="stat-content">
               <span className="stat-label">Cliqué</span>
@@ -350,7 +350,7 @@ Votre Équipe GetYourShare`,
                       </span>
                     </div>
                     <div className="tracking-item">
-                      <Click size={16} />
+                      <MousePointerClick size={16} />
                       <span>
                         {email.firstClickAt
                           ? `Cliqué ${new Date(email.firstClickAt).toLocaleTimeString('fr-FR', {

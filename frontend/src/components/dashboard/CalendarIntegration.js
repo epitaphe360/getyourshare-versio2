@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Edit2, GoogleIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Trash2, Edit2, Chrome } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './CalendarIntegration.css';
 
@@ -280,7 +280,7 @@ END:VEVENT\n`;
             onClick={handleGoogleSync}
             title="Synchroniser avec Google Calendar"
           >
-            <GoogleIcon size={18} />
+            <Chrome size={18} />
             {googleSyncStatus === 'connected' ? 'Synchronisé' : 'Connexion Google'}
           </button>
           <button

@@ -53,7 +53,7 @@ function IntegratedServices() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
-  const [services Status, setServicesStatus] = useState(null);
+  const [servicesStatus, setServicesStatus] = useState(null);
 
   // États pour les formulaires
   const [emailForm, setEmailForm] = useState({
