@@ -69,7 +69,7 @@ const Support = () => {
     {
       icon: <Phone className="text-purple-500" size={32} />,
       title: 'Support Téléphonique',
-      description: '+212 5XX-XXXXXX',
+      description: '+212 600-000-000',
       action: 'Appeler maintenant',
       available: 'Lun-Ven: 9h-18h',
       color: 'bg-purple-50 hover:bg-purple-100'
@@ -174,7 +174,7 @@ const Support = () => {
                   } else if (method.title === 'Email Support') {
                     window.location.href = 'mailto:support@shareyoursales.com';
                   } else if (method.title === 'Support Téléphonique') {
-                    toast.info('Appelez-nous au +212 5XX-XXXXXX');
+                    toast.info('Appelez-nous au +212 600-000-000');
                   }
                 }}
               >

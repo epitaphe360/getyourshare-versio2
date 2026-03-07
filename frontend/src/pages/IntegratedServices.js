@@ -46,7 +46,7 @@ import {
   Close
 } from '@mui/icons-material';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8003/api';
 
 function IntegratedServices() {
   const [currentTab, setCurrentTab] = useState(0);

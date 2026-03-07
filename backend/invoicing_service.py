@@ -38,7 +38,7 @@ class InvoicingService:
             "name": "ShareYourSales Platform",
             "address": "Casablanca, Maroc",
             "email": "billing@shareyoursales.ma",
-            "phone": "+212 XXX XXX XXX",
+            "phone": "+212 600-000-000",
             "ice": "ICE000000000000",  # À remplacer
             "rc": "RC000000",  # À remplacer
             "logo_url": None,  # URL du logo

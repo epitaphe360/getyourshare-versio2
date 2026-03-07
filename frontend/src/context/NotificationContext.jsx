@@ -29,7 +29,7 @@ export const NotificationProvider = ({ children }) => {
   const audioRef = useRef(null);
 
   // Configuration
-  const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
+  const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:8003';
   const ENABLE_SOUND = localStorage.getItem('notification_sound') !== 'false';
   const ENABLE_BROWSER_NOTIF = Notification.permission === 'granted';
 

@@ -27,12 +27,8 @@ import './App.css';
 // ---------- Auth & Public Pages ----------
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
-const HomepageV2 = lazy(() => import('./pages/HomepageV2'));
 const HomepageV3 = lazy(() => import('./pages/HomepageV3'));
-const LandingPage = lazy(() => import('./pages/LandingPage'));
-const LandingPageNew = lazy(() => import('./pages/LandingPageNew'));
 const Pricing = lazy(() => import('./pages/Pricing'));
-const PricingV3 = lazy(() => import('./pages/PricingV3'));
 const Contact = lazy(() => import('./pages/Contact'));
 const ROICalculator = lazy(() => import('./pages/ROICalculator'));
 
@@ -57,7 +53,6 @@ const CommercialDashboard = lazy(() => import('./pages/dashboards/CommercialDash
 // ---------- Marketplace ----------
 const Marketplace = lazy(() => import('./pages/Marketplace'));
 const MarketplaceV2 = lazy(() => import('./pages/MarketplaceV2'));
-const MarketplaceFourTabs = lazy(() => import('./pages/MarketplaceFourTabs'));
 const MarketplaceGroupon = lazy(() => import('./pages/MarketplaceGroupon'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
 
@@ -317,14 +312,9 @@ function App() {
                 ======================================== */}
                 <Route path="/" element={<HomepageV3 />} />
                 <Route path="/home" element={<HomepageV3 />} />
-                <Route path="/home-v2" element={<HomepageV2 />} />
-                <Route path="/landing-old" element={<LandingPage />} />
-                <Route path="/landing-new" element={<LandingPageNew />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/pricing" element={<PublicLayout><Pricing /></PublicLayout>} />
-                <Route path="/pricing-v3" element={<PublicLayout><PricingV3 /></PublicLayout>} />
-                <Route path="/marketplace-4tabs" element={<MarketplaceFourTabs />} />
                 <Route path="/marketplace" element={<PublicLayout><MarketplaceGroupon /></PublicLayout>} />
                 {/* Route Marketplace pour le Dashboard (garder le layout) */}
                 <Route path="/dashboard/marketplace" element={<ProtectedRoute><MarketplaceGroupon /></ProtectedRoute>} />

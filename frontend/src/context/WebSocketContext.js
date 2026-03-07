@@ -29,16 +29,16 @@ export const WebSocketProvider = ({ children }) => {
 
     // Si l'URL n'est pas définie, utiliser localhost:8000 par défaut
     if (!backendUrl) {
-      backendUrl = 'http://localhost:8000';
+      backendUrl = 'http://localhost:8003';
     }
 
     // Si l'URL pointe vers le port frontend (3000, 3001, etc.), rediriger vers 8000
     // Cela arrive souvent quand l'API URL est relative ou mal configurée
     const currentPort = window.location.port;
     if (backendUrl.includes(`:${currentPort}`) || backendUrl.includes(':3000') || backendUrl.includes(':3001')) {
-      console.warn(`⚠️ REACT_APP_API_URL points to frontend port. Redirecting WebSocket to port 8000.`);
-      // Remplacer le port par 8000
-      backendUrl = backendUrl.replace(/:\d+/, ':8000');
+      console.warn(`⚠️ REACT_APP_API_URL points to frontend port. Redirecting WebSocket to port 8003.`);
+      // Remplacer le port par 8003
+      backendUrl = backendUrl.replace(/:\d+/, ':8003');
     }
 
     // Si on est sur une IP réseau (ex: 192.168.x.x ou 10.x.x.x) et que backendUrl est localhost

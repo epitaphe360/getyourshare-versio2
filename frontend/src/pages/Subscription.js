@@ -236,13 +236,35 @@ const Subscription = () => {
     return colors[color] || colors.gray;
   };
 
-  const handleUpgrade = (planId) => {
+  const handleUpgrade = async (planId) => {
     if (planId === 'enterprise') {
-      // Rediriger vers la page de contact
       navigate('/support');
-    } else {
-      // Simuler l'upgrade (à implémenter avec un vrai système de paiement)
-      toast.info(`Mise à niveau vers le plan ${planId}. Intégration de paiement à venir !`);
+      return;
+    }
+    if (planId === 'free') return;
+    try {
+      const planData = availablePlans.find(p => p.id === planId);
+      const amount = billingCycle === 'yearly'
+        ? (planData?.yearlyPrice || (planData?.price || 0) * 10)
+        : (planData?.price || 0);
+      const res = await api.post('/api/payments/stripe/create-checkout', {
+        amount,
+        currency: 'MAD',
+        gateway: 'stripe',
+        metadata: {
+          plan: planId,
+          billing_cycle: billingCycle,
+          description: `Abonnement ${planData?.name || planId}`
+        }
+      });
+      if (res.data?.checkout_url) {
+        window.location.href = res.data.checkout_url;
+      } else {
+        toast.error('Erreur lors de l’initialisation du paiement');
+      }
+    } catch (err) {
+      console.error('Stripe checkout error:', err);
+      toast.error('Erreur de paiement. Veuillez réessayer.');
     }
   };
 

@@ -14,7 +14,7 @@ function CancelSubscription() {
   const [cancelType, setCancelType] = useState('end_of_period'); // 'immediate' or 'end_of_period'
   const [error, setError] = useState(null);
   
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8003/api';
 
   const cancelReasons = [
     { value: 'too_expensive', label: 'Trop cher' },

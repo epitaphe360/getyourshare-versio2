@@ -58,7 +58,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8003/api';
 
 const CURRENCY_SYMBOLS = {
   MAD: 'DH',

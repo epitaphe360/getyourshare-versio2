@@ -49,106 +49,17 @@ const CRMDashboard = () => {
     try {
       setLoading(true);
 
-      // TODO: Replace with actual API calls when endpoints are ready
-      // const leadsRes = await api.get(`/api/crm/leads?filter=${filter}`);
-      // const statsRes = await api.get('/api/crm/stats');
-
-      // Mock data
-      setStats({
-        total_leads: 487,
-        hot_leads: 23,
-        warm_leads: 156,
-        cold_leads: 308,
-        avg_score: 62,
-        conversion_rate: 18.5,
-        avg_closing_time: 12,
-        revenue_pipeline: 1250000,
-        active_sequences: 8,
-        tasks_automated: 234
-      });
-
-      setLeads([
-        {
-          id: 1,
-          first_name: 'Marie',
-          last_name: 'Dupont',
-          email: 'marie.dupont@acme.fr',
-          company: 'ACME Corp',
-          job_title: 'CEO',
-          score: 92,
-          grade: 'A',
-          email_opens: 8,
-          link_clicks: 12,
-          visited_pricing_page: true,
-          requested_demo: true,
-          last_activity: new Date(Date.now() - 2 * 60 * 60 * 1000),
-          closing_probability: 85,
-          predicted_close_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          estimated_value: 45000,
-          status: 'hot',
-          assigned_to: 'Jean Martin'
-        },
-        {
-          id: 2,
-          first_name: 'Pierre',
-          last_name: 'Bernard',
-          email: 'p.bernard@techstart.io',
-          company: 'TechStart',
-          job_title: 'CTO',
-          score: 78,
-          grade: 'B',
-          email_opens: 5,
-          link_clicks: 7,
-          visited_pricing_page: true,
-          requested_demo: false,
-          last_activity: new Date(Date.now() - 5 * 60 * 60 * 1000),
-          closing_probability: 68,
-          predicted_close_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-          estimated_value: 28000,
-          status: 'warm',
-          assigned_to: 'Sophie Laurent'
-        },
-        {
-          id: 3,
-          first_name: 'Julie',
-          last_name: 'Moreau',
-          email: 'julie.m@innovate.com',
-          company: 'Innovate Solutions',
-          job_title: 'Marketing Director',
-          score: 45,
-          grade: 'C',
-          email_opens: 2,
-          link_clicks: 1,
-          visited_pricing_page: false,
-          requested_demo: false,
-          last_activity: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-          closing_probability: 32,
-          predicted_close_date: null,
-          estimated_value: 15000,
-          status: 'cold',
-          assigned_to: 'Jean Martin'
-        },
-        {
-          id: 4,
-          first_name: 'Thomas',
-          last_name: 'Rousseau',
-          email: 'thomas.r@digicorp.fr',
-          company: 'DigiCorp',
-          job_title: 'CEO',
-          score: 88,
-          grade: 'A',
-          email_opens: 6,
-          link_clicks: 9,
-          visited_pricing_page: true,
-          requested_demo: true,
-          last_activity: new Date(Date.now() - 1 * 60 * 60 * 1000),
-          closing_probability: 82,
-          predicted_close_date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
-          estimated_value: 52000,
-          status: 'hot',
-          assigned_to: 'Sophie Laurent'
-        }
+      const [leadsRes, statsRes] = await Promise.all([
+        api.get(`/api/crm/leads?filter=${filter}`),
+        api.get('/api/crm/stats')
       ]);
+
+      setLeads(leadsRes.data?.leads || []);
+      setStats(statsRes.data || {
+        total_leads: 0, hot_leads: 0, warm_leads: 0, cold_leads: 0,
+        avg_score: 0, conversion_rate: 0, avg_closing_time: 0,
+        revenue_pipeline: 0, active_sequences: 0, tasks_automated: 0
+      });
 
     } catch (error) {
       console.error('Error fetching CRM data:', error);
@@ -160,7 +71,7 @@ const CRMDashboard = () => {
   const calculateLeadScore = async (leadId) => {
     try {
       const result = await api.post(`/api/crm/leads/${leadId}/score`);
-      alert(`✅ Score recalculé: ${result.data.result.score} (${result.data.result.grade})`);
+      alert(`✅ Score recalculé: ${result.data?.lead?.score} (${result.data?.lead?.grade})`);
       fetchData();
     } catch (error) {
       alert('Erreur lors du calcul du score');
@@ -173,7 +84,7 @@ const CRMDashboard = () => {
         lead_id: leadId,
         sequence_type: sequenceType
       });
-      alert(`✅ Séquence ${sequenceType} lancée! ${result.data.result.emails_scheduled} emails programmés`);
+      alert(`✅ ${result.data?.message || 'Séquence lancée'}`);
     } catch (error) {
       alert('Erreur lors du lancement de la séquence');
     }
@@ -182,8 +93,8 @@ const CRMDashboard = () => {
   const predictClosing = async (leadId) => {
     try {
       const result = await api.get(`/api/crm/leads/${leadId}/predict`);
-      const { probability, predicted_close_date, recommended_action } = result.data.result;
-      alert(`🔮 Prédiction:\n\nProbabilité: ${probability}%\nDate estimée: ${predicted_close_date || 'N/A'}\n\nAction recommandée: ${recommended_action}`);
+      const { closing_probability, predicted_close_date, recommendation } = result.data;
+      alert(`🔮 Prédiction:\n\nProbabilité: ${closing_probability}%\nDate estimée: ${predicted_close_date ? new Date(predicted_close_date).toLocaleDateString('fr-FR') : 'N/A'}\n\nAction: ${recommendation}`);
     } catch (error) {
       alert('Erreur lors de la prédiction');
     }

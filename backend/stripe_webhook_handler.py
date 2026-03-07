@@ -46,10 +46,14 @@ STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 if not STRIPE_SECRET_KEY or not STRIPE_SECRET_KEY.startswith("sk_"):
-    raise ValueError("Missing or invalid STRIPE_SECRET_KEY")
+    import warnings
+    warnings.warn("⚠️ STRIPE_SECRET_KEY non configurée — webhook Stripe désactivé")
+    STRIPE_SECRET_KEY = None
 
 if not STRIPE_WEBHOOK_SECRET or not STRIPE_WEBHOOK_SECRET.startswith("whsec_"):
-    raise ValueError("Missing or invalid STRIPE_WEBHOOK_SECRET")
+    import warnings
+    warnings.warn("⚠️ STRIPE_WEBHOOK_SECRET non configurée — webhook Stripe désactivé")
+    STRIPE_WEBHOOK_SECRET = None
 
 stripe.api_key = STRIPE_SECRET_KEY
 stripe.max_network_retries = 2

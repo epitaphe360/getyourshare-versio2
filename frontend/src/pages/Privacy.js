@@ -260,7 +260,7 @@ const Privacy = () => {
               <div className="space-y-2 text-sm">
                 <p><strong>Email :</strong> privacy@shareyoursales.ma</p>
                 <p><strong>Adresse :</strong> ShareYourSales, Casablanca, Maroc</p>
-                <p><strong>Téléphone :</strong> +212 5XX-XXXXXX</p>
+                <p><strong>Téléphone :</strong> +212 600-000-000</p>
               </div>
               <p className="mt-4 text-sm text-blue-100">
                 Délai de réponse : 30 jours maximum

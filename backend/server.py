@@ -527,7 +527,11 @@ from subscription_endpoints import router as subscription_router
 from coupon_endpoints import router as coupon_router
 from team_endpoints import router as team_router
 # from domain_endpoints import router as domain_router  # Temporairement commenté
-# from stripe_webhook_handler import router as stripe_webhook_router  # Temporairement commenté
+try:
+    from stripe_webhook_handler import router as stripe_webhook_router
+except Exception as _stripe_import_err:
+    stripe_webhook_router = None
+    logger.warning(f"⚠️ stripe_webhook_handler non disponible: {_stripe_import_err}")
 from commercials_directory_endpoints import router as commercials_router
 from influencers_directory_endpoints import router as influencers_router
 from company_links_management import router as company_links_router
@@ -613,6 +617,9 @@ app.include_router(social_media_router)
 app.include_router(affiliation_requests_router)
 app.include_router(kyc_router)
 app.include_router(twofa_router)
+if stripe_webhook_router is not None:
+    app.include_router(stripe_webhook_router)
+    logger.info("✅ stripe_webhook_handler router activé")
 # app.include_router(ai_bot_router)  # Temporairement commenté
 app.include_router(services_leads_router)  # Services & Leads Management
 app.include_router(admin_users_router)  # Admin User Management
@@ -692,7 +699,13 @@ app.include_router(tiktok_shop_router)
 from health import router as health_router
 app.include_router(health_router)
 
-# Module Factures Influenceurs - Pour récupérer les factures pour les impôts
+# CRM Endpoints
+try:
+    from crm_endpoints import router as crm_router
+    app.include_router(crm_router)
+    logger.info("✅ CRM endpoints loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ CRM endpoints not available: {e}") - Pour récupérer les factures pour les impôts
 try:
     from influencer_invoices_endpoints import router as influencer_invoices_router
     app.include_router(influencer_invoices_router)

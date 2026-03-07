@@ -89,7 +89,7 @@ class InvoiceService:
             123 Avenue Mohammed V<br/>
             Casablanca, Maroc<br/>
             Email: billing@shareyoursales.com<br/>
-            Tél: +212 5XX-XXXXXX
+            Tél: +212 600-000-000
             """
             content.append(Paragraph(company_info, normal_style))
             content.append(Spacer(1, 1*cm))
