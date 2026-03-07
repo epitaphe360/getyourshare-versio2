@@ -130,7 +130,6 @@ CREATE POLICY conversions_own ON conversions
   FOR SELECT USING (
     influencer_id = auth.uid()
     OR merchant_id IN (SELECT id FROM merchants WHERE user_id = auth.uid())
-    OR commercial_id = auth.uid()
     OR is_admin()
   );
 
@@ -213,23 +212,25 @@ CREATE POLICY invoices_admin_manage ON invoices
   FOR ALL USING (is_admin());
 
 -- ============================================================
--- 13. TABLE: payouts
+-- 13. TABLE: payouts  (colonne: influencer_id, pas user_id)
 -- ============================================================
 ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS payouts_own ON payouts;
+DROP POLICY IF EXISTS payouts_create_own ON payouts;
+DROP POLICY IF EXISTS payouts_admin_manage ON payouts;
 
 CREATE POLICY payouts_own ON payouts
-  FOR SELECT USING (user_id = auth.uid() OR is_admin());
+  FOR SELECT USING (influencer_id = auth.uid() OR is_admin());
 
 CREATE POLICY payouts_create_own ON payouts
-  FOR INSERT WITH CHECK (user_id = auth.uid());
+  FOR INSERT WITH CHECK (influencer_id = auth.uid());
 
 CREATE POLICY payouts_admin_manage ON payouts
   FOR UPDATE USING (is_admin());
 
 -- ============================================================
--- 14. TABLE: sales_leads
+-- 14. TABLE: sales_leads  (colonne: sales_rep_id)
 -- ============================================================
 ALTER TABLE sales_leads ENABLE ROW LEVEL SECURITY;
 
@@ -237,13 +238,12 @@ DROP POLICY IF EXISTS sales_leads_own ON sales_leads;
 
 CREATE POLICY sales_leads_own ON sales_leads
   FOR ALL USING (
-    commercial_id = auth.uid()
-    OR merchant_id IN (SELECT id FROM merchants WHERE user_id = auth.uid())
+    sales_rep_id = auth.uid()
     OR is_admin()
   );
 
 -- ============================================================
--- 15. TABLE: conversations
+-- 15. TABLE: conversations  (colonne: participant_ids UUID[])
 -- ============================================================
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 
@@ -251,8 +251,7 @@ DROP POLICY IF EXISTS conversations_participants ON conversations;
 
 CREATE POLICY conversations_participants ON conversations
   FOR ALL USING (
-    participant1_id = auth.uid()
-    OR participant2_id = auth.uid()
+    auth.uid() = ANY(participant_ids)
     OR is_admin()
   );
 
@@ -267,8 +266,7 @@ CREATE POLICY messages_participants ON messages
   FOR SELECT USING (
     conversation_id IN (
       SELECT id FROM conversations
-      WHERE participant1_id = auth.uid()
-         OR participant2_id = auth.uid()
+      WHERE auth.uid() = ANY(participant_ids)
     ) OR is_admin()
   );
 
@@ -336,32 +334,45 @@ CREATE POLICY fiscal_email_settings_own ON fiscal_email_settings
   FOR ALL USING (user_id = auth.uid() OR is_admin());
 
 -- ============================================================
--- 23. TABLE: notification_preferences
+-- 23. TABLE: notification_preferences (si elle existe)
 -- ============================================================
-ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
+EXCEPTION WHEN undefined_table THEN
+  RAISE NOTICE 'Table notification_preferences non trouvée, ignorée.';
+END $$;
 
 DROP POLICY IF EXISTS notification_preferences_own ON notification_preferences;
 
-CREATE POLICY notification_preferences_own ON notification_preferences
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
+DO $$ BEGIN
+  CREATE POLICY notification_preferences_own ON notification_preferences
+    FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 
 -- ============================================================
--- 24. TABLE: product_reviews
+-- 24. TABLE: product_reviews (si elle existe)
 -- ============================================================
-ALTER TABLE product_reviews ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  ALTER TABLE product_reviews ENABLE ROW LEVEL SECURITY;
+EXCEPTION WHEN undefined_table THEN
+  RAISE NOTICE 'Table product_reviews non trouvée, ignorée.';
+  RETURN;
+END $$;
 
 DROP POLICY IF EXISTS product_reviews_select ON product_reviews;
 DROP POLICY IF EXISTS product_reviews_create ON product_reviews;
 DROP POLICY IF EXISTS product_reviews_admin ON product_reviews;
 
-CREATE POLICY product_reviews_select ON product_reviews
-  FOR SELECT USING (status = 'approved' OR user_id = auth.uid() OR is_admin());
-
-CREATE POLICY product_reviews_create ON product_reviews
-  FOR INSERT WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY product_reviews_admin ON product_reviews
-  FOR UPDATE USING (is_admin());
+DO $$ BEGIN
+  CREATE POLICY product_reviews_select ON product_reviews
+    FOR SELECT USING (status = 'approved' OR user_id = auth.uid() OR is_admin());
+  CREATE POLICY product_reviews_create ON product_reviews
+    FOR INSERT WITH CHECK (user_id = auth.uid());
+  CREATE POLICY product_reviews_admin ON product_reviews
+    FOR UPDATE USING (is_admin());
+EXCEPTION WHEN undefined_table THEN NULL;
+END $$;
 
 -- ============================================================
 -- 25. TABLE: media_platforms
