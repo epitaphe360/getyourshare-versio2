@@ -1,20 +1,14 @@
 -- ============================================================
 -- ROW LEVEL SECURITY (RLS) - GetYourShare
--- Exécuter dans Supabase SQL Editor
--- Protège les données : chaque utilisateur ne voit QUE ses données
+-- VERSION ROBUSTE : chaque bloc gere ses propres erreurs
+-- Toute table/colonne manquante est ignoree silencieusement
 -- ============================================================
 
--- ============================================================
--- HELPER FUNCTION : user_id courant depuis JWT
--- ============================================================
 CREATE OR REPLACE FUNCTION get_current_user_id()
 RETURNS UUID AS $$
   SELECT auth.uid()
 $$ LANGUAGE SQL SECURITY DEFINER;
 
--- ============================================================
--- HELPER : est-ce un admin ?
--- ============================================================
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN AS $$
   SELECT EXISTS (
@@ -24,464 +18,306 @@ RETURNS BOOLEAN AS $$
   )
 $$ LANGUAGE SQL SECURITY DEFINER;
 
--- ============================================================
--- 1. TABLE: users
--- ============================================================
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+-- 1. users
+DO $$ BEGIN
+  ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS users_select_own ON users;
+  DROP POLICY IF EXISTS users_update_own ON users;
+  DROP POLICY IF EXISTS users_admin_all  ON users;
+  CREATE POLICY users_select_own ON users FOR SELECT USING (id = auth.uid() OR is_admin());
+  CREATE POLICY users_update_own ON users FOR UPDATE USING (id = auth.uid() OR is_admin());
+  CREATE POLICY users_admin_all  ON users FOR ALL    USING (is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'users RLS: %', SQLERRM; END $$;
 
-DROP POLICY IF EXISTS users_select_own ON users;
-DROP POLICY IF EXISTS users_update_own ON users;
-DROP POLICY IF EXISTS users_admin_all ON users;
+-- 2. user_settings
+DO $$ BEGIN
+  ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS user_settings_own ON user_settings;
+  CREATE POLICY user_settings_own ON user_settings FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'user_settings RLS: %', SQLERRM; END $$;
 
-CREATE POLICY users_select_own ON users
-  FOR SELECT USING (id = auth.uid() OR is_admin());
+-- 3. merchants
+DO $$ BEGIN
+  ALTER TABLE merchants ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS merchants_select_public ON merchants;
+  DROP POLICY IF EXISTS merchants_manage_own    ON merchants;
+  CREATE POLICY merchants_select_public ON merchants FOR SELECT USING (true);
+  CREATE POLICY merchants_manage_own    ON merchants FOR ALL    USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'merchants RLS: %', SQLERRM; END $$;
 
-CREATE POLICY users_update_own ON users
-  FOR UPDATE USING (id = auth.uid() OR is_admin());
+-- 4. influencers
+DO $$ BEGIN
+  ALTER TABLE influencers ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS influencers_select_public ON influencers;
+  DROP POLICY IF EXISTS influencers_manage_own    ON influencers;
+  CREATE POLICY influencers_select_public ON influencers FOR SELECT USING (true);
+  CREATE POLICY influencers_manage_own    ON influencers FOR ALL    USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'influencers RLS: %', SQLERRM; END $$;
 
-CREATE POLICY users_admin_all ON users
-  FOR ALL USING (is_admin());
-
--- ============================================================
--- 2. TABLE: user_settings
--- ============================================================
-ALTER TABLE user_settings ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS user_settings_own ON user_settings;
-CREATE POLICY user_settings_own ON user_settings
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 3. TABLE: merchants
--- ============================================================
-ALTER TABLE merchants ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS merchants_select_public ON merchants;
-DROP POLICY IF EXISTS merchants_manage_own ON merchants;
-
-CREATE POLICY merchants_select_public ON merchants
-  FOR SELECT USING (true);  -- Profils marchands visibles publiquement
-
-CREATE POLICY merchants_manage_own ON merchants
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 4. TABLE: influencers
--- ============================================================
-ALTER TABLE influencers ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS influencers_select_public ON influencers;
-DROP POLICY IF EXISTS influencers_manage_own ON influencers;
-
-CREATE POLICY influencers_select_public ON influencers
-  FOR SELECT USING (true);
-
-CREATE POLICY influencers_manage_own ON influencers
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 5. TABLE: products
--- ============================================================
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS products_select_active ON products;
-DROP POLICY IF EXISTS products_manage_merchant ON products;
-
-CREATE POLICY products_select_active ON products
-  FOR SELECT USING (is_active = true OR merchant_id IN (
-    SELECT id FROM merchants WHERE user_id = auth.uid()
-  ) OR is_admin());
-
-CREATE POLICY products_manage_merchant ON products
-  FOR ALL USING (
+-- 5. products
+DO $$ BEGIN
+  ALTER TABLE products ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS products_select_active   ON products;
+  DROP POLICY IF EXISTS products_manage_merchant ON products;
+  CREATE POLICY products_select_active ON products FOR SELECT USING (
+    is_active = true
+    OR merchant_id IN (SELECT id FROM merchants WHERE user_id = auth.uid())
+    OR is_admin()
+  );
+  CREATE POLICY products_manage_merchant ON products FOR ALL USING (
     merchant_id IN (SELECT id FROM merchants WHERE user_id = auth.uid())
     OR is_admin()
   );
+EXCEPTION WHEN others THEN RAISE NOTICE 'products RLS: %', SQLERRM; END $$;
 
--- ============================================================
--- 6. TABLE: campaigns
--- ============================================================
-ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS campaigns_select ON campaigns;
-DROP POLICY IF EXISTS campaigns_manage ON campaigns;
-
-CREATE POLICY campaigns_select ON campaigns
-  FOR SELECT USING (
+-- 6. campaigns
+DO $$ BEGIN
+  ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS campaigns_select ON campaigns;
+  DROP POLICY IF EXISTS campaigns_manage ON campaigns;
+  CREATE POLICY campaigns_select ON campaigns FOR SELECT USING (
     merchant_id IN (SELECT id FROM merchants WHERE user_id = auth.uid())
     OR status = 'active'
     OR is_admin()
   );
-
-CREATE POLICY campaigns_manage ON campaigns
-  FOR ALL USING (
+  CREATE POLICY campaigns_manage ON campaigns FOR ALL USING (
     merchant_id IN (SELECT id FROM merchants WHERE user_id = auth.uid())
     OR is_admin()
   );
+EXCEPTION WHEN others THEN RAISE NOTICE 'campaigns RLS: %', SQLERRM; END $$;
 
--- ============================================================
--- 7. TABLE: conversions
--- ============================================================
-ALTER TABLE conversions ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS conversions_own ON conversions;
-
-CREATE POLICY conversions_own ON conversions
-  FOR SELECT USING (
+-- 7. conversions
+DO $$ BEGIN
+  ALTER TABLE conversions ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS conversions_own          ON conversions;
+  DROP POLICY IF EXISTS conversions_create       ON conversions;
+  DROP POLICY IF EXISTS conversions_admin_update ON conversions;
+  CREATE POLICY conversions_own ON conversions FOR SELECT USING (
     influencer_id = auth.uid()
     OR merchant_id IN (SELECT id FROM merchants WHERE user_id = auth.uid())
     OR is_admin()
   );
+  CREATE POLICY conversions_create       ON conversions FOR INSERT WITH CHECK (influencer_id = auth.uid() OR is_admin());
+  CREATE POLICY conversions_admin_update ON conversions FOR UPDATE USING (is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'conversions RLS: %', SQLERRM; END $$;
 
-CREATE POLICY conversions_create ON conversions
-  FOR INSERT WITH CHECK (influencer_id = auth.uid() OR is_admin());
+-- 8. tracking_links (influencer_id)
+DO $$ BEGIN
+  ALTER TABLE tracking_links ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS tracking_links_own ON tracking_links;
+  CREATE POLICY tracking_links_own ON tracking_links FOR ALL USING (influencer_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'tracking_links RLS: %', SQLERRM; END $$;
 
-CREATE POLICY conversions_admin_update ON conversions
-  FOR UPDATE USING (is_admin());
-
--- ============================================================
--- 8. TABLE: tracking_links  (colonne: influencer_id, pas user_id)
--- ============================================================
-ALTER TABLE tracking_links ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS tracking_links_own ON tracking_links;
-
-CREATE POLICY tracking_links_own ON tracking_links
-  FOR ALL USING (influencer_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 9. TABLE: tracking_events  (pas de user_id — accès via appartenance du lien)
--- ============================================================
-ALTER TABLE tracking_events ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS tracking_events_own ON tracking_events;
-DROP POLICY IF EXISTS tracking_events_insert_all ON tracking_events;
-
-CREATE POLICY tracking_events_own ON tracking_events
-  FOR SELECT USING (
-    tracking_link_id IN (
-      SELECT id FROM tracking_links WHERE influencer_id = auth.uid()
-    )
+-- 9. tracking_events (via tracking_link)
+DO $$ BEGIN
+  ALTER TABLE tracking_events ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS tracking_events_own        ON tracking_events;
+  DROP POLICY IF EXISTS tracking_events_insert_all ON tracking_events;
+  CREATE POLICY tracking_events_own ON tracking_events FOR SELECT USING (
+    tracking_link_id IN (SELECT id FROM tracking_links WHERE influencer_id = auth.uid())
     OR is_admin()
   );
+  CREATE POLICY tracking_events_insert_all ON tracking_events FOR INSERT WITH CHECK (true);
+EXCEPTION WHEN others THEN RAISE NOTICE 'tracking_events RLS: %', SQLERRM; END $$;
 
-CREATE POLICY tracking_events_insert_all ON tracking_events
-  FOR INSERT WITH CHECK (true);  -- Tout le monde peut créer des événements (clics publics)
+-- 10. notifications
+DO $$ BEGIN
+  ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS notifications_own ON notifications;
+  CREATE POLICY notifications_own ON notifications FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'notifications RLS: %', SQLERRM; END $$;
 
--- ============================================================
--- 10. TABLE: notifications
--- ============================================================
-ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS notifications_own ON notifications;
-
-CREATE POLICY notifications_own ON notifications
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 11. TABLE: affiliate_requests
--- ============================================================
-ALTER TABLE affiliate_requests ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS affiliate_requests_own ON affiliate_requests;
-
-CREATE POLICY affiliate_requests_own ON affiliate_requests
-  FOR SELECT USING (
+-- 11. affiliate_requests
+DO $$ BEGIN
+  ALTER TABLE affiliate_requests ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS affiliate_requests_own    ON affiliate_requests;
+  DROP POLICY IF EXISTS affiliate_requests_create ON affiliate_requests;
+  DROP POLICY IF EXISTS affiliate_requests_update ON affiliate_requests;
+  CREATE POLICY affiliate_requests_own ON affiliate_requests FOR SELECT USING (
     influencer_id = auth.uid()
     OR merchant_id IN (SELECT id FROM merchants WHERE user_id = auth.uid())
     OR is_admin()
   );
-
-CREATE POLICY affiliate_requests_create ON affiliate_requests
-  FOR INSERT WITH CHECK (influencer_id = auth.uid());
-
-CREATE POLICY affiliate_requests_update ON affiliate_requests
-  FOR UPDATE USING (
+  CREATE POLICY affiliate_requests_create ON affiliate_requests FOR INSERT WITH CHECK (influencer_id = auth.uid());
+  CREATE POLICY affiliate_requests_update ON affiliate_requests FOR UPDATE USING (
     merchant_id IN (SELECT id FROM merchants WHERE user_id = auth.uid())
     OR is_admin()
   );
+EXCEPTION WHEN others THEN RAISE NOTICE 'affiliate_requests RLS: %', SQLERRM; END $$;
 
--- ============================================================
--- 12. TABLE: invoices
--- ============================================================
-ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+-- 12. invoices
+DO $$ BEGIN
+  ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS invoices_own          ON invoices;
+  DROP POLICY IF EXISTS invoices_admin_manage ON invoices;
+  CREATE POLICY invoices_own          ON invoices FOR SELECT USING (user_id = auth.uid() OR is_admin());
+  CREATE POLICY invoices_admin_manage ON invoices FOR ALL    USING (is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'invoices RLS: %', SQLERRM; END $$;
 
-DROP POLICY IF EXISTS invoices_own ON invoices;
+-- 13. payouts (influencer_id)
+DO $$ BEGIN
+  ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS payouts_own          ON payouts;
+  DROP POLICY IF EXISTS payouts_create_own   ON payouts;
+  DROP POLICY IF EXISTS payouts_admin_manage ON payouts;
+  CREATE POLICY payouts_own          ON payouts FOR SELECT USING (influencer_id = auth.uid() OR is_admin());
+  CREATE POLICY payouts_create_own   ON payouts FOR INSERT WITH CHECK (influencer_id = auth.uid());
+  CREATE POLICY payouts_admin_manage ON payouts FOR UPDATE USING (is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'payouts RLS: %', SQLERRM; END $$;
 
-CREATE POLICY invoices_own ON invoices
-  FOR SELECT USING (user_id = auth.uid() OR is_admin());
+-- 14. sales_leads (sales_rep_id)
+DO $$ BEGIN
+  ALTER TABLE sales_leads ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS sales_leads_own ON sales_leads;
+  CREATE POLICY sales_leads_own ON sales_leads FOR ALL USING (sales_rep_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'sales_leads RLS: %', SQLERRM; END $$;
 
-CREATE POLICY invoices_admin_manage ON invoices
-  FOR ALL USING (is_admin());
+-- 15. conversations (participant_ids UUID[])
+DO $$ BEGIN
+  ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS conversations_participants ON conversations;
+  CREATE POLICY conversations_participants ON conversations FOR ALL USING (
+    auth.uid() = ANY(participant_ids) OR is_admin()
+  );
+EXCEPTION WHEN others THEN RAISE NOTICE 'conversations RLS: %', SQLERRM; END $$;
 
--- ============================================================
--- 13. TABLE: payouts  (colonne: influencer_id, pas user_id)
--- ============================================================
-ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS payouts_own ON payouts;
-DROP POLICY IF EXISTS payouts_create_own ON payouts;
-DROP POLICY IF EXISTS payouts_admin_manage ON payouts;
-
-CREATE POLICY payouts_own ON payouts
-  FOR SELECT USING (influencer_id = auth.uid() OR is_admin());
-
-CREATE POLICY payouts_create_own ON payouts
-  FOR INSERT WITH CHECK (influencer_id = auth.uid());
-
-CREATE POLICY payouts_admin_manage ON payouts
-  FOR UPDATE USING (is_admin());
-
--- ============================================================
--- 14. TABLE: sales_leads  (colonne: sales_rep_id)
--- ============================================================
-ALTER TABLE sales_leads ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS sales_leads_own ON sales_leads;
-
-CREATE POLICY sales_leads_own ON sales_leads
-  FOR ALL USING (
-    sales_rep_id = auth.uid()
+-- 16. messages
+DO $$ BEGIN
+  ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS messages_participants ON messages;
+  DROP POLICY IF EXISTS messages_create       ON messages;
+  CREATE POLICY messages_participants ON messages FOR SELECT USING (
+    conversation_id IN (SELECT id FROM conversations WHERE auth.uid() = ANY(participant_ids))
     OR is_admin()
   );
+  CREATE POLICY messages_create ON messages FOR INSERT WITH CHECK (sender_id = auth.uid());
+EXCEPTION WHEN others THEN RAISE NOTICE 'messages RLS: %', SQLERRM; END $$;
 
--- ============================================================
--- 15. TABLE: conversations  (colonne: participant_ids UUID[])
--- ============================================================
-ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+-- 17. api_keys
+DO $$ BEGIN
+  ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS api_keys_own ON api_keys;
+  CREATE POLICY api_keys_own ON api_keys FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'api_keys RLS: %', SQLERRM; END $$;
 
-DROP POLICY IF EXISTS conversations_participants ON conversations;
+-- 18. bot_conversations
+DO $$ BEGIN
+  ALTER TABLE bot_conversations ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS bot_conversations_own ON bot_conversations;
+  CREATE POLICY bot_conversations_own ON bot_conversations FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'bot_conversations RLS: %', SQLERRM; END $$;
 
-CREATE POLICY conversations_participants ON conversations
-  FOR ALL USING (
-    auth.uid() = ANY(participant_ids)
-    OR is_admin()
-  );
+-- 19. bot_feedback
+DO $$ BEGIN
+  ALTER TABLE bot_feedback ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS bot_feedback_own ON bot_feedback;
+  CREATE POLICY bot_feedback_own ON bot_feedback FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'bot_feedback RLS: %', SQLERRM; END $$;
 
--- ============================================================
--- 16. TABLE: messages
--- ============================================================
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+-- 20. import_jobs
+DO $$ BEGIN
+  ALTER TABLE import_jobs ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS import_jobs_own ON import_jobs;
+  CREATE POLICY import_jobs_own ON import_jobs FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'import_jobs RLS: %', SQLERRM; END $$;
 
-DROP POLICY IF EXISTS messages_participants ON messages;
+-- 21. push_subscriptions
+DO $$ BEGIN
+  ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS push_subscriptions_own ON push_subscriptions;
+  CREATE POLICY push_subscriptions_own ON push_subscriptions FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'push_subscriptions RLS: %', SQLERRM; END $$;
 
-CREATE POLICY messages_participants ON messages
-  FOR SELECT USING (
-    conversation_id IN (
-      SELECT id FROM conversations
-      WHERE auth.uid() = ANY(participant_ids)
-    ) OR is_admin()
-  );
+-- 22. fiscal_email_settings
+DO $$ BEGIN
+  ALTER TABLE fiscal_email_settings ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS fiscal_email_settings_own ON fiscal_email_settings;
+  CREATE POLICY fiscal_email_settings_own ON fiscal_email_settings FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'fiscal_email_settings RLS: %', SQLERRM; END $$;
 
-CREATE POLICY messages_create ON messages
-  FOR INSERT WITH CHECK (sender_id = auth.uid());
-
--- ============================================================
--- 17. TABLE: api_keys
--- ============================================================
-ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS api_keys_own ON api_keys;
-
-CREATE POLICY api_keys_own ON api_keys
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 18. TABLE: bot_conversations
--- ============================================================
-ALTER TABLE bot_conversations ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS bot_conversations_own ON bot_conversations;
-
-CREATE POLICY bot_conversations_own ON bot_conversations
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 19. TABLE: bot_feedback
--- ============================================================
-ALTER TABLE bot_feedback ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS bot_feedback_own ON bot_feedback;
-
-CREATE POLICY bot_feedback_own ON bot_feedback
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 20. TABLE: import_jobs
--- ============================================================
-ALTER TABLE import_jobs ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS import_jobs_own ON import_jobs;
-
-CREATE POLICY import_jobs_own ON import_jobs
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 21. TABLE: push_subscriptions
--- ============================================================
-ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS push_subscriptions_own ON push_subscriptions;
-
-CREATE POLICY push_subscriptions_own ON push_subscriptions
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 22. TABLE: fiscal_email_settings
--- ============================================================
-ALTER TABLE fiscal_email_settings ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS fiscal_email_settings_own ON fiscal_email_settings;
-
-CREATE POLICY fiscal_email_settings_own ON fiscal_email_settings
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 23. TABLE: notification_preferences (si elle existe)
--- ============================================================
+-- 23. notification_preferences
 DO $$ BEGIN
   ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
-EXCEPTION WHEN undefined_table THEN
-  RAISE NOTICE 'Table notification_preferences non trouvée, ignorée.';
-END $$;
+  DROP POLICY IF EXISTS notification_preferences_own ON notification_preferences;
+  CREATE POLICY notification_preferences_own ON notification_preferences FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'notification_preferences RLS: %', SQLERRM; END $$;
 
-DROP POLICY IF EXISTS notification_preferences_own ON notification_preferences;
-
-DO $$ BEGIN
-  CREATE POLICY notification_preferences_own ON notification_preferences
-    FOR ALL USING (user_id = auth.uid() OR is_admin());
-EXCEPTION WHEN undefined_table THEN NULL;
-END $$;
-
--- ============================================================
--- 24. TABLE: product_reviews (si elle existe)
--- ============================================================
+-- 24. product_reviews
 DO $$ BEGIN
   ALTER TABLE product_reviews ENABLE ROW LEVEL SECURITY;
-EXCEPTION WHEN undefined_table THEN
-  RAISE NOTICE 'Table product_reviews non trouvée, ignorée.';
-  RETURN;
-END $$;
+  DROP POLICY IF EXISTS product_reviews_select ON product_reviews;
+  DROP POLICY IF EXISTS product_reviews_create ON product_reviews;
+  DROP POLICY IF EXISTS product_reviews_admin  ON product_reviews;
+  CREATE POLICY product_reviews_select ON product_reviews FOR SELECT USING (status = 'approved' OR user_id = auth.uid() OR is_admin());
+  CREATE POLICY product_reviews_create ON product_reviews FOR INSERT WITH CHECK (user_id = auth.uid());
+  CREATE POLICY product_reviews_admin  ON product_reviews FOR UPDATE USING (is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'product_reviews RLS: %', SQLERRM; END $$;
 
-DROP POLICY IF EXISTS product_reviews_select ON product_reviews;
-DROP POLICY IF EXISTS product_reviews_create ON product_reviews;
-DROP POLICY IF EXISTS product_reviews_admin ON product_reviews;
-
+-- 25. media_platforms
 DO $$ BEGIN
-  CREATE POLICY product_reviews_select ON product_reviews
-    FOR SELECT USING (status = 'approved' OR user_id = auth.uid() OR is_admin());
-  CREATE POLICY product_reviews_create ON product_reviews
-    FOR INSERT WITH CHECK (user_id = auth.uid());
-  CREATE POLICY product_reviews_admin ON product_reviews
-    FOR UPDATE USING (is_admin());
-EXCEPTION WHEN undefined_table THEN NULL;
-END $$;
+  ALTER TABLE media_platforms ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS media_platforms_own ON media_platforms;
+  CREATE POLICY media_platforms_own ON media_platforms FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'media_platforms RLS: %', SQLERRM; END $$;
 
--- ============================================================
--- 25. TABLE: media_platforms
--- ============================================================
-ALTER TABLE media_platforms ENABLE ROW LEVEL SECURITY;
+-- 26. media_templates
+DO $$ BEGIN
+  ALTER TABLE media_templates ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS media_templates_own           ON media_templates;
+  DROP POLICY IF EXISTS media_templates_public        ON media_templates;
+  DROP POLICY IF EXISTS media_templates_public_select ON media_templates;
+  CREATE POLICY media_templates_own           ON media_templates FOR ALL    USING (user_id = auth.uid() OR is_admin());
+  CREATE POLICY media_templates_public_select ON media_templates FOR SELECT USING (is_public = true);
+EXCEPTION WHEN others THEN RAISE NOTICE 'media_templates RLS: %', SQLERRM; END $$;
 
-DROP POLICY IF EXISTS media_platforms_own ON media_platforms;
+-- 27. media_generated_content
+DO $$ BEGIN
+  ALTER TABLE media_generated_content ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS media_generated_content_own ON media_generated_content;
+  CREATE POLICY media_generated_content_own ON media_generated_content FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'media_generated_content RLS: %', SQLERRM; END $$;
 
-CREATE POLICY media_platforms_own ON media_platforms
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
+-- 28. media_scheduled_posts
+DO $$ BEGIN
+  ALTER TABLE media_scheduled_posts ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS media_scheduled_posts_own ON media_scheduled_posts;
+  CREATE POLICY media_scheduled_posts_own ON media_scheduled_posts FOR ALL USING (user_id = auth.uid() OR is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'media_scheduled_posts RLS: %', SQLERRM; END $$;
 
--- ============================================================
--- 26. TABLE: media_templates
--- ============================================================
-ALTER TABLE media_templates ENABLE ROW LEVEL SECURITY;
+-- 29. subscriptions
+DO $$ BEGIN
+  ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS subscriptions_own          ON subscriptions;
+  DROP POLICY IF EXISTS subscriptions_admin_manage ON subscriptions;
+  CREATE POLICY subscriptions_own          ON subscriptions FOR SELECT USING (user_id = auth.uid() OR is_admin());
+  CREATE POLICY subscriptions_admin_manage ON subscriptions FOR ALL    USING (is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'subscriptions RLS: %', SQLERRM; END $$;
 
-DROP POLICY IF EXISTS media_templates_own ON media_templates;
-DROP POLICY IF EXISTS media_templates_public ON media_templates;
+-- 30. subscription_plans
+DO $$ BEGIN
+  ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS subscription_plans_public ON subscription_plans;
+  DROP POLICY IF EXISTS subscription_plans_admin  ON subscription_plans;
+  CREATE POLICY subscription_plans_public ON subscription_plans FOR SELECT USING (is_active = true OR is_admin());
+  CREATE POLICY subscription_plans_admin  ON subscription_plans FOR ALL    USING (is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'subscription_plans RLS: %', SQLERRM; END $$;
 
-CREATE POLICY media_templates_own ON media_templates
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
+-- 31. daily_analytics
+DO $$ BEGIN
+  ALTER TABLE daily_analytics ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS daily_analytics_admin ON daily_analytics;
+  CREATE POLICY daily_analytics_admin ON daily_analytics FOR ALL USING (is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'daily_analytics RLS: %', SQLERRM; END $$;
 
-CREATE POLICY media_templates_public_select ON media_templates
-  FOR SELECT USING (is_public = true);
+-- 32. system_jobs
+DO $$ BEGIN
+  ALTER TABLE system_jobs ENABLE ROW LEVEL SECURITY;
+  DROP POLICY IF EXISTS system_jobs_admin ON system_jobs;
+  CREATE POLICY system_jobs_admin ON system_jobs FOR ALL USING (is_admin());
+EXCEPTION WHEN others THEN RAISE NOTICE 'system_jobs RLS: %', SQLERRM; END $$;
 
--- ============================================================
--- 27. TABLE: media_generated_content
--- ============================================================
-ALTER TABLE media_generated_content ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS media_generated_content_own ON media_generated_content;
-
-CREATE POLICY media_generated_content_own ON media_generated_content
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 28. TABLE: media_scheduled_posts
--- ============================================================
-ALTER TABLE media_scheduled_posts ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS media_scheduled_posts_own ON media_scheduled_posts;
-
-CREATE POLICY media_scheduled_posts_own ON media_scheduled_posts
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
-
--- ============================================================
--- 29. TABLE: subscriptions
--- ============================================================
-ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS subscriptions_own ON subscriptions;
-
-CREATE POLICY subscriptions_own ON subscriptions
-  FOR SELECT USING (user_id = auth.uid() OR is_admin());
-
-CREATE POLICY subscriptions_admin_manage ON subscriptions
-  FOR ALL USING (is_admin());
-
--- ============================================================
--- 30. TABLE: subscription_plans (lecture publique)
--- ============================================================
-ALTER TABLE subscription_plans ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS subscription_plans_public ON subscription_plans;
-
-CREATE POLICY subscription_plans_public ON subscription_plans
-  FOR SELECT USING (is_active = true OR is_admin());
-
-CREATE POLICY subscription_plans_admin ON subscription_plans
-  FOR ALL USING (is_admin());
-
--- ============================================================
--- 31. TABLE: daily_analytics (admin only)
--- ============================================================
-ALTER TABLE daily_analytics ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS daily_analytics_admin ON daily_analytics;
-
-CREATE POLICY daily_analytics_admin ON daily_analytics
-  FOR ALL USING (is_admin());
-
--- ============================================================
--- 32. TABLE: system_jobs (admin only)
--- ============================================================
-ALTER TABLE system_jobs ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS system_jobs_admin ON system_jobs;
-
-CREATE POLICY system_jobs_admin ON system_jobs
-  FOR ALL USING (is_admin());
-
--- ============================================================
--- GRANT service_role bypass RLS (pour le backend Python)
--- IMPORTANT: Le backend utilise la service_role key qui bypass RLS
--- RLS s'applique uniquement aux appels client (anon/authenticated)
--- ============================================================
--- Note: Supabase service_role key bypasse automatiquement RLS.
--- Aucune action supplémentaire nécessaire pour le backend.
-
--- ============================================================
--- VÉRIFICATION : lister les tables avec RLS activé
--- ============================================================
-SELECT
-    schemaname,
-    tablename,
-    rowsecurity AS rls_enabled
+-- Verification
+SELECT tablename, rowsecurity AS rls_enabled
 FROM pg_tables
 WHERE schemaname = 'public'
 ORDER BY tablename;
