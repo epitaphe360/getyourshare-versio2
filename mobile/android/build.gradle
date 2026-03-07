@@ -6,9 +6,9 @@ buildscript {
     mavenCentral()
   }
   dependencies {
-    classpath('com.android.tools.build:gradle')
+    classpath('com.android.tools.build:gradle:7.4.2')
     classpath('com.facebook.react:react-native-gradle-plugin')
-    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin')
+    classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:1.8.22')
   }
 }
 
@@ -18,7 +18,46 @@ allprojects {
     mavenCentral()
     maven { url 'https://www.jitpack.io' }
   }
+  configurations.all {
+    resolutionStrategy {
+      force 'androidx.core:core:1.12.0'
+      force 'androidx.core:core-ktx:1.12.0'
+      force 'androidx.webkit:webkit:1.8.0'
+      force 'androidx.activity:activity:1.8.0'
+      force 'androidx.activity:activity-ktx:1.8.0'
+      force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+      force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+      force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+      force 'androidx.appcompat:appcompat:1.6.1'
+    }
+  }
 }
 
-apply plugin: "expo-root-project"
-apply plugin: "com.facebook.react.rootproject"
+subprojects {
+  afterEvaluate { project ->
+    if (project.hasProperty('android')) {
+      project.android {
+        compileOptions {
+          sourceCompatibility JavaVersion.VERSION_11
+          targetCompatibility JavaVersion.VERSION_11
+        }
+      }
+    }
+    if (project.plugins.hasPlugin('org.jetbrains.kotlin.android')) {
+      project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
+        kotlinOptions {
+          jvmTarget = '11'
+        }
+      }
+    }
+  }
+}
+
+ext {
+    buildToolsVersion = "34.0.0"
+    minSdkVersion = 23
+    compileSdkVersion = 34
+    targetSdkVersion = 34
+    ndkVersion = "25.1.8937393"
+    hermesEnabled = true
+}
