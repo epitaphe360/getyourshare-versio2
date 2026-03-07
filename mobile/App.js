@@ -12,6 +12,7 @@ import {AuthProvider} from './src/contexts/AuthContext';
 import {ToastProvider} from './src/contexts/ToastContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import theme from './src/utils/theme';
+import notifications from './src/services/notifications';
 
 // Ignore specific warnings
 LogBox.ignoreLogs([
@@ -19,6 +20,12 @@ LogBox.ignoreLogs([
 ]);
 
 const App = () => {
+  // Initialiser les canaux de notification au démarrage
+  React.useEffect(() => {
+    notifications.init();
+    notifications.requestPermission();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{flex: 1}}>
       <PaperProvider theme={theme}>

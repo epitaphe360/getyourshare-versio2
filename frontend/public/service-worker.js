@@ -6,9 +6,24 @@
  * Support: Marchands, Influenceurs, Commerciaux
  */
 
-const CACHE_NAME = 'getyourshare-v2.0.0';
-const API_CACHE = 'getyourshare-api-v2';
-const RUNTIME_CACHE = 'getyourshare-runtime-v2';
+const CACHE_NAME = 'getyourshare-v3.0.0';
+const API_CACHE = 'getyourshare-api-v3';
+const RUNTIME_CACHE = 'getyourshare-runtime-v3';
+
+// Endpoints API à mettre en cache pour lecture hors-ligne (stale-while-revalidate)
+const CACHEABLE_API_PATTERNS = [
+  /\/api\/influencer\/stats/,
+  /\/api\/merchant\/stats/,
+  /\/api\/admin\/stats/,
+  /\/api\/marketplace\/products/,
+  /\/api\/influencer\/tracking-links/,
+  /\/api\/merchant\/products/,
+  /\/api\/notifications/,
+  /\/api\/influencer\/analytics/,
+  /\/api\/merchant\/analytics/,
+  /\/api\/influencer\/conversions/,
+  /\/api\/merchant\/conversions/,
+];
 const urlsToCache = [
   '/',
   '/index.html',
@@ -41,9 +56,10 @@ self.addEventListener('activate', (event) => {
 
   event.waitUntil(
     caches.keys().then((cacheNames) => {
+      const validCaches = [CACHE_NAME, API_CACHE, RUNTIME_CACHE];
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (!validCaches.includes(cacheName)) {
             console.log('[Service Worker] Suppression ancien cache:', cacheName);
             return caches.delete(cacheName);
           }
@@ -65,9 +81,34 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Ignorer les requêtes vers l'API backend (toujours fetch)
+  const url = new URL(request.url);
+
+  // ── API : Stale-While-Revalidate pour les endpoints cachéables ────────────
   if (request.url.includes('/api/')) {
-    return fetch(request);
+    const isCacheable = CACHEABLE_API_PATTERNS.some((p) => p.test(url.pathname));
+
+    if (isCacheable) {
+      event.respondWith(
+        caches.open(API_CACHE).then((cache) =>
+          cache.match(request).then((cached) => {
+            const fetchPromise = fetch(request)
+              .then((networkRes) => {
+                if (networkRes.ok) {
+                  cache.put(request, networkRes.clone());
+                }
+                return networkRes;
+              })
+              .catch(() => cached); // réseau mort → retourner le cache
+            // Retourner immédiatement le cache si disponible, puis mettre à jour en fond
+            return cached || fetchPromise;
+          })
+        )
+      );
+      return;
+    }
+
+    // API non-cachéable : toujours réseau
+    return;
   }
 
   event.respondWith(

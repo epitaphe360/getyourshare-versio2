@@ -15,6 +15,7 @@ import LoadingFallback from './components/LoadingFallback';
 import GlobalSearch from './components/GlobalSearch';
 import performanceUtils from './utils/performance';
 import { usePerformanceMonitor } from './hooks/usePerformance';
+import PWABanner from './components/PWABanner';
 import './App.css';
 
 // ============================================================================
@@ -1446,6 +1447,9 @@ function App() {
               message="Bonjour! Je suis intéressé par la plateforme ShareYourSales."
               position="left"
             />
+
+            {/* Bannière PWA — installation, mise à jour, hors-ligne */}
+            <PWABanner />
 
             {/* Bannière Cookies (RGPD) */}
             <CookieConsent />
