@@ -140,25 +140,28 @@ CREATE POLICY conversions_admin_update ON conversions
   FOR UPDATE USING (is_admin());
 
 -- ============================================================
--- 8. TABLE: tracking_links
+-- 8. TABLE: tracking_links  (colonne: influencer_id, pas user_id)
 -- ============================================================
 ALTER TABLE tracking_links ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tracking_links_own ON tracking_links;
 
 CREATE POLICY tracking_links_own ON tracking_links
-  FOR ALL USING (user_id = auth.uid() OR is_admin());
+  FOR ALL USING (influencer_id = auth.uid() OR is_admin());
 
 -- ============================================================
--- 9. TABLE: tracking_events
+-- 9. TABLE: tracking_events  (pas de user_id — accès via appartenance du lien)
 -- ============================================================
 ALTER TABLE tracking_events ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tracking_events_own ON tracking_events;
+DROP POLICY IF EXISTS tracking_events_insert_all ON tracking_events;
 
 CREATE POLICY tracking_events_own ON tracking_events
   FOR SELECT USING (
-    user_id = auth.uid()
+    tracking_link_id IN (
+      SELECT id FROM tracking_links WHERE influencer_id = auth.uid()
+    )
     OR is_admin()
   );
 
