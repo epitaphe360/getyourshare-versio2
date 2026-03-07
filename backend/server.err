@@ -101,3 +101,11 @@ INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/us
 INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.44444444-4444-4444-4444-444444444444 "HTTP/2 200 OK"
 INFO:server:🌍 Incoming request from Origin: None -> GET /static/css/main.css
 INFO:server:🌍 Incoming request from Origin: None -> GET /static/js/main.js
+INFO:server:🌍 Incoming request from Origin: None -> GET /static/css/main.css
+INFO:server:🌍 Incoming request from Origin: None -> GET /static/js/main.js
+INFO:server:🌍 Incoming request from Origin: http://localhost:3000 -> GET /subscription-plans
+INFO:server:🌍 Incoming request from Origin: http://localhost:3000 -> GET /subscription-plans
+INFO:server:🌍 Incoming request from Origin: http://localhost:3000 -> GET /api/marketplace/products
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=%2A "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: http://localhost:3000 -> GET /api/marketplace/products
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/products?select=%2A "HTTP/2 200 OK"

@@ -147,21 +147,31 @@ async def get_marketplace_products(
             pass  # May need to handle this differently
 
         # Tri
-        # if sort_by == "price":
-        #     sort_field = "current_price"
-        # elif sort_by == "rating":
-        #     sort_field = "rating"  # May need adjustment if field name differs
-        # elif sort_by == "sold_count":
-        #     sort_field = "sales_count"  # Adjust to actual field name
-        # elif sort_by == "discount":
-        #     sort_field = "discount"  # Adjust to actual field name
-        # else:
-        #     sort_field = "created_at"
+        sort_field = "created_at"
+        if sort_by == "price":
+            sort_field = "price"
+        elif sort_by == "rating":
+            sort_field = "rating"
+        elif sort_by == "sold_count":
+            sort_field = "sold_count"
+        elif sort_by == "discount":
+            sort_field = "discount"
 
-        # query = query.order(sort_field, desc=(order == 'desc'))
+        query = query.order(sort_field, desc=(order == 'desc'))
+
+        # Compter le total AVANT pagination (requête séparée)
+        count_query = supabase.table('products').select('id', count='exact')
+        if search:
+            count_query = build_or_search(count_query, ['name', 'description'], search)
+        if min_price:
+            count_query = count_query.gte('price', min_price)
+        if max_price:
+            count_query = count_query.lte('price', max_price)
+        count_result = count_query.execute()
+        total_count = count_result.count if count_result.count is not None else len(count_result.data or [])
 
         # Pagination
-        # query = query.range(offset, offset + limit - 1)
+        query = query.range(offset, offset + limit - 1)
 
         # Exécuter
         result = query.execute()
@@ -172,17 +182,19 @@ async def get_marketplace_products(
         for p in products:
             p['remuneration_model'] = 'commission'
             p['commission_type'] = 'percentage'
-            # Ensure commission_percentage is present or default to something
             if 'commission_percentage' not in p:
                 p['commission_percentage'] = 0
+
+        import math
+        total_pages = math.ceil(total_count / limit) if total_count > 0 else 1
 
         return {
             "success": True,
             "products": products,
-            "total": len(result.data) if result.data else 0, # result.count is not available without count='exact'
+            "total": total_count,
             "page": page,
             "limit": limit,
-            "total_pages": 1 # Simplified
+            "total_pages": total_pages
         }
 
     except Exception as e:

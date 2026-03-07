@@ -8,8 +8,10 @@ import CollaborationRequestModal from '../components/modals/CollaborationRequest
 import './MarketplaceAnimations.css';
 import {
   Search, MapPin, Star, TrendingUp, Users, 
-  ShoppingBag, Briefcase, Instagram, ChevronRight, Store, ArrowLeft
+  ShoppingBag, Briefcase, Instagram, ChevronRight, ChevronLeft, Store, ArrowLeft
 } from 'lucide-react';
+
+const ITEMS_PER_PAGE = 10;
 
 const MarketplaceGroupon = () => {
   const navigate = useNavigate();
@@ -30,6 +32,9 @@ const MarketplaceGroupon = () => {
   const [showCollabModal, setShowCollabModal] = useState(false);
   const [selectedInfluencer, setSelectedInfluencer] = useState(null);
   const [merchantProducts, setMerchantProducts] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Fonction pour calculer la commission d'affiliation selon la logique implémentée
   const calculateAffiliateCommission = (price) => {
@@ -82,8 +87,14 @@ const MarketplaceGroupon = () => {
 
   useEffect(() => {
     setViewMode('list');
-    loadTabData();
+    setCurrentPage(1);
+    setTotalPages(1);
+    setTotalItems(0);
   }, [currentTab]);
+
+  useEffect(() => {
+    loadTabData();
+  }, [currentTab, currentPage]);
 
   useEffect(() => {
     // Charger les produits du marchand si connecté en tant que merchant
@@ -140,20 +151,35 @@ const MarketplaceGroupon = () => {
     setLoading(true);
     try {
       if (currentTab === 0) {
-        const res = await api.get('/api/marketplace/products?limit=20');
+        // Produits — pagination serveur
+        const res = await api.get(`/api/marketplace/products?page=${currentPage}&limit=${ITEMS_PER_PAGE}`);
         setProducts(res.data.products || []);
+        setTotalPages(res.data.total_pages || 1);
+        setTotalItems(res.data.total || 0);
       } else if (currentTab === 1) {
-        const res = await api.get('/api/services?limit=20');
-        setServices(res.data.services || []);
+        const res = await api.get('/api/services?limit=200');
+        const all = res.data.services || [];
+        setTotalItems(all.length);
+        setTotalPages(Math.ceil(all.length / ITEMS_PER_PAGE) || 1);
+        setServices(all);
       } else if (currentTab === 2) {
-        const res = await api.get('/api/commercials/directory?limit=20');
-        setCommercials(res.data.commercials || []);
+        const res = await api.get('/api/commercials/directory?limit=200');
+        const all = res.data.commercials || [];
+        setTotalItems(all.length);
+        setTotalPages(Math.ceil(all.length / ITEMS_PER_PAGE) || 1);
+        setCommercials(all);
       } else if (currentTab === 3) {
-        const res = await api.get('/api/influencers/directory?limit=20');
-        setInfluencers(res.data.influencers || []);
+        const res = await api.get('/api/influencers/directory?limit=200');
+        const all = res.data.influencers || [];
+        setTotalItems(all.length);
+        setTotalPages(Math.ceil(all.length / ITEMS_PER_PAGE) || 1);
+        setInfluencers(all);
       } else if (currentTab === 4) {
         const res = await api.get('/api/merchants');
-        setMerchants(res.data.merchants || []);
+        const all = res.data.merchants || [];
+        setTotalItems(all.length);
+        setTotalPages(Math.ceil(all.length / ITEMS_PER_PAGE) || 1);
+        setMerchants(all);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -208,6 +234,84 @@ const MarketplaceGroupon = () => {
     setViewMode('list');
     setSelectedMerchant(null);
     setSelectedMerchantProducts([]);
+  };
+
+  // Pagination des données côté client (pour les onglets non-produits)
+  const paginateClient = (items) => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return items.slice(start, start + ITEMS_PER_PAGE);
+  };
+
+  const paginatedServices = paginateClient(services);
+  const paginatedCommercials = paginateClient(commercials);
+  const paginatedInfluencers = paginateClient(influencers);
+  const paginatedMerchants = paginateClient(merchants);
+
+  // Composant de pagination
+  const PaginationBar = () => {
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const maxVisible = 5;
+      let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+      let end = Math.min(totalPages, start + maxVisible - 1);
+      if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+      for (let i = start; i <= end; i++) pages.push(i);
+      return pages;
+    };
+
+    return (
+      <div className="flex items-center justify-center gap-2 mt-10 mb-4">
+        <button
+          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+          disabled={currentPage === 1}
+          className="flex items-center gap-1 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
+        >
+          <ChevronLeft size={16} /> Précédent
+        </button>
+
+        {getPageNumbers()[0] > 1 && (
+          <>
+            <button onClick={() => setCurrentPage(1)} className="w-10 h-10 rounded-xl font-semibold text-sm bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm">1</button>
+            {getPageNumbers()[0] > 2 && <span className="text-gray-400 px-1">...</span>}
+          </>
+        )}
+
+        {getPageNumbers().map(page => (
+          <button
+            key={page}
+            onClick={() => setCurrentPage(page)}
+            className={`w-10 h-10 rounded-xl font-bold text-sm transition-all duration-200 shadow-sm ${
+              currentPage === page
+                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-110'
+                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+            }`}
+          >
+            {page}
+          </button>
+        ))}
+
+        {getPageNumbers()[getPageNumbers().length - 1] < totalPages && (
+          <>
+            {getPageNumbers()[getPageNumbers().length - 1] < totalPages - 1 && <span className="text-gray-400 px-1">...</span>}
+            <button onClick={() => setCurrentPage(totalPages)} className="w-10 h-10 rounded-xl font-semibold text-sm bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 shadow-sm">{totalPages}</button>
+          </>
+        )}
+
+        <button
+          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+          disabled={currentPage === totalPages}
+          className="flex items-center gap-1 px-4 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm"
+        >
+          Suivant <ChevronRight size={16} />
+        </button>
+
+        <span className="ml-4 text-sm text-gray-500">
+          Page {currentPage} sur {totalPages} ({totalItems} résultats)
+        </span>
+      </div>
+    );
   };
 
   // Contenu principal du marketplace
@@ -429,13 +533,15 @@ const MarketplaceGroupon = () => {
                   </div>
                 ))}
               </div>
+              <PaginationBar />
               </>
             )}
 
             {/* Tab 1: Services */}
             {currentTab === 1 && (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {services.map((service) => (
+                {paginatedServices.map((service) => (
                   <div
                     key={service.id}
                     className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all cursor-pointer group"
@@ -490,12 +596,15 @@ const MarketplaceGroupon = () => {
                   </div>
                 ))}
               </div>
+              <PaginationBar />
+              </>
             )}
 
             {/* Tab 2: Commerciaux */}
             {currentTab === 2 && (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {commercials.map((commercial) => (
+                {paginatedCommercials.map((commercial) => (
                   <div
                     key={commercial.id}
                     className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group"
@@ -579,12 +688,15 @@ const MarketplaceGroupon = () => {
                   </div>
                 ))}
               </div>
+              <PaginationBar />
+              </>
             )}
 
             {/* Tab 3: Influenceurs */}
             {currentTab === 3 && (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {influencers.map((influencer) => (
+                {paginatedInfluencers.map((influencer) => (
                   <div
                     key={influencer.id}
                     className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group"
@@ -727,12 +839,15 @@ const MarketplaceGroupon = () => {
                   </div>
                 ))}
               </div>
+              <PaginationBar />
+              </>
             )}
 
             {/* Tab 4: Marchands */}
             {currentTab === 4 && viewMode === 'list' && (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {merchants.map((merchant) => (
+                {paginatedMerchants.map((merchant) => (
                   <div
                     key={merchant.id}
                     className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group"
@@ -803,6 +918,8 @@ const MarketplaceGroupon = () => {
                   </div>
                 ))}
               </div>
+              <PaginationBar />
+              </>
             )}
 
             {/* Détails du Marchand (View Mode: merchant_details) */}

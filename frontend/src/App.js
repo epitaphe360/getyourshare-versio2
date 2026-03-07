@@ -322,8 +322,8 @@ function App() {
                 <Route path="/landing-new" element={<LandingPageNew />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/pricing-v3" element={<PricingV3 />} />
+                <Route path="/pricing" element={<PublicLayout><Pricing /></PublicLayout>} />
+                <Route path="/pricing-v3" element={<PublicLayout><PricingV3 /></PublicLayout>} />
                 <Route path="/marketplace-4tabs" element={<MarketplaceFourTabs />} />
                 <Route path="/marketplace" element={<PublicLayout><MarketplaceGroupon /></PublicLayout>} />
                 {/* Route Marketplace pour le Dashboard (garder le layout) */}
