@@ -61,3 +61,43 @@ ERROR:server:⏰ Scheduler non disponible (import failed or disabled)
 INFO:server:✅ Serveur prêt
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8003 (Press CTRL+C to quit)
+INFO:server:🌍 Incoming request from Origin: None -> GET /health
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id&limit=1 "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for admin@getyourshare.com
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.admin%40getyourshare.com "HTTP/2 200 OK"
+ERROR:GetYourShare:Error verifying [REDACTED_PASSWORD] salt
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for admin@getyourshare.com
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.admin%40getyourshare.com "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.7909c3ac-8176-412f-a439-9d06f9d72d3e "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for influencer1@fashion.com
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.influencer1%40fashion.com "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for merchant1@fashionstore.com
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.33333333-3333-3333-3333-333333333333 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.merchant1%40fashionstore.com "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for commercial1@getyourshare.com
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.22222222-2222-2222-2222-222222222222 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.commercial1%40getyourshare.com "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.44444444-4444-4444-4444-444444444444 "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for admin@getyourshare.com
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.admin%40getyourshare.com "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for influencer1@fashion.com
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.7909c3ac-8176-412f-a439-9d06f9d72d3e "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.influencer1%40fashion.com "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for merchant1@fashionstore.com
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.33333333-3333-3333-3333-333333333333 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.merchant1%40fashionstore.com "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> POST /api/auth/login
+INFO:server:Login attempt for commercial1@getyourshare.com
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.22222222-2222-2222-2222-222222222222 "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: GET https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?select=id%2Cemail%2Cpassword_hash%2Crole%2Cis_active%2Ctwo_fa_enabled&email=eq.commercial1%40getyourshare.com "HTTP/2 200 OK"
+INFO:httpx:HTTP Request: PATCH https://iamezkmapbhlhhvvsits.supabase.co/rest/v1/users?id=eq.44444444-4444-4444-4444-444444444444 "HTTP/2 200 OK"
+INFO:server:🌍 Incoming request from Origin: None -> GET /static/css/main.css
+INFO:server:🌍 Incoming request from Origin: None -> GET /static/js/main.js
