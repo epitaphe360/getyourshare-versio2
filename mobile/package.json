@@ -4,8 +4,8 @@
   "description": "ShareYourSales Mobile App - iOS & Android",
   "main": "index.js",
   "scripts": {
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "start": "react-native start",
     "test": "jest",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint .",
@@ -23,6 +23,7 @@
     "@react-navigation/stack": "^6.3.20",
     "axios": "^1.6.2",
     "date-fns": "^2.30.0",
+    "expo": "^55.0.5",
     "formik": "^2.4.5",
     "react": "18.2.0",
     "react-native": "0.72.6",

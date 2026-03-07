@@ -1,4 +1,7 @@
 {
   "name": "ShareYourSales",
-  "displayName": "ShareYourSales"
+  "displayName": "ShareYourSales",
+  "android": {
+    "package": "com.anonymous.shareyoursales"
+  }
 }
