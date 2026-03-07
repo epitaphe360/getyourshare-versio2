@@ -16,6 +16,10 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+# Sentry — initialiser immédiatement après chargement .env
+from monitoring import init_sentry
+init_sentry()
+
 from fastapi import FastAPI, HTTPException, Depends, status, Request, Response, Query, BackgroundTasks, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, StreamingResponse
@@ -683,6 +687,10 @@ app.include_router(ai_routes_router)  # AI Recommendations & Insights
 app.include_router(live_shopping_enhanced_router)  # Live Shopping Enhanced (Instagram, TikTok, YouTube, Facebook)
 app.include_router(whatsapp_router)
 app.include_router(tiktok_shop_router)
+
+# Health check
+from health import router as health_router
+app.include_router(health_router)
 
 # Module Factures Influenceurs - Pour récupérer les factures pour les impôts
 try:

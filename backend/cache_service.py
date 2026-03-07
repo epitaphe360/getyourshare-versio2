@@ -13,7 +13,8 @@ logger = logging.getLogger(__name__)
 
 # Configuration Redis
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
-CACHE_ENABLED = os.getenv("CACHE_ENABLED", "false").lower() == "true"
+# Cache activé par défaut avec fallback mémoire (pas besoin de Redis en dev)
+CACHE_ENABLED = os.getenv("CACHE_ENABLED", "true").lower() == "true"
 
 
 class CacheService:
