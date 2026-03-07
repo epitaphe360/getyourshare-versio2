@@ -286,7 +286,17 @@ async def create_review(
             )
 
         # Mettre à jour la note moyenne du produit
-        # TODO: Calculer et mettre à jour la moyenne
+        try:
+            all_reviews_res = supabase.table('product_reviews').select('rating').eq('product_id', product_id).execute()
+            all_reviews = all_reviews_res.data or []
+            if all_reviews:
+                avg_rating = round(sum(float(r['rating']) for r in all_reviews) / len(all_reviews), 2)
+                supabase.table('products').update({
+                    'rating': avg_rating,
+                    'review_count': len(all_reviews)
+                }).eq('id', product_id).execute()
+        except Exception as rating_err:
+            logger.error(f"Error updating product rating: {rating_err}")
 
         return {
             'success': True,

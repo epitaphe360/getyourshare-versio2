@@ -485,4 +485,18 @@ def task_success_callback(result):
 def task_failure_callback(task_id, exc, traceback):
     """Callback appelé quand une tâche échoue"""
     logger.error(f"❌ Task {task_id} failed: {exc}\n{traceback}")
-    # TODO: Envoyer notification aux admins
+    # Envoyer notification aux admins
+    try:
+        import os, resend
+        resend_key = os.getenv("RESEND_API_KEY", "")
+        admin_email = os.getenv("ADMIN_EMAIL", "admin@getyourshare.ma")
+        if resend_key and admin_email:
+            resend.api_key = resend_key
+            resend.Emails.send({
+                "from": "noreply@getyourshare.ma",
+                "to": admin_email,
+                "subject": f"[GetYourShare] Tâche Celery échouée : {task_id}",
+                "html": f"<p><strong>Tâche :</strong> {task_id}</p><p><strong>Erreur :</strong> {exc}</p><pre>{traceback}</pre>"
+            })
+    except Exception:
+        pass

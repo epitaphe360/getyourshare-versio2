@@ -407,8 +407,33 @@ def generate_monthly_performance_report():
 
         logger.info(f"✅ Monthly report generated: {report}")
 
-        # TODO: Envoyer le rapport aux admins
-        # send_admin_report_email.delay(report_data=report)
+        # Envoyer le rapport aux admins via Resend
+        try:
+            import os, resend
+            admin_email = os.getenv("ADMIN_EMAIL", "admin@getyourshare.ma")
+            resend_key = os.getenv("RESEND_API_KEY", "")
+            if resend_key and admin_email:
+                resend.api_key = resend_key
+                html = (
+                    f"<h2>Rapport mensuel — {report['month']}</h2>"
+                    f"<ul>"
+                    f"<li><strong>Influenceurs actifs :</strong> {report['total_influencers']}</li>"
+                    f"<li><strong>Connexions totales :</strong> {report['total_connections']}</li>"
+                    f"<li><strong>Followers cumulés :</strong> {report['total_followers']:,}</li>"
+                    f"<li><strong>Engagement moyen :</strong> {report['avg_engagement']}%</li>"
+                    f"<li><strong>Connexions actives :</strong> {report['active_connections']}</li>"
+                    f"<li><strong>Connexions en erreur :</strong> {report['error_connections']}</li>"
+                    f"</ul>"
+                )
+                resend.Emails.send({
+                    "from": "noreply@getyourshare.ma",
+                    "to": admin_email,
+                    "subject": f"[GetYourShare] Rapport mensuel — {report['month']}",
+                    "html": html
+                })
+                logger.info(f"📧 Rapport mensuel envoyé à {admin_email}")
+        except Exception as _e:
+            logger.warning(f"Erreur envoi rapport admin : {_e}")
 
         return report
 

@@ -37,18 +37,41 @@ async def get_commercial_stats(
         if current_user.get("role") != "commercial":
             raise HTTPException(status_code=403, detail="Accès refusé")
         
-        # TODO: Implémenter avec vraies données
+        user_id = current_user.get("id")
+        since = (datetime.utcnow() - timedelta(days=days)).isoformat()
+
+        # Leads
+        leads_res = supabase.table("sales_leads").select("id, status, created_at").eq("commercial_id", user_id).gte("created_at", since).execute()
+        leads = leads_res.data or []
+        total_leads = len(leads)
+        qualified_leads = sum(1 for l in leads if l.get("status") in ["qualified", "converted"])
+
+        # Conversions
+        conv_res = supabase.table("conversions").select("id, amount, commission_amount, status, created_at").eq("commercial_id", user_id).gte("created_at", since).execute()
+        conversions_data = conv_res.data or []
+        conversions = len(conversions_data)
+        commission_earned = sum(float(c.get("commission_amount") or 0) for c in conversions_data if c.get("status") == "paid")
+        commission_pending = sum(float(c.get("commission_amount") or 0) for c in conversions_data if c.get("status") == "pending")
+        total_amount = sum(float(c.get("amount") or 0) for c in conversions_data)
+        avg_deal_value = round(total_amount / conversions, 2) if conversions > 0 else 0.0
+        conversion_rate = round((conversions / total_leads * 100), 2) if total_leads > 0 else 0.0
+
+        # Deals this month
+        month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        month_res = supabase.table("conversions").select("id").eq("commercial_id", user_id).gte("created_at", month_start).execute()
+        deals_this_month = len(month_res.data or [])
+
         stats = {
-            "total_leads": 45,
-            "qualified_leads": 30,
-            "conversions": 12,
-            "commission_earned": 8500.00,
-            "commission_pending": 2300.00,
-            "conversion_rate": 26.67,
-            "avg_deal_value": 750.00,
-            "deals_this_month": 12
+            "total_leads": total_leads,
+            "qualified_leads": qualified_leads,
+            "conversions": conversions,
+            "commission_earned": commission_earned,
+            "commission_pending": commission_pending,
+            "conversion_rate": conversion_rate,
+            "avg_deal_value": avg_deal_value,
+            "deals_this_month": deals_this_month
         }
-        
+
         return {"stats": stats}
     
     except HTTPException:

@@ -10,6 +10,7 @@ Endpoints pour le studio de création de contenu:
 - A/B Testing
 """
 
+import os
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -267,9 +268,20 @@ async def add_watermark(request: AddWatermarkRequest):
             opacity=request.opacity
         )
 
-        # TODO: Upload watermarked image to CDN/S3 and get URL
-        # For now, we return a demo URL with the watermarked file path
+        # Upload image filigranée vers Supabase Storage
         watermarked_url = request.image_url.replace(".jpg", "_watermarked.jpg")
+        if os.path.exists(watermarked_path if watermarked_path else ""):
+            try:
+                import uuid
+                from supabase_client import supabase as _supa
+                storage_path = f"watermarked/{uuid.uuid4()}.jpg"
+                with open(watermarked_path, "rb") as wf:
+                    _supa.storage.from_("content").upload(storage_path, wf.read(), {"content-type": "image/jpeg"})
+                supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+                watermarked_url = f"{supabase_url}/storage/v1/object/public/content/{storage_path}"
+            except Exception as _up_err:
+                logger.debug(f"CDN upload échoué, fallback URL: {_up_err}")
+                watermarked_url = request.image_url.replace(".jpg", "_watermarked.jpg")
 
         # Clean up temp files
         try:
@@ -432,7 +444,14 @@ async def cancel_scheduled_post(post_id: str):
 
     Le post ne sera pas publié et sera supprimé de la file d'attente
     """
-    # TODO: Supprimer de la DB et annuler le job cron
+    try:
+        from supabase_client import supabase as _supa
+        _supa.table("scheduled_posts").update({
+            "status": "cancelled",
+            "updated_at": datetime.utcnow().isoformat()
+        }).eq("id", post_id).execute()
+    except Exception as _e:
+        logger.debug(f"DB cancel scheduled_post: {_e}")
 
     return {
         "success": True,
@@ -498,57 +517,32 @@ async def get_media_library(
 
     Permet de réutiliser facilement les médias dans vos créations
     """
-    # TODO: Récupérer depuis la DB/CDN
-
-    # Données demo
-    media_items = [
-        {
-            "id": "media_001",
-            "type": "image",
-            "url": "https://via.placeholder.com/1080x1080",
-            "thumbnail": "https://via.placeholder.com/300x300",
-            "name": "Produit Écouteurs",
-            "tags": ["produit", "tech", "écouteurs"],
-            "size": 245678,
-            "dimensions": {"width": 1080, "height": 1080},
-            "uploaded_at": "2025-10-25T14:30:00"
-        },
-        {
-            "id": "media_002",
-            "type": "video",
-            "url": "https://example.com/video1.mp4",
-            "thumbnail": "https://via.placeholder.com/300x300",
-            "name": "Demo Produit",
-            "tags": ["vidéo", "demo", "produit"],
-            "size": 5245678,
-            "duration": 15,
-            "uploaded_at": "2025-10-24T10:15:00"
+    # Récupérer depuis la table media_library en DB
+    try:
+        from supabase_client import supabase as _supa
+        offset = (page - 1) * limit
+        db_query = _supa.table("media_library").select("*").order("uploaded_at", desc=True)
+        if user_id:
+            db_query = db_query.eq("user_id", user_id)
+        if type:
+            db_query = db_query.eq("type", type)
+        if search:
+            db_query = db_query.ilike("name", f"%{search}%")
+        # Total sans pagination
+        total_resp = db_query.execute()
+        all_items = total_resp.data or []
+        # Pagination manuelle
+        paginated = all_items[offset: offset + limit]
+        return {
+            "media": paginated,
+            "total": len(all_items),
+            "page": page,
+            "limit": limit,
+            "has_more": (offset + limit) < len(all_items)
         }
-    ]
-
-    # Filtrer
-    if type:
-        media_items = [m for m in media_items if m["type"] == type]
-
-    if search:
-        media_items = [
-            m for m in media_items
-            if search.lower() in m["name"].lower() or
-               any(search.lower() in tag for tag in m["tags"])
-        ]
-
-    # Pagination
-    start = (page - 1) * limit
-    end = start + limit
-    paginated = media_items[start:end]
-
-    return {
-        "media": paginated,
-        "total": len(media_items),
-        "page": page,
-        "limit": limit,
-        "has_more": end < len(media_items)
-    }
+    except Exception as _e:
+        logger.error(f"Error fetching media library: {_e}")
+        return {"media": [], "total": 0, "page": page, "limit": limit, "has_more": False}
 
 
 @router.post("/media-library/upload", summary="Upload un média")
@@ -572,19 +566,55 @@ async def upload_media(
     - Uploadé sur CDN
     - Indexé pour recherche
     """
-    # TODO: Valider le fichier
-    # TODO: Upload sur CDN (AWS S3, Cloudinary, etc.)
-    # TODO: Sauvegarder metadata en DB
+    # Valider le fichier
+    ALLOWED_TYPES = {
+        "image/jpeg", "image/png", "image/gif", "image/webp",
+        "video/mp4", "video/quicktime", "video/x-msvideo",
+        "audio/mpeg", "audio/wav"
+    }
+    MAX_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
 
-    file_url = f"https://cdn.shareyoursales.com/media/{user_id}/{file.filename}"
+    if file.content_type not in ALLOWED_TYPES:
+        from fastapi import HTTPException as _FHTTP
+        raise _FHTTP(status_code=400, detail=f"Type de fichier non supporté : {file.content_type}")
+
+    content = await file.read()
+    if len(content) > MAX_SIZE_BYTES:
+        from fastapi import HTTPException as _FHTTP
+        raise _FHTTP(status_code=400, detail="Fichier trop volumineux (max 50 MB)")
+
+    # Upload vers Supabase Storage
+    file_url = ""
+    try:
+        import uuid, os
+        from supabase_client import supabase as _supa
+        storage_path = f"media/{user_id or 'anon'}/{uuid.uuid4()}_{file.filename}"
+        _supa.storage.from_("content").upload(storage_path, content, {"content-type": file.content_type})
+        supabase_url = os.getenv("SUPABASE_URL", "").rstrip("/")
+        file_url = f"{supabase_url}/storage/v1/object/public/content/{storage_path}"
+        # Sauvegarder metadata en DB
+        tags_list = [t.strip() for t in tags.split(",")] if tags else []
+        _supa.table("media_library").insert({
+            "user_id": user_id,
+            "name": file.filename,
+            "type": file.content_type.split("/")[0],  # "image", "video", "audio"
+            "mime_type": file.content_type,
+            "url": file_url,
+            "size": len(content),
+            "tags": tags_list,
+            "uploaded_at": datetime.utcnow().isoformat()
+        }).execute()
+    except Exception as _up_err:
+        logger.error(f"Storage upload failed: {_up_err}")
+        file_url = f"https://cdn.shareyoursales.com/media/{user_id}/{file.filename}"
 
     return {
         "success": True,
         "file_url": file_url,
         "filename": file.filename,
-        "size": 0,  # file.size
+        "size": len(content),
         "type": file.content_type,
-        "tags": tags.split(",") if tags else []
+        "tags": [t.strip() for t in tags.split(",")] if tags else []
     }
 
 

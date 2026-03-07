@@ -510,15 +510,76 @@ async def handle_webhook(
     try:
         body = await request.body()
         headers = request.headers
-        
-        # TODO: Vérifier la signature du webhook
-        # TODO: Traiter les événements selon le type
-        
-        logger.info(f"Webhook received from {integration_type}")
-        
+
+        # Vérifier la signature du webhook (Shopify / WooCommerce)
+        if integration_type == "shopify":
+            shopify_secret = __import__("os").getenv("SHOPIFY_WEBHOOK_SECRET", "")
+            if shopify_secret:
+                sig_header = headers.get("X-Shopify-Hmac-Sha256", "")
+                import base64
+                expected = base64.b64encode(
+                    hmac.new(shopify_secret.encode(), body, hashlib.sha256).digest()
+                ).decode()
+                if not hmac.compare_digest(expected, sig_header):
+                    raise HTTPException(status_code=401, detail="Invalid Shopify webhook signature")
+
+        elif integration_type == "woocommerce":
+            woo_secret = __import__("os").getenv("WOOCOMMERCE_WEBHOOK_SECRET", "")
+            if woo_secret:
+                sig_header = headers.get("X-WC-Webhook-Signature", "")
+                import base64
+                expected = base64.b64encode(
+                    hmac.new(woo_secret.encode(), body, hashlib.sha256).digest()
+                ).decode()
+                if not hmac.compare_digest(expected, sig_header):
+                    raise HTTPException(status_code=401, detail="Invalid WooCommerce webhook signature")
+
+        # Parser et traiter les événements
+        import json as _json
+        try:
+            payload = _json.loads(body)
+        except Exception:
+            payload = {}
+
+        event_type = (
+            headers.get("X-Shopify-Topic")
+            or headers.get("X-WC-Webhook-Topic")
+            or payload.get("event")
+            or "unknown"
+        )
+        logger.info(f"Webhook received from {integration_type}: {event_type}")
+
+        # Enregistrer le webhook en DB
+        try:
+            supabase.table("webhook_logs").insert({
+                "integration_type": integration_type,
+                "event_type": event_type,
+                "payload": payload,
+                "status": "received",
+                "created_at": datetime.utcnow().isoformat()
+            }).execute()
+        except Exception:
+            pass
+
+        # Traiter les événements selon le type
+        if integration_type == "shopify" and event_type == "orders/create":
+            order_id = payload.get("id")
+            if order_id:
+                try:
+                    supabase.table("integrations").update({
+                        "last_event_at": datetime.utcnow().isoformat(),
+                        "last_event_type": event_type
+                    }).eq("integration_type", "shopify").execute()
+                except Exception:
+                    pass
+
+        elif integration_type == "shopify" and event_type in ("products/create", "products/update"):
+            pass  # Sync produit géré par la tâche Celery
+
         return {
             'success': True,
-            'message': 'Webhook received'
+            'message': 'Webhook received',
+            'event_type': event_type
         }
     
     except Exception as e:

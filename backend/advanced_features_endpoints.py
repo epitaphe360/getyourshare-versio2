@@ -5,7 +5,7 @@ GetYourShare - Configuration + Email + API
 ============================================
 """
 
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, status, Request
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict, Any
 from datetime import datetime
@@ -199,23 +199,48 @@ async def delete_api_key(
         raise HTTPException(status_code=500, detail=str(e))
 
 # Public API endpoints (with API key authentication)
+async def _verify_api_key(request: Request) -> dict:
+    """Vérifie la clé API depuis header ou query param"""
+    api_key = request.headers.get("X-API-Key") or request.query_params.get("api_key")
+    if not api_key:
+        raise HTTPException(status_code=401, detail="Clé API requise (header X-API-Key ou param api_key)")
+    result = supabase.table("api_keys").select("*").eq("key", api_key).eq("is_active", True).execute()
+    if not result.data:
+        raise HTTPException(status_code=401, detail="Clé API invalide ou désactivée")
+    key_data = result.data[0]
+    # Mettre à jour last_used_at
+    supabase.table("api_keys").update({"last_used_at": datetime.utcnow().isoformat(), "usage_count": (key_data.get("usage_count") or 0) + 1}).eq("key", api_key).execute()
+    return key_data
+
+
 @api_router.get("/public/products")
-async def public_get_products():
+async def public_get_products(request: Request):
     """API publique - Liste des produits"""
-    # TODO: Implémenter authentification par clé API
+    await _verify_api_key(request)
     try:
-        response = supabase.table('products').select('*').limit(100).execute()
+        response = supabase.table('products').select('id, name, description, price, category, image_url, rating, review_count').eq('is_active', True).limit(100).execute()
         return {'products': response.data or []}
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error fetching products: {e}")
         return {'products': []}
 
 @api_router.get("/public/statistics")
-async def public_get_statistics():
+async def public_get_statistics(request: Request):
     """API publique - Statistiques"""
-    # TODO: Implémenter authentification par clé API
-    return {
-        'total_products': 0,
-        'total_campaigns': 0,
-        'total_clicks': 0
-    }
+    await _verify_api_key(request)
+    try:
+        products_res = supabase.table('products').select('id', count='exact').eq('is_active', True).execute()
+        campaigns_res = supabase.table('campaigns').select('id', count='exact').eq('status', 'active').execute()
+        clicks_res = supabase.table('tracking_events').select('id', count='exact').eq('event_type', 'click').execute()
+        return {
+            'total_products': products_res.count or 0,
+            'total_campaigns': campaigns_res.count or 0,
+            'total_clicks': clicks_res.count or 0
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching statistics: {e}")
+        return {'total_products': 0, 'total_campaigns': 0, 'total_clicks': 0}

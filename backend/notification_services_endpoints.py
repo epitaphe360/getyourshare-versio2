@@ -216,23 +216,39 @@ def get_sms_service() -> Optional[SMSNotificationService]:
 def get_user_contact_info(user_id: str) -> Dict[str, str]:
     """
     Get user contact information from database
-
-    In production, this would query Supabase:
-    supabase.table("users").select("email, phone, fcm_token").eq("id", user_id).single()
     """
-    # TODO: Implement actual database lookup
-    # For now, return empty dict
+    try:
+        from supabase_client import supabase
+        result = supabase.table("users").select("email, phone, fcm_token").eq("id", user_id).single().execute()
+        if result.data:
+            return {
+                "email": result.data.get("email") or "",
+                "phone": result.data.get("phone") or "",
+                "fcm_token": result.data.get("fcm_token") or ""
+            }
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Could not fetch user contact info for {user_id}: {e}")
     return {}
 
 
 def check_notification_preferences(user_id: str, channel: NotificationChannel, category: str) -> bool:
     """
     Check if user wants to receive notifications on this channel for this category
-
-    In production, query user preferences from database
     """
-    # TODO: Implement actual preference checking
-    # For now, allow all notifications
+    try:
+        from supabase_client import supabase
+        result = supabase.table("notification_preferences").select("*").eq("user_id", user_id).execute()
+        if result.data:
+            prefs = result.data[0]
+            channel_key = f"{channel.value}_enabled"
+            category_key = f"{category}_enabled"
+            # Si la préférence est explicitement désactivée, retourner False
+            if not prefs.get(channel_key, True):
+                return False
+            if category_key in prefs and not prefs.get(category_key, True):
+                return False
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Could not check notification preferences for {user_id}: {e}")
     return True
 
 
@@ -543,8 +559,13 @@ async def test_services():
 @router.post("/preferences")
 async def update_notification_preferences(preferences: NotificationPreferences):
     """Update user notification preferences"""
-    # TODO: Save to database
-    # supabase.table("notification_preferences").upsert(preferences.dict())
+    try:
+        from supabase_client import supabase
+        data = preferences.dict()
+        data["updated_at"] = datetime.utcnow().isoformat()
+        supabase.table("notification_preferences").upsert(data, on_conflict="user_id").execute()
+    except Exception as e:
+        logging.getLogger(__name__).error(f"Error saving notification preferences: {e}")
 
     return {
         "success": True,
@@ -556,10 +577,17 @@ async def update_notification_preferences(preferences: NotificationPreferences):
 @router.get("/preferences/{user_id}")
 async def get_notification_preferences(user_id: str):
     """Get user notification preferences"""
-    # TODO: Query from database
-    # result = supabase.table("notification_preferences").select("*").eq("user_id", user_id).single()
+    try:
+        from supabase_client import supabase
+        result = supabase.table("notification_preferences").select("*").eq("user_id", user_id).execute()
+        if result.data:
+            prefs_data = result.data[0]
+            # Construire l'objet NotificationPreferences depuis les données DB
+            return NotificationPreferences(**{k: v for k, v in prefs_data.items() if k in NotificationPreferences.__fields__})
+    except Exception as e:
+        logging.getLogger(__name__).warning(f"Could not fetch notification preferences for {user_id}: {e}")
 
-    # Return default preferences for now
+    # Retourner les préférences par défaut
     return NotificationPreferences(user_id=user_id)
 
 

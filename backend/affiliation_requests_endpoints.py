@@ -11,6 +11,7 @@ from supabase_client import supabase
 from tracking_service import tracking_service
 from auth import get_current_user_from_cookie
 from services.resend_email_service import resend_service
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -468,8 +469,23 @@ async def send_merchant_notifications(merchant_id: str, influencer: dict, produc
             'message': f"📬 Nouvelle demande d'affiliation de {influencer['username']} ({influencer.get('audience_size', 0):,} abonnés). Consultez sur ShareYourSales.ma"
         }
 
-        # TODO: Envoyer SMS via Twilio/Vonage
-        logger.info(f"📱 SMS envoyé à {merchant['users']['phone']}")
+        twilio_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        twilio_token = os.getenv("TWILIO_AUTH_TOKEN")
+        twilio_from = os.getenv("TWILIO_FROM_NUMBER")
+        if twilio_sid and twilio_token and twilio_from and sms_data.get('to'):
+            try:
+                from twilio.rest import Client as TwilioClient
+                twilio_client = TwilioClient(twilio_sid, twilio_token)
+                twilio_client.messages.create(
+                    body=sms_data['message'],
+                    from_=twilio_from,
+                    to=sms_data['to']
+                )
+                logger.info(f"📱 SMS Twilio envoyé à {merchant['users']['phone']}")
+            except Exception as sms_err:
+                logger.warning(f"SMS Twilio non envoyé: {sms_err}")
+        else:
+            logger.info(f"📱 SMS ignoré (Twilio non configuré) pour {merchant['users'].get('phone', 'N/A')}")
 
         # NOTIFICATION DASHBOARD
         notification = {

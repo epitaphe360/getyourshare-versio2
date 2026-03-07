@@ -607,9 +607,28 @@ async def request_affiliate(
         request_id = result.data[0]['id'] if result.data else None
 
         # Envoyer email au marchand (async)
-        # TODO: Implémenter notification email
-        # from celery_tasks import send_new_affiliate_request_email
-        # send_new_affiliate_request_email.delay(merchant_email, product_name, influencer_name)
+        try:
+            merchant_res = supabase.table("merchants").select("user_id, company_name").eq("id", merchant_id).single().execute()
+            if merchant_res.data:
+                merchant_user_res = supabase.table("users").select("email").eq("id", merchant_res.data["user_id"]).single().execute()
+                if merchant_user_res.data and merchant_user_res.data.get("email"):
+                    import os, resend as _resend
+                    _resend.api_key = os.getenv("RESEND_API_KEY", "")
+                    if _resend.api_key:
+                        product_res = supabase.table("products").select("name").eq("id", product_id).single().execute()
+                        product_name = product_res.data["name"] if product_res.data else "Produit"
+                        influencer_res = supabase.table("users").select("username, email").eq("id", user_id).single().execute()
+                        influencer_name = influencer_res.data["username"] if influencer_res.data else "Un influenceur"
+                        _resend.Emails.send({
+                            "from": "noreply@getyourshare.ma",
+                            "to": merchant_user_res.data["email"],
+                            "subject": f"🌟 Nouvelle demande d'affiliation pour {product_name}",
+                            "html": f"""<h2>Nouvelle demande d'affiliation</h2>
+<p><strong>{influencer_name}</strong> souhaite promouvoir <strong>{product_name}</strong>.</p>
+<p>Connectez-vous sur <a href='https://getyourshare.ma/merchant/affiliation-requests'>votre tableau de bord</a> pour approuver ou refuser cette demande.</p>"""
+                        })
+        except Exception as email_err:
+            logger.error(f"Email notification affiliate request failed: {email_err}")
 
         logger.info("affiliate_request_created", user_id=user_id, product_id=product_id, request_id=request_id)
 

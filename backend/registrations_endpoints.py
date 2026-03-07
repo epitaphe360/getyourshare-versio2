@@ -222,8 +222,25 @@ async def request_info_endpoint(
         
         update_user(registration_id, {"raw_user_meta_data": meta_data})
         
-        # TODO: Envoyer email
-        # email_service.send_email(...)
+        # Envoyer email de demande d'informations
+        try:
+            import os, resend as _resend
+            _resend.api_key = os.getenv("RESEND_API_KEY", "")
+            user_email = user.get("email") or (user.get("raw_user_meta_data") or {}).get("email")
+            if _resend.api_key and user_email:
+                first_name = (user.get("raw_user_meta_data") or {}).get("first_name", "")
+                _resend.Emails.send({
+                    "from": "noreply@getyourshare.ma",
+                    "to": user_email,
+                    "subject": "GetYourShare - Informations supplémentaires requises",
+                    "html": f"""<h2>Bonjour {first_name},</h2>
+<p>Nous avons besoin d'informations supplémentaires pour traiter votre inscription.</p>
+<p><strong>Message de notre équipe :</strong></p>
+<blockquote>{info_request.message}</blockquote>
+<p>Merci de vous connecter sur <a href='https://getyourshare.ma'>getyourshare.ma</a> pour soumettre les informations demandées.</p>"""
+                })
+        except Exception as email_err:
+            logger.error(f"Erreur envoi email demande info: {email_err}")
         
         return {"success": True, "message": "Demande d'information envoyée"}
         
