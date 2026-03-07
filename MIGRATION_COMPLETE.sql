@@ -27,8 +27,8 @@ CREATE TABLE IF NOT EXISTS media_platforms (
     UNIQUE(user_id, platform, account_id)
 );
 
-CREATE INDEX idx_media_platforms_user ON media_platforms(user_id);
-CREATE INDEX idx_media_platforms_active ON media_platforms(is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_media_platforms_user ON media_platforms(user_id);
+CREATE INDEX IF NOT EXISTS idx_media_platforms_active ON media_platforms(is_active) WHERE is_active = true;
 
 -- Table 2: Templates de prompts
 CREATE TABLE IF NOT EXISTS media_templates (
@@ -51,9 +51,9 @@ CREATE TABLE IF NOT EXISTS media_templates (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_media_templates_user ON media_templates(user_id);
-CREATE INDEX idx_media_templates_platform ON media_templates(platform);
-CREATE INDEX idx_media_templates_public ON media_templates(is_public) WHERE is_public = true;
+CREATE INDEX IF NOT EXISTS idx_media_templates_user ON media_templates(user_id);
+CREATE INDEX IF NOT EXISTS idx_media_templates_platform ON media_templates(platform);
+CREATE INDEX IF NOT EXISTS idx_media_templates_public ON media_templates(is_public) WHERE is_public = true;
 
 -- Table 3: Contenu gÃ©nÃ©rÃ©
 CREATE TABLE IF NOT EXISTS media_generated_content (
@@ -77,10 +77,10 @@ CREATE TABLE IF NOT EXISTS media_generated_content (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_media_content_user ON media_generated_content(user_id);
-CREATE INDEX idx_media_content_platform ON media_generated_content(platform);
-CREATE INDEX idx_media_content_status ON media_generated_content(status);
-CREATE INDEX idx_media_content_created ON media_generated_content(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_media_content_user ON media_generated_content(user_id);
+CREATE INDEX IF NOT EXISTS idx_media_content_platform ON media_generated_content(platform);
+CREATE INDEX IF NOT EXISTS idx_media_content_status ON media_generated_content(status);
+CREATE INDEX IF NOT EXISTS idx_media_content_created ON media_generated_content(created_at DESC);
 
 -- Table 4: Publications planifiÃ©es
 CREATE TABLE IF NOT EXISTS media_scheduled_posts (
@@ -106,11 +106,11 @@ CREATE TABLE IF NOT EXISTS media_scheduled_posts (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_media_posts_user ON media_scheduled_posts(user_id);
-CREATE INDEX idx_media_posts_platform ON media_scheduled_posts(platform);
-CREATE INDEX idx_media_posts_status ON media_scheduled_posts(status);
-CREATE INDEX idx_media_posts_scheduled ON media_scheduled_posts(scheduled_time);
-CREATE INDEX idx_media_posts_due ON media_scheduled_posts(scheduled_time) WHERE status = 'scheduled';
+CREATE INDEX IF NOT EXISTS idx_media_posts_user ON media_scheduled_posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_media_posts_platform ON media_scheduled_posts(platform);
+CREATE INDEX IF NOT EXISTS idx_media_posts_status ON media_scheduled_posts(status);
+CREATE INDEX IF NOT EXISTS idx_media_posts_scheduled ON media_scheduled_posts(scheduled_time);
+CREATE INDEX IF NOT EXISTS idx_media_posts_due ON media_scheduled_posts(scheduled_time) WHERE status = 'scheduled';
 
 -- Table 5: Analytics des publications
 CREATE TABLE IF NOT EXISTS media_analytics (
@@ -135,9 +135,9 @@ CREATE TABLE IF NOT EXISTS media_analytics (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_media_analytics_post ON media_analytics(scheduled_post_id);
-CREATE INDEX idx_media_analytics_user ON media_analytics(user_id);
-CREATE INDEX idx_media_analytics_platform ON media_analytics(platform);
+CREATE INDEX IF NOT EXISTS idx_media_analytics_post ON media_analytics(scheduled_post_id);
+CREATE INDEX IF NOT EXISTS idx_media_analytics_user ON media_analytics(user_id);
+CREATE INDEX IF NOT EXISTS idx_media_analytics_platform ON media_analytics(platform);
 
 -- Table 6: File d'attente de publication
 CREATE TABLE IF NOT EXISTS media_publishing_queue (
@@ -155,8 +155,8 @@ CREATE TABLE IF NOT EXISTS media_publishing_queue (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_media_queue_status ON media_publishing_queue(status);
-CREATE INDEX idx_media_queue_next_attempt ON media_publishing_queue(next_attempt_at) WHERE status = 'pending';
+CREATE INDEX IF NOT EXISTS idx_media_queue_status ON media_publishing_queue(status);
+CREATE INDEX IF NOT EXISTS idx_media_queue_next_attempt ON media_publishing_queue(next_attempt_at) WHERE status = 'pending';
 
 -- Table 7: Ã‰tats OAuth
 CREATE TABLE IF NOT EXISTS media_oauth_states (
@@ -171,8 +171,8 @@ CREATE TABLE IF NOT EXISTS media_oauth_states (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_media_oauth_state ON media_oauth_states(state_token) WHERE used = false;
-CREATE INDEX idx_media_oauth_cleanup ON media_oauth_states(expires_at) WHERE used = false;
+CREATE INDEX IF NOT EXISTS idx_media_oauth_state ON media_oauth_states(state_token) WHERE used = false;
+CREATE INDEX IF NOT EXISTS idx_media_oauth_cleanup ON media_oauth_states(expires_at) WHERE used = false;
 
 -- Fonction pour mettre Ã  jour updated_at automatiquement
 CREATE OR REPLACE FUNCTION update_media_updated_at()
@@ -184,35 +184,38 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers pour updated_at
-CREATE TRIGGER update_media_platforms_updated_at
-    BEFORE UPDATE ON media_platforms
-    FOR EACH ROW
-    EXECUTE FUNCTION update_media_updated_at();
-
-CREATE TRIGGER update_media_templates_updated_at
-    BEFORE UPDATE ON media_templates
-    FOR EACH ROW
-    EXECUTE FUNCTION update_media_updated_at();
-
-CREATE TRIGGER update_media_content_updated_at
-    BEFORE UPDATE ON media_generated_content
-    FOR EACH ROW
-    EXECUTE FUNCTION update_media_updated_at();
-
-CREATE TRIGGER update_media_posts_updated_at
-    BEFORE UPDATE ON media_scheduled_posts
-    FOR EACH ROW
-    EXECUTE FUNCTION update_media_updated_at();
-
-CREATE TRIGGER update_media_analytics_updated_at
-    BEFORE UPDATE ON media_analytics
-    FOR EACH ROW
-    EXECUTE FUNCTION update_media_updated_at();
-
-CREATE TRIGGER update_media_queue_updated_at
-    BEFORE UPDATE ON media_publishing_queue
-    FOR EACH ROW
-    EXECUTE FUNCTION update_media_updated_at();
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_media_platforms_updated_at') THEN
+        CREATE TRIGGER update_media_platforms_updated_at
+            BEFORE UPDATE ON media_platforms FOR EACH ROW
+            EXECUTE FUNCTION update_media_updated_at();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_media_templates_updated_at') THEN
+        CREATE TRIGGER update_media_templates_updated_at
+            BEFORE UPDATE ON media_templates FOR EACH ROW
+            EXECUTE FUNCTION update_media_updated_at();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_media_content_updated_at') THEN
+        CREATE TRIGGER update_media_content_updated_at
+            BEFORE UPDATE ON media_generated_content FOR EACH ROW
+            EXECUTE FUNCTION update_media_updated_at();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_media_posts_updated_at') THEN
+        CREATE TRIGGER update_media_posts_updated_at
+            BEFORE UPDATE ON media_scheduled_posts FOR EACH ROW
+            EXECUTE FUNCTION update_media_updated_at();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_media_analytics_updated_at') THEN
+        CREATE TRIGGER update_media_analytics_updated_at
+            BEFORE UPDATE ON media_analytics FOR EACH ROW
+            EXECUTE FUNCTION update_media_updated_at();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_media_queue_updated_at') THEN
+        CREATE TRIGGER update_media_queue_updated_at
+            BEFORE UPDATE ON media_publishing_queue FOR EACH ROW
+            EXECUTE FUNCTION update_media_updated_at();
+    END IF;
+END $$;
 
 -- Nettoyage automatique des Ã©tats OAuth expirÃ©s (optionnel - Ã  exÃ©cuter pÃ©riodiquement)
 -- DELETE FROM media_oauth_states WHERE expires_at < CURRENT_TIMESTAMP - INTERVAL '1 day';
