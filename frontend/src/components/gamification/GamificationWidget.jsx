@@ -8,9 +8,10 @@
  */
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 // Icons
-const Star Icon = () => <span>⭐</span>;
+const StarIcon = () => <span>⭐</span>;
 const TrophyIcon = () => <span>🏆</span>;
 const FireIcon = () => <span>🔥</span>;
 const TargetIcon = () => <span>🎯</span>;
@@ -50,13 +51,11 @@ const GamificationWidget = ({ userType = 'merchant', userId }) => {
   const handleClaimMission = async (missionId) => {
     try {
       await axios.post(`/api/gamification/missions/${missionId}/claim`);
-      // Refresh data
       fetchGamificationData();
-      // Show success notification
-      alert('Mission complétée! Points gagnés!');
+      toast.success('Mission complétée ! Points gagnés 🏆');
     } catch (error) {
       console.error('Erreur réclamation mission:', error);
-      alert(error.response?.data?.error || 'Erreur');
+      toast.error(error.response?.data?.error || 'Erreur lors de la réclamation');
     }
   };
 

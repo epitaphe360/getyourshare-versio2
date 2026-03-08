@@ -24,7 +24,6 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log l'erreur pour debugging
     console.error('ErrorBoundary caught an error:', error, errorInfo);
     
     this.setState(prevState => ({
@@ -33,10 +32,26 @@ class ErrorBoundary extends React.Component {
       errorCount: prevState.errorCount + 1
     }));
 
-    // TODO: Envoyer à Sentry en production
-    // if (process.env.NODE_ENV === 'production' && window.Sentry) {
-    //   window.Sentry.captureException(error, { contexts: { react: errorInfo } });
-    // }
+    // Capture vers Sentry en production
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        // Via le SDK Sentry chargé dans monitoring.js
+        if (window.__setSentryUser || (typeof window !== 'undefined' && window.Sentry)) {
+          window.Sentry.captureException(error, {
+            contexts: { react: { componentStack: errorInfo?.componentStack } }
+          });
+        }
+        // Via @sentry/react si disponible
+        const Sentry = require('@sentry/react');
+        if (Sentry?.captureException) {
+          Sentry.captureException(error, {
+            contexts: { react: { componentStack: errorInfo?.componentStack } }
+          });
+        }
+      } catch (_) {
+        // Sentry non disponible — ignorer silencieusement
+      }
+    }
   }
 
   handleReset = () => {

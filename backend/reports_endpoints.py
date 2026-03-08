@@ -361,8 +361,52 @@ async def export_report(
         
         # Export PDF
         elif format == 'pdf':
-            # TODO: Implémenter export PDF avec reportlab
-            raise HTTPException(status_code=501, detail="PDF export not yet implemented")
+            try:
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib import colors
+                from reportlab.lib.styles import getSampleStyleSheet
+                from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+                import io as _io
+
+                buffer = _io.BytesIO()
+                doc = SimpleDocTemplate(buffer, pagesize=A4)
+                styles = getSampleStyleSheet()
+                elements = []
+
+                # Titre
+                elements.append(Paragraph(f"Rapport : {report_type.replace('_', ' ').title()}", styles['Title']))
+                elements.append(Spacer(1, 12))
+
+                if data:
+                    headers_list = list(data[0].keys())
+                    table_data = [headers_list]
+                    for row in data:
+                        table_data.append([str(row.get(h, '')) for h in headers_list])
+
+                    t = Table(table_data)
+                    t.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#4F46E5')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                        ('FONTSIZE', (0, 0), (-1, 0), 10),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F9FAFB')]),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E5E7EB')),
+                        ('FONTSIZE', (0, 1), (-1, -1), 8),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                    ]))
+                    elements.append(t)
+                else:
+                    elements.append(Paragraph("Aucune donnée disponible.", styles['Normal']))
+
+                doc.build(elements)
+                buffer.seek(0)
+                return StreamingResponse(
+                    buffer,
+                    media_type="application/pdf",
+                    headers={"Content-Disposition": f"attachment; filename=report_{report_type}.pdf"}
+                )
+            except ImportError:
+                raise HTTPException(status_code=501, detail="reportlab non installé. Utilisez le format CSV ou XLSX.")
     
     except HTTPException:
         raise

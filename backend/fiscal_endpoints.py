@@ -736,10 +736,27 @@ async def send_invoice_email(invoice_id: str, to_email: Optional[str] = None):
         pdf_result = await generate_invoice_pdf(invoice_id)
         pdf_path = pdf_result['pdf_url']
     else:
-        # Télécharger PDF existant
+        # Télécharger depuis Supabase Storage si disponible
+        pdf_url = invoice.data.get('pdf_url', '')
         pdf_path = f"temp/{invoice.data['invoice_number']}.pdf"
         os.makedirs("temp", exist_ok=True)
-        # TODO: Télécharger depuis Supabase Storage
+        if pdf_url:
+            try:
+                import httpx
+                resp = httpx.get(pdf_url, follow_redirects=True, timeout=15)
+                if resp.status_code == 200:
+                    with open(pdf_path, 'wb') as f:
+                        f.write(resp.content)
+                else:
+                    # Régénérer
+                    pdf_result = await generate_invoice_pdf(invoice_id)
+                    pdf_path = pdf_result['pdf_url']
+            except Exception:
+                pdf_result = await generate_invoice_pdf(invoice_id)
+                pdf_path = pdf_result['pdf_url']
+        else:
+            pdf_result = await generate_invoice_pdf(invoice_id)
+            pdf_path = pdf_result['pdf_url']
     
     email_service = FiscalEmailService()
     

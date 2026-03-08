@@ -43,25 +43,14 @@ async def find_matching_influencers(
     """
 
     try:
-        # TODO: Récupérer les vrais influenceurs de la DB
-        # Pour l'instant, utiliser des données mock
-        mock_influencers = await get_mock_influencers()
+        # Récupérer les vrais influenceurs depuis Supabase
+        real_influencers = await get_real_influencers()
 
         matches = await matcher.find_matches_for_brand(
             brand=brand_profile,
-            influencers=mock_influencers,
+            influencers=real_influencers,
             top_n=top_n
         )
-
-        # Logger l'activité (commenté car log_user_activity non implémenté)
-        # await log_user_activity(
-        #     user_id=current_user["id"],
-        #     action="smart_match_search",
-        #     details={
-        #         "product_category": brand_profile.product_category,
-        #         "matches_found": len(matches)
-        #     }
-        # )
 
         return matches
 
@@ -85,23 +74,14 @@ async def find_matching_brands(
     """
 
     try:
-        # TODO: Récupérer les vraies marques de la DB
-        mock_brands = await get_mock_brands()
+        # Récupérer les vraies marques depuis Supabase
+        real_brands = await get_mock_brands()  # contient déjà la logique Supabase-first
 
         matches = await matcher.find_matches_for_influencer(
             influencer=influencer_profile,
-            brands=mock_brands,
+            brands=real_brands,
             top_n=top_n
         )
-
-        # await log_user_activity(
-        #     user_id=current_user["id"],
-        #     action="smart_match_opportunities",
-        #     details={
-        #         "niches": influencer_profile.niches,
-        #         "matches_found": len(matches)
-        #     }
-        # )
 
         return matches
 
@@ -122,16 +102,9 @@ async def batch_match_campaign(
 ):
     """
     Matche une campagne complète avec les meilleurs influenceurs
-
-    Retourne un rapport détaillé avec:
-    - Influenceurs recommandés
-    - Prédictions globales (reach, conversions, ROI)
-    - Budget total estimé
     """
-
     try:
-        # TODO: Récupérer les vrais influenceurs
-        all_influencers = await get_mock_influencers()
+        all_influencers = await get_real_influencers()
 
         campaign_report = await batch_matcher.match_campaign_to_influencers(
             campaign_id=campaign_id,
@@ -140,18 +113,7 @@ async def batch_match_campaign(
             target_influencer_count=target_influencer_count,
             min_score=min_score
         )
-
-        await log_user_activity(
-            user_id=current_user["id"],
-            action="batch_campaign_match",
-            details={
-                "campaign_id": campaign_id,
-                "influencers_matched": campaign_report["selected_influencers_count"]
-            }
-        )
-
         return campaign_report
-
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -165,26 +127,29 @@ async def check_my_compatibility(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Vérifie la compatibilité de l'influenceur connecté avec une marque spécifique
-
-    Retourne un score détaillé et des recommandations
+    Vérifie la compatibilité de l'influenceur connecté avec une marque spécifique.
     """
-
     try:
-        # TODO: Récupérer le profil de l'influenceur depuis la DB
-        # TODO: Récupérer le profil de la marque depuis la DB
+        from supabase_client import supabase
 
-        # Mock pour l'instant
-        influencer_profile = await get_mock_influencer_profile(current_user["id"])
-        brand_profile = await get_mock_brand_profile(brand_id)
+        # Récupérer le profil influenceur réel
+        influencer_profile = await get_real_influencer_profile(current_user["id"])
+        if not influencer_profile:
+            raise HTTPException(status_code=404, detail="Profil influenceur introuvable")
+
+        # Récupérer le profil marque réel
+        brand_profile = await get_real_brand_profile(brand_id)
+        if not brand_profile:
+            raise HTTPException(status_code=404, detail="Marque introuvable")
 
         match_result = await matcher._calculate_match_score(
             influencer=influencer_profile,
             brand=brand_profile
         )
-
         return match_result
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -193,8 +158,91 @@ async def check_my_compatibility(
 
 
 # ============================================
-# MOCK DATA HELPERS (À remplacer par vraies requêtes DB)
+# DATA HELPERS — Données réelles Supabase (fallback mock si tables vides)
 # ============================================
+
+async def get_real_influencers() -> List[InfluencerProfile]:
+    """Alias vers get_mock_influencers (déjà Supabase-first)"""
+    return await get_mock_influencers()
+
+
+async def get_real_influencer_profile(user_id: str):
+    """Récupère le profil influenceur depuis la table users + influencers_profiles."""
+    try:
+        from supabase_client import supabase
+        # Essayer smart_match_influencers en priorité
+        r = supabase.table("smart_match_influencers").select("*").eq("user_id", user_id).limit(1).execute()
+        if r.data:
+            inf = r.data[0]
+            return InfluencerProfile(
+                user_id=inf["user_id"], name=inf["name"],
+                niches=inf.get("niches", []), followers_count=inf.get("followers_count", 0),
+                engagement_rate=inf.get("engagement_rate", 0.0),
+                audience_age=inf.get("audience_age", []), audience_gender=inf.get("audience_gender", AudienceGender.MIXED),
+                audience_location=inf.get("audience_location", []), platforms=inf.get("platforms", []),
+                average_views=inf.get("average_views", 0), content_quality_score=inf.get("content_quality_score", 70.0),
+                reliability_score=inf.get("reliability_score", 70.0), preferred_commission=inf.get("preferred_commission", 10.0),
+                language=inf.get("language", ["fr"])
+            )
+        # Fallback sur users + influencers
+        u = supabase.table("users").select("id, email").eq("id", user_id).limit(1).execute()
+        ip = supabase.table("influencers").select("*").eq("user_id", user_id).limit(1).execute()
+        if u.data:
+            user = u.data[0]
+            profile = ip.data[0] if ip.data else {}
+            return InfluencerProfile(
+                user_id=user["id"], name=profile.get("name") or user.get("email", ""),
+                niches=[Niche.FASHION], followers_count=profile.get("followers_count", 0),
+                engagement_rate=profile.get("engagement_rate", 0.0),
+                audience_age=[AudienceAge.YOUNG_ADULT], audience_gender=AudienceGender.MIXED,
+                audience_location=["MA"], platforms=["instagram"],
+                average_views=0, content_quality_score=70.0, reliability_score=70.0,
+                preferred_commission=10.0, language=["fr"]
+            )
+    except Exception as e:
+        print(f"get_real_influencer_profile error: {e}")
+    return None
+
+
+async def get_real_brand_profile(brand_id: str):
+    """Récupère le profil marque depuis merchants ou smart_match_brands."""
+    try:
+        from supabase_client import supabase
+        # Essayer smart_match_brands en priorité
+        r = supabase.table("smart_match_brands").select("*").eq("company_id", brand_id).limit(1).execute()
+        if r.data:
+            brand = r.data[0]
+            return BrandProfile(
+                company_id=brand["company_id"], company_name=brand["company_name"],
+                product_category=brand.get("product_category", Niche.FASHION),
+                target_audience_age=brand.get("target_audience_age", [AudienceAge.ADULT]),
+                target_audience_gender=brand.get("target_audience_gender", AudienceGender.MIXED),
+                target_locations=brand.get("target_locations", ["MA"]),
+                budget_per_influencer=brand.get("budget_per_influencer", 1000.0),
+                commission_percentage=brand.get("commission_percentage", 10.0),
+                campaign_description=brand.get("campaign_description", ""),
+                required_followers_min=brand.get("required_followers_min", 1000),
+                required_engagement_min=brand.get("required_engagement_min", 1.0),
+                preferred_platforms=brand.get("preferred_platforms", ["instagram"]),
+                language=brand.get("language", ["fr"])
+            )
+        # Fallback sur merchants
+        m = supabase.table("merchants").select("*").eq("id", brand_id).limit(1).execute()
+        if m.data:
+            merchant = m.data[0]
+            return BrandProfile(
+                company_id=merchant["id"], company_name=merchant.get("company_name", merchant["id"]),
+                product_category=Niche.FASHION, target_audience_age=[AudienceAge.ADULT],
+                target_audience_gender=AudienceGender.MIXED, target_locations=["MA"],
+                budget_per_influencer=1000.0, commission_percentage=10.0,
+                campaign_description=merchant.get("description", ""),
+                required_followers_min=1000, required_engagement_min=1.0,
+                preferred_platforms=["instagram"], language=["fr"]
+            )
+    except Exception as e:
+        print(f"get_real_brand_profile error: {e}")
+    return None
+
 
 async def get_mock_influencers() -> List[InfluencerProfile]:
     """Get influencers from DB (fallback to mock)"""

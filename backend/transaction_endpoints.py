@@ -238,19 +238,47 @@ async def process_transaction(request: ProcessTransactionRequest):
         
         result = supabase.table('gateway_transactions').insert(new_transaction).execute()
         
-        # TODO: Implémenter la vraie intégration avec Stripe/PayPal
-        # Pour l'instant, on simule juste la création
-        
-        # Simuler traitement (en production, webhook du gateway mettra à jour)
         transaction_id = result.data[0]['id']
+
+        # Intégration réelle selon le gateway
+        checkout_url = None
+        if request.gateway == 'stripe':
+            try:
+                import stripe as stripe_lib
+                import os as _os
+                stripe_lib.api_key = _os.getenv('STRIPE_SECRET_KEY')
+                session = stripe_lib.checkout.Session.create(
+                    payment_method_types=['card'],
+                    line_items=[{
+                        'price_data': {
+                            'currency': request.currency.lower(),
+                            'product_data': {'name': request.metadata.get('description', 'Paiement GetYourShare') if request.metadata else 'Paiement GetYourShare'},
+                            'unit_amount': int(request.amount * 100),
+                        },
+                        'quantity': 1,
+                    }],
+                    mode='payment',
+                    success_url=f"{_os.getenv('FRONTEND_URL', 'http://localhost:3000')}/payment/success?tx={transaction_id}",
+                    cancel_url=f"{_os.getenv('FRONTEND_URL', 'http://localhost:3000')}/payment/cancel",
+                    metadata={'transaction_id': transaction_id, 'user_id': request.user_id},
+                )
+                checkout_url = session.url
+                supabase.table('gateway_transactions').update({
+                    'gateway_transaction_id': session.id,
+                }).eq('id', transaction_id).execute()
+            except ImportError:
+                pass
+            except Exception as stripe_err:
+                logger.warning(f"Stripe checkout creation failed: {stripe_err}")
         
         return {
             "success": True,
             "message": "Transaction créée",
             "transaction_id": transaction_id,
             "transaction": result.data[0],
+            "checkout_url": checkout_url,
             "next_steps": {
-                "stripe": "Rediriger vers Stripe Checkout",
+                "stripe": checkout_url or "Rediriger vers Stripe Checkout",
                 "paypal": "Rediriger vers PayPal",
                 "bank_transfer": "Afficher coordonnées bancaires"
             }.get(request.gateway, "Suivre les instructions du gateway")

@@ -512,24 +512,19 @@ async def complete_mission(
             .execute()
         
         # Mettre à jour user_gamification
-        try:
-            gamification = supabase.table('user_gamification')\
-                .select('*')\
-                .eq('user_id', user_id)\
-                .single()\
-                .execute()
-        except Exception:
-            # Create a dummy response
-            class MockResponse:
-                data = None
-            gamification = MockResponse()
+        gamification_result = supabase.table('user_gamification')\
+            .select('*')\
+            .eq('user_id', user_id)\
+            .limit(1)\
+            .execute()
+        gamification_data = gamification_result.data[0] if gamification_result.data else None
         
-        if gamification.data:
-            current_points = gamification.data['total_points']
+        if gamification_data:
+            current_points = gamification_data['total_points']
             new_points = current_points + points_reward
             new_level = (new_points // 1000) + 1
             
-            achievements = gamification.data.get('achievements', [])
+            achievements = gamification_data.get('achievements', [])
             if mission['title'] not in achievements:
                 achievements.append(mission['title'])
             
@@ -547,8 +542,8 @@ async def complete_mission(
             "success": True,
             "message": f"Mission complétée ! +{points_reward} points",
             "points_earned": points_reward,
-            "new_total_points": new_points if gamification.data else points_reward,
-            "level_up": new_level > gamification.data['level'] if gamification.data else False
+            "new_total_points": new_points if gamification_data else points_reward,
+            "level_up": new_level > gamification_data['level'] if gamification_data else False
         }
     except HTTPException:
         raise

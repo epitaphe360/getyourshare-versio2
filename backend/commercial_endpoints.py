@@ -267,10 +267,26 @@ async def get_commercial_stats(current_user: dict = Depends(get_current_user_fro
             .execute()
             
         links_data = links_stats_result.data or []
-        # Need to aggregate clicks/revenue from conversions/sales tables for these links
-        # This is expensive, so maybe just use 0 for now or simple count
-        total_clicks = 0 # Placeholder
-        links_revenue = 0 # Placeholder
+        link_ids = [l["id"] for l in links_data]
+
+        # Clics réels depuis tracking_events pour ces liens
+        total_clicks = 0
+        links_revenue = 0.0
+        if link_ids:
+            try:
+                events_r = supabase.table("tracking_events").select(
+                    "id"
+                ).in_("tracking_link_id", link_ids).execute()
+                total_clicks = len(events_r.data or [])
+            except Exception:
+                total_clicks = 0
+            try:
+                conv_r = supabase.table("conversions").select(
+                    "amount"
+                ).in_("tracking_link_id", link_ids).execute()
+                links_revenue = sum(float(c.get("amount") or 0) for c in (conv_r.data or []))
+            except Exception:
+                links_revenue = 0.0
         
         # 2. Stats des leads
         # Valeur des leads conclus
@@ -541,18 +557,12 @@ async def update_lead(
             sales_rep_id = sales_rep_result.data[0]['id']
 
         # Vérifier que le lead appartient bien à l'utilisateur
-        try:
-            check_result = supabase.table('services_leads') \
-                .select('id') \
-                .eq('id', lead_id) \
-                .eq('commercial_id', user_id) \
-                .single() \
-                .execute()
-        except Exception:
-            # Create a dummy response
-            class MockResponse:
-                data = None
-            check_result = MockResponse()
+        check_result = supabase.table('services_leads') \
+            .select('id') \
+            .eq('id', lead_id) \
+            .eq('commercial_id', user_id) \
+            .limit(1) \
+            .execute()
         
         if not check_result.data:
             raise HTTPException(
@@ -701,19 +711,13 @@ async def create_tracking_link(
             .execute()
         
         # Récupérer avec le nom du produit
-        try:
-            link_with_product = supabase.table('tracking_links') \
-                .select('*, products(name)') \
-                .eq('id', result.data[0]['id']) \
-                .single() \
-                .execute()
-        except Exception:
-            # Create a dummy response
-            class MockResponse:
-                data = None
-            link_with_product = MockResponse()
+        link_with_product_r = supabase.table('tracking_links') \
+            .select('*, products(name)') \
+            .eq('id', result.data[0]['id']) \
+            .limit(1) \
+            .execute()
         
-        item = link_with_product.data
+        item = link_with_product_r.data[0] if link_with_product_r.data else result.data[0]
         
         return {
             'id': item['id'],
