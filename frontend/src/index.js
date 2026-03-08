@@ -6,6 +6,16 @@ import initSentry from './monitoring';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 
+// ── Désactiver console.log en production (conserver error/warn) ──────────────
+if (process.env.NODE_ENV === 'production') {
+  // eslint-disable-next-line no-console
+  console.log = () => {};
+  // eslint-disable-next-line no-console
+  console.debug = () => {};
+  // eslint-disable-next-line no-console
+  console.info = () => {};
+}
+
 // Démarrer le monitoring Sentry avant le rendu React
 initSentry();
 

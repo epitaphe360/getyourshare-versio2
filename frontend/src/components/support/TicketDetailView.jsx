@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { toast } from 'react-toastify';
 import { supportAPI } from '../../services/newEndpointsAPI';
 import './Support.css';
 
@@ -44,11 +45,11 @@ const TicketDetailView = ({ ticket, currentUserId, userRole = 'customer', onClos
       await fetchTicketDetails();
 
       setReplyMessage('');
-      alert('Reply sent successfully!');
+      toast.success('Réponse envoyée avec succès !');
       scrollToBottom();
     } catch (error) {
       console.error('Error sending reply:', error);
-      alert('Failed to send reply. Please try again.');
+      toast.error('Erreur lors de l’envoi de la réponse. Veuillez réessayer.');
     } finally {
       setSending(false);
     }
@@ -64,10 +65,10 @@ const TicketDetailView = ({ ticket, currentUserId, userRole = 'customer', onClos
         onUpdate({ ...ticketData, status: newStatus });
       }
 
-      alert(`Ticket status updated to ${newStatus}`);
+      toast.success(`Statut du ticket mis à jour : ${newStatus}`);
     } catch (error) {
       console.error('Error updating ticket status:', error);
-      alert('Failed to update ticket status.');
+      toast.error('Erreur lors de la mise à jour du statut.');
     } finally {
       setUpdating(false);
     }
@@ -83,10 +84,10 @@ const TicketDetailView = ({ ticket, currentUserId, userRole = 'customer', onClos
         onUpdate({ ...ticketData, priority: newPriority });
       }
 
-      alert(`Ticket priority updated to ${newPriority}`);
+      toast.success(`Priorité du ticket mise à jour : ${newPriority}`);
     } catch (error) {
       console.error('Error updating ticket priority:', error);
-      alert('Failed to update ticket priority.');
+      toast.error('Erreur lors de la mise à jour de la priorité.');
     } finally {
       setUpdating(false);
     }
@@ -96,11 +97,11 @@ const TicketDetailView = ({ ticket, currentUserId, userRole = 'customer', onClos
     setUpdating(true);
     try {
       await supportAPI.assignTicket(ticket.id, agentId);
-      alert('Ticket assigned successfully!');
+      toast.success('Ticket assigné avec succès !');
       await fetchTicketDetails();
     } catch (error) {
       console.error('Error assigning ticket:', error);
-      alert('Failed to assign ticket.');
+      toast.error('Erreur lors de l’assignation du ticket.');
     } finally {
       setUpdating(false);
     }

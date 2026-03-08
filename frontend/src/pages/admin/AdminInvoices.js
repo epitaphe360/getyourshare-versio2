@@ -75,17 +75,15 @@ const AdminInvoices = () => {
   };
 
   const handleMarkPaid = async (invoiceId, invoiceNumber) => {
-    // TODO: Remplacer par un composant de modale de saisie non bloquant (Bug corrigé en Phase 6)
-    // const reference = window.prompt(\`Marquer la facture \${invoiceNumber} comme payée.\\n\\nRéférence de paiement (optionnel):\`);\n    const reference = "MANUAL_PAYMENT_REF"; // Placeholder pour éviter le prompt bloquant\n    // if (reference === null) return; // Annulé - L'annulation est gérée par le commentaire du prompt
-    if (reference === null) return; // Annulé
-
+    // Marque directement la facture comme payée avec une référence automatique
+    const reference = `PAID-${invoiceId}-${Date.now()}`;
     try {
       await api.post(`/api/admin/invoices/${invoiceId}/mark-paid`, {
         payment_method: 'manual',
-        payment_reference: reference || undefined
+        payment_reference: reference
       });
 
-      toast.success('Facture marquée comme payée');
+      toast.success(`Facture ${invoiceNumber} marquée comme payée`);
       loadInvoices();
     } catch (error) {
       console.error('Erreur:', error);

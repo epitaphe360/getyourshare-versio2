@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
 import {
   Phone, Mail, MessageCircle, PlusCircle, Heart, Search,
   TrendingUp, Target, Zap, Award, BarChart2, Users
@@ -115,14 +116,14 @@ const QuickActions = ({ userType, userId }) => {
             notes: 'Appel depuis quick action mobile'
           });
         } else {
-          alert('Ce lead n\'a pas de numéro de téléphone');
+          toast.warning("Ce lead n'a pas de numéro de téléphone");
         }
       } else {
-        alert('Aucun lead HOT disponible');
+        toast.info('Aucun lead HOT disponible');
       }
     } catch (error) {
       console.error('Error calling lead:', error);
-      alert('Erreur lors de l\'appel');
+      toast.error("Erreur lors de l'appel");
     }
   };
 
@@ -145,14 +146,14 @@ const QuickActions = ({ userType, userId }) => {
             notes: 'Email envoyé depuis quick action mobile'
           });
         } else {
-          alert('Ce lead n\'a pas d\'email');
+          toast.warning("Ce lead n'a pas d'email");
         }
       } else {
-        alert('Aucun lead HOT disponible');
+        toast.info('Aucun lead HOT disponible');
       }
     } catch (error) {
       console.error('Error sending email:', error);
-      alert('Erreur lors de l\'envoi d\'email');
+      toast.error("Erreur lors de l'envoi d'email");
     }
   };
 
@@ -254,7 +255,7 @@ const AddLeadModal = ({ userId, onClose }) => {
       });
 
       if (response.ok) {
-        alert('Lead créé avec succès! ✅');
+        toast.success('Lead créé avec succès ! ✅');
         onClose();
         window.location.reload();
       } else {
@@ -278,7 +279,7 @@ const AddLeadModal = ({ userId, onClose }) => {
         await registration.sync.register('sync-leads');
       }
 
-      alert('Lead sauvegardé hors ligne. Sera synchronisé à la reconnexion. 📱');
+      toast.info('Lead sauvegardé hors ligne. Sera synchronisé à la reconnexion. 📱');
       onClose();
     } finally {
       setSaving(false);

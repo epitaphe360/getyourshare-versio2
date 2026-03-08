@@ -194,16 +194,16 @@ const MarketingDashboard = lazy(() => import('./pages/marketing/MarketingDashboa
 const CRMDashboard = lazy(() => import('./pages/crm/CRMDashboard'));
 
 // Fiscal Dashboards (Role-specific)
-// const FiscalDashboardAdmin = lazy(() => import('./components/fiscal/FiscalDashboardAdmin'));
-// const FiscalDashboardMerchant = lazy(() => import('./components/fiscal/FiscalDashboardMerchant'));
-// const FiscalDashboardInfluencer = lazy(() => import('./components/fiscal/FiscalDashboardInfluencer'));
-// const FiscalDashboardCommercial = lazy(() => import('./components/fiscal/FiscalDashboardCommercial'));
+const FiscalDashboardAdmin = lazy(() => import('./components/fiscal/FiscalDashboardAdmin'));
+const FiscalDashboardMerchant = lazy(() => import('./components/fiscal/FiscalDashboardMerchant'));
+const FiscalDashboardInfluencer = lazy(() => import('./components/fiscal/FiscalDashboardInfluencer'));
+const FiscalDashboardCommercial = lazy(() => import('./components/fiscal/FiscalDashboardCommercial'));
 
 // Fiscal Utilities
-// const InvoiceGeneratorNew = lazy(() => import('./components/fiscal/InvoiceGenerator'));
-// const VATCalculator = lazy(() => import('./components/fiscal/VATCalculator'));
-// const TaxDeclarationForm = lazy(() => import('./components/fiscal/TaxDeclarationForm'));
-// const AccountingExport = lazy(() => import('./components/fiscal/AccountingExport'));
+const InvoiceGeneratorNew = lazy(() => import('./pages/fiscal/InvoiceGeneratorNew'));
+const VATCalculator = lazy(() => import('./pages/fiscal/VATCalculator'));
+const TaxDeclarationForm = lazy(() => import('./pages/fiscal/TaxDeclarationForm'));
+const AccountingExport = lazy(() => import('./pages/fiscal/AccountingExport'));
 
 // ---------- Invoices - Influencer & Commercial Invoices for Tax ----------
 const InfluencerInvoicesPage = lazy(() => import('./pages/invoices/InfluencerInvoicesPage'));
@@ -1179,7 +1179,7 @@ function App() {
                   path="/fiscal/admin"
                   element={
                     <RoleProtectedRoute allowedRoles={['admin']}>
-                      <TaxDashboard />
+                      <FiscalDashboardAdmin />
                     </RoleProtectedRoute>
                   }
                 />
@@ -1189,7 +1189,7 @@ function App() {
                   path="/fiscal/merchant"
                   element={
                     <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
-                      <TaxDashboard />
+                      <FiscalDashboardMerchant />
                     </RoleProtectedRoute>
                   }
                 />
@@ -1199,7 +1199,7 @@ function App() {
                   path="/fiscal/influencer"
                   element={
                     <RoleProtectedRoute allowedRoles={['influencer', 'admin']}>
-                      <TaxDashboard />
+                      <FiscalDashboardInfluencer />
                     </RoleProtectedRoute>
                   }
                 />
@@ -1209,7 +1209,7 @@ function App() {
                   path="/fiscal/commercial"
                   element={
                     <RoleProtectedRoute allowedRoles={['commercial', 'admin']}>
-                      <TaxDashboard />
+                      <FiscalDashboardCommercial />
                     </RoleProtectedRoute>
                   }
                 />
@@ -1228,7 +1228,7 @@ function App() {
                   path="/fiscal/vat/calculator"
                   element={
                     <ProtectedRoute>
-                      <TaxDashboard />
+                      <VATCalculator />
                     </ProtectedRoute>
                   }
                 />
@@ -1237,7 +1237,7 @@ function App() {
                   path="/fiscal/vat/declare"
                   element={
                     <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
-                      <TaxDashboard />
+                      <TaxDeclarationForm />
                     </RoleProtectedRoute>
                   }
                 />
@@ -1246,7 +1246,7 @@ function App() {
                   path="/fiscal/accounting/export"
                   element={
                     <RoleProtectedRoute allowedRoles={['merchant', 'admin']}>
-                      <TaxDashboard />
+                      <AccountingExport />
                     </RoleProtectedRoute>
                   }
                 />

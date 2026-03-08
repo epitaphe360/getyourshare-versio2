@@ -705,7 +705,16 @@ try:
     app.include_router(crm_router)
     logger.info("✅ CRM endpoints loaded")
 except ImportError as e:
-    logger.warning(f"⚠️ CRM endpoints not available: {e}") - Pour récupérer les factures pour les impôts
+    logger.warning(f"⚠️ CRM endpoints not available: {e}")
+
+# Marketing Endpoints (Segmentation, Campagnes, Win-Back)
+try:
+    from marketing_endpoints import router as marketing_router
+    app.include_router(marketing_router)
+    logger.info("✅ Marketing endpoints loaded")
+except ImportError as e:
+    logger.warning(f"⚠️ Marketing endpoints not available: {e}")
+# Pour récupérer les factures pour les impôts
 try:
     from influencer_invoices_endpoints import router as influencer_invoices_router
     app.include_router(influencer_invoices_router)

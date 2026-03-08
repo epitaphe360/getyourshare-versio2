@@ -19,6 +19,7 @@ import {
   PieChart,
   Filter
 } from 'lucide-react';
+import { toast } from 'react-toastify';
 import api from '../../services/api';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -43,66 +44,19 @@ const MarketingDashboard = () => {
     try {
       setLoading(true);
 
-      // Fetch customer segments
-      const segRes = await api.get('/api/marketing/segments');
-      setSegments(segRes.data.segments);
-
-      // TODO: Fetch campaigns and stats when backend endpoints are ready
-      // const campaignsRes = await api.get('/api/marketing/campaigns');
-      // const statsRes = await api.get('/api/marketing/stats');
-
-      // Mock data for now
-      setStats({
-        total_campaigns: 12,
-        active_campaigns: 5,
-        total_sent: 45230,
-        open_rate: 42.5,
-        click_rate: 18.3,
-        conversion_rate: 8.7,
-        revenue_generated: 187450,
-        abandoned_carts_recovered: 35,
-        win_back_customers: 127,
-        avg_loyalty_points: 245
-      });
-
-      setCampaigns([
-        {
-          id: 1,
-          name: 'Abandoned Cart Recovery',
-          type: 'abandoned_cart',
-          status: 'active',
-          sent: 1230,
-          opened: 523,
-          clicked: 187,
-          converted: 92,
-          revenue: 45670
-        },
-        {
-          id: 2,
-          name: 'Win-Back Spring 2024',
-          type: 'win_back',
-          status: 'active',
-          sent: 850,
-          opened: 412,
-          clicked: 156,
-          converted: 67,
-          revenue: 23400
-        },
-        {
-          id: 3,
-          name: 'Welcome Series',
-          type: 'welcome_series',
-          status: 'active',
-          sent: 2340,
-          opened: 1876,
-          clicked: 934,
-          converted: 412,
-          revenue: 67890
-        }
+      const [segRes, statsRes, campaignsRes] = await Promise.all([
+        api.get('/api/marketing/segments'),
+        api.get('/api/marketing/stats'),
+        api.get('/api/marketing/campaigns'),
       ]);
+
+      setSegments(segRes.data?.segments || []);
+      setStats(statsRes.data || {});
+      setCampaigns(campaignsRes.data?.campaigns || []);
 
     } catch (error) {
       console.error('Error fetching marketing data:', error);
+      toast.error('Erreur lors du chargement des données marketing');
     } finally {
       setLoading(false);
     }
@@ -111,10 +65,11 @@ const MarketingDashboard = () => {
   const runWinBackCampaign = async () => {
     try {
       const result = await api.post('/api/marketing/win-back');
-      alert(`✅ Campagne Win-Back lancée! ${result.data.sent_to} clients ciblés`);
+      const sent = result.data?.sent || result.data?.sent_to || 0;
+      toast.success(`Campagne Win-Back lancée ! ${sent} client(s) ciblé(s)`);
       fetchData();
     } catch (error) {
-      alert('Erreur lors du lancement de la campagne');
+      toast.error('Erreur lors du lancement de la campagne');
     }
   };
 

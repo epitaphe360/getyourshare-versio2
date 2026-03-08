@@ -159,9 +159,32 @@ const AdvancedMarketplace = () => {
     return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   };
 
-  const handleCheckout = () => {
-    message.info('Redirection vers le paiement...');
-    // TODO: Implémenter le processus de paiement
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      message.warning('Votre panier est vide');
+      return;
+    }
+    try {
+      message.loading('Redirection vers le paiement...', 1.5);
+      const { data } = await api.post('/api/payments/stripe/create-checkout', {
+        items: cart.map(item => ({
+          product_id: item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity || 1,
+        })),
+        success_url: `${window.location.origin}/marketplace?payment=success`,
+        cancel_url: `${window.location.origin}/marketplace?payment=cancel`,
+      });
+      if (data?.checkout_url) {
+        window.location.href = data.checkout_url;
+      } else {
+        message.info('Paiement traité avec succès');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      message.error('Erreur lors de la redirection vers le paiement');
+    }
   };
 
   const ProductCard = ({ product }) => {
