@@ -2,7 +2,7 @@
 builder = "NIXPACKS"
 
 [phases.setup]
-nixPkgs = ["python39", "postgresql"]
+nixPkgs = ["python311", "postgresql"]
 
 [phases.install]
 cmds = [
