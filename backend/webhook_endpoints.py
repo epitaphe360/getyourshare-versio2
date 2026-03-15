@@ -9,6 +9,14 @@ from datetime import datetime, timedelta
 from supabase_config import get_supabase_client
 from utils.error_handler import handle_error, ErrorCategory, ErrorSeverity
 import json
+import os
+import hmac
+import hashlib
+
+try:
+    import stripe
+except Exception:
+    stripe = None
 
 router = APIRouter()
 
@@ -258,13 +266,20 @@ async def stripe_webhook(request: Request):
     try:
         supabase = get_supabase_client()
         
-        # Récupérer payload
-        payload = await request.json()
-        
-        # TODO: Vérifier signature Stripe
-        # stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
-        
-        event_type = payload.get('type', 'unknown')
+        raw_body = await request.body()
+        payload = json.loads(raw_body.decode('utf-8') if raw_body else '{}')
+
+        event = payload
+        stripe_secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+        sig_header = request.headers.get("Stripe-Signature", "")
+        if stripe_secret and stripe is not None:
+            try:
+                event = stripe.Webhook.construct_event(raw_body, sig_header, stripe_secret)
+            except Exception as verify_err:
+                raise HTTPException(status_code=401, detail=f"Invalid Stripe signature: {verify_err}")
+
+        event_type = event.get('type', 'unknown')
+        event_object = event.get('data', {}).get('object', {})
         
         # Logger le webhook
         log_entry = {
@@ -281,17 +296,61 @@ async def stripe_webhook(request: Request):
         # Traiter selon type d'événement
         try:
             if event_type == 'payment_intent.succeeded':
-                # TODO: Mettre à jour transaction correspondante
-                pass
+                payment_intent_id = event_object.get('id')
+                if payment_intent_id:
+                    supabase.table('gateway_transactions')\
+                        .update({
+                            'status': 'completed',
+                            'processed_at': datetime.now().isoformat()
+                        })\
+                        .eq('gateway', 'stripe')\
+                        .eq('gateway_transaction_id', payment_intent_id)\
+                        .execute()
             elif event_type == 'payment_intent.payment_failed':
-                # TODO: Marquer transaction comme échouée
-                pass
+                payment_intent_id = event_object.get('id')
+                if payment_intent_id:
+                    supabase.table('gateway_transactions')\
+                        .update({
+                            'status': 'failed',
+                            'processed_at': datetime.now().isoformat()
+                        })\
+                        .eq('gateway', 'stripe')\
+                        .eq('gateway_transaction_id', payment_intent_id)\
+                        .execute()
+            elif event_type == 'checkout.session.completed':
+                session_id = event_object.get('id')
+                if session_id:
+                    supabase.table('gateway_transactions')\
+                        .update({
+                            'status': 'completed',
+                            'processed_at': datetime.now().isoformat()
+                        })\
+                        .eq('gateway', 'stripe')\
+                        .eq('gateway_transaction_id', session_id)\
+                        .execute()
             elif event_type == 'customer.subscription.created':
-                # TODO: Créer abonnement
-                pass
+                try:
+                    supabase.table('subscriptions').insert({
+                        'stripe_subscription_id': event_object.get('id'),
+                        'status': event_object.get('status', 'active'),
+                        'created_at': datetime.now().isoformat(),
+                        'updated_at': datetime.now().isoformat()
+                    }).execute()
+                except Exception:
+                    pass
             elif event_type == 'customer.subscription.deleted':
-                # TODO: Annuler abonnement
-                pass
+                sub_id = event_object.get('id')
+                if sub_id:
+                    try:
+                        supabase.table('subscriptions')\
+                            .update({
+                                'status': 'canceled',
+                                'updated_at': datetime.now().isoformat()
+                            })\
+                            .eq('stripe_subscription_id', sub_id)\
+                            .execute()
+                    except Exception:
+                        pass
             
             # Marquer comme traité avec succès
             if log_id:
@@ -332,10 +391,15 @@ async def paypal_webhook(request: Request):
     try:
         supabase = get_supabase_client()
         
-        # Récupérer payload
-        payload = await request.json()
-        
-        # TODO: Vérifier signature PayPal
+        raw_body = await request.body()
+        payload = json.loads(raw_body.decode('utf-8') if raw_body else '{}')
+
+        paypal_secret = os.getenv("PAYPAL_WEBHOOK_SECRET", "")
+        transmission_sig = request.headers.get("Paypal-Transmission-Sig", "")
+        if paypal_secret:
+            expected = hmac.new(paypal_secret.encode(), raw_body, hashlib.sha256).hexdigest()
+            if transmission_sig and not hmac.compare_digest(expected, transmission_sig):
+                raise HTTPException(status_code=401, detail="Invalid PayPal webhook signature")
         
         event_type = payload.get('event_type', 'unknown')
         
@@ -354,11 +418,27 @@ async def paypal_webhook(request: Request):
         # Traiter selon type d'événement
         try:
             if event_type == 'PAYMENT.CAPTURE.COMPLETED':
-                # TODO: Mettre à jour transaction
-                pass
+                paypal_id = payload.get('resource', {}).get('id')
+                if paypal_id:
+                    supabase.table('gateway_transactions')\
+                        .update({
+                            'status': 'completed',
+                            'processed_at': datetime.now().isoformat()
+                        })\
+                        .eq('gateway', 'paypal')\
+                        .eq('gateway_transaction_id', paypal_id)\
+                        .execute()
             elif event_type == 'PAYMENT.CAPTURE.DENIED':
-                # TODO: Marquer comme échoué
-                pass
+                paypal_id = payload.get('resource', {}).get('id')
+                if paypal_id:
+                    supabase.table('gateway_transactions')\
+                        .update({
+                            'status': 'failed',
+                            'processed_at': datetime.now().isoformat()
+                        })\
+                        .eq('gateway', 'paypal')\
+                        .eq('gateway_transaction_id', paypal_id)\
+                        .execute()
             
             # Marquer comme traité
             if log_id:

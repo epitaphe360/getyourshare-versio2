@@ -17,6 +17,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
+from supabase_client import supabase
 
 from services.ai_assistant_multilingual_service import (
     AIAssistantMultilingualService,
@@ -623,24 +624,67 @@ async def get_stats():
 
     Retourne les métriques d'utilisation (démo pour l'instant)
     """
-    # TODO: Implémenter vraies stats depuis DB
-    return {
-        "success": True,
-        "data": {
-            "total_requests": 1250,
-            "requests_today": 87,
-            "popular_features": {
-                "chatbot": 450,
-                "product_description": 320,
-                "seo_optimization": 180,
-                "translation": 150,
-                "sentiment_analysis": 90,
-                "sales_prediction": 40,
-                "influencer_recommendations": 20
+    try:
+        now = datetime.utcnow()
+        today_prefix = now.date().isoformat()
+
+        logs_resp = supabase.table("ai_request_logs").select("feature,status,response_time_ms,created_at").limit(5000).execute()
+        logs = logs_resp.data or []
+
+        total_requests = len(logs)
+        requests_today = sum(1 for row in logs if str(row.get("created_at", "")).startswith(today_prefix))
+        success_count = sum(1 for row in logs if (row.get("status") or "").lower() in {"success", "ok", "completed"})
+        success_rate = (success_count / total_requests * 100) if total_requests else 100.0
+
+        response_times = [float(row.get("response_time_ms")) for row in logs if row.get("response_time_ms") is not None]
+        average_response_time_ms = round(sum(response_times) / len(response_times), 2) if response_times else 0
+
+        popular_features: Dict[str, int] = {}
+        for row in logs:
+            feature = (row.get("feature") or "unknown").strip() or "unknown"
+            popular_features[feature] = popular_features.get(feature, 0) + 1
+
+        if not logs:
+            popular_features = {
+                "chatbot": 0,
+                "product_description": 0,
+                "seo_optimization": 0,
+                "translation": 0,
+                "sentiment_analysis": 0,
+                "sales_prediction": 0,
+                "influencer_recommendations": 0
+            }
+
+        return {
+            "success": True,
+            "data": {
+                "total_requests": total_requests,
+                "requests_today": requests_today,
+                "popular_features": popular_features,
+                "average_response_time_ms": average_response_time_ms,
+                "success_rate": round(success_rate, 2),
+                "demo_mode": ai_assistant_service.demo_mode
             },
-            "average_response_time_ms": 850,
-            "success_rate": 98.5,
-            "demo_mode": ai_assistant_service.demo_mode
-        },
-        "timestamp": datetime.utcnow().isoformat()
-    }
+            "timestamp": now.isoformat()
+        }
+    except Exception:
+        return {
+            "success": True,
+            "data": {
+                "total_requests": 0,
+                "requests_today": 0,
+                "popular_features": {
+                    "chatbot": 0,
+                    "product_description": 0,
+                    "seo_optimization": 0,
+                    "translation": 0,
+                    "sentiment_analysis": 0,
+                    "sales_prediction": 0,
+                    "influencer_recommendations": 0
+                },
+                "average_response_time_ms": 0,
+                "success_rate": 100.0,
+                "demo_mode": ai_assistant_service.demo_mode
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }

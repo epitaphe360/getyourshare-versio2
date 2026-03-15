@@ -16,11 +16,15 @@ from pydantic import BaseModel, HttpUrl
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import httpx
+import os
+import base64
+import json
 from auth import get_current_user
 from supabase_client import supabase
 from utils.logger import logger
 import hashlib
 import hmac
+from urllib.parse import urlencode
 
 router = APIRouter(prefix="/api/integrations", tags=["Integrations"])
 
@@ -36,6 +40,66 @@ class IntegrationConnect(BaseModel):
 class OAuthInit(BaseModel):
     """Initialisation OAuth"""
     type: str
+    shop_domain: Optional[str] = None
+
+
+def _normalize_shop_domain(shop_domain: str) -> str:
+    shop = (shop_domain or "").strip().lower()
+    if not shop:
+        raise HTTPException(status_code=400, detail="shop_domain is required for Shopify OAuth")
+    if shop.startswith("https://"):
+        shop = shop[len("https://"):]
+    elif shop.startswith("http://"):
+        shop = shop[len("http://"):]
+    shop = shop.split("/")[0]
+    if not shop.endswith(".myshopify.com"):
+        raise HTTPException(status_code=400, detail="Invalid Shopify domain. Must end with .myshopify.com")
+    return shop
+
+
+def _sign_state(state_payload: Dict[str, Any]) -> str:
+    payload_json = json.dumps(state_payload, separators=(",", ":"), ensure_ascii=False)
+    payload_b64 = base64.urlsafe_b64encode(payload_json.encode()).decode().rstrip("=")
+    secret = os.getenv("SHOPIFY_OAUTH_STATE_SECRET") or os.getenv("JWT_SECRET") or "change-me"
+    signature = hmac.new(secret.encode(), payload_b64.encode(), hashlib.sha256).hexdigest()
+    return f"{payload_b64}.{signature}"
+
+
+def _verify_state(state: str) -> Dict[str, Any]:
+    try:
+        payload_b64, provided_sig = state.split(".", 1)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid OAuth state format")
+
+    secret = os.getenv("SHOPIFY_OAUTH_STATE_SECRET") or os.getenv("JWT_SECRET") or "change-me"
+    expected_sig = hmac.new(secret.encode(), payload_b64.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected_sig, provided_sig):
+        raise HTTPException(status_code=400, detail="Invalid OAuth state signature")
+
+    padded = payload_b64 + "=" * (-len(payload_b64) % 4)
+    try:
+        payload_json = base64.urlsafe_b64decode(padded.encode()).decode()
+        payload = json.loads(payload_json)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid OAuth state payload")
+
+    created_at = int(payload.get("ts", 0))
+    now_ts = int(datetime.utcnow().timestamp())
+    if created_at <= 0 or now_ts - created_at > 900:
+        raise HTTPException(status_code=400, detail="OAuth state expired")
+
+    return payload
+
+
+def _verify_shopify_oauth_hmac(query_params: Dict[str, str], client_secret: str) -> bool:
+    if not query_params.get("hmac"):
+        return False
+
+    received_hmac = query_params["hmac"]
+    filtered = {k: v for k, v in query_params.items() if k not in {"hmac", "signature"}}
+    message = "&".join(f"{k}={v}" for k, v in sorted(filtered.items()))
+    computed_hmac = hmac.new(client_secret.encode(), message.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(computed_hmac, received_hmac)
 
 class WebhookPayload(BaseModel):
     """Webhook payload"""
@@ -204,13 +268,38 @@ async def init_oauth(
     """
     try:
         if request.type == 'shopify':
-            # TODO: Implémenter OAuth Shopify complet
-            # Pour l'instant, retourner URL de test
-            auth_url = f"https://example.myshopify.com/admin/oauth/authorize?client_id=YOUR_CLIENT_ID&scope=read_products,write_products&redirect_uri=YOUR_REDIRECT_URI"
+            shopify_client_id = os.getenv("SHOPIFY_CLIENT_ID")
+            redirect_uri = os.getenv("SHOPIFY_REDIRECT_URI")
+            default_shop_domain = os.getenv("SHOPIFY_SHOP_DOMAIN")
+
+            if not shopify_client_id:
+                raise HTTPException(status_code=500, detail="SHOPIFY_CLIENT_ID is not configured")
+            if not redirect_uri:
+                raise HTTPException(status_code=500, detail="SHOPIFY_REDIRECT_URI is not configured")
+
+            shop_domain = _normalize_shop_domain(request.shop_domain or default_shop_domain)
+            oauth_scopes = os.getenv("SHOPIFY_SCOPES", "read_products,write_products,read_orders")
+
+            state_payload = {
+                "user_id": current_user["id"],
+                "shop": shop_domain,
+                "ts": int(datetime.utcnow().timestamp())
+            }
+            state = _sign_state(state_payload)
+
+            query = urlencode({
+                "client_id": shopify_client_id,
+                "scope": oauth_scopes,
+                "redirect_uri": redirect_uri,
+                "state": state
+            })
+            auth_url = f"https://{shop_domain}/admin/oauth/authorize?{query}"
             
             return {
                 'success': True,
-                'auth_url': auth_url
+                'auth_url': auth_url,
+                'shop_domain': shop_domain,
+                'scopes': oauth_scopes.split(',')
             }
         else:
             raise HTTPException(
@@ -225,6 +314,116 @@ async def init_oauth(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to initialize OAuth: {str(e)}"
+        )
+
+
+@router.get("/oauth/callback")
+async def oauth_callback(
+    shop: str = Query(..., description="Shopify shop domain"),
+    code: str = Query(..., description="OAuth authorization code"),
+    hmac: str = Query(..., description="HMAC signature from Shopify"),
+    state: str = Query(..., description="Signed state"),
+):
+    """
+    Callback OAuth Shopify: échange code -> access token, puis sauvegarde intégration.
+    """
+    try:
+        shopify_client_id = os.getenv("SHOPIFY_CLIENT_ID")
+        shopify_client_secret = os.getenv("SHOPIFY_CLIENT_SECRET")
+        redirect_uri = os.getenv("SHOPIFY_REDIRECT_URI")
+
+        if not shopify_client_id or not shopify_client_secret or not redirect_uri:
+            raise HTTPException(status_code=500, detail="Shopify OAuth environment variables are missing")
+
+        shop_domain = _normalize_shop_domain(shop)
+        state_payload = _verify_state(state)
+        state_user_id = state_payload.get("user_id")
+        state_shop = state_payload.get("shop")
+
+        if not state_user_id:
+            raise HTTPException(status_code=400, detail="Invalid state: missing user_id")
+        if state_shop and state_shop != shop_domain:
+            raise HTTPException(status_code=400, detail="Invalid state: shop mismatch")
+
+        query_params = {
+            "shop": shop,
+            "code": code,
+            "hmac": hmac,
+            "state": state,
+        }
+        if not _verify_shopify_oauth_hmac(query_params, shopify_client_secret):
+            raise HTTPException(status_code=401, detail="Invalid Shopify OAuth signature")
+
+        token_url = f"https://{shop_domain}/admin/oauth/access_token"
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            token_resp = await client.post(
+                token_url,
+                json={
+                    "client_id": shopify_client_id,
+                    "client_secret": shopify_client_secret,
+                    "code": code,
+                    "redirect_uri": redirect_uri,
+                },
+            )
+
+        if token_resp.status_code != 200:
+            logger.error(f"Shopify token exchange failed: {token_resp.status_code} - {token_resp.text}")
+            raise HTTPException(status_code=400, detail="Failed to exchange Shopify OAuth code")
+
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+        scope = token_data.get("scope", "")
+        if not access_token:
+            raise HTTPException(status_code=400, detail="Missing access_token in Shopify response")
+
+        config = {
+            "shop_url": f"https://{shop_domain}",
+            "access_token": access_token,
+            "scope": scope,
+            "connected_via": "oauth",
+        }
+
+        existing = supabase.table('integrations')\
+            .select('id')\
+            .eq('user_id', state_user_id)\
+            .eq('type', 'shopify')\
+            .limit(1)\
+            .execute()
+
+        if existing.data:
+            integration_id = existing.data[0]['id']
+            supabase.table('integrations').update({
+                'config': config,
+                'status': 'connected',
+                'last_test': datetime.utcnow().isoformat(),
+                'updated_at': datetime.utcnow().isoformat(),
+            }).eq('id', integration_id).execute()
+        else:
+            supabase.table('integrations').insert({
+                'user_id': state_user_id,
+                'type': 'shopify',
+                'config': config,
+                'status': 'connected',
+                'auto_sync': False,
+                'products_count': 0,
+                'created_at': datetime.utcnow().isoformat(),
+                'updated_at': datetime.utcnow().isoformat(),
+            }).execute()
+
+        return {
+            'success': True,
+            'message': 'Shopify connected successfully',
+            'shop_domain': shop_domain,
+            'scope': scope,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Shopify OAuth callback failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process OAuth callback: {str(e)}"
         )
 
 

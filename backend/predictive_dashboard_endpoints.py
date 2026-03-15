@@ -4,6 +4,8 @@ Endpoints pour le dashboard prédictif Netflix-Style
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import datetime
+import os
 
 from predictive_dashboard_service import (
     PredictiveDashboardService,
@@ -115,8 +117,23 @@ async def get_wrapped_stats(
     try:
         campaign_history = await get_user_campaigns(current_user["id"])
 
-        # Filtrer par année si nécessaire
-        # TODO: Implémenter le filtrage par année
+        filtered_history = []
+        for campaign in (campaign_history or []):
+            date_candidate = (
+                campaign.get("created_at")
+                or campaign.get("date")
+                or campaign.get("campaign_date")
+            )
+            if not date_candidate:
+                continue
+            try:
+                year_candidate = datetime.fromisoformat(str(date_candidate).replace("Z", "+00:00")).year
+                if year_candidate == year:
+                    filtered_history.append(campaign)
+            except Exception:
+                continue
+
+        campaign_history = filtered_history
 
         wrapped_stats = dashboard_service._generate_wrapped_stats(
             campaign_history=campaign_history,
@@ -126,7 +143,7 @@ async def get_wrapped_stats(
         return {
             "year": year,
             "wrapped": wrapped_stats,
-            "shareable_image_url": None  # TODO: Générer une image partageable
+            "shareable_image_url": f"{os.getenv('FRONTEND_URL', '').rstrip('/')}/dashboard/predictive/wrapped?year={year}" if os.getenv('FRONTEND_URL') else None
         }
 
     except Exception as e:
@@ -186,29 +203,44 @@ async def get_all_leaderboards(
     """
 
     try:
-        # TODO: Implémenter avec vraies données
-        leaderboards = [
-            {
-                "category": "Top Earners (Ce mois)",
-                "user_rank": 45,
-                "total_users": 500,
-                "top_users": [
-                    {"rank": 1, "username": "TopInfluencer1", "value": 25000, "avatar": None},
-                    {"rank": 2, "username": "ProMarketer", "value": 22000, "avatar": None},
-                    {"rank": 3, "username": "EliteAffiliate", "value": 20000, "avatar": None}
-                ]
-            },
-            {
-                "category": "Meilleurs Taux de Conversion",
-                "user_rank": 23,
-                "total_users": 500,
-                "top_users": [
-                    {"rank": 1, "username": "ConversionKing", "value": 8.5, "avatar": None},
-                    {"rank": 2, "username": "SalesPro", "value": 7.2, "avatar": None},
-                    {"rank": 3, "username": "MarketingGuru", "value": 6.8, "avatar": None}
-                ]
-            }
-        ]
+        users_resp = supabase.table("users").select("id,username,avatar_url").limit(200).execute()
+        users = users_resp.data or []
+        user_map = {u.get("id"): u for u in users}
+
+        conv_resp = supabase.table("conversions").select("user_id,amount").limit(5000).execute()
+        conversions = conv_resp.data or []
+
+        revenue_by_user = {}
+        for conv in conversions:
+            uid = conv.get("user_id")
+            if not uid:
+                continue
+            revenue_by_user[uid] = revenue_by_user.get(uid, 0.0) + float(conv.get("amount") or 0.0)
+
+        ranked = sorted(revenue_by_user.items(), key=lambda item: item[1], reverse=True)
+        top_users = []
+        for idx, (uid, value) in enumerate(ranked[:10], start=1):
+            user = user_map.get(uid, {})
+            top_users.append({
+                "rank": idx,
+                "username": user.get("username") or f"user_{str(uid)[:8]}",
+                "value": round(value, 2),
+                "avatar": user.get("avatar_url")
+            })
+
+        current_uid = current_user.get("id")
+        user_rank = None
+        for idx, (uid, _) in enumerate(ranked, start=1):
+            if uid == current_uid:
+                user_rank = idx
+                break
+
+        leaderboards = [{
+            "category": "Top Earners (Global)",
+            "user_rank": user_rank,
+            "total_users": len(ranked),
+            "top_users": top_users
+        }]
 
         return {"leaderboards": leaderboards}
 

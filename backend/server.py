@@ -522,7 +522,11 @@ from social_media_endpoints import router as social_media_router
 from affiliation_requests_endpoints import router as affiliation_requests_router
 from kyc_endpoints import router as kyc_router
 from twofa_endpoints import router as twofa_router
-# from ai_bot_endpoints import router as ai_bot_router  # Temporairement commenté (problème OpenAI)
+try:
+    from ai_bot_endpoints import router as ai_bot_router
+except Exception as _ai_bot_import_err:
+    ai_bot_router = None
+    logger.warning(f"⚠️ ai_bot_endpoints non disponible: {_ai_bot_import_err}")
 from subscription_endpoints import router as subscription_router
 from coupon_endpoints import router as coupon_router
 from team_endpoints import router as team_router
@@ -542,8 +546,11 @@ from ai_content_endpoints import router as ai_content_router
 from mobile_payment_endpoints import router as mobile_payment_router
 from smart_match_endpoints import router as smart_match_router
 from trust_score_endpoints import router as trust_score_router
-# Temporairement commenté pour éviter les problèmes d'import pandas/numpy
-# from predictive_dashboard_endpoints import router as predictive_dashboard_router
+try:
+    from predictive_dashboard_endpoints import router as predictive_dashboard_router
+except Exception as _predictive_import_err:
+    predictive_dashboard_router = None
+    logger.warning(f"⚠️ predictive_dashboard_endpoints non disponible: {_predictive_import_err}")
 
 # Moderation IA
 from moderation_endpoints import router as moderation_router
@@ -620,7 +627,9 @@ app.include_router(twofa_router)
 if stripe_webhook_router is not None:
     app.include_router(stripe_webhook_router)
     logger.info("✅ stripe_webhook_handler router activé")
-# app.include_router(ai_bot_router)  # Temporairement commenté
+if ai_bot_router is not None:
+    app.include_router(ai_bot_router)
+    logger.info("✅ ai_bot_router activé")
 app.include_router(services_leads_router)  # Services & Leads Management
 app.include_router(admin_users_router)  # Admin User Management
 app.include_router(admin_analytics_router)  # Admin Analytics Dashboard
@@ -658,7 +667,9 @@ app.include_router(fiscal_router)
 app.include_router(payment_webhooks_router, prefix="/api", tags=["Payment Webhooks"])
 app.include_router(smart_match_router)
 app.include_router(trust_score_router)
-# app.include_router(predictive_dashboard_router)  # Temporairement commenté
+if predictive_dashboard_router is not None:
+    app.include_router(predictive_dashboard_router)
+    logger.info("✅ predictive_dashboard_router activé")
 app.include_router(moderation_router)
 
 # Nouveaux endpoints - Ecosystem complet
