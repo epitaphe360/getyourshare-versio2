@@ -5,6 +5,7 @@ Gestion des paiements récurrents, webhooks et transactions
 
 import os
 import stripe
+import requests
 from typing import Optional, Dict, Any
 from datetime import datetime
 from dotenv import load_dotenv
@@ -355,12 +356,58 @@ class CMIPaymentService:
     @staticmethod
     def create_payment(amount: float, order_id: str, customer_email: str) -> Dict[str, Any]:
         """Crée un paiement CMI"""
-        # TODO: Implémenter l'intégration CMI
-        # Documentation: https://www.cmi.co.ma
-        return {
-            "success": False,
-            "error": "CMI integration not implemented yet"
+        merchant_id = os.getenv("CMI_MERCHANT_ID")
+        api_key = os.getenv("CMI_API_KEY")
+        endpoint = os.getenv("CMI_API_ENDPOINT", "https://payment.cmi.co.ma/fim/api/pay")
+        base_url = os.getenv("BASE_URL", os.getenv("API_URL", "http://localhost:5000"))
+
+        if not merchant_id or not api_key:
+            return {
+                "success": True,
+                "gateway": "cmi",
+                "transaction_id": f"mock_cmi_{order_id}",
+                "payment_url": f"{base_url}/mock-payment/cmi?oid={order_id}",
+                "status": "pending"
+            }
+
+        payload = {
+            "clientid": merchant_id,
+            "amount": f"{amount:.2f}",
+            "currency": "504",
+            "oid": order_id,
+            "okUrl": f"{base_url}/api/payments/cmi/success",
+            "failUrl": f"{base_url}/api/payments/cmi/fail",
+            "callbackUrl": f"{base_url}/api/webhooks/cmi",
+            "email": customer_email,
+            "BillToName": (customer_email or "client").split("@")[0]
         }
+
+        hash_string = f"{merchant_id}|{order_id}|{amount:.2f}|{api_key}"
+        payload["hash"] = hmac.new(
+            api_key.encode(),
+            hash_string.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        try:
+            response = requests.post(endpoint, data=payload, timeout=30)
+            response.raise_for_status()
+            data = response.json() if "application/json" in response.headers.get("Content-Type", "") else {}
+            return {
+                "success": True,
+                "gateway": "cmi",
+                "transaction_id": data.get("tranid") or f"cmi_{order_id}_{int(datetime.now().timestamp())}",
+                "payment_url": data.get("redirectUrl") or data.get("payment_url"),
+                "status": "pending",
+                "response": data
+            }
+        except Exception as e:
+            logger.error(f"CMI payment error: {e}")
+            return {
+                "success": False,
+                "gateway": "cmi",
+                "error": str(e)
+            }
 
 
 class PayZenService:
@@ -369,12 +416,68 @@ class PayZenService:
     @staticmethod
     def create_payment(amount: float, order_id: str, customer_email: str) -> Dict[str, Any]:
         """Crée un paiement PayZen"""
-        # TODO: Implémenter l'intégration PayZen
-        # Documentation: https://payzen.eu
-        return {
-            "success": False,
-            "error": "PayZen integration not implemented yet"
+        shop_id = os.getenv("PAYZEN_SHOP_ID")
+        api_key = os.getenv("PAYZEN_API_KEY")
+        endpoint = os.getenv("PAYZEN_API_ENDPOINT", "https://api.payzen.eu/api-payment/V4/Charge/CreatePayment")
+
+        if not shop_id or not api_key:
+            base_url = os.getenv("BASE_URL", os.getenv("API_URL", "http://localhost:5000"))
+            return {
+                "success": True,
+                "gateway": "payzen",
+                "transaction_id": f"mock_payzen_{order_id}",
+                "payment_url": f"{base_url}/mock-payment/payzen?order_id={order_id}",
+                "status": "pending"
+            }
+
+        auth_token = __import__("base64").b64encode(f"{shop_id}:{api_key}".encode()).decode()
+        payload = {
+            "amount": int(amount * 100),
+            "currency": "MAD",
+            "orderId": order_id,
+            "customer": {
+                "reference": order_id,
+                "email": customer_email
+            },
+            "formAction": "PAYMENT"
         }
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Basic {auth_token}"
+        }
+
+        try:
+            response = requests.post(endpoint, json=payload, headers=headers, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+
+            if data.get("status") != "SUCCESS":
+                return {
+                    "success": False,
+                    "gateway": "payzen",
+                    "error": data.get("answer", {}).get("errorMessage", "PayZen payment creation failed"),
+                    "response": data
+                }
+
+            answer = data.get("answer", {})
+            form_token = answer.get("formToken")
+            return {
+                "success": True,
+                "gateway": "payzen",
+                "transaction_id": answer.get("orderId") or f"payzen_{order_id}_{int(datetime.now().timestamp())}",
+                "form_token": form_token,
+                "payment_url": f"https://secure.payzen.eu/vads-payment/{form_token}" if form_token else None,
+                "status": "pending",
+                "response": data
+            }
+        except Exception as e:
+            logger.error(f"PayZen payment error: {e}")
+            return {
+                "success": False,
+                "gateway": "payzen",
+                "error": str(e)
+            }
 
 
 class SGMarocService:
@@ -383,8 +486,83 @@ class SGMarocService:
     @staticmethod
     def create_payment(amount: float, order_id: str, customer_email: str) -> Dict[str, Any]:
         """Crée un paiement SG Maroc"""
-        # TODO: Implémenter l'intégration SG Maroc
-        return {
-            "success": False,
-            "error": "SG Maroc integration not implemented yet"
-        }
+        client_id = os.getenv("SG_API_USERNAME")
+        client_secret = os.getenv("SG_API_PASSWORD")
+        merchant_code = os.getenv("SG_MERCHANT_CODE")
+        terminal_id = os.getenv("SG_TERMINAL_ID")
+        base_api = os.getenv("SG_API_BASE_URL", "https://epayment.sg.ma/api/v2")
+
+        if not client_id or not client_secret or not merchant_code or not terminal_id:
+            base_url = os.getenv("BASE_URL", os.getenv("API_URL", "http://localhost:5000"))
+            return {
+                "success": True,
+                "gateway": "sg_maroc",
+                "transaction_id": f"mock_sg_{order_id}",
+                "payment_url": f"{base_url}/mock-payment/sg?order_id={order_id}",
+                "status": "pending"
+            }
+
+        try:
+            token_resp = requests.post(
+                f"{base_api}/oauth/token",
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                },
+                timeout=30,
+            )
+            token_resp.raise_for_status()
+            access_token = token_resp.json().get("access_token")
+            if not access_token:
+                return {
+                    "success": False,
+                    "gateway": "sg_maroc",
+                    "error": "Failed to obtain SG Maroc access token"
+                }
+
+            payload = {
+                "merchantCode": merchant_code,
+                "terminalId": terminal_id,
+                "amount": f"{amount:.2f}",
+                "currency": "MAD",
+                "orderId": order_id,
+                "description": f"Paiement commande {order_id}",
+                "customerEmail": customer_email,
+            }
+
+            response = requests.post(
+                f"{base_api}/payment/init",
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {access_token}",
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            if not data.get("success"):
+                return {
+                    "success": False,
+                    "gateway": "sg_maroc",
+                    "error": data.get("error", "SG Maroc payment creation failed"),
+                    "response": data
+                }
+
+            return {
+                "success": True,
+                "gateway": "sg_maroc",
+                "transaction_id": data.get("transactionId") or f"sg_{order_id}_{int(datetime.now().timestamp())}",
+                "payment_url": data.get("paymentUrl"),
+                "status": "pending",
+                "response": data
+            }
+        except Exception as e:
+            logger.error(f"SG Maroc payment error: {e}")
+            return {
+                "success": False,
+                "gateway": "sg_maroc",
+                "error": str(e)
+            }
